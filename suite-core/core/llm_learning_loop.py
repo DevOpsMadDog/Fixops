@@ -56,6 +56,13 @@ logger = logging.getLogger(__name__)
 _DEFAULT_TG_DB = "data/phase1_trustgraph.db"
 _DEFAULT_SIGNALS_DB = "data/learning_signals.db"
 
+# SPEC-003 REQ-003-05: distillation trigger threshold.
+# Lowered from 10 000 → 5 000 so SCIF operators can produce a fine-tuned
+# adapter sooner. The cost_usd > 0 guard in _on_event() still ensures only
+# genuine LLM-call pairs enter the training set — fabricated $0 pairs are
+# always rejected before the count reaches this threshold.
+DISTILLATION_THRESHOLD: int = 5000
+
 # Event types we subscribe to. Strings deliberately match
 # ``core.event_bus.EventType`` values so we don't import the enum at module
 # import time (keeps the loop importable in non-FastAPI contexts).

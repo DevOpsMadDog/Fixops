@@ -12,9 +12,9 @@ pre-mortem's disqualifying/major failures are closed. Each story = a spec throug
 | 3 | SPEC-006 honest compliance (+debate round 2) | P0 | ✅ VERIFIED |
 | 4 | SPEC-009 reproducible build / lockfile / dependabot | P0 | ✅ VERIFIED |
 | 5 | SPEC-002 local Nuclei pentest connector (real exploitability) | P1 | ✅ VERIFIED |
-| 6 | **SPEC-003 local Qwen council (distill + AirGapLLMProvider)** | P1 | 🔄 IN PROGRESS |
+| 6 | SPEC-003 local council (real inference + honest labels) | P1 | ✅ VERIFIED |
 | 7 | SPEC-005b auto-populate TrustGraph + attack-path from scans | P1 | ⏳ TODO |
-| 8 | SPEC-007 systemic tenancy (TenantScopedEngine + ContextVar + CI lint) | P1 | ⏳ TODO |
+| 8 | **SPEC-007 systemic tenancy (TenantScopedEngine + ContextVar + CI lint)** | P1 | 🔄 IN PROGRESS |
 | 9 | SPEC-004 multi-language reachability (tree-sitter TS/Java/Go) | P2 | ⏳ TODO |
 | 10 | SPEC-008 HA / Litestream replication | P1 | ⏳ TODO |
 | 11 | starlette 1.0 + torch CVE bump (own verified pass) | P1 | ⏳ TODO |
@@ -24,3 +24,4 @@ pre-mortem's disqualifying/major failures are closed. Each story = a spec throug
 ## Loop log
 - 2026-06-01: stories 1-4 done. Starting story 5 (SPEC-002 Nuclei).
 - 2026-06-01: story 5 (SPEC-002 Nuclei) VERIFIED — real connector, honest 503, no random. Starting story 6 (SPEC-003 local council).
+- 2026-06-01: story 6 (SPEC-003 local council) VERIFIED — real local inference + honest is_real_inference labels. Next: story 8 (SPEC-007 systemic tenancy — highest-value spillage fix).

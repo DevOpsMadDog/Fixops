@@ -1138,6 +1138,9 @@ class LLMCouncilEngine:
         )
         duration = (time.perf_counter() - start) * 1000
 
+        # SPEC-003: carry provenance fields from LLMResponse into the analysis
+        # metadata so callers (verdict persist, test assertions) can inspect
+        # whether a given member analysis came from a real model or a heuristic.
         return MemberAnalysis(
             member_name=member.name or member.provider.name,
             expertise=member.expertise,
@@ -1154,7 +1157,10 @@ class LLMCouncilEngine:
                 "duration_ms": round(duration, 2),
                 "mode": response.metadata.get("mode", "unknown"),
                 "cost_usd": response.metadata.get("cost_usd", 0.0),
-                "model": response.metadata.get("model"),
+                "model": response.metadata.get("model") or getattr(response, "model", None),
+                # SPEC-003 provenance — always propagated
+                "source": getattr(response, "source", "heuristic"),
+                "is_real_inference": getattr(response, "is_real_inference", False),
             },
         )
 
@@ -1502,6 +1508,92 @@ class CouncilFactory:
         )
 
     # ------------------------------------------------------------------
+    # SPEC-003 REQ-003-02: local-backend preference
+    # ------------------------------------------------------------------
+
+    def _try_build_airgap_provider(self, name: str, expertise: str) -> Optional["BaseLLMProvider"]:
+        """Attempt to build an AirGapLLMProvider for a named slot.
+
+        Returns the provider on success, or None if no local backend is
+        reachable. Never raises — probe failure is a normal condition
+        (non-air-gapped deployments).
+        """
+        try:
+            from core.airgap_config import LocalLLMRouter
+            from core.llm_providers import AirGapLLMProvider
+            router = LocalLLMRouter()
+            detected = router.detect_available_backend()
+            if not getattr(detected, "available", False):
+                return None
+            router.config = detected
+            return AirGapLLMProvider(
+                name=name,
+                local_llm_router=router,
+                style="consensus",
+                focus=[expertise],
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("_try_build_airgap_provider: %s — %s", name, exc)
+            return None
+
+    def _build_local_council_if_available(
+        self,
+        confidence_threshold: float,
+        max_disagreement: int,
+    ) -> Optional["LLMCouncilEngine"]:
+        """Return an LLMCouncilEngine backed by local inference when a backend
+        is detected, regardless of air-gap mode.
+
+        SPEC-003 REQ-003-02: CouncilFactory selects AirGapLLMProvider over
+        DeterministicLLMProvider when a local backend is present.  This method
+        is called by create_security_council() before falling through to the
+        cloud-provider or deterministic paths.
+
+        Returns None when no local backend is reachable so the caller can
+        continue with the next selection strategy.
+        """
+        provider = self._try_build_airgap_provider(
+            "local-model-primary", "vulnerability_assessment"
+        )
+        if provider is None:
+            return None
+
+        provider2 = self._try_build_airgap_provider(
+            "local-model-secondary", "code_analysis"
+        )
+        members = [
+            CouncilMember(
+                provider=provider,
+                expertise="vulnerability_assessment",
+                weight=1.0,
+                name="Primary Analyst (local model)",
+            ),
+        ]
+        if provider2 is not None:
+            members.append(
+                CouncilMember(
+                    provider=provider2,
+                    expertise="code_analysis",
+                    weight=0.9,
+                    name="Code Analyst (local model)",
+                )
+            )
+
+        logger.info(
+            "CouncilFactory: local LLM backend detected — using AirGapLLMProvider "
+            "for %d council member(s) (SPEC-003 REQ-003-02)",
+            len(members),
+        )
+        return LLMCouncilEngine(
+            members=members,
+            chairman=members[0].provider,
+            escalation_provider=self.opus,
+            confidence_threshold=confidence_threshold,
+            max_disagreement=max_disagreement,
+            max_workers=len(members),
+        )
+
+    # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
@@ -1616,6 +1708,16 @@ class CouncilFactory:
                 confidence_threshold=confidence_threshold,
                 max_disagreement=min(max_disagreement, 1),
             )
+
+        # SPEC-003 REQ-003-02: prefer local backend over deterministic/keyless-cloud
+        # when a backend is detected (auto preset only — explicit presets opt out).
+        if preset == "auto":
+            local_council = self._build_local_council_if_available(
+                confidence_threshold=confidence_threshold,
+                max_disagreement=max_disagreement,
+            )
+            if local_council is not None:
+                return local_council
 
         # Auto preset: prefer providers with real keys; fall back to mulerouter council
         if preset == "auto":

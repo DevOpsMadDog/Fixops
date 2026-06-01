@@ -20,7 +20,7 @@ CRON_LOG_DIR="${DATA_DIR}/cron"
 TRAIN_JSONL="${DATA_DIR}/distill_train.jsonl"
 MANIFEST="${DATA_DIR}/distill_dataset_manifest.json"
 
-THRESHOLD=10000
+THRESHOLD=5000  # SPEC-003 REQ-003-05: lowered from 10000 → 5000
 MODE="${1:-}"  # --json | --slack-md | (default markdown)
 
 # ---------------------------------------------------------------------------

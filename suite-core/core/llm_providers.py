@@ -53,7 +53,30 @@ def _emit_event(event_type: str, payload: Dict[str, Any]) -> None:
 
 @dataclass
 class LLMResponse:
-    """Normalised output returned by a provider invocation."""
+    """Normalised output returned by a provider invocation.
+
+    SPEC-003 honest-labelling contract
+    -----------------------------------
+    Every response now carries three mandatory provenance fields so callers
+    (council, learning loop, UI) can distinguish a genuine model verdict from a
+    heuristic/deterministic fallback:
+
+    ``source``
+        Human-readable provenance string.  One of:
+        - ``"local_model:<backend>:<model>"``   — real inference via local LLM
+        - ``"remote:<provider>:<model>"``        — real inference via cloud API
+        - ``"heuristic"``                        — deterministic rule / no model
+
+    ``is_real_inference``
+        True only when a model (local or cloud) was actually called and the
+        response text came from that model. False for heuristic/deterministic
+        paths. MUST NOT be set True on a fallback/error path. This is the
+        machine-readable DPO guard — the learning loop checks it before
+        accepting a verdict as training signal.
+
+    ``model``
+        The model identifier string, or None when is_real_inference is False.
+    """
 
     recommended_action: str
     confidence: float
@@ -62,6 +85,10 @@ class LLMResponse:
     compliance_concerns: Sequence[str] = field(default_factory=list)
     attack_vectors: Sequence[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    # SPEC-003: honest provenance fields — always set by providers
+    source: str = "heuristic"
+    is_real_inference: bool = False
+    model: Optional[str] = None
 
 
 class BaseLLMProvider:
@@ -85,8 +112,15 @@ class BaseLLMProvider:
         mitigation_hints: Mapping[str, Any] | None = None,
         system_prompt: str | None = None,
     ) -> LLMResponse:
-        """Return a deterministic response when a provider cannot be reached."""
+        """Return a deterministic/heuristic response when a provider cannot be reached.
 
+        SPEC-003: sets is_real_inference=False and source="heuristic" so callers
+        (learning loop, council) can detect that no model was consulted.  Reasoning
+        is explicitly labelled with "[heuristic: no local or cloud model available]"
+        so the label is visible at every layer, not just in metadata.
+        """
+
+        heuristic_label = "[heuristic: no local or cloud model available]"
         metadata = {
             "mode": "deterministic",
             "reason": "provider_disabled",
@@ -96,14 +130,24 @@ class BaseLLMProvider:
         mitre = _ensure_list(hints.get("mitre_candidates"))
         compliance = _ensure_list(hints.get("compliance"))
         attack_vectors = _ensure_list(hints.get("attack_vectors"))
+        # Embed the heuristic label in reasoning so every consumer sees it
+        labelled_reasoning = (
+            default_reasoning
+            if default_reasoning.endswith(heuristic_label)
+            else f"{default_reasoning} {heuristic_label}"
+        )
         response = LLMResponse(
             recommended_action=default_action,
             confidence=default_confidence,
-            reasoning=default_reasoning,
+            reasoning=labelled_reasoning,
             mitre_techniques=mitre,
             compliance_concerns=compliance,
             attack_vectors=attack_vectors,
             metadata=metadata,
+            # SPEC-003: explicit honest labelling — never claim to be a model verdict
+            source="heuristic",
+            is_real_inference=False,
+            model=None,
         )
         _emit_event(
             "llm.analysis.completed",
@@ -1686,7 +1730,7 @@ class AirGapLLMProvider(BaseLLMProvider):
                     }
         except Exception as exc:  # noqa: BLE001 - air-gap fallback path
             logger.warning(
-                "AirGapLLMProvider %s failed (%s) — returning deterministic fallback (still air-gapped)",
+                "AirGapLLMProvider %s failed (%s) — returning heuristic fallback (still air-gapped)",
                 self.name, type(exc).__name__,
             )
             metadata = {
@@ -1698,10 +1742,16 @@ class AirGapLLMProvider(BaseLLMProvider):
                 "model": self.model,
                 "air_gapped": True,
             }
+            # SPEC-003: backend-down fallback — is_real_inference MUST be False.
+            # Reasoning explicitly labels this as a heuristic so no consumer can
+            # mistake it for model output.
+            heuristic_reason = (
+                f"[heuristic: local model unavailable — {type(exc).__name__}]"
+            )
             return LLMResponse(
                 recommended_action=default_action,
                 confidence=default_confidence,
-                reasoning=f"{default_reasoning}\n[Air-gap LLM fallback: {type(exc).__name__}]",
+                reasoning=f"{default_reasoning} {heuristic_reason}",
                 mitre_techniques=_ensure_list(
                     (mitigation_hints or {}).get("mitre_candidates")
                 ),
@@ -1712,9 +1762,15 @@ class AirGapLLMProvider(BaseLLMProvider):
                     (mitigation_hints or {}).get("attack_vectors")
                 ),
                 metadata=metadata,
+                # SPEC-003: honest labelling — never a model verdict on failure path
+                source="heuristic",
+                is_real_inference=False,
+                model=None,
             )
         duration = (time.perf_counter() - start) * 1000
-        return _response_from_payload(
+        # SPEC-003: real inference succeeded — label with local_model:<backend>:<model>
+        local_source = f"local_model:{self.backend}:{self.model}"
+        resp = _response_from_payload(
             parsed,
             default_action=default_action,
             default_confidence=default_confidence,
@@ -1728,8 +1784,15 @@ class AirGapLLMProvider(BaseLLMProvider):
                 "endpoint": self.endpoint,
                 "duration_ms": round(duration, 2),
                 "air_gapped": True,
+                "source": local_source,
+                "is_real_inference": True,
             },
         )
+        # Attach provenance fields directly onto the response object
+        resp.source = local_source
+        resp.is_real_inference = True
+        resp.model = self.model
+        return resp
 
 
 class SentinelCyberProvider(BaseLLMProvider):
@@ -1812,6 +1875,26 @@ def _response_from_payload(
     # can access structured fields like "patches", "title", etc. that are not
     # part of the normalised LLMResponse schema.
     full_metadata["raw_payload"] = dict(payload)
+
+    # SPEC-003: derive provenance fields from metadata when present.
+    # Callers (AirGapLLMProvider, OpenRouterChatProvider) inject these into
+    # metadata so the response carries honest labelling without needing a
+    # separate code path.
+    meta_source: str = full_metadata.get("source", "")
+    meta_is_real: bool = bool(full_metadata.get("is_real_inference", False))
+    meta_model: Optional[str] = full_metadata.get("model")
+
+    # If caller didn't set provenance, infer from the "mode" key:
+    # "remote" / "self-hosted" / "air-gapped" = real inference; anything else = heuristic.
+    if not meta_source:
+        mode_val = full_metadata.get("mode", "")
+        if mode_val in ("remote", "self-hosted", "air-gapped"):
+            meta_is_real = True
+            meta_source = f"remote:{full_metadata.get('provider', 'unknown')}:{meta_model or 'unknown'}"
+        else:
+            meta_is_real = False
+            meta_source = "heuristic"
+
     return LLMResponse(
         recommended_action=recommended_action,
         confidence=confidence,
@@ -1820,6 +1903,9 @@ def _response_from_payload(
         compliance_concerns=compliance,
         attack_vectors=attack_vectors,
         metadata=full_metadata,
+        source=meta_source,
+        is_real_inference=meta_is_real,
+        model=meta_model,
     )
 
 
