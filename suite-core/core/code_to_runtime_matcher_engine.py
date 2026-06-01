@@ -26,6 +26,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 try:
+    from core._tg_safe_emit import safe_emit as _tg_safe_emit
+except Exception:  # noqa: BLE001
+    _tg_safe_emit = None  # type: ignore[assignment]
+
+try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
 except ImportError:  # pragma: no cover - bus optional
     _get_tg_bus = None
@@ -565,11 +570,6 @@ class CodeToRuntimeMatcherEngine:
     # ------------------------------------------------------------------
 
     def _emit_event(self, event_type: str, payload: Dict[str, Any]) -> None:
-        if _get_tg_bus is None:
+        if _tg_safe_emit is None:
             return
-        try:
-            bus = _get_tg_bus()
-            if bus is not None and hasattr(bus, "emit"):
-                bus.emit(event_type, payload)
-        except Exception:  # noqa: BLE001
-            _logger.debug("trustgraph bus emit failed for %s", event_type)
+        _tg_safe_emit(event_type, payload)

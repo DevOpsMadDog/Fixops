@@ -314,21 +314,63 @@ class CodeRepoAgent(BaseAgent):
         return None
 
     async def _collect_sbom(self) -> Optional[Dict[str, Any]]:
-        """Collect SBOM by generating from code."""
-        try:
-            from pathlib import Path
+        """Collect a real CycloneDX SBOM by running ``syft`` on the repo path.
 
-            from risk.sbom.generator import SBOMFormat, SBOMGenerator
+        Requires syft >= 0.80 installed in PATH (or at /opt/homebrew/bin/syft).
+        Returns the parsed CycloneDX JSON dict on success, or honest ``None``
+        with a warning log when syft is absent or the scan fails.  Never returns
+        fabricated component data.
+        """
+        import json as _json
+        import shutil
+        import subprocess
+        from pathlib import Path
 
-            generator = SBOMGenerator()
-            sbom = generator.generate_from_codebase(
-                Path(self.repo_path), SBOMFormat.CYCLONEDX
+        if not self.repo_path or not Path(self.repo_path).is_dir():
+            logger.warning("_collect_sbom: repo_path not set or not a directory — skipping")
+            return None
+
+        # Locate syft — prefer PATH, then common Homebrew location.
+        syft_bin = shutil.which("syft") or "/opt/homebrew/bin/syft"
+        if not shutil.which(syft_bin) and not Path(syft_bin).is_file():
+            logger.warning(
+                "_collect_sbom: syft not found in PATH or /opt/homebrew/bin/syft — "
+                "install syft to enable SBOM capture (https://github.com/anchore/syft)"
             )
+            return None
 
+        cmd = [syft_bin, self.repo_path, "-o", "cyclonedx-json", "--quiet"]
+        try:
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+            )
+            if proc.returncode != 0:
+                logger.warning(
+                    "_collect_sbom: syft exited %d for %s: %s",
+                    proc.returncode,
+                    self.repo_path,
+                    proc.stderr[:500],
+                )
+                return None
+
+            sbom = _json.loads(proc.stdout)
+            component_count = len(sbom.get("components", []))
+            logger.info(
+                "_collect_sbom: syft produced real CycloneDX SBOM with %d components for %s",
+                component_count,
+                self.repo_path,
+            )
             return sbom
 
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            logger.error(f"Error collecting SBOM: {e}")
+        except subprocess.TimeoutExpired:
+            logger.warning("_collect_sbom: syft timed out after 120s for %s", self.repo_path)
+            return None
+        except (_json.JSONDecodeError, OSError, ValueError) as exc:
+            logger.error("_collect_sbom: failed to parse syft output: %s", exc)
             return None
 
     async def _collect_design_context(self) -> Optional[Dict[str, Any]]:
