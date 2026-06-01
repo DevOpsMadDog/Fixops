@@ -24,6 +24,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -76,7 +77,7 @@ class ComponentCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/assets", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_asset(body: AssetCreate, org_id: str = Query(default="default")):
+def register_asset(body: AssetCreate, org_id: str = Depends(get_org_id)):
     """Register a new asset for SBOM tracking."""
     try:
         return _get_engine().register_asset(org_id, body.model_dump())
@@ -85,13 +86,13 @@ def register_asset(body: AssetCreate, org_id: str = Query(default="default")):
 
 
 @router.get("/assets", dependencies=[Depends(api_key_auth)])
-def list_assets(org_id: str = Query(default="default")):
+def list_assets(org_id: str = Depends(get_org_id)):
     """List all assets for the org."""
     return _get_engine().list_assets(org_id)
 
 
 @router.get("/assets/{asset_id}", dependencies=[Depends(api_key_auth)])
-def get_asset(asset_id: str, org_id: str = Query(default="default")):
+def get_asset(asset_id: str, org_id: str = Depends(get_org_id)):
     """Get an asset with component summary."""
     asset = _get_engine().get_asset(org_id, asset_id)
     if not asset:
@@ -108,7 +109,7 @@ def get_asset(asset_id: str, org_id: str = Query(default="default")):
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def add_component(asset_id: str, body: ComponentCreate, org_id: str = Query(default="default")):
+def add_component(asset_id: str, body: ComponentCreate, org_id: str = Depends(get_org_id)):
     """Add a component to an asset's SBOM."""
     data = body.model_dump()
     if data.get("risk_score") is None:
@@ -122,7 +123,7 @@ def add_component(asset_id: str, body: ComponentCreate, org_id: str = Query(defa
 @router.get("/assets/{asset_id}/components", dependencies=[Depends(api_key_auth)])
 def list_components(
     asset_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     has_vulns: Optional[bool] = Query(None),
 ):
     """List components for an asset, optionally filtered by vulnerability presence."""
@@ -134,7 +135,7 @@ def list_components(
 # ---------------------------------------------------------------------------
 
 @router.get("/assets/{asset_id}/export/cyclonedx", dependencies=[Depends(api_key_auth)])
-def export_cyclonedx(asset_id: str, org_id: str = Query(default="default"), save: bool = Query(False)):
+def export_cyclonedx(asset_id: str, org_id: str = Depends(get_org_id), save: bool = Query(False)):
     """Generate and return a CycloneDX 1.4 SBOM for the asset."""
     try:
         sbom = _get_engine().generate_cyclonedx(org_id, asset_id)
@@ -146,7 +147,7 @@ def export_cyclonedx(asset_id: str, org_id: str = Query(default="default"), save
 
 
 @router.get("/assets/{asset_id}/export/spdx", dependencies=[Depends(api_key_auth)])
-def export_spdx(asset_id: str, org_id: str = Query(default="default"), save: bool = Query(False)):
+def export_spdx(asset_id: str, org_id: str = Depends(get_org_id), save: bool = Query(False)):
     """Generate and return an SPDX 2.3 SBOM for the asset."""
     try:
         sbom = _get_engine().generate_spdx(org_id, asset_id)
@@ -162,19 +163,19 @@ def export_spdx(asset_id: str, org_id: str = Query(default="default"), save: boo
 # ---------------------------------------------------------------------------
 
 @router.get("/license-summary", dependencies=[Depends(api_key_auth)])
-def license_summary(org_id: str = Query(default="default")):
+def license_summary(org_id: str = Depends(get_org_id)):
     """Return license risk breakdown for the org."""
     return _get_engine().get_license_summary(org_id)
 
 
 @router.get("/vuln-exposure", dependencies=[Depends(api_key_auth)])
-def vuln_exposure(org_id: str = Query(default="default")):
+def vuln_exposure(org_id: str = Depends(get_org_id)):
     """Return vulnerability exposure statistics for the org."""
     return _get_engine().get_vuln_exposure(org_id)
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def sbom_stats(org_id: str = Query(default="default")):
+def sbom_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated SBOM statistics for the org."""
     return _get_engine().get_sbom_stats(org_id)
 
@@ -183,7 +184,7 @@ def sbom_stats(org_id: str = Query(default="default")):
 def diff_sboms(
     asset_id: str,
     other_asset_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return a component-level diff (added/removed/changed) between two assets.
 
@@ -201,7 +202,7 @@ def diff_sboms(
 
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def sbom_overview(org_id: str = Query(default="default")):
+def sbom_overview(org_id: str = Depends(get_org_id)):
     """Top-level SBOM overview: asset/component counts, vuln exposure, license summary."""
     engine = _get_engine()
     return {

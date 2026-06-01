@@ -1,7 +1,7 @@
 # SPEC-007 tenancy violation allowlist — frozen debt.
 # Format: relative/path/to/file.py:lineno:CATEGORY
 # This list may only SHRINK. Never add new entries manually.
-# Generated violations: 1726
+# Generated violations: 1714
 
 suite-api/apps/api/access_anomaly_router.py:167:V1
 suite-api/apps/api/access_anomaly_router.py:183:V1
@@ -1016,18 +1016,6 @@ suite-api/apps/api/saas_security_posture_router.py:165:V1
 suite-api/apps/api/saas_security_posture_router.py:175:V1
 suite-api/apps/api/saas_security_posture_router.py:77:V1
 suite-api/apps/api/saas_security_posture_router.py:87:V1
-suite-api/apps/api/sbom_router.py:111:V1
-suite-api/apps/api/sbom_router.py:125:V1
-suite-api/apps/api/sbom_router.py:137:V1
-suite-api/apps/api/sbom_router.py:149:V1
-suite-api/apps/api/sbom_router.py:165:V1
-suite-api/apps/api/sbom_router.py:171:V1
-suite-api/apps/api/sbom_router.py:177:V1
-suite-api/apps/api/sbom_router.py:186:V1
-suite-api/apps/api/sbom_router.py:204:V1
-suite-api/apps/api/sbom_router.py:79:V1
-suite-api/apps/api/sbom_router.py:88:V1
-suite-api/apps/api/sbom_router.py:94:V1
 suite-api/apps/api/scheduled_reports_router.py:107:V1
 suite-api/apps/api/scheduled_reports_router.py:117:V1
 suite-api/apps/api/scheduled_reports_router.py:129:V1
