@@ -25,6 +25,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -99,7 +100,7 @@ class OperatorCreate(BaseModel):
 
 @router.get("/engagements", dependencies=[Depends(api_key_auth)])
 def list_engagements(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
 ):
     """List red team engagements, optionally filtered by status."""
@@ -107,7 +108,7 @@ def list_engagements(
 
 
 @router.post("/engagements", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_engagement(body: EngagementCreate, org_id: str = Query(default="default")):
+def create_engagement(body: EngagementCreate, org_id: str = Depends(get_org_id)):
     """Create a new red team engagement."""
     try:
         return _get_engine().create_engagement(org_id, body.model_dump())
@@ -116,7 +117,7 @@ def create_engagement(body: EngagementCreate, org_id: str = Query(default="defau
 
 
 @router.get("/engagements/{engagement_id}", dependencies=[Depends(api_key_auth)])
-def get_engagement(engagement_id: str, org_id: str = Query(default="default")):
+def get_engagement(engagement_id: str, org_id: str = Depends(get_org_id)):
     """Get a single engagement by ID, including findings summary."""
     eng = _get_engine().get_engagement(org_id, engagement_id)
     if not eng:
@@ -128,7 +129,7 @@ def get_engagement(engagement_id: str, org_id: str = Query(default="default")):
 def update_engagement_status(
     engagement_id: str,
     body: EngagementStatusUpdate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Update the status of a red team engagement."""
     try:
@@ -144,7 +145,7 @@ def update_engagement_status(
 @router.get("/engagements/{engagement_id}/findings", dependencies=[Depends(api_key_auth)])
 def list_findings(
     engagement_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None),
 ):
     """List findings for an engagement, optionally filtered by severity."""
@@ -159,7 +160,7 @@ def list_findings(
 def add_finding(
     engagement_id: str,
     body: FindingCreate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Add a finding to a red team engagement."""
     try:
@@ -173,7 +174,7 @@ def add_finding(
 # ---------------------------------------------------------------------------
 
 @router.get("/engagements/{engagement_id}/ttps", dependencies=[Depends(api_key_auth)])
-def list_ttps(engagement_id: str, org_id: str = Query(default="default")):
+def list_ttps(engagement_id: str, org_id: str = Depends(get_org_id)):
     """List TTPs executed during an engagement."""
     return _get_engine().list_ttps(org_id, engagement_id)
 
@@ -186,7 +187,7 @@ def list_ttps(engagement_id: str, org_id: str = Query(default="default")):
 def add_ttp(
     engagement_id: str,
     body: TTPCreate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Log a TTP for a red team engagement."""
     try:
@@ -200,13 +201,13 @@ def add_ttp(
 # ---------------------------------------------------------------------------
 
 @router.get("/operators", dependencies=[Depends(api_key_auth)])
-def list_operators(org_id: str = Query(default="default")):
+def list_operators(org_id: str = Depends(get_org_id)):
     """List all red team operators for the org."""
     return _get_engine().list_operators(org_id)
 
 
 @router.post("/operators", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_operator(body: OperatorCreate, org_id: str = Query(default="default")):
+def add_operator(body: OperatorCreate, org_id: str = Depends(get_org_id)):
     """Register a new red team operator."""
     try:
         return _get_engine().add_operator(org_id, body.model_dump(exclude_none=True))
@@ -219,6 +220,6 @@ def add_operator(body: OperatorCreate, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_stats(org_id: str = Query(default="default")):
+def get_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated red team statistics for the org."""
     return _get_engine().get_stats(org_id)

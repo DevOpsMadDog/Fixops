@@ -28,6 +28,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -95,7 +96,7 @@ class AllowlistEntryRequest(BaseModel):
 @router.post("/registries", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_registry(
     body: RegisterRegistryRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Register a new container registry (Docker Hub, ECR, GCR, ACR, Harbor)."""
     try:
@@ -108,13 +109,13 @@ def register_registry(
 
 
 @router.get("/registries", dependencies=[Depends(api_key_auth)])
-def list_registries(org_id: str = Query(default="default")):
+def list_registries(org_id: str = Depends(get_org_id)):
     """List all registered container registries for an org."""
     return _get_engine().list_registries(org_id)
 
 
 @router.get("/registries/{registry_id}", dependencies=[Depends(api_key_auth)])
-def get_registry(registry_id: str, org_id: str = Query(default="default")):
+def get_registry(registry_id: str, org_id: str = Depends(get_org_id)):
     """Retrieve a single container registry by ID."""
     result = _get_engine().get_registry(org_id, registry_id)
     if not result:
@@ -125,7 +126,7 @@ def get_registry(registry_id: str, org_id: str = Query(default="default")):
 @router.post("/scans", dependencies=[Depends(api_key_auth)], status_code=201)
 def scan_image(
     body: ScanImageRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record a container image vulnerability scan."""
     try:
@@ -139,7 +140,7 @@ def scan_image(
 
 @router.get("/scans", dependencies=[Depends(api_key_auth)])
 def list_image_scans(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     registry_id: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None, description="Filter: critical|high|medium|low"),
 ):
@@ -148,7 +149,7 @@ def list_image_scans(
 
 
 @router.get("/scans/{scan_id}", dependencies=[Depends(api_key_auth)])
-def get_scan(scan_id: str, org_id: str = Query(default="default")):
+def get_scan(scan_id: str, org_id: str = Depends(get_org_id)):
     """Retrieve a single image scan by ID."""
     result = _get_engine().get_scan(org_id, scan_id)
     if not result:
@@ -159,7 +160,7 @@ def get_scan(scan_id: str, org_id: str = Query(default="default")):
 @router.post("/policies", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_policy(
     body: CreatePolicyRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create an image admission policy for the org."""
     try:
@@ -172,13 +173,13 @@ def create_policy(
 
 
 @router.get("/policies", dependencies=[Depends(api_key_auth)])
-def list_policies(org_id: str = Query(default="default")):
+def list_policies(org_id: str = Depends(get_org_id)):
     """List all image admission policies for an org."""
     return _get_engine().list_policies(org_id)
 
 
 @router.post("/scans/{scan_id}/evaluate", dependencies=[Depends(api_key_auth)])
-def evaluate_image(scan_id: str, org_id: str = Query(default="default")):
+def evaluate_image(scan_id: str, org_id: str = Depends(get_org_id)):
     """Evaluate an image scan against all org policies. Returns allow/warn/block."""
     try:
         return _get_engine().evaluate_image(org_id, scan_id)
@@ -190,7 +191,7 @@ def evaluate_image(scan_id: str, org_id: str = Query(default="default")):
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_registry_stats(org_id: str = Query(default="default")):
+def get_registry_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated registry security statistics for the org."""
     return _get_engine().get_registry_stats(org_id)
 
@@ -202,7 +203,7 @@ def get_registry_stats(org_id: str = Query(default="default")):
 @router.post("/allowlist", dependencies=[Depends(api_key_auth)], status_code=201)
 def add_allowlist_entry(
     body: AllowlistEntryRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Add a trusted base image to the org allowlist.
 
@@ -219,7 +220,7 @@ def add_allowlist_entry(
 
 
 @router.get("/allowlist", dependencies=[Depends(api_key_auth)])
-def list_allowlist(org_id: str = Query(default="default")):
+def list_allowlist(org_id: str = Depends(get_org_id)):
     """List all trusted base images in the org allowlist."""
     return _get_engine().list_allowlist(org_id)
 
@@ -228,7 +229,7 @@ def list_allowlist(org_id: str = Query(default="default")):
 def check_image_allowed(
     image: str = Query(..., description="Image name to check"),
     tag: str = Query(default="latest", description="Image tag to check"),
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Check whether image:tag is on the org allowlist.
 
@@ -240,7 +241,7 @@ def check_image_allowed(
 @router.delete("/allowlist/{entry_id}", dependencies=[Depends(api_key_auth)])
 def remove_allowlist_entry(
     entry_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Remove a trusted base image from the org allowlist by entry ID."""
     deleted = _get_engine().remove_allowlist_entry(org_id, entry_id)

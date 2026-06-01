@@ -1,7 +1,7 @@
 # SPEC-007 tenancy violation allowlist — frozen debt.
 # Format: relative/path/to/file.py:lineno:CATEGORY
 # This list may only SHRINK. Never add new entries manually.
-# Generated violations: 1620
+# Generated violations: 1551
 
 suite-api/apps/api/access_anomaly_router.py:167:V1
 suite-api/apps/api/access_anomaly_router.py:183:V1
@@ -303,20 +303,6 @@ suite-api/apps/api/compliance_workflow_router.py:180:V1
 suite-api/apps/api/compliance_workflow_router.py:186:V1
 suite-api/apps/api/compliance_workflow_router.py:192:V1
 suite-api/apps/api/compliance_workflow_router.py:91:V1
-suite-api/apps/api/container_registry_security_router.py:111:V1
-suite-api/apps/api/container_registry_security_router.py:117:V1
-suite-api/apps/api/container_registry_security_router.py:128:V1
-suite-api/apps/api/container_registry_security_router.py:142:V1
-suite-api/apps/api/container_registry_security_router.py:151:V1
-suite-api/apps/api/container_registry_security_router.py:162:V1
-suite-api/apps/api/container_registry_security_router.py:175:V1
-suite-api/apps/api/container_registry_security_router.py:181:V1
-suite-api/apps/api/container_registry_security_router.py:193:V1
-suite-api/apps/api/container_registry_security_router.py:205:V1
-suite-api/apps/api/container_registry_security_router.py:222:V1
-suite-api/apps/api/container_registry_security_router.py:231:V1
-suite-api/apps/api/container_registry_security_router.py:243:V1
-suite-api/apps/api/container_registry_security_router.py:98:V1
 suite-api/apps/api/container_runtime_security_router.py:54:V1
 suite-api/apps/api/container_runtime_security_router.py:72:V1
 suite-api/apps/api/container_runtime_security_router.py:85:V1
@@ -677,17 +663,6 @@ suite-api/apps/api/malware_analysis_router.py:61:V1
 suite-api/apps/api/malware_analysis_router.py:74:V1
 suite-api/apps/api/malware_analysis_router.py:88:V1
 suite-api/apps/api/mcp_routes.py:63:V3
-suite-api/apps/api/mfa_management_router.py:102:V1
-suite-api/apps/api/mfa_management_router.py:111:V1
-suite-api/apps/api/mfa_management_router.py:120:V1
-suite-api/apps/api/mfa_management_router.py:133:V1
-suite-api/apps/api/mfa_management_router.py:143:V1
-suite-api/apps/api/mfa_management_router.py:157:V1
-suite-api/apps/api/mfa_management_router.py:166:V1
-suite-api/apps/api/mfa_management_router.py:175:V1
-suite-api/apps/api/mfa_management_router.py:193:V1
-suite-api/apps/api/mfa_management_router.py:82:V1
-suite-api/apps/api/mfa_management_router.py:92:V1
 suite-api/apps/api/microsegmentation_policy_router.py:136:V1
 suite-api/apps/api/microsegmentation_policy_router.py:146:V1
 suite-api/apps/api/microsegmentation_policy_router.py:185:V1
@@ -884,17 +859,6 @@ suite-api/apps/api/ransomware_protection_router.py:236:V1
 suite-api/apps/api/ransomware_protection_router.py:241:V1
 suite-api/apps/api/ransomware_protection_router.py:247:V1
 suite-api/apps/api/ransomware_protection_router.py:274:V1
-suite-api/apps/api/red_team_mgmt_router.py:102:V1
-suite-api/apps/api/red_team_mgmt_router.py:110:V1
-suite-api/apps/api/red_team_mgmt_router.py:119:V1
-suite-api/apps/api/red_team_mgmt_router.py:131:V1
-suite-api/apps/api/red_team_mgmt_router.py:147:V1
-suite-api/apps/api/red_team_mgmt_router.py:162:V1
-suite-api/apps/api/red_team_mgmt_router.py:176:V1
-suite-api/apps/api/red_team_mgmt_router.py:189:V1
-suite-api/apps/api/red_team_mgmt_router.py:203:V1
-suite-api/apps/api/red_team_mgmt_router.py:209:V1
-suite-api/apps/api/red_team_mgmt_router.py:222:V1
 suite-api/apps/api/regulatory_tracker_engine_router.py:106:V1
 suite-api/apps/api/regulatory_tracker_engine_router.py:124:V1
 suite-api/apps/api/regulatory_tracker_engine_router.py:134:V1
@@ -1102,17 +1066,6 @@ suite-api/apps/api/security_health_router.py:76:V1
 suite-api/apps/api/security_health_router.py:88:V1
 suite-api/apps/api/security_health_scorecard_router.py:134:V1
 suite-api/apps/api/security_kb_router.py:46:V1
-suite-api/apps/api/security_maturity_router.py:107:V1
-suite-api/apps/api/security_maturity_router.py:118:V1
-suite-api/apps/api/security_maturity_router.py:131:V1
-suite-api/apps/api/security_maturity_router.py:145:V1
-suite-api/apps/api/security_maturity_router.py:159:V1
-suite-api/apps/api/security_maturity_router.py:172:V1
-suite-api/apps/api/security_maturity_router.py:182:V1
-suite-api/apps/api/security_maturity_router.py:194:V1
-suite-api/apps/api/security_maturity_router.py:203:V1
-suite-api/apps/api/security_maturity_router.py:212:V1
-suite-api/apps/api/security_maturity_router.py:95:V1
 suite-api/apps/api/security_metrics_collector_router.py:110:V1
 suite-api/apps/api/security_metrics_collector_router.py:125:V1
 suite-api/apps/api/security_metrics_collector_router.py:136:V1
@@ -1298,17 +1251,6 @@ suite-api/apps/api/supply_chain_attack_detection_router.py:129:V1
 suite-api/apps/api/supply_chain_attack_detection_router.py:173:V1
 suite-api/apps/api/supply_chain_attack_detection_router.py:221:V1
 suite-api/apps/api/supply_chain_attack_detection_router.py:237:V1
-suite-api/apps/api/supply_chain_intel_router.py:104:V1
-suite-api/apps/api/supply_chain_intel_router.py:114:V1
-suite-api/apps/api/supply_chain_intel_router.py:131:V1
-suite-api/apps/api/supply_chain_intel_router.py:141:V1
-suite-api/apps/api/supply_chain_intel_router.py:157:V1
-suite-api/apps/api/supply_chain_intel_router.py:167:V1
-suite-api/apps/api/supply_chain_intel_router.py:180:V1
-suite-api/apps/api/supply_chain_intel_router.py:193:V1
-suite-api/apps/api/supply_chain_intel_router.py:211:V1
-suite-api/apps/api/supply_chain_intel_router.py:223:V1
-suite-api/apps/api/supply_chain_intel_router.py:229:V1
 suite-api/apps/api/supply_chain_router.py:608:V1
 suite-api/apps/api/supply_chain_router.py:613:V1
 suite-api/apps/api/third_party_vendor_router.py:106:V1
@@ -1442,17 +1384,6 @@ suite-api/apps/api/threat_intelligence_confidence_router.py:146:V1
 suite-api/apps/api/threat_intelligence_confidence_router.py:155:V1
 suite-api/apps/api/threat_intelligence_confidence_router.py:165:V1
 suite-api/apps/api/threat_intelligence_confidence_router.py:179:V1
-suite-api/apps/api/threat_landscape_router.py:108:V1
-suite-api/apps/api/threat_landscape_router.py:118:V1
-suite-api/apps/api/threat_landscape_router.py:130:V1
-suite-api/apps/api/threat_landscape_router.py:148:V1
-suite-api/apps/api/threat_landscape_router.py:158:V1
-suite-api/apps/api/threat_landscape_router.py:170:V1
-suite-api/apps/api/threat_landscape_router.py:182:V1
-suite-api/apps/api/threat_landscape_router.py:190:V1
-suite-api/apps/api/threat_landscape_router.py:203:V1
-suite-api/apps/api/threat_landscape_router.py:209:V1
-suite-api/apps/api/threat_landscape_router.py:90:V1
 suite-api/apps/api/threat_modeling_router.py:44:V1
 suite-api/apps/api/threat_modeling_router.py:84:V1
 suite-api/apps/api/threat_response_router.py:114:V1

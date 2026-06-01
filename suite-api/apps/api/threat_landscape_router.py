@@ -23,6 +23,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -87,7 +88,7 @@ class AssessmentCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/actors", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_threat_actor(body: ThreatActorCreate, org_id: str = Query(default="default")):
+def add_threat_actor(body: ThreatActorCreate, org_id: str = Depends(get_org_id)):
     """Add a new threat actor; confidence clamped to [0, 1]."""
     try:
         return _get_engine().add_threat_actor(
@@ -105,7 +106,7 @@ def add_threat_actor(body: ThreatActorCreate, org_id: str = Query(default="defau
 
 
 @router.patch("/actors/{actor_id}/activity", dependencies=[Depends(api_key_auth)])
-def update_actor_activity(actor_id: str, body: ActorActivityUpdate, org_id: str = Query(default="default")):
+def update_actor_activity(actor_id: str, body: ActorActivityUpdate, org_id: str = Depends(get_org_id)):
     """Update actor active status and last_seen timestamp."""
     result = _get_engine().update_actor_activity(actor_id, org_id, body.active, body.last_seen)
     if not result:
@@ -115,7 +116,7 @@ def update_actor_activity(actor_id: str, body: ActorActivityUpdate, org_id: str 
 
 @router.get("/actors", dependencies=[Depends(api_key_auth)])
 def get_active_actors(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     actor_type: Optional[str] = Query(None),
 ):
     """List active threat actors, optionally filtered by type."""
@@ -127,7 +128,7 @@ def get_active_actors(
 # ---------------------------------------------------------------------------
 
 @router.post("/threats", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_emerging_threat(body: EmergingThreatCreate, org_id: str = Query(default="default")):
+def add_emerging_threat(body: EmergingThreatCreate, org_id: str = Depends(get_org_id)):
     """Add a new emerging threat with status=active."""
     try:
         return _get_engine().add_emerging_threat(
@@ -145,7 +146,7 @@ def add_emerging_threat(body: EmergingThreatCreate, org_id: str = Query(default=
 
 
 @router.post("/threats/{threat_id}/resolve", dependencies=[Depends(api_key_auth)])
-def resolve_threat(threat_id: str, org_id: str = Query(default="default")):
+def resolve_threat(threat_id: str, org_id: str = Depends(get_org_id)):
     """Mark a threat as resolved."""
     result = _get_engine().resolve_threat(threat_id, org_id)
     if not result:
@@ -155,7 +156,7 @@ def resolve_threat(threat_id: str, org_id: str = Query(default="default")):
 
 @router.get("/threats", dependencies=[Depends(api_key_auth)])
 def get_active_threats(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None),
 ):
     """List active threats, optionally filtered by severity."""
@@ -167,7 +168,7 @@ def get_active_threats(
 # ---------------------------------------------------------------------------
 
 @router.post("/assessments", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_assessment(body: AssessmentCreate, org_id: str = Query(default="default")):
+def create_assessment(body: AssessmentCreate, org_id: str = Depends(get_org_id)):
     """Create a landscape assessment with auto-computed overall_risk and counts."""
     return _get_engine().create_assessment(
         org_id=org_id,
@@ -179,7 +180,7 @@ def create_assessment(body: AssessmentCreate, org_id: str = Query(default="defau
 
 @router.get("/assessments", dependencies=[Depends(api_key_auth)])
 def list_assessments(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     sector: Optional[str] = Query(None),
 ):
     """List assessments with optional sector filter."""
@@ -187,7 +188,7 @@ def list_assessments(
 
 
 @router.get("/assessments/{assessment_id}", dependencies=[Depends(api_key_auth)])
-def get_assessment(assessment_id: str, org_id: str = Query(default="default")):
+def get_assessment(assessment_id: str, org_id: str = Depends(get_org_id)):
     """Get a single assessment by ID."""
     result = _get_engine().get_assessment(assessment_id, org_id)
     if not result:
@@ -200,12 +201,12 @@ def get_assessment(assessment_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_landscape_summary(org_id: str = Query(default="default")):
+def get_landscape_summary(org_id: str = Depends(get_org_id)):
     """Return summary stats across actors and threats."""
     return _get_engine().get_landscape_summary(org_id)
 
 
 @router.get("", dependencies=[Depends(api_key_auth)])
-def get_root(org_id: str = Query(default="default")):
+def get_root(org_id: str = Depends(get_org_id)):
     """Root endpoint — returns landscape summary for dashboard health-checks."""
     return _get_engine().get_landscape_summary(org_id)

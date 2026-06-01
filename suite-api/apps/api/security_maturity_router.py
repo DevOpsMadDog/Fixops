@@ -10,6 +10,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -92,7 +93,7 @@ class TargetCreate(BaseModel):
 @router.post("/assessments")
 def create_assessment(
     body: AssessmentCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Create a new maturity assessment."""
@@ -104,7 +105,7 @@ def create_assessment(
 
 @router.get("/assessments")
 def list_assessments(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -115,7 +116,7 @@ def list_assessments(
 @router.get("/assessments/{assessment_id}")
 def get_assessment(
     assessment_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Get assessment with all domains."""
@@ -128,7 +129,7 @@ def get_assessment(
 @router.post("/assessments/{assessment_id}/complete")
 def complete_assessment(
     assessment_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Complete an assessment — computes overall score and level."""
@@ -142,7 +143,7 @@ def complete_assessment(
 def score_domain(
     domain_id: str,
     body: DomainScoreUpdate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Score a domain within an assessment."""
@@ -156,7 +157,7 @@ def score_domain(
 def add_control(
     domain_id: str,
     body: ControlCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Add a control to a domain."""
@@ -169,7 +170,7 @@ def add_control(
 @router.get("/domains/{domain_id}/controls")
 def list_controls(
     domain_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """List controls for a domain."""
@@ -179,7 +180,7 @@ def list_controls(
 @router.post("/targets")
 def set_target(
     body: TargetCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Set a maturity target for a domain."""
@@ -191,7 +192,7 @@ def set_target(
 
 @router.get("/targets")
 def list_targets(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """List all maturity targets with gap analysis."""
@@ -200,7 +201,7 @@ def list_targets(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Get maturity statistics for an org."""
@@ -209,7 +210,7 @@ def get_stats(
 
 @router.get("/roadmap")
 def get_roadmap(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Get maturity roadmap ordered by gap size."""
