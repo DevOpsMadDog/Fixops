@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -83,7 +84,7 @@ class RevokeAccessRequest(BaseModel):
 @router.post("/policies", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_access_policy(
     body: CreateAccessPolicyRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new access control policy."""
     try:
@@ -101,7 +102,7 @@ def create_access_policy(
 
 @router.get("/policies", dependencies=[Depends(api_key_auth)])
 def list_access_policies(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     resource_type: Optional[str] = Query(default=None),
     effect: Optional[str] = Query(default=None),
 ):
@@ -114,7 +115,7 @@ def list_access_policies(
 @router.get("/policies/{policy_id}", dependencies=[Depends(api_key_auth)])
 def get_access_policy(
     policy_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Get a specific access policy by ID."""
     try:
@@ -129,7 +130,7 @@ def get_access_policy(
 @router.post("/grants", dependencies=[Depends(api_key_auth)], status_code=201)
 def grant_access(
     body: GrantAccessRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Grant access to a subject for a resource."""
     try:
@@ -147,7 +148,7 @@ def grant_access(
 
 @router.get("/grants", dependencies=[Depends(api_key_auth)])
 def list_grants(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     subject_id: Optional[str] = Query(default=None),
     resource_id: Optional[str] = Query(default=None),
 ):
@@ -161,7 +162,7 @@ def list_grants(
 def revoke_access(
     grant_id: str,
     body: RevokeAccessRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Revoke an active access grant."""
     try:
@@ -177,7 +178,7 @@ def revoke_access(
 
 @router.get("/check", dependencies=[Depends(api_key_auth)])
 def check_access(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     subject_id: str = Query(..., description="Subject to check"),
     resource_id: str = Query(..., description="Resource to check"),
 ):
@@ -186,13 +187,13 @@ def check_access(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_access_stats(org_id: str = Query(default="default")):
+def get_access_stats(org_id: str = Depends(get_org_id)):
     """Return access control overview stats."""
     return _get_engine().get_access_stats(org_id)
 
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def get_access_control_status(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_access_control_status(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return access control engine health and summary stats."""
     try:
         stats = _get_engine().get_access_stats(org_id)

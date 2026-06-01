@@ -22,6 +22,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -89,7 +90,7 @@ class MetricRecord(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/assessments", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_assessment(body: AssessmentCreate, org_id: str = Query(default="default")):
+def create_assessment(body: AssessmentCreate, org_id: str = Depends(get_org_id)):
     """Create a new resilience assessment."""
     try:
         return _get_engine().create_assessment(
@@ -107,7 +108,7 @@ def create_assessment(body: AssessmentCreate, org_id: str = Query(default="defau
 
 
 @router.patch("/assessments/{assessment_id}/maturity", dependencies=[Depends(api_key_auth)])
-def update_maturity(assessment_id: str, body: MaturityUpdate, org_id: str = Query(default="default")):
+def update_maturity(assessment_id: str, body: MaturityUpdate, org_id: str = Depends(get_org_id)):
     """Update maturity level and recompute score."""
     try:
         result = _get_engine().update_maturity(
@@ -125,7 +126,7 @@ def update_maturity(assessment_id: str, body: MaturityUpdate, org_id: str = Quer
 
 @router.get("/assessments", dependencies=[Depends(api_key_auth)])
 def list_assessments(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     resilience_domain: Optional[str] = Query(None),
 ):
     """List assessments with optional domain filter."""
@@ -133,7 +134,7 @@ def list_assessments(
 
 
 @router.get("/score", dependencies=[Depends(api_key_auth)])
-def get_resilience_score(org_id: str = Query(default="default")):
+def get_resilience_score(org_id: str = Depends(get_org_id)):
     """Return overall resilience score, by-domain breakdown, and maturity distribution."""
     return _get_engine().get_resilience_score(org_id)
 
@@ -143,7 +144,7 @@ def get_resilience_score(org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/exercises", dependencies=[Depends(api_key_auth)], status_code=201)
-def schedule_exercise(body: ExerciseCreate, org_id: str = Query(default="default")):
+def schedule_exercise(body: ExerciseCreate, org_id: str = Depends(get_org_id)):
     """Schedule a resilience exercise."""
     try:
         return _get_engine().schedule_exercise(
@@ -159,7 +160,7 @@ def schedule_exercise(body: ExerciseCreate, org_id: str = Query(default="default
 
 
 @router.post("/exercises/{exercise_id}/complete", dependencies=[Depends(api_key_auth)])
-def complete_exercise(exercise_id: str, body: ExerciseComplete, org_id: str = Query(default="default")):
+def complete_exercise(exercise_id: str, body: ExerciseComplete, org_id: str = Depends(get_org_id)):
     """Mark exercise as completed and record findings."""
     result = _get_engine().complete_exercise(
         exercise_id=exercise_id,
@@ -175,7 +176,7 @@ def complete_exercise(exercise_id: str, body: ExerciseComplete, org_id: str = Qu
 
 @router.get("/exercises", dependencies=[Depends(api_key_auth)])
 def get_exercise_history(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     exercise_type: Optional[str] = Query(None),
 ):
     """List exercises with optional type filter."""
@@ -187,7 +188,7 @@ def get_exercise_history(
 # ---------------------------------------------------------------------------
 
 @router.post("/metrics", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_metric(body: MetricRecord, org_id: str = Query(default="default")):
+def record_metric(body: MetricRecord, org_id: str = Depends(get_org_id)):
     """Record a resilience metric measurement."""
     try:
         return _get_engine().record_metric(
@@ -203,6 +204,6 @@ def record_metric(body: MetricRecord, org_id: str = Query(default="default")):
 
 
 @router.get("/metrics/summary", dependencies=[Depends(api_key_auth)])
-def get_metrics_summary(org_id: str = Query(default="default")):
+def get_metrics_summary(org_id: str = Depends(get_org_id)):
     """Return per-category metric summary."""
     return _get_engine().get_metrics_summary(org_id)

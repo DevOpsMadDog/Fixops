@@ -25,6 +25,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -153,7 +154,7 @@ def ingest_from_json(req: IngestJsonRequest) -> Dict[str, Any]:
 
 @router.get("/scans", summary="List Prowler scan history")
 def list_scans(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
@@ -164,7 +165,7 @@ def list_scans(
 
 
 @router.get("/scans/{scan_id}", summary="Get a specific Prowler scan")
-def get_scan(scan_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_scan(scan_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().get_scan(scan_id=scan_id, org_id=org_id)
     except KeyError as exc:
@@ -173,7 +174,7 @@ def get_scan(scan_id: str, org_id: str = Query(default="default")) -> Dict[str, 
 
 @router.get("/findings", summary="List Prowler findings with filters")
 def list_findings(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     scan_id: Optional[str] = Query(default=None),
     provider: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
@@ -190,7 +191,7 @@ def list_findings(
 @router.get("/findings/{finding_id}", summary="Get a specific Prowler finding")
 def get_finding(
     finding_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().get_finding(finding_id=finding_id, org_id=org_id)
@@ -216,7 +217,7 @@ def suppress_finding(finding_id: str, req: SuppressRequest) -> Dict[str, Any]:
 
 @router.get("/compliance", summary="Get CIS compliance results")
 def get_compliance(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     scan_id: Optional[str] = Query(default=None),
     framework: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -227,14 +228,14 @@ def get_compliance(
 
 @router.get("/compliance/summary", summary="Get aggregated compliance summary per framework")
 def get_compliance_summary(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     scan_id: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
     return _get_engine().get_compliance_summary(org_id=org_id, scan_id=scan_id)
 
 
 @router.get("/summary", summary="Get overall Prowler scan summary")
-def get_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().get_summary(org_id=org_id)
 
 

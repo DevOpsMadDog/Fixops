@@ -20,6 +20,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -74,7 +75,7 @@ class FindingCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/apps", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_app(body: AppCreate, org_id: str = Query(default="default")):
+def register_app(body: AppCreate, org_id: str = Depends(get_org_id)):
     """Register a new SaaS application."""
     try:
         return _get_engine().register_app(org_id, body.model_dump())
@@ -84,7 +85,7 @@ def register_app(body: AppCreate, org_id: str = Query(default="default")):
 
 @router.get("/apps", dependencies=[Depends(api_key_auth)])
 def list_apps(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     app_category: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
 ):
@@ -101,7 +102,7 @@ def list_apps(
 
 
 @router.get("/apps/{app_id}", dependencies=[Depends(api_key_auth)])
-def get_app(app_id: str, org_id: str = Query(default="default")):
+def get_app(app_id: str, org_id: str = Depends(get_org_id)):
     """Get a single SaaS app by ID."""
     app = _get_engine().get_app(org_id, app_id)
     if not app:
@@ -114,7 +115,7 @@ def get_app(app_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/apps/{app_id}/assess", dependencies=[Depends(api_key_auth)], status_code=201)
-def assess_app(app_id: str, body: AssessmentCreate, org_id: str = Query(default="default")):
+def assess_app(app_id: str, body: AssessmentCreate, org_id: str = Depends(get_org_id)):
     """Conduct a security assessment for a SaaS app."""
     try:
         return _get_engine().assess_app(org_id, app_id, body.model_dump())
@@ -124,7 +125,7 @@ def assess_app(app_id: str, body: AssessmentCreate, org_id: str = Query(default=
 
 @router.get("/assessments", dependencies=[Depends(api_key_auth)])
 def list_assessments(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     app_id: Optional[str] = Query(None),
 ):
     """List assessments with optional app filter."""
@@ -136,7 +137,7 @@ def list_assessments(
 # ---------------------------------------------------------------------------
 
 @router.post("/apps/{app_id}/findings", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_finding(app_id: str, body: FindingCreate, org_id: str = Query(default="default")):
+def record_finding(app_id: str, body: FindingCreate, org_id: str = Depends(get_org_id)):
     """Record a security finding for a SaaS app."""
     try:
         return _get_engine().record_finding(org_id, app_id, body.model_dump())
@@ -146,7 +147,7 @@ def record_finding(app_id: str, body: FindingCreate, org_id: str = Query(default
 
 @router.get("/findings", dependencies=[Depends(api_key_auth)])
 def list_findings(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     app_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -162,7 +163,7 @@ def list_findings(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_sspm_stats(org_id: str = Query(default="default")):
+def get_sspm_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated SSPM statistics for the org."""
     return _get_engine().get_sspm_stats(org_id)
 
@@ -172,7 +173,7 @@ def get_sspm_stats(org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def get_sspm_root_summary(org_id: str = Query(default="default")):
+def get_sspm_root_summary(org_id: str = Depends(get_org_id)):
     """Return a 5-state summary envelope for the SaaS Security Posture domain.
 
     States:

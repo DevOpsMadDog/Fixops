@@ -10,6 +10,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -94,7 +96,7 @@ def _require_breach() -> None:
 
 @router.get("/cases")
 def list_cases(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
     """List breach cases for an org, optionally filtered by status."""
@@ -117,7 +119,7 @@ def create_case(request: CreateCaseRequest) -> Dict[str, Any]:
 @router.get("/cases/{case_id}")
 def get_case(
     case_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single breach case by ID."""
     _require_breach()
@@ -132,7 +134,7 @@ def get_case(
 def update_case(
     case_id: str,
     request: UpdateCaseRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update mutable fields of a breach case."""
     _require_breach()
@@ -153,7 +155,7 @@ def update_case(
 @router.get("/cases/{case_id}/notifications")
 def list_notifications(
     case_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """List all notifications sent for a breach case."""
     _require_breach()
@@ -189,7 +191,7 @@ def log_notification(
 @router.get("/cases/{case_id}/reports")
 def list_reports(
     case_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """List regulatory reports for a breach case."""
     _require_breach()
@@ -223,7 +225,7 @@ def add_regulatory_report(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Aggregate breach statistics for an org."""
     _require_breach()

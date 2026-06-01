@@ -23,6 +23,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -109,7 +111,7 @@ def register_identity(body: RegisterIdentityRequest) -> Dict[str, Any]:
 
 @router.get("/identities")
 def list_identities(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     identity_type: Optional[str] = Query(default=None),
     cloud_provider: Optional[str] = Query(default=None),
     privilege_level: Optional[str] = Query(default=None),
@@ -126,7 +128,7 @@ def list_identities(
 
 @router.get("/identities/{identity_id}")
 def get_identity(
-    identity_id: str, org_id: str = Query(default="default")
+    identity_id: str, org_id: str = Depends(get_org_id)
 ) -> Dict[str, Any]:
     """Get a single cloud identity by ID."""
     engine = _get_engine()
@@ -140,7 +142,7 @@ def get_identity(
 def update_permissions(
     identity_id: str,
     body: UpdatePermissionsRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update permissions for a cloud identity (recalculates privilege_level)."""
     engine = _get_engine()
@@ -167,7 +169,7 @@ def record_access_review(body: RecordAccessReviewRequest) -> Dict[str, Any]:
 
 @router.get("/reviews")
 def list_access_reviews(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     identity_id: Optional[str] = Query(default=None),
     outcome: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -193,7 +195,7 @@ def record_permission_change(body: RecordPermissionChangeRequest) -> Dict[str, A
 
 @router.get("/permission-changes")
 def list_permission_changes(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     identity_id: Optional[str] = Query(default=None),
     approved: Optional[bool] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -208,7 +210,7 @@ def list_permission_changes(
 
 
 @router.get("/stats")
-def get_cloud_identity_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_cloud_identity_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregated cloud identity statistics."""
     engine = _get_engine()
     return engine.get_cloud_identity_stats(org_id)

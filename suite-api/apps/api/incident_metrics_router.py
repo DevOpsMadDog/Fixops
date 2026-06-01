@@ -23,6 +23,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -73,7 +74,7 @@ class SLAConfigCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/incidents", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_incident(body: IncidentCreate, org_id: str = Query(default="default")):
+def record_incident(body: IncidentCreate, org_id: str = Depends(get_org_id)):
     """Record a new security incident."""
     try:
         return _get_engine().record_incident(org_id, body.model_dump())
@@ -83,7 +84,7 @@ def record_incident(body: IncidentCreate, org_id: str = Query(default="default")
 
 @router.get("/incidents", dependencies=[Depends(api_key_auth)])
 def list_incidents(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
@@ -100,7 +101,7 @@ def list_incidents(
 
 
 @router.get("/incidents/{incident_id}", dependencies=[Depends(api_key_auth)])
-def get_incident(incident_id: str, org_id: str = Query(default="default")):
+def get_incident(incident_id: str, org_id: str = Depends(get_org_id)):
     """Get a single incident by its external incident_id."""
     inc = _get_engine().get_incident(org_id, incident_id)
     if not inc:
@@ -110,7 +111,7 @@ def get_incident(incident_id: str, org_id: str = Query(default="default")):
 
 @router.put("/incidents/{incident_id}/timeline", dependencies=[Depends(api_key_auth)])
 def update_timeline(
-    incident_id: str, body: TimelineUpdate, org_id: str = Query(default="default")
+    incident_id: str, body: TimelineUpdate, org_id: str = Depends(get_org_id)
 ):
     """Update a timeline event for an incident."""
     try:
@@ -124,7 +125,7 @@ def update_timeline(
 
 
 @router.put("/incidents/{incident_id}/escalate", dependencies=[Depends(api_key_auth)])
-def escalate_incident(incident_id: str, org_id: str = Query(default="default")):
+def escalate_incident(incident_id: str, org_id: str = Depends(get_org_id)):
     """Escalate an incident."""
     try:
         return _get_engine().escalate_incident(org_id, incident_id)
@@ -137,7 +138,7 @@ def escalate_incident(incident_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/compute-metrics", dependencies=[Depends(api_key_auth)])
-def compute_metrics(org_id: str = Query(default="default")):
+def compute_metrics(org_id: str = Depends(get_org_id)):
     """Trigger metric computation and save a daily snapshot."""
     return _get_engine().compute_metrics(org_id)
 
@@ -147,7 +148,7 @@ def compute_metrics(org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/sla-config", dependencies=[Depends(api_key_auth)], status_code=201)
-def set_sla_config(body: SLAConfigCreate, org_id: str = Query(default="default")):
+def set_sla_config(body: SLAConfigCreate, org_id: str = Depends(get_org_id)):
     """Upsert SLA configuration for a severity level."""
     try:
         return _get_engine().set_sla_config(
@@ -162,7 +163,7 @@ def set_sla_config(body: SLAConfigCreate, org_id: str = Query(default="default")
 
 
 @router.get("/sla-config/{severity}", dependencies=[Depends(api_key_auth)])
-def get_sla_config(severity: str, org_id: str = Query(default="default")):
+def get_sla_config(severity: str, org_id: str = Depends(get_org_id)):
     """Get SLA config for a severity level."""
     cfg = _get_engine().get_sla_config(org_id, severity)
     if not cfg:
@@ -175,6 +176,6 @@ def get_sla_config(severity: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_stats(org_id: str = Query(default="default")):
+def get_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated incident metrics statistics."""
     return _get_engine().get_metrics_stats(org_id)

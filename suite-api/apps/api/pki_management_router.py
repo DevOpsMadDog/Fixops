@@ -23,6 +23,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -88,7 +89,7 @@ class RegisterCARequest(BaseModel):
 @router.post("/certificates", dependencies=[Depends(api_key_auth)], status_code=201)
 def issue_certificate(
     body: IssueCertificateRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Issue a new PKI certificate."""
     try:
@@ -102,7 +103,7 @@ def issue_certificate(
 
 @router.get("/certificates/expiring", dependencies=[Depends(api_key_auth)])
 def get_expiring_certificates(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     days_ahead: int = Query(default=30, ge=1, le=365),
 ):
     """List active certificates expiring within days_ahead days."""
@@ -111,7 +112,7 @@ def get_expiring_certificates(
 
 @router.get("/certificates", dependencies=[Depends(api_key_auth)])
 def list_certificates(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     cert_type: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ):
@@ -122,7 +123,7 @@ def list_certificates(
 @router.get("/certificates/{cert_id}", dependencies=[Depends(api_key_auth)])
 def get_certificate(
     cert_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Get a specific certificate by ID."""
     result = _get_engine().get_certificate(org_id, cert_id)
@@ -135,7 +136,7 @@ def get_certificate(
 def revoke_certificate(
     cert_id: str,
     body: RevokeCertificateRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Revoke a certificate."""
     try:
@@ -148,7 +149,7 @@ def revoke_certificate(
 @router.post("/cas", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_ca(
     body: RegisterCARequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Register a certificate authority."""
     try:
@@ -162,7 +163,7 @@ def register_ca(
 
 @router.get("/cas", dependencies=[Depends(api_key_auth)])
 def list_cas(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
 ):
     """List certificate authorities."""
@@ -171,7 +172,7 @@ def list_cas(
 
 @router.get("/audit-log", dependencies=[Depends(api_key_auth)])
 def get_audit_log(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     entity_id: Optional[str] = Query(default=None),
     limit: int = Query(default=50, ge=1, le=500),
 ):
@@ -181,7 +182,7 @@ def get_audit_log(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_pki_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return aggregated PKI statistics."""
     return _get_engine().get_pki_stats(org_id)

@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -99,7 +100,7 @@ class FailExecutionBody(BaseModel):
 @router.post("/hypotheses", dependencies=[Depends(api_key_auth)])
 def create_hypothesis(
     body: CreateHypothesisBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new hunt hypothesis."""
     try:
@@ -120,7 +121,7 @@ def create_hypothesis(
 def validate_hypothesis(
     hypothesis_id: str,
     body: ValidateHypothesisBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update validation status of a hypothesis."""
     try:
@@ -138,7 +139,7 @@ def validate_hypothesis(
 def add_query(
     hypothesis_id: str,
     body: AddQueryBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a hunt query to a hypothesis."""
     try:
@@ -158,7 +159,7 @@ def add_query(
 def execute_query(
     query_id: str,
     body: ExecuteQueryBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record a successful query execution."""
     try:
@@ -178,7 +179,7 @@ def execute_query(
 def fail_execution(
     query_id: str,
     body: FailExecutionBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record a failed query execution (does not update query stats)."""
     return _get_engine().fail_execution(
@@ -190,7 +191,7 @@ def fail_execution(
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
 def get_hunt_summary(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate hunting summary for the org."""
     return _get_engine().get_hunt_summary(org_id)
@@ -199,7 +200,7 @@ def get_hunt_summary(
 @router.get("/hypotheses/{hypothesis_id}", dependencies=[Depends(api_key_auth)])
 def get_hypothesis_detail(
     hypothesis_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return a hypothesis with its queries and last 5 executions per query."""
     result = _get_engine().get_hypothesis_detail(hypothesis_id, org_id)
@@ -210,7 +211,7 @@ def get_hypothesis_detail(
 
 @router.get("/executions", dependencies=[Depends(api_key_auth)])
 def get_recent_executions(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> List[Dict[str, Any]]:
     """Return recent hunt executions with query metadata."""
@@ -219,7 +220,7 @@ def get_recent_executions(
 
 @router.get("/high-yield", dependencies=[Depends(api_key_auth)])
 def get_high_yield_queries(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     min_findings: int = Query(default=1, ge=0),
 ) -> List[Dict[str, Any]]:
     """Return queries with findings_count >= min_findings, ordered by findings DESC."""

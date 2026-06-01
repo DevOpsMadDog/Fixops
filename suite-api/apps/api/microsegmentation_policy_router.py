@@ -20,6 +20,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -77,7 +78,7 @@ class ViolationCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def get_microsegmentation_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_microsegmentation_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """5-state envelope summarising microsegmentation posture for the org.
 
     States: ok | warning | critical | empty | error
@@ -133,7 +134,7 @@ def get_microsegmentation_summary(org_id: str = Query(default="default")) -> Dic
 # ---------------------------------------------------------------------------
 
 @router.post("/segments", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_segment(body: SegmentCreate, org_id: str = Query(default="default")):
+def create_segment(body: SegmentCreate, org_id: str = Depends(get_org_id)):
     """Create a microsegment."""
     try:
         return _get_engine().create_segment(org_id, body.model_dump())
@@ -143,7 +144,7 @@ def create_segment(body: SegmentCreate, org_id: str = Query(default="default")):
 
 @router.get("/segments", dependencies=[Depends(api_key_auth)])
 def list_segments(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     segment_type: Optional[str] = Query(None),
     enforcement_mode: Optional[str] = Query(None),
     limit: int = Query(default=50, ge=1, le=500),
@@ -182,7 +183,7 @@ def list_segments(
 
 
 @router.get("/segments/{segment_id}", dependencies=[Depends(api_key_auth)])
-def get_segment(segment_id: str, org_id: str = Query(default="default")):
+def get_segment(segment_id: str, org_id: str = Depends(get_org_id)):
     """Get a single microsegment by ID."""
     seg = _get_engine().get_segment(org_id, segment_id)
     if not seg:
@@ -195,7 +196,7 @@ def get_segment(segment_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/policies", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_policy(body: PolicyCreate, org_id: str = Query(default="default")):
+def create_policy(body: PolicyCreate, org_id: str = Depends(get_org_id)):
     """Create a microsegmentation policy between two segments."""
     try:
         return _get_engine().create_policy(org_id, body.model_dump())
@@ -205,7 +206,7 @@ def create_policy(body: PolicyCreate, org_id: str = Query(default="default")):
 
 @router.get("/policies", dependencies=[Depends(api_key_auth)])
 def list_policies(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     src_segment_id: Optional[str] = Query(None),
     dst_segment_id: Optional[str] = Query(None),
     policy_action: Optional[str] = Query(None),
@@ -224,7 +225,7 @@ def list_policies(
 # ---------------------------------------------------------------------------
 
 @router.post("/violations", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_violation(body: ViolationCreate, org_id: str = Query(default="default")):
+def record_violation(body: ViolationCreate, org_id: str = Depends(get_org_id)):
     """Record a microsegmentation policy violation."""
     try:
         return _get_engine().record_violation(org_id, body.model_dump())
@@ -234,7 +235,7 @@ def record_violation(body: ViolationCreate, org_id: str = Query(default="default
 
 @router.get("/violations", dependencies=[Depends(api_key_auth)])
 def list_violations(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     segment_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
 ):
@@ -247,6 +248,6 @@ def list_violations(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_segmentation_stats(org_id: str = Query(default="default")):
+def get_segmentation_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated microsegmentation statistics for the org."""
     return _get_engine().get_segmentation_stats(org_id)
