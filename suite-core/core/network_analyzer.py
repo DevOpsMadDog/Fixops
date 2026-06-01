@@ -314,11 +314,14 @@ class NetworkAnalyzer:
         conn = self._get_connection()
         try:
             rows = conn.execute("SELECT * FROM zones ORDER BY created_at").fetchall()
-            return [self._row_to_zone(r) for r in rows]
+            return [z for z in (self._row_to_zone(r) for r in rows) if z is not None]
         finally:
             conn.close()
 
-    def _row_to_zone(self, row: sqlite3.Row) -> NetworkZone:
+    def _row_to_zone(self, row: sqlite3.Row) -> Optional["NetworkZone"]:
+        """Convert a DB row to NetworkZone.  Returns None for legacy rows with NULL id."""
+        if row["id"] is None:
+            return None
         return NetworkZone(
             id=row["id"],
             name=row["name"],
@@ -424,11 +427,14 @@ class NetworkAnalyzer:
                     "SELECT * FROM flows WHERE allowed = ? ORDER BY observed_at",
                     (1 if allowed else 0,),
                 ).fetchall()
-            return [self._row_to_flow(r) for r in rows]
+            return [f for f in (self._row_to_flow(r) for r in rows) if f is not None]
         finally:
             conn.close()
 
-    def _row_to_flow(self, row: sqlite3.Row) -> NetworkFlow:
+    def _row_to_flow(self, row: sqlite3.Row) -> Optional["NetworkFlow"]:
+        """Convert a DB row to NetworkFlow.  Returns None for legacy rows with NULL id."""
+        if row["id"] is None:
+            return None
         return NetworkFlow(
             id=row["id"],
             source_zone=row["source_zone"],

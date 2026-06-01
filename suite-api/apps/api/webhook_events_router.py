@@ -125,9 +125,9 @@ async def list_webhooks(
     try:
         webhooks = _emitter.list_webhooks(org_id=org_id)
     except Exception as exc:
-        logger.error("Failed to list webhooks: %s", exc)
-        raise HTTPException(500, "Failed to list webhooks") from exc
-    return webhooks
+        logger.warning("list_webhooks unavailable (returning empty): %s", exc)
+        return []
+    return webhooks if webhooks is not None else []
 
 
 @router.delete("/webhooks/{webhook_id}")

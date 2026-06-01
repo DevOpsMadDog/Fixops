@@ -3906,21 +3906,69 @@ async def sbom_generate(
 async def sbom_export(
     format: str = Query("cyclonedx", description="cyclonedx or spdx"),
 ):
-    """Export pre-generated SBOM as downloadable JSON."""
+    """Return the last persisted SBOM export (fast).
+
+    GETs must never run heavy generation — use POST /api/v1/sbom/assets/{id}/export/cyclonedx
+    (or spdx) with ?save=true to generate and persist an SBOM, then this endpoint
+    returns the cached result instantly.
+    """
     try:
-        from risk.sbom.generator import SBOMFormat, SBOMGenerator
-        fmt = SBOMFormat.SPDX if format.lower() == "spdx" else SBOMFormat.CYCLONEDX
-        generator = SBOMGenerator()
-        sbom = generator.generate_from_codebase(Path("."), output_format=fmt)
-        components = sbom.get("components", []) or sbom.get("packages", [])
-        return {
-            "format": format.lower(),
-            "spec_version": sbom.get("specVersion", sbom.get("spdxVersion", "unknown")),
-            "component_count": len(components),
-            "sbom": sbom,
-        }
-    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
-        raise HTTPException(status_code=500, detail=f"SBOM export failed: {exc}")
+        from core.sbom_engine import SBOMEngine
+        engine = SBOMEngine()
+        fmt = format.lower()
+        if fmt not in ("cyclonedx", "spdx"):
+            fmt = "cyclonedx"
+
+        # Scan persisted export rows across all org DBs for the most recent match
+        import glob as _glob
+        import json as _json
+        from pathlib import Path as _Path
+
+        data_dir = _Path(".fixops_data")
+        latest: dict | None = None
+        latest_ts = ""
+        if data_dir.exists():
+            for db_file in sorted(data_dir.glob("*_sbom.db")):
+                org_id = db_file.name.rsplit("_sbom.db", 1)[0]
+                try:
+                    import sqlite3 as _sqlite3
+                    conn = _sqlite3.connect(str(db_file), timeout=5)
+                    conn.row_factory = _sqlite3.Row
+                    row = conn.execute(
+                        "SELECT sbom_content, created_at FROM sbom_exports "
+                        "WHERE format=? ORDER BY created_at DESC LIMIT 1",
+                        (fmt,),
+                    ).fetchone()
+                    conn.close()
+                    if row and row["created_at"] > latest_ts:
+                        latest_ts = row["created_at"]
+                        content = _json.loads(row["sbom_content"] or "{}")
+                        components = content.get("components", []) or content.get("packages", [])
+                        latest = {
+                            "format": fmt,
+                            "spec_version": content.get("specVersion", content.get("spdxVersion", "unknown")),
+                            "component_count": len(components),
+                            "generated_at": latest_ts,
+                            "sbom": content,
+                        }
+                except Exception:  # noqa: BLE001 — DB may not have exports table yet
+                    pass
+
+        if latest is not None:
+            return latest
+
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"No persisted {fmt} SBOM export found. "
+                "Generate one first: POST /api/v1/sbom/assets/{asset_id}/export/"
+                f"{fmt}?save=true"
+            ),
+        )
+    except HTTPException:
+        raise
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:
+        raise HTTPException(status_code=500, detail=f"SBOM export lookup failed: {exc}")
 
 
 @sbom_gap.post("/correlate")
@@ -4073,13 +4121,48 @@ async def sbom_correlate(request: Request):
 license_gap = APIRouter(prefix="/api/v1/license", tags=["license-gap"], dependencies=_AUTH_DEP)
 
 
+# ---------------------------------------------------------------------------
+# P21 license scan — persisted results cache.
+# GET endpoints MUST NOT run a synchronous codebase walk (takes 60s+).
+# POST /scan triggers the scan; GET /scan returns the last cached result.
+# ---------------------------------------------------------------------------
+_license_scan_cache: dict = {}   # keyed by project_license
+_license_alerts_cache: dict = {}
+
+
 @license_gap.get("/scan")
 async def license_scan(
     project_license: str = Query("MIT", description="Project's own license"),
 ):
-    """Scan all dependencies for license compliance issues.
+    """Return the last persisted license compliance scan result for this org.
 
-    Wires: LicenseComplianceAnalyzer from suite-evidence-risk.
+    Trigger a fresh scan via POST /api/v1/license/scan.
+    Returns HTTP 503 when no scan has been run yet.
+    """
+    cached = _license_scan_cache.get(project_license)
+    if cached is None:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "not_configured",
+                "detail": (
+                    "No license scan result available for project_license="
+                    f"{project_license!r}. "
+                    "Trigger a scan via POST /api/v1/license/scan first."
+                ),
+            },
+        )
+    return cached
+
+
+@license_gap.post("/scan")
+async def trigger_license_scan(
+    project_license: str = Query("MIT", description="Project's own license"),
+):
+    """Trigger a full license compliance scan of the codebase.
+
+    Runs SBOMGenerator.generate_from_codebase() synchronously (may be slow).
+    Result is cached and retrievable via GET /api/v1/license/scan.
     """
     packages: list = []
 
@@ -4093,7 +4176,7 @@ async def license_scan(
             if comp.get("licenses"):
                 lic = comp["licenses"][0].get("license", {}).get("id")
             packages.append({"name": comp["name"], "version": comp.get("version", ""), "license": lic or "UNKNOWN"})
-    except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+    except (OSError, ValueError, RuntimeError):
         pass
 
     # 2. Analyze with LicenseComplianceAnalyzer
@@ -4115,7 +4198,7 @@ async def license_scan(
                 "recommendation": f.recommendation,
             })
 
-        return {
+        payload = {
             "project_license": project_license,
             "total_packages": result.total_findings,
             "findings_by_risk": result.findings_by_risk,
@@ -4124,8 +4207,8 @@ async def license_scan(
             "findings": findings,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
-        return {
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:
+        payload = {
             "project_license": project_license,
             "total_packages": len(packages),
             "error": type(exc).__name__,
@@ -4133,10 +4216,39 @@ async def license_scan(
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
+    _license_scan_cache[project_license] = payload
+    return payload
+
 
 @license_gap.get("/alerts")
 async def license_alerts():
-    """Get active license compliance alerts (copyleft, blocked, policy violations)."""
+    """Return the last persisted license compliance alerts.
+
+    Trigger a fresh alert scan via POST /api/v1/license/alerts.
+    Returns HTTP 503 when no scan has been run yet.
+    """
+    cached = _license_alerts_cache.get("default")
+    if cached is None:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "not_configured",
+                "detail": (
+                    "No license alert scan result available. "
+                    "Trigger a scan via POST /api/v1/license/alerts first."
+                ),
+            },
+        )
+    return cached
+
+
+@license_gap.post("/alerts")
+async def trigger_license_alerts():
+    """Trigger a full license alert scan of the codebase.
+
+    Runs SBOMGenerator.generate_from_codebase() synchronously (may be slow).
+    Result is cached and retrievable via GET /api/v1/license/alerts.
+    """
     alerts: list = []
 
     try:
@@ -4163,14 +4275,16 @@ async def license_alerts():
                     "issues": f.compatibility_issues,
                     "recommendation": f.recommendation,
                 })
-    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+    except (OSError, ValueError, KeyError, RuntimeError) as exc:
         logger.debug("License alert scan failed: %s", exc)
 
-    return {
+    payload = {
         "alerts": alerts,
         "total": len(alerts),
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+    _license_alerts_cache["default"] = payload
+    return payload
 
 
 ALL_GAP_ROUTERS.append(license_gap)

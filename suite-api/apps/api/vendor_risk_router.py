@@ -70,8 +70,10 @@ _risk_engine = None  # lazy
 def _get_risk_engine():
     global _risk_engine
     if _risk_engine is None:
-        from core.vendor_risk_engine import get_engine as _gre
-        _risk_engine = _gre()
+        # vendor_risk_engine.py exposes VendorRiskEngine directly — no get_engine()
+        # module-level factory exists in that module.
+        from core.vendor_risk_engine import VendorRiskEngine as _VRE
+        _risk_engine = _VRE()
     return _risk_engine
 
 

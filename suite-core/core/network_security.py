@@ -614,17 +614,26 @@ class NDREngine:
 
     @staticmethod
     def _row_to_asset(r: sqlite3.Row) -> NetworkAsset:
+        raw_type = r["asset_type"]
+        try:
+            asset_type = AssetType(raw_type)
+        except ValueError:
+            # Stale DB rows may have old category values (e.g. 'security',
+            # 'compliance') that no longer exist in the enum. Map them to HOST
+            # so reads never throw 500.
+            asset_type = AssetType.HOST
+        _now = datetime.utcnow().isoformat()
         return NetworkAsset(
             id=r["id"],
             org_id=r["org_id"],
-            asset_type=AssetType(r["asset_type"]),
+            asset_type=asset_type,
             name=r["name"],
             address=r["address"],
             vlan_id=r["vlan_id"],
             description=r["description"],
             tags=json.loads(r["tags"] or "[]"),
-            discovered_at=datetime.fromisoformat(r["discovered_at"]),
-            last_seen=datetime.fromisoformat(r["last_seen"]),
+            discovered_at=datetime.fromisoformat(r["discovered_at"] or _now),
+            last_seen=datetime.fromisoformat(r["last_seen"] or _now),
             metadata=json.loads(r["metadata"] or "{}"),
         )
 
@@ -1475,20 +1484,32 @@ class NDREngine:
                     "SELECT * FROM flow_anomalies WHERE org_id=? ORDER BY detected_at DESC",
                     (org,),
                 ).fetchall()
-        return [
-            FlowAnomaly(
+        anomalies = []
+        for r in rows:
+            raw_atype = r["anomaly_type"]
+            try:
+                anomaly_type = FlowAnomalyType(raw_atype)
+            except ValueError:
+                # Stale DB rows with old category values — map to UNUSUAL_VOLUME
+                anomaly_type = FlowAnomalyType.UNUSUAL_VOLUME
+            raw_sev = r["severity"]
+            try:
+                severity = Severity(raw_sev)
+            except ValueError:
+                severity = Severity.LOW
+            _now_iso = datetime.utcnow().isoformat()
+            anomalies.append(FlowAnomaly(
                 id=r["id"],
                 org_id=r["org_id"],
-                anomaly_type=FlowAnomalyType(r["anomaly_type"]),
+                anomaly_type=anomaly_type,
                 src_ip=r["src_ip"],
                 dst_ip=r["dst_ip"],
-                severity=Severity(r["severity"]),
+                severity=severity,
                 description=r["description"],
                 flow_ids=json.loads(r["flow_ids"] or "[]"),
-                detected_at=datetime.fromisoformat(r["detected_at"]),
-            )
-            for r in rows
-        ]
+                detected_at=datetime.fromisoformat(r["detected_at"] or _now_iso),
+            ))
+        return anomalies
 
     # ------------------------------------------------------------------
     # 7. Zero Trust Scoring

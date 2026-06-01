@@ -157,6 +157,26 @@ class SecurityAwarenessProgramEngine:
     # Programs
     # ------------------------------------------------------------------
 
+    def list_programs(
+        self,
+        org_id: str,
+        program_type: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List awareness programs for an org with optional filters."""
+        sql = "SELECT * FROM awareness_programs WHERE org_id=?"
+        params: list = [org_id]
+        if program_type:
+            sql += " AND program_type=?"
+            params.append(program_type)
+        if status:
+            sql += " AND status=?"
+            params.append(status)
+        sql += " ORDER BY created_at DESC"
+        with self._conn() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [self._row(r) for r in rows]
+
     def create_program(
         self,
         org_id: str,

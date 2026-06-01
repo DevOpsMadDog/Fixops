@@ -1493,18 +1493,55 @@ class AnomalyMLEngine:
             ctx = json.loads(row["context"] or "{}")
         except (json.JSONDecodeError, TypeError):
             pass
+
+        # Safely coerce enum values — DB rows written by older code may carry
+        # category/pattern/risk_level values that are no longer in the enum.
+        # Fall back to a known-good sentinel rather than raising ValueError and
+        # turning every list_anomalies call into a 500.
+        try:
+            category = AnomalyCategory(row["category"])
+        except ValueError:
+            logger.warning(
+                "anomaly_ml: unknown category %r for anomaly %s — defaulting to BEHAVIORAL",
+                row["category"], row["id"],
+            )
+            category = AnomalyCategory.BEHAVIORAL
+
+        try:
+            pattern = TimeSeriesPattern(row["pattern"]) if row["pattern"] else None
+        except ValueError:
+            logger.warning(
+                "anomaly_ml: unknown pattern %r for anomaly %s — ignoring",
+                row["pattern"], row["id"],
+            )
+            pattern = None
+
+        try:
+            risk_level = RiskLevel(row["risk_level"])
+        except ValueError:
+            logger.warning(
+                "anomaly_ml: unknown risk_level %r for anomaly %s — defaulting to medium",
+                row["risk_level"], row["id"],
+            )
+            risk_level = RiskLevel.MEDIUM
+
+        # Guard against legacy rows written with NULL id (schema pre-dated the
+        # NOT NULL constraint). Generate a stable synthetic id so the row is
+        # readable without crashing the endpoint.
+        row_id = row["id"] or str(uuid.uuid4())
+
         return MLAnomaly(
-            id=row["id"],
+            id=row_id,
             entity_id=row["entity_id"],
             entity_type=row["entity_type"],
             metric_name=row["metric_name"],
-            category=AnomalyCategory(row["category"]),
-            pattern=TimeSeriesPattern(row["pattern"]) if row["pattern"] else None,
+            category=category,
+            pattern=pattern,
             observed_value=row["observed_value"],
             expected_value=row["expected_value"],
             z_score=row["z_score"],
             isolation_score=row["isolation_score"],
-            risk_level=RiskLevel(row["risk_level"]),
+            risk_level=risk_level,
             description=row["description"],
             detected_at=datetime.fromisoformat(row["detected_at"]),
             context=ctx,

@@ -1236,7 +1236,7 @@ class ExecutiveReportEngine:
             finally:
                 conn.close()
 
-        return [self._row_to_schedule(r) for r in rows]
+        return [s for s in (self._row_to_schedule(r) for r in rows) if s is not None]
 
     def delete_schedule(self, schedule_id: str) -> bool:
         """
@@ -1286,13 +1286,26 @@ class ExecutiveReportEngine:
         )
 
     @staticmethod
-    def _row_to_schedule(row: sqlite3.Row) -> ReportSchedule:
-        return ReportSchedule(
-            id=row["id"],
-            report_type=ReportType(row["report_type"]),
-            frequency=ReportFrequency(row["frequency"]),
-            recipients=json.loads(row["recipients"]),
-            next_run=row["next_run"],
-            enabled=bool(row["enabled"]),
-            org_id=row["org_id"],
-        )
+    def _row_to_schedule(row: sqlite3.Row) -> Optional["ReportSchedule"]:
+        """Deserialise a DB row into a ReportSchedule.
+
+        Returns None (instead of raising) when stored enum values are stale
+        so callers can skip bad rows rather than propagating a ValueError.
+        """
+        try:
+            return ReportSchedule(
+                id=row["id"],
+                report_type=ReportType(row["report_type"]),
+                frequency=ReportFrequency(row["frequency"]),
+                recipients=json.loads(row["recipients"]),
+                next_run=row["next_run"],
+                enabled=bool(row["enabled"]),
+                org_id=row["org_id"],
+            )
+        except (ValueError, KeyError, json.JSONDecodeError) as exc:
+            _logger.warning(
+                "report_schedule.skip_bad_row",
+                schedule_id=row["id"] if "id" in dict(row) else "?",
+                error=str(exc),
+            )
+            return None

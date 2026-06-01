@@ -205,7 +205,19 @@ async def compare_findings(body: CompareRequest) -> Dict[str, Any]:
 async def get_weights() -> Dict[str, Any]:
     """Return the current factor weight configuration."""
     prioritizer = _get_prioritizer()
-    return {"weights": prioritizer.get_factor_weights()}
+    try:
+        # VulnPrioritizer stores weights inside ScoringConfig
+        if hasattr(prioritizer, "get_factor_weights"):
+            weights = prioritizer.get_factor_weights()
+        elif hasattr(prioritizer, "get_scoring_config"):
+            cfg = prioritizer.get_scoring_config()
+            weights = cfg.weights.model_dump() if hasattr(cfg.weights, "model_dump") else dict(cfg.weights)
+        else:
+            weights = {}
+        return {"weights": weights}
+    except Exception as exc:
+        logger.exception("get_weights failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.put("/weights", dependencies=[Depends(_verify_api_key)])

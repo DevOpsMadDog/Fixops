@@ -392,12 +392,13 @@ class FalkorDBBackend:
             from falkordb import FalkorDB  # type: ignore
             db = FalkorDB.from_url(self.url)
             self._graph = db.select_graph(self.graph_name)
-            # Test query
+            # Test query — may raise redis.exceptions.ResponseError when the
+            # Redis server does not have the FalkorDB module loaded.
             self._graph.query("RETURN 1")
             logger.info(f"Connected to FalkorDB: {self.url}/{self.graph_name}")
         except ImportError:
             raise RuntimeError("falkordb package not installed")
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+        except Exception as e:  # catches redis.ResponseError + OSError etc.
             raise RuntimeError(f"Cannot connect to FalkorDB: {e}")
 
     def add_node(self, node: GraphNode) -> None:

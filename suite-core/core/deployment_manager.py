@@ -228,8 +228,16 @@ class DeploymentManager:
     """
 
     def __init__(self) -> None:
-        self._data_dir = Path(os.getenv("FIXOPS_DATA_DIR", "/app/data"))
-        self._data_dir.mkdir(parents=True, exist_ok=True)
+        _default_data_dir = "/app/data"
+        _data_dir_candidate = Path(os.getenv("FIXOPS_DATA_DIR", _default_data_dir))
+        # Fall back to a local ./data directory when the configured path is on
+        # a read-only filesystem (e.g. local dev outside the Docker container).
+        try:
+            _data_dir_candidate.mkdir(parents=True, exist_ok=True)
+            self._data_dir = _data_dir_candidate
+        except OSError:
+            self._data_dir = Path("data") / "deployment"
+            self._data_dir.mkdir(parents=True, exist_ok=True)
         self._meta_db_path = self._data_dir / "_deployment.db"
 
         # Service URLs from environment

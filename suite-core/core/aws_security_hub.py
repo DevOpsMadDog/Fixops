@@ -136,22 +136,14 @@ class AWSSecurityHubClient:
     # ------------------------------------------------------------------
 
     def is_configured(self) -> bool:
-        """Return True iff AWS credentials are usable.
+        """Return True iff explicit AWS credentials are set.
 
-        Either explicit access/secret pair OR boto3 default credential chain
-        (env, profile, IAM role) resolves successfully.
+        Only checks AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY env vars or
+        constructor-supplied values. Does NOT probe the boto3 default
+        credential chain (which causes a ~2s IMDSv2 network roundtrip when
+        no profile / IAM role is configured).
         """
-        if self._access_key and self._secret_key:
-            return True
-        # Check boto3 default credential chain
-        try:
-            import boto3  # type: ignore
-            session = boto3.Session(region_name=self._region)
-            return session.get_credentials() is not None
-        except ImportError:
-            return False
-        except Exception:  # noqa: BLE001
-            return False
+        return bool(self._access_key and self._secret_key)
 
     # ------------------------------------------------------------------
     # Public API methods (real boto3 only)

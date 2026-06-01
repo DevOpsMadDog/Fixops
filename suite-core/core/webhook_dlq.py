@@ -126,6 +126,18 @@ def _get_db(db_path: str = _DB_PATH) -> sqlite3.Connection:
 def _row_to_delivery(row: sqlite3.Row) -> WebhookDelivery:
     d = dict(row)
     d["payload"] = json.loads(d["payload"]) if d.get("payload") else {}
+    # Parse ISO-string datetime columns so Pydantic validation passes
+    for _dt_col in ("created_at", "completed_at", "next_retry_at"):
+        val = d.get(_dt_col)
+        if val is not None and isinstance(val, str):
+            try:
+                from datetime import datetime, timezone
+                dt = datetime.fromisoformat(val)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                d[_dt_col] = dt
+            except (ValueError, TypeError):
+                d[_dt_col] = None
     return WebhookDelivery(**d)
 
 
@@ -288,7 +300,8 @@ class WebhookDLQ:
                 try:
                     rows = conn.execute(
                         """SELECT * FROM webhook_deliveries
-                           WHERE status IN (?, ?) AND (next_retry_at IS NULL OR next_retry_at <= ?)
+                           WHERE id IS NOT NULL
+                             AND status IN (?, ?) AND (next_retry_at IS NULL OR next_retry_at <= ?)
                            ORDER BY next_retry_at ASC
                            LIMIT ?""",
                         (DeliveryStatus.PENDING.value, DeliveryStatus.RETRYING.value, now, limit),

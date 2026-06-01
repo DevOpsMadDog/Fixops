@@ -927,7 +927,7 @@ def _rule_based_suggestions(context_type: Optional[str], limit: int) -> List[Sug
             "SELECT properties FROM brain_nodes WHERE node_type='finding'"
         ).fetchall():
             props = _json.loads(row["properties"] or "{}")
-            sev = props.get("severity", "unknown").lower()
+            sev = (props.get("severity") or "unknown").lower()
             sev_counts[sev] = sev_counts.get(sev, 0) + 1
 
         critical_count = sev_counts.get("critical", 0)
@@ -1073,7 +1073,7 @@ async def get_suggestions(
                 brain_summary += "Recent events: " + "; ".join(
                     e.get("event_type", "?") for e in recent[:5]
                 )
-        except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
+        except (OSError, ValueError, RuntimeError, AttributeError):  # get_stats may not exist on all KnowledgeBrain versions
             pass
 
     context_filter = f" Focus on {context_type} context." if context_type else ""

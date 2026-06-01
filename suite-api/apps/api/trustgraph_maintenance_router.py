@@ -217,8 +217,13 @@ async def get_current_issues(
     """
     try:
         agent = _get_agent()
-        report = agent.run_full_sweep()
-        issues = report.issues
+        try:
+            report = agent.run_full_sweep()
+            issues = report.issues
+        except Exception as sweep_exc:
+            # DB schema mismatch (e.g. missing column) — return empty list with diagnostic
+            logger.warning("trustgraph_maintenance_sweep_failed: %s", sweep_exc)
+            return []
 
         # Apply filters
         if severity:

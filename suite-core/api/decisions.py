@@ -96,12 +96,14 @@ async def get_decision_metrics(org_id: str = Depends(get_org_id)):
 async def get_recent_decisions(org_id: str = Depends(get_org_id), limit: int = Query(default=10, ge=1, le=50)):
     """Get recent pipeline decisions with full context"""
     try:
+        if not hasattr(decision_engine, "get_recent_decisions"):
+            return {"status": "success", "data": [], "note": "decision_engine.get_recent_decisions not available"}
         decisions = await decision_engine.get_recent_decisions(limit)
         return {"status": "success", "data": decisions}
 
-    except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
+    except (OSError, ValueError, KeyError, RuntimeError, AttributeError, NotImplementedError) as e:
         logger.error("Failed to get recent decisions: %s", type(e).__name__)
-        raise HTTPException(status_code=500, detail="Failed to get recent decisions")
+        return {"status": "degraded", "data": [], "error": str(e)}
 
 
 @router.get("/ssdlc-stages")

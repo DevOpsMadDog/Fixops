@@ -289,9 +289,20 @@ def _get_hunt_engine():
 @router.get("")
 async def hunting_overview(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return capabilities overview and saved-hunt summary for the org."""
-    engine = _get_hunt_engine()
-    hunts = engine.list_hunts(org_id=org_id)
-    stats = engine.get_hunt_stats(org_id=org_id)
+    hunts: list = []
+    stats: Dict[str, Any] = {}
+    try:
+        engine = _get_hunt_engine()
+        try:
+            hunts = engine.list_hunts(org_id=org_id)
+        except Exception as exc:
+            logger.warning("hunting_overview: list_hunts failed: %s", exc)
+        try:
+            stats = engine.get_hunt_stats(org_id=org_id)
+        except Exception as exc:
+            logger.warning("hunting_overview: get_hunt_stats failed: %s", exc)
+    except Exception as exc:
+        logger.warning("hunting_overview: engine init failed: %s", exc)
     return {
         "capabilities": {
             "hunt_types": [

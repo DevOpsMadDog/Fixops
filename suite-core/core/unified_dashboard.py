@@ -170,16 +170,26 @@ def _safe_compliance_summary(org_id: str) -> Dict[str, Any]:
         # get_compliance_stats returns job-counts by framework, not per-framework
         # coverage_pct — build honest framework rows from what we have.
         frameworks: Dict[str, Any] = {}
+        total_controls = stats.get("total_controls_tested", 0)
+        pass_rate = stats.get("pass_rate", 0.0)
         for fw, job_count in stats.get("by_framework", {}).items():
+            # Normalise to the keys the dashboard widgets expect
+            controls_passing = int(round(total_controls * pass_rate / 100)) if total_controls else 0
             frameworks[fw] = {
                 "job_count": job_count,
-                "controls_tested": stats.get("total_controls_tested", 0),
-                "pass_rate": stats.get("pass_rate", 0.0),
+                "controls_tested": total_controls,
+                "pass_rate": pass_rate,
+                # Required by dashboard table/chart widgets:
+                "coverage_pct": round(pass_rate, 1),
+                "controls_passing": controls_passing,
+                "controls_total": total_controls,
             }
+        overall_coverage = round(pass_rate, 1)
         return {
             "frameworks": frameworks,
-            "overall_pass_rate": stats.get("pass_rate", 0.0),
-            "total_controls_tested": stats.get("total_controls_tested", 0),
+            "overall_pass_rate": pass_rate,
+            "overall_coverage_pct": overall_coverage,
+            "total_controls_tested": total_controls,
             "status": "ok" if frameworks else "not_configured",
         }
     except Exception as exc:

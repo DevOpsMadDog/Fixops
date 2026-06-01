@@ -333,8 +333,16 @@ def get_score(
     - D: 60-69  (Poor)
     - F: 0-59   (Critical risk)
     """
-    engine = _engine()  # raises 501 if unavailable
-    posture = engine.get_posture(org_id=org_id)
+    try:
+        engine = _engine()  # raises 501 if unavailable
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail={"status": "not_configured", "error": str(exc)})
+    try:
+        posture = engine.get_posture(org_id=org_id)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail={"status": "not_configured", "error": str(exc)})
     # posture is a dataclass — convert to dict if needed
     if hasattr(posture, "__dict__"):
         data = {k: v for k, v in posture.__dict__.items() if not k.startswith("_")}
@@ -441,10 +449,17 @@ def get_baseline_diff(
     A positive score_delta means security posture improved; negative means
     it degraded. score_delta is None when no baseline has been captured yet.
     """
-    engine = _engine()  # raises 501 if unavailable
-
-    # Current posture
-    current = engine.get_posture(org_id=org_id)
+    try:
+        engine = _engine()  # raises 501 if unavailable
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail={"status": "not_configured", "error": str(exc)})
+    try:
+        # Current posture
+        current = engine.get_posture(org_id=org_id)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail={"status": "not_configured", "error": str(exc)})
     if hasattr(current, "__dict__"):
         cur = {k: v for k, v in current.__dict__.items() if not k.startswith("_")}
     elif hasattr(current, "model_dump"):

@@ -399,7 +399,7 @@ async def get_executive_report(
     """
     risk_engine = get_risk_engine()
     posture = risk_engine.calculate_posture(org_id)
-    dashboard = get_persona_dashboard()
+    dashboard = get_persona_dashboard_instance()
     ciso_dash = dashboard.get_ciso_dashboard(org_id)
 
     return {

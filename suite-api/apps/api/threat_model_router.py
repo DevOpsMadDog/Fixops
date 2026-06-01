@@ -55,11 +55,21 @@ router = APIRouter(
 # Shared engine instance (file-backed, shared across requests)
 _engine: Optional[ThreatModelEngine] = None
 
+import os as _os
+from pathlib import Path as _Path
 
 def _get_engine() -> ThreatModelEngine:
     global _engine
     if _engine is None:
-        _engine = ThreatModelEngine()
+        # Use a persistent SQLite DB so data survives across requests.
+        # :memory: (the class default) loses tables on every new instance.
+        _db_dir = _Path(_os.getenv("FIXOPS_DATA_DIR", "data"))
+        try:
+            _db_dir.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            _db_dir = _Path("data")
+            _db_dir.mkdir(parents=True, exist_ok=True)
+        _engine = ThreatModelEngine(db_path=str(_db_dir / "threat_models.db"))
     return _engine
 
 

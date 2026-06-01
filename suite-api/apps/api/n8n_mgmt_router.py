@@ -64,19 +64,45 @@ def provision_workflow(body: ProvisionRequest):
 
 @router.get("/workflows", response_model=List[Any], summary="List n8n workflows")
 def list_workflows():
-    """Return all workflows registered in n8n."""
-    result = _client().list_workflows()
+    """Return all workflows registered in n8n.
+
+    Returns 503 with status=not_configured when n8n is unreachable.
+    """
+    try:
+        result = _client().list_workflows()
+    except Exception as exc:
+        logger.warning("n8n_workflows_unavailable: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "not_configured", "error": "n8n unreachable", "detail": str(exc)},
+        )
     if isinstance(result, dict) and "error" in result:
-        raise HTTPException(status_code=502, detail=result)
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "not_configured", **result},
+        )
     return result
 
 
 @router.get("/executions", response_model=List[Any], summary="List recent executions")
 def list_executions(workflow_id: Optional[str] = None):
-    """Return recent workflow executions, optionally filtered by workflow ID."""
-    result = _client().list_executions(workflow_id=workflow_id)
+    """Return recent workflow executions, optionally filtered by workflow ID.
+
+    Returns 503 with status=not_configured when n8n is unreachable.
+    """
+    try:
+        result = _client().list_executions(workflow_id=workflow_id)
+    except Exception as exc:
+        logger.warning("n8n_executions_unavailable: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "not_configured", "error": "n8n unreachable", "detail": str(exc)},
+        )
     if isinstance(result, dict) and "error" in result:
-        raise HTTPException(status_code=502, detail=result)
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "not_configured", **result},
+        )
     return result
 
 
