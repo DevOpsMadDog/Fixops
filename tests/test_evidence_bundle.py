@@ -4,6 +4,13 @@ from zipfile import ZipFile
 
 import pytest
 import yaml
+
+# Ensure the real `evidence` package (suite-evidence-risk) wins even if an earlier-collected
+# test polluted sys.path with a non-package `evidence` dir (e.g. data/evidence).
+import os as _os
+import sys as _sys
+_sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "..", "suite-evidence-risk"))
+
 from cli.fixops_ci import main as ci_main
 from evidence.packager import _collect_files
 from services.evidence.packager import (

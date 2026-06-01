@@ -36,7 +36,8 @@ from apps.api.billing_router import (
     get_org_tier,
     requires_tier,
     set_org_tier,
-    _TIER_RANK,
+    # real symbol is _TIER_ORDER (renamed from _TIER_RANK); alias keeps this legacy test valid
+    _TIER_ORDER as _TIER_RANK,
 )
 
 
@@ -44,7 +45,11 @@ from apps.api.billing_router import (
 # 1. Default tier is starter
 # ---------------------------------------------------------------------------
 
-def test_default_tier_is_starter():
+def test_default_tier_is_starter(monkeypatch):
+    # "starter" is the default for an unknown org ONLY when billing is configured (Stripe key
+    # present). Without a key the product intentionally default-allows enterprise so self-hosted
+    # installs keep working (see get_org_tier docstring). Set a key to exercise the SaaS default.
+    monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_unit_dummy")
     tier = get_org_tier("smoke-test-org-default-001")
     assert tier == "starter", f"Expected starter, got {tier}"
 

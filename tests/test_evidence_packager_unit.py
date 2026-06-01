@@ -13,6 +13,13 @@ from pathlib import Path
 import pytest
 import yaml
 
+# Ensure the real `evidence` package (suite-evidence-risk) wins even if an earlier-collected
+# test polluted sys.path with a non-package `evidence` dir (e.g. data/evidence). Same robust
+# prelude as test_reachability_perf.py.
+import os as _os
+import sys as _sys
+_sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "..", "suite-evidence-risk"))
+
 from evidence.packager import (
     DEFAULT_POLICY,
     BundleInputs,
