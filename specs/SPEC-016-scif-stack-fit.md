@@ -85,6 +85,19 @@ Every connector returns an **honest unconfigured path** (503 `unavailable`/`not_
   per the org's banner level); the brain read path refuses nodes whose level exceeds the requesting org's clearance. *(SCIF-Accreditor, P1)*
 - **REQ-016-12**: The raw `POST /api/v1/wiz/graphql` passthrough is gated (admin-scope + audit-logged); `/wiz/ingest`
   calls the engine's typed methods directly and never proxies caller-supplied GraphQL through a shared credential. *(Red-Team, P1)*
+- **REQ-016-13**: Black Duck SCA gets a real ingest path (Hub REST API connector + normalizer registered in
+  `scanner_parsers`, `source_tool="blackduck"`) → findings → brain — the only genuine build gap among the org's
+  named SCA/SAST/DAST tools. *(code-truth audit 2026-06-02)*
+
+### Adjacent stack tools the org named (Snyk / Veracode / Black Duck / Prisma) — code-truth status
+- **Snyk** ✅ real: `SnykOSSConnector` (live API) **+** `SnykNormalizer` (registered, `source_tool="snyk"`) — already
+  flows scanner-ingest → normalize → `_index_findings_into_brain` (wired in increment 1). No work.
+- **Veracode** ✅ real: `VeracodeNormalizer` (SAST XML + Findings API) + DAST parser, registered (`"veracode"`) —
+  flows via upload → brain. No work.
+- **Prisma** ✅ real `PrismaCloudConnector`, unmounted → increment 2 (router + registry).
+- **Black Duck** 🔴 build gap → REQ-016-13.
+- All four vendor-SaaS FQDNs (`snyk.io`, `veracode.com`, `blackduck.com`, `synopsys.com`, `prismacloud.io`) are in the
+  enforced-mode egress blocklist (`assert_egress_allowed`) so a SCIF deploy must point each at its on-prem endpoint.
 
 ## 5. Non-functional requirements
 - Latency: ingest is async/paginated; GET capability < 1s; `/closed-loop/decide` < 10s (council bound).
