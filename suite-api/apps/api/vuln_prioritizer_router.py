@@ -78,7 +78,7 @@ def _get_engine() -> VulnPrioritizer:
     ),
 )
 def list_prioritized(
-    org_id: str = Query(default="default", description="Tenant org_id"),
+    org_id: str = Depends(get_org_id),
     bucket: Optional[RiskBucket] = Query(default=None, description="Filter by risk bucket"),
     asset_id: Optional[str] = Query(default=None, description="Filter by asset_id"),
     limit: int = Query(default=100, ge=1, le=1000),
@@ -307,7 +307,7 @@ def trigger_prioritization(body: PrioritizeRequest) -> PrioritizationSummary:
     ),
 )
 def get_scoring_config(
-    org_id: str = Query(default="default", description="Tenant org_id"),
+    org_id: str = Depends(get_org_id),
 ) -> ScoringConfig:
     engine = _get_engine()
     try:

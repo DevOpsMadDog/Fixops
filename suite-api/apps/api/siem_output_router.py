@@ -28,6 +28,8 @@ from typing import Any, AsyncGenerator, Dict, Optional
 
 from core.siem_output_engine import SIEMOutputEngine
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -56,7 +58,7 @@ def _api_key_auth() -> None:  # noqa: D401
 
 
 class SIEMTargetConfigure(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     name: str
     siem_type: str = Field(
         ..., description="splunk_hec | sentinel | generic"
@@ -72,7 +74,7 @@ class SIEMTargetStatusUpdate(BaseModel):
 
 
 class SIEMTestRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     target_id: Optional[str] = None
 
 

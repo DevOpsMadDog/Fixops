@@ -27,6 +27,8 @@ from typing import Any, Dict, Optional
 
 from core.log_management_engine import LogManagementEngine
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -50,7 +52,7 @@ def _get_engine() -> LogManagementEngine:
 
 
 class LogSourceCreate(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     name: str
     log_type: str
     format: str = "json"
@@ -59,7 +61,7 @@ class LogSourceCreate(BaseModel):
 
 
 class LogEntryStore(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     source_id: str
     level: str = "info"
     message: str
@@ -67,7 +69,7 @@ class LogEntryStore(BaseModel):
 
 
 class RetentionPolicyCreate(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     name: str
     log_type: str
     retention_days: int = 90

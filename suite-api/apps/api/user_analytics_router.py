@@ -86,7 +86,7 @@ async def record_activity(body: RecordActivityRequest) -> Activity:
 @router.get("/activity/{user_email}", response_model=List[Activity])
 async def get_user_activities(
     user_email: str,
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=100, ge=1, le=1000, description="Max records to return"),
 ) -> List[Activity]:
     """Return recent activity events for a specific user."""
@@ -95,7 +95,7 @@ async def get_user_activities(
 
 @router.get("/sessions", response_model=List[UserSession])
 async def get_active_sessions(
-    org_id: str = Query(default="default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[UserSession]:
     """Return currently active user sessions (activity within last 30 minutes)."""
     return _get_engine().get_active_sessions(org_id=org_id)

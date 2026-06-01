@@ -217,7 +217,7 @@ class CollectEvidenceRequest(BaseModel):
 
 class AutoCollectRequest(BaseModel):
     framework: str
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class ExpireRequest(BaseModel):

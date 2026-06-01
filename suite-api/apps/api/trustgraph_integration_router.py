@@ -19,6 +19,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -94,32 +96,32 @@ class CorrelationResponse(BaseModel):
 # ============================================================================
 
 
-def _get_indexer(org_id: str = "default"):
+def _get_indexer(org_id: str = Depends(get_org_id)):
     from core.trustgraph_integrations import UniversalFindingIndexer
     return UniversalFindingIndexer(org_id=org_id)
 
 
-def _get_batch_indexer(org_id: str = "default"):
+def _get_batch_indexer(org_id: str = Depends(get_org_id)):
     from core.trustgraph_integrations import BatchIndexer
     return BatchIndexer(org_id=org_id)
 
 
-def _get_graphrag(org_id: str = "default"):
+def _get_graphrag(org_id: str = Depends(get_org_id)):
     from core.trustgraph_integrations import GraphRAGQueries
     return GraphRAGQueries(org_id=org_id)
 
 
-def _get_impact_analyzer(org_id: str = "default"):
+def _get_impact_analyzer(org_id: str = Depends(get_org_id)):
     from core.trustgraph_integrations import ImpactAnalyzer
     return ImpactAnalyzer(org_id=org_id)
 
 
-def _get_correlator(org_id: str = "default"):
+def _get_correlator(org_id: str = Depends(get_org_id)):
     from core.trustgraph_integrations import CrossDomainCorrelator
     return CrossDomainCorrelator(org_id=org_id)
 
 
-def _get_enricher(org_id: str = "default"):
+def _get_enricher(org_id: str = Depends(get_org_id)):
     from core.trustgraph_integrations import AttackPathEnricher
     return AttackPathEnricher(org_id=org_id)
 
@@ -193,7 +195,7 @@ async def index_findings(req: IndexFindingsRequest) -> Dict[str, Any]:
 @router.get("/query/{template}")
 async def run_query_template(
     template: str,
-    org_id: str = Query(default="default", description="Tenant org ID"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=20, ge=1, le=200, description="Max results"),
     framework: Optional[str] = Query(default=None, description="Framework filter for compliance_gaps"),
     asset_id: Optional[str] = Query(default=None, description="Asset ID scope for exposure_chain"),
@@ -252,7 +254,7 @@ async def run_query_template(
 async def get_impact_analysis(
     entity_id: str,
     depth: int = Query(default=2, ge=1, le=3, description="Traversal depth"),
-    org_id: str = Query(default="default", description="Tenant org ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Blast radius / impact analysis for any entity in the graph.
 
@@ -297,7 +299,7 @@ async def cross_domain_correlate(
         default=None,
         description="Finding entity ID to correlate",
     ),
-    org_id: str = Query(default="default", description="Tenant org ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Cross-domain correlation across all ALDECI security engines.
 
@@ -361,7 +363,7 @@ async def get_attack_paths(
         default=True,
         description="If true, enrich each path node with vuln/config context from all engines",
     ),
-    org_id: str = Query(default="default", description="Tenant org ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Attack path analysis using graph traversal.
 

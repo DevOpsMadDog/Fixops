@@ -21,6 +21,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -146,7 +148,7 @@ def disable_offline_mode(req: DisableOfflineRequest) -> Dict[str, Any]:
 
 
 @router.get("/bundles")
-def list_bundles(org_id: str = Query(default="default", min_length=1)) -> Dict[str, Any]:
+def list_bundles(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """List discovered air-gapped bundles + currently offline subscriptions."""
     try:
         fusion = _get_fusion_engine()

@@ -13,6 +13,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -322,7 +324,7 @@ def scan_localstack(request: LocalStackScanRequest) -> Dict[str, Any]:
 
 @router.get("/score", summary="Cloud security posture score (0-100)")
 def get_score(
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return a 0-100 cloud security posture score based on recent scan results.
 
@@ -432,7 +434,7 @@ def list_rules(
 
 @router.get("/baseline-diff", summary="CSPM posture baseline diff")
 def get_baseline_diff(
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     include_new: bool = Query(default=True, description="Include new findings vs baseline"),
     include_resolved: bool = Query(default=True, description="Include resolved findings vs baseline"),
 ) -> Dict[str, Any]:
@@ -525,7 +527,7 @@ def get_baseline_diff(
 
 @router.post("/baseline", summary="Capture CSPM posture baseline", status_code=201)
 def capture_baseline(
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Capture the current cloud posture as the baseline for future diffs.
 

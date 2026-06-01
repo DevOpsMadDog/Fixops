@@ -57,7 +57,7 @@ class WorkflowCreate(BaseModel):
     actions: List[Dict[str, Any]] = Field(default_factory=list)
     enabled: bool = True
     created_by: str = "api"
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class WorkflowUpdate(BaseModel):

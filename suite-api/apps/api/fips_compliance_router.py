@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -66,7 +67,7 @@ class RegisterPqcAlgoRequest(BaseModel):
 
 @router.get("/status")
 def get_fips_status(
-    org_id: str = Query(default="default", max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return current FIPS 140-3 mode status for an org."""
     return _get_engine().get_fips_status(org_id=org_id)
@@ -100,7 +101,7 @@ def register_pqc_algo(body: RegisterPqcAlgoRequest) -> Dict[str, Any]:
 
 @router.get("/pqc/inventory")
 def list_pqc_inventory(
-    org_id: str = Query(default="default", max_length=128),
+    org_id: str = Depends(get_org_id),
     category: Optional[str] = Query(default=None, max_length=64),
 ) -> Dict[str, Any]:
     """List PQC inventory entries, optionally filtered by category."""
@@ -119,7 +120,7 @@ def scan_crypto_usage(body: OrgRequest) -> Dict[str, Any]:
 
 @router.get("/crypto/scans")
 def list_crypto_scans(
-    org_id: str = Query(default="default", max_length=128),
+    org_id: str = Depends(get_org_id),
     scan_id: Optional[str] = Query(default=None, max_length=128),
     legacy_only: bool = Query(default=False),
 ) -> Dict[str, Any]:
@@ -134,7 +135,7 @@ def list_crypto_scans(
 
 @router.get("/readiness")
 def fips_readiness_score(
-    org_id: str = Query(default="default", max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return FIPS/PQC readiness score 0-100 with interpretation."""
     return _get_engine().fips_readiness_score(org_id=org_id)
@@ -142,7 +143,7 @@ def fips_readiness_score(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query(default="default", max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Aggregate FIPS/PQC stats for an org."""
     return _get_engine().stats(org_id=org_id)

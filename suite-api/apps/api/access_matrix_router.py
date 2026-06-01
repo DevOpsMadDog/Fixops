@@ -15,6 +15,8 @@ from core.access_matrix import (
     get_access_matrix,
 )
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/access-matrix", tags=["access-matrix"])
@@ -35,14 +37,14 @@ class GrantAccessRequest(BaseModel):
     access_level: AccessLevel
     resource_id: Optional[str] = Field(None, description="None = all resources of type")
     conditions: Dict[str, Any] = Field(default_factory=dict)
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class CheckAccessRequest(BaseModel):
     user_role: str
     resource_type: ResourceType
     resource_id: Optional[str] = None
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class CheckAccessResponse(BaseModel):

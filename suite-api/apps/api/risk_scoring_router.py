@@ -25,6 +25,8 @@ import os
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -179,7 +181,7 @@ def rank_findings(body: RankFindingsRequest) -> Dict[str, Any]:
     dependencies=_AUTH_DEP,
 )
 def risk_scoring_summary(
-    org_id: str = Query(default="default", description="Tenant org_id"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     import datetime as _dt
     scorer = _get_scorer()
@@ -266,7 +268,7 @@ def risk_scoring_summary(
     dependencies=_AUTH_DEP,
 )
 def org_exposure(
-    org_id: str = Query(default="default", description="Tenant org_id"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     scorer = _get_scorer()
     try:
@@ -290,7 +292,7 @@ def org_exposure(
     dependencies=_AUTH_DEP,
 )
 def exposure_trend(
-    org_id: str = Query(default="default", description="Tenant org_id"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(default=30, ge=1, le=365, description="Look-back window in days"),
 ) -> Dict[str, Any]:
     scorer = _get_scorer()

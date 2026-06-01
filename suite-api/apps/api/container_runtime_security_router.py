@@ -24,6 +24,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -51,7 +53,7 @@ def _get_engine():
 # ---------------------------------------------------------------------------
 
 class ContainerCreate(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     container_id: str
     image_name: str
     image_tag: str = "latest"
@@ -69,7 +71,7 @@ class ContainerStatusUpdate(BaseModel):
 
 
 class RuntimeEventCreate(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     container_id: str
     event_type: str
     severity: str
@@ -82,7 +84,7 @@ class EventStatusUpdate(BaseModel):
 
 
 class PolicyCreate(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     policy_name: str
     policy_type: str
     enforcement: str = "audit"

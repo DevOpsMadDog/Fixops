@@ -379,7 +379,7 @@ class MapRepoBody(BaseModel):
 @router.post("/map-repo")
 def map_repo(
     body: MapRepoBody,
-    org_id: str = Query(default="default", max_length=256),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Introspect a real repository on disk and register it as a service node
     with one outgoing dependency per declared third-party package.
@@ -482,7 +482,7 @@ def map_repo(
 @router.get("/blast-radius")
 def blast_radius_by_name(
     node: str = Query(..., description="Node identifier — service name OR file path", min_length=1, max_length=1024),
-    org_id: str = Query(default="default", max_length=256),
+    org_id: str = Depends(get_org_id),
     analysis_type: str = Query(default="downstream"),
 ) -> Dict[str, Any]:
     """GET-style blast-radius lookup keyed by service name (or file path fallback).

@@ -30,6 +30,8 @@ from typing import Any, Dict, List, Optional
 
 from core.siem_integration_engine import SIEMIntegrationEngine
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -57,7 +59,7 @@ def _api_key_auth() -> None:  # noqa: D401
 
 
 class SIEMSourceCreate(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     name: str
     source_type: str
     host: Optional[str] = None
@@ -65,7 +67,7 @@ class SIEMSourceCreate(BaseModel):
 
 
 class SIEMEventIngest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     source_id: str
     event_type: str
     severity: str = "info"
@@ -74,7 +76,7 @@ class SIEMEventIngest(BaseModel):
 
 
 class CorrelationAlertCreate(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     title: str
     rule_name: str
     severity: str = "medium"
@@ -82,7 +84,7 @@ class CorrelationAlertCreate(BaseModel):
 
 
 class AlertAcknowledge(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     acknowledged_by: str
 
 
@@ -99,12 +101,12 @@ class SIEMRegisterIn(BaseModel):
     api_token: str = ""
     enabled: bool = True
     index_name: str = ""
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class SIEMStatusIn(BaseModel):
     enabled: bool
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class AlertCreateIn(BaseModel):
@@ -113,13 +115,13 @@ class AlertCreateIn(BaseModel):
     severity: str = "medium"
     source_event_ids: List[str] = Field(default_factory=list)
     assignee: str = ""
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class AlertResolveIn(BaseModel):
     resolved_by: str
     resolution_notes: str = ""
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 # ---------------------------------------------------------------------------
@@ -267,7 +269,7 @@ def get_stats(org_id: str = Query("default")) -> Dict[str, Any]:
 
 
 class RawIngestIn(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     raw: str = Field(..., description="Raw syslog (RFC 3164/5424) or CEF log line")
     format: str = Field(
         default="auto",
@@ -303,7 +305,7 @@ def ingest_raw(body: RawIngestIn) -> Dict[str, Any]:
 
 
 class CorrelationRuleCreate(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     name: str
     description: str = ""
     event_type: Optional[str] = None

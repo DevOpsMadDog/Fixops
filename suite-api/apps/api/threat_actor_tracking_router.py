@@ -13,6 +13,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -46,7 +47,7 @@ class TrackActorModel(BaseModel):
     threat_level: str = "medium"
     targeting_our_sector: bool = False
     mitre_groups: List[str] = []
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class RecordActivityModel(BaseModel):
@@ -57,7 +58,7 @@ class RecordActivityModel(BaseModel):
     indicators: List[str] = []
     source: str = ""
     verified: bool = False
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class AddIntelligenceModel(BaseModel):
@@ -66,11 +67,11 @@ class AddIntelligenceModel(BaseModel):
     confidence: float = 0.5
     source: str = ""
     valid_until: Optional[str] = None
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class UpdateActivityModel(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 # ---------------------------------------------------------------------------
@@ -203,7 +204,7 @@ def get_summary(org_id: str = Query("default")):
 # ---------------------------------------------------------------------------
 
 class ImportMitreModel(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     limit: Optional[int] = Field(
         default=None,
         description="Cap number of actors imported (None = all ~150 MITRE groups)",

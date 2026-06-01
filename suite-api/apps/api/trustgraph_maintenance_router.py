@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import Depends, APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +116,7 @@ class FixResponse(BaseModel):
 
 @router.post("/sweep", response_model=MaintenanceReportResponse)
 async def run_maintenance_sweep(
-    org_id: str = Query(default="default", description="Organisation/tenant scope for the sweep"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Run a full Knowledge Core integrity sweep across all 5 cores.
 

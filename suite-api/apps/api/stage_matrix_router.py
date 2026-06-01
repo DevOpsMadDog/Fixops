@@ -18,6 +18,8 @@ import logging
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)
@@ -108,7 +110,7 @@ def evaluate_stage(req: EvaluateRequest) -> Dict[str, Any]:
 
 @router.get("/policies")
 def list_policies_for_stage(
-    org_id: str = Query(default="default", min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
     stage: str = Query(..., min_length=1, max_length=32),
 ) -> Dict[str, Any]:
     """List policies whose stage_matrix[stage]=True for an org."""

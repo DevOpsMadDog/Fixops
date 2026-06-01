@@ -59,7 +59,7 @@ def _get_engine():
 
 
 class EstablishBaselineRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     user_id: str
     baseline_type: str = "login_hours"
     normal_value: float = 0.0
@@ -68,7 +68,7 @@ class EstablishBaselineRequest(BaseModel):
 
 
 class DetectAnomalyRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     user_id: str
     behavior_type: str = "login_anomaly"
     severity: str = "medium"

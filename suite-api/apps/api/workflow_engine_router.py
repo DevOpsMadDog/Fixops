@@ -29,6 +29,8 @@ from core.workflow_engine import (
     WorkflowEngine,
 )
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -67,7 +69,7 @@ class CreateWorkflowRequest(BaseModel):
     conditions: List[WorkflowConditionRequest] = Field(default_factory=list)
     actions: List[WorkflowActionRequest] = Field(default_factory=list)
     enabled: bool = True
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     created_by: str = "api"
 
 
@@ -82,7 +84,7 @@ class UpdateWorkflowRequest(BaseModel):
 
 class EvaluateEventRequest(BaseModel):
     event: Dict[str, Any]
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 # ---------------------------------------------------------------------------

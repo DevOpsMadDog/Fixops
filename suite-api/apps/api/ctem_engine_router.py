@@ -69,7 +69,7 @@ router = APIRouter(prefix="/api/v1/ctem", tags=["ctem-engine"])
 
 class StartCycleRequest(BaseModel):
     name: str
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class ScopeAssetsRequest(BaseModel):
@@ -83,7 +83,7 @@ class AddExposureRequest(BaseModel):
     findings: List[str] = Field(default_factory=list)
     risk_score: float = Field(default=0.0, ge=0.0, le=100.0)
     business_impact: str = ""
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class UpdateExposureRequest(BaseModel):

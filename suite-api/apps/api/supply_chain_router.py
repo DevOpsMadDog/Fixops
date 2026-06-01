@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 # Event bus subscriber — auto-sync component nodes as they arrive in the brain
@@ -605,12 +606,12 @@ class AnalyzePackageRequest(BaseModel):
     package_name: str
     ecosystem: str = "pip"
     version: str = ""
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class AnalyzeSBOMRequest(BaseModel):
     sbom_id: str
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     db_path: str = "data/sbom.db"
 
 

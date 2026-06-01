@@ -116,7 +116,7 @@ def create_schedule(body: CreateScheduleRequest) -> Dict[str, Any]:
 
 @router.get("/schedules", summary="List report delivery schedules")
 def list_schedules(
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all active schedules for the given org."""
     sched = _get_scheduler()
@@ -175,7 +175,7 @@ def get_preview(
 
 @router.get("/history", summary="Report delivery history")
 def delivery_history(
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=50, ge=1, le=500, description="Max records"),
 ) -> List[Dict[str, Any]]:
     """Return past report deliveries for the org, newest first."""

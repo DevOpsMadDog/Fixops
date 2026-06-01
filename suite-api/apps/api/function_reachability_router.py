@@ -19,6 +19,7 @@ import logging
 from typing import Any, Dict
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -47,21 +48,21 @@ def _get_engine():
 
 
 class ParseRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     repo_ref: str = Field(..., description="Customer-chosen ref, e.g. 'myapp@main'")
     language: str = Field(..., description="python | typescript | java")
     root_path: str = Field(..., description="Absolute path to repo root")
 
 
 class QueryRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     start_fqn: str
     target_fqn: str
     max_depth: int = 10
 
 
 class VulnerableRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     cve_id: str
     dependency_fqn_pattern: str = Field(
         ..., description="SQL LIKE pattern, e.g. 'requests.Session.mount' or 'requests.%'"

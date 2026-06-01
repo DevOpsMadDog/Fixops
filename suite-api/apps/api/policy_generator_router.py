@@ -14,6 +14,8 @@ from typing import List, Optional
 
 from core.policy_generator import PolicyDocument, PolicyGenerator, PolicyType
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
@@ -112,14 +114,14 @@ def generate_policy(req: GeneratePolicyRequest) -> PolicyResponse:
 
 
 @router.get("/policies", response_model=List[PolicyResponse])
-def list_policies(org_id: str = Query(default="default", description="Organisation ID")) -> List[PolicyResponse]:
+def list_policies(org_id: str = Depends(get_org_id)) -> List[PolicyResponse]:
     """List all policy documents for an organisation."""
     return [_to_response(p) for p in _generator.list_policies(org_id=org_id)]
 
 
 @router.get("/policies/due-review", response_model=List[PolicyResponse])
 def get_policies_due_review(
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[PolicyResponse]:
     """Return policies that are overdue for review (review_date is in the past)."""
     return [_to_response(p) for p in _generator.get_policies_due_review(org_id=org_id)]

@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 
 # Auth dep — same pattern used across all ALDECI routers
 from apps.api.auth_deps import api_key_auth as _verify_api_key
+from apps.api.dependencies import get_org_id
 from core.secrets_manager_engine import SecretsManagerEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -66,7 +67,7 @@ class RotationRecord(BaseModel):
 
 
 class OrgQuery(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 # ------------------------------------------------------------------

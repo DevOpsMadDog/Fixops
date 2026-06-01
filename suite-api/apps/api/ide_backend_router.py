@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -52,14 +53,14 @@ def _get_engine():
 
 
 class TreeBuildRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     repo_ref: str = Field(..., min_length=1, max_length=256)
     root_path: str = Field(..., min_length=1, max_length=4096)
     commit_sha: str = ""
 
 
 class SnapshotRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     repo_ref: str = Field(..., min_length=1, max_length=256)
     scan_id: str = ""
 

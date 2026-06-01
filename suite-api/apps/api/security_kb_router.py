@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from core.security_kb import (
     Article,
     ArticleCategory,
@@ -43,7 +44,7 @@ class ArticleCreate(BaseModel):
     framework: Optional[str] = None
     severity_context: Optional[str] = None
     author: str = "api"
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class ArticleUpdate(BaseModel):

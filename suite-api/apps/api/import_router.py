@@ -16,6 +16,7 @@ import zipfile
 from typing import Any, Dict
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -371,7 +372,7 @@ async def import_upload(
     summary="Poll import job status",
     dependencies=[Depends(api_key_auth)],
 )
-def import_status(job_id: str, org_id: str = "default") -> Dict[str, Any]:
+def import_status(job_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """
     Lightweight status check.  Checks findings_store for persisted findings from this job,
     then falls back to devsecops engine run lookup.

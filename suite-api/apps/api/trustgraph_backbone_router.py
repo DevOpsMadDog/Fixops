@@ -24,6 +24,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -88,13 +90,13 @@ class GraphQueryResponse(BaseModel):
 # ============================================================================
 
 
-def _get_backbone(org_id: str = "default") -> Any:
+def _get_backbone(org_id: str = Depends(get_org_id)) -> Any:
     """Get TrustGraphBackbone instance for the request org."""
     from core.trustgraph_backbone import TrustGraphBackbone
     return TrustGraphBackbone(org_id=org_id)
 
 
-def _get_graphrag(org_id: str = "default") -> Any:
+def _get_graphrag(org_id: str = Depends(get_org_id)) -> Any:
     """Get GraphRAGEnhanced instance for the request org."""
     from core.trustgraph_backbone import GraphRAGEnhanced
     return GraphRAGEnhanced(org_id=org_id)
@@ -194,7 +196,7 @@ async def link_entities(req: LinkEntitiesRequest) -> Dict[str, Any]:
 async def get_impact(
     entity_id: str,
     depth: int = Query(default=2, ge=1, le=3, description="Traversal depth"),
-    org_id: str = Query(default="default", description="Tenant org ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """What is affected if this entity is compromised?
 
@@ -225,7 +227,7 @@ async def get_impact(
 @router.get("/root-cause/{finding_id}")
 async def get_root_cause(
     finding_id: str,
-    org_id: str = Query(default="default", description="Tenant org ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Trace a finding back to its root cause.
 
@@ -256,7 +258,7 @@ async def get_root_cause(
 async def get_attack_path(
     source: str = Query(..., description="Source entity ID"),
     target: str = Query(..., description="Target entity ID"),
-    org_id: str = Query(default="default", description="Tenant org ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Find graph paths between source and target entities.
 
@@ -287,7 +289,7 @@ async def get_attack_path(
 async def get_related(
     entity_id: str,
     depth: int = Query(default=2, ge=1, le=3, description="Traversal depth"),
-    org_id: str = Query(default="default", description="Tenant org ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Neighborhood exploration — what's related to this entity.
 
@@ -319,7 +321,7 @@ async def semantic_search(
         default=None, description="Comma-separated core IDs to search (e.g. '1,2,3'). Default: all"
     ),
     limit: int = Query(default=10, ge=1, le=100, description="Max results per core"),
-    org_id: str = Query(default="default", description="Tenant org ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Natural language search across TrustGraph knowledge cores.
 
@@ -358,7 +360,7 @@ async def semantic_search(
 
 @router.get("/stats")
 async def get_stats(
-    org_id: str = Query(default="default", description="Tenant org ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return graph statistics for all 5 Knowledge Cores.
 
@@ -439,7 +441,7 @@ async def get_emit_rate() -> Dict[str, Any]:
 async def get_pagerank(
     limit: int = Query(default=20, ge=1, le=100, description="Top-N nodes to return"),
     alpha: float = Query(default=0.85, ge=0.01, le=0.99, description="Damping factor"),
-    org_id: str = Query(default="default", description="Tenant org ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return top-N entities ranked by PageRank influence score.
 
@@ -494,7 +496,7 @@ async def get_pagerank(
 async def get_visualization(
     entity_id: str,
     depth: int = Query(default=2, ge=1, le=3, description="Traversal depth"),
-    org_id: str = Query(default="default", description="Tenant org ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return graph data for frontend visualization (nodes + edges).
 

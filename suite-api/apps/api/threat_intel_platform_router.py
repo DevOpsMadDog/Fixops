@@ -27,6 +27,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -109,7 +110,7 @@ class ReportCreate(BaseModel):
 class CheckIndicatorRequest(BaseModel):
     value: str
     indicator_type: str
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 # ---------------------------------------------------------------------------

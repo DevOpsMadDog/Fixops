@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from core.cache_layer import TTL_HEALTH, cache_endpoint
 from fastapi import APIRouter, Depends
 
@@ -110,7 +111,7 @@ def _query_vulnerability_count() -> int:
         return 0
 
 
-def _query_asset_count(org_id: str = "default") -> int:
+def _query_asset_count(org_id: str = Depends(get_org_id)) -> int:
     """Return total assets from CloudResourceInventoryEngine or AssetTaggingEngine."""
     try:
         from core.cloud_resource_inventory_engine import CloudResourceInventoryEngine
@@ -128,7 +129,7 @@ def _query_asset_count(org_id: str = "default") -> int:
         return 0
 
 
-def _query_compliance_frameworks(org_id: str = "default") -> int:
+def _query_compliance_frameworks(org_id: str = Depends(get_org_id)) -> int:
     """Return total distinct compliance frameworks configured."""
     try:
         from core.compliance_mapping_engine import ComplianceMappingEngine

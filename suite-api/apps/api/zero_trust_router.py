@@ -23,6 +23,8 @@ from typing import Any, Dict, List, Optional
 import structlog
 from core.zero_trust_engine import ZeroTrustEngine, get_zero_trust_engine
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 _logger = structlog.get_logger()
@@ -64,7 +66,7 @@ class UpdatePolicyRequest(BaseModel):
 
 class EvaluateRequest(BaseModel):
     user_id: str
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     resource: str = ""
     device_id: str = ""
     device_compliant: bool = False

@@ -95,7 +95,7 @@ class AddDataFlowRequest(BaseModel):
 @router.post("/assets", status_code=201, summary="Register a data asset")
 def register_asset(
     body: RegisterAssetRequest,
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().register_asset(org_id, body.model_dump())

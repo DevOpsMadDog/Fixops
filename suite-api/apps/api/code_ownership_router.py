@@ -25,6 +25,8 @@ from core.code_ownership import (
     get_code_ownership,
 )
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/ownership", tags=["code-ownership"])
@@ -60,18 +62,18 @@ class ImportRequest(BaseModel):
 
 
 class CoverageRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     file_paths: List[str] = Field(..., description="List of file paths to evaluate")
 
 
 class UnownedRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     file_paths: List[str] = Field(..., description="List of file paths to check")
 
 
 class AutoAssignRequest(BaseModel):
     findings: List[Dict[str, Any]] = Field(..., description="List of finding dicts")
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 # ============================================================================

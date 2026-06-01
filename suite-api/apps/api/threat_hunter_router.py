@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 try:
@@ -133,7 +134,7 @@ class FireTriggerRequest(BaseModel):
 
     trigger_type: HuntTriggerType
     context: Dict[str, Any] = Field(default_factory=dict)
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class ExportIOCsResponse(BaseModel):

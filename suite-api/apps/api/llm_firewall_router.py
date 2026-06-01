@@ -61,6 +61,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -640,7 +641,7 @@ async def router_info() -> RouterInfoResponse:
 
 @router.get("/policies", response_model=PolicyListResponse)
 async def list_policies(
-    org_id: str = Query(default="default", min_length=1, max_length=256),
+    org_id: str = Depends(get_org_id),
 ) -> PolicyListResponse:
     """List all firewall policies for the given org_id."""
     db = _get_db()
@@ -894,7 +895,7 @@ async def scan_prompt(body: ScanRequest) -> ScanResponse:
 
 @router.get("/events", response_model=EventListResponse)
 async def list_events(
-    org_id: str = Query(default="default", min_length=1, max_length=256),
+    org_id: str = Depends(get_org_id),
     hours: int = Query(default=24, ge=1, le=8760, description="Look-back window in hours (max 365d)"),
     category: Optional[str] = Query(
         None,
@@ -930,7 +931,7 @@ async def list_events(
 
 @router.get("/models", response_model=ModelListResponse)
 async def list_models(
-    org_id: str = Query(default="default", min_length=1, max_length=256),
+    org_id: str = Depends(get_org_id),
     approved: Optional[int] = Query(None, ge=0, le=1, description="Filter: 0=unapproved, 1=approved"),
 ) -> ModelListResponse:
     """List governed models, optionally filtered by approval state."""

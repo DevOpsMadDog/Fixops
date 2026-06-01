@@ -19,6 +19,7 @@ import logging
 from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import PlainTextResponse
 
@@ -46,7 +47,7 @@ def _get_generator():
 
 @router.get("/weekly-brief", dependencies=[Depends(api_key_auth)])
 def get_weekly_brief(
-    org_id: str = Query(default="default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Generate full CISO weekly brief aggregating data from all engines."""
     gen = _get_generator()
@@ -55,7 +56,7 @@ def get_weekly_brief(
 
 @router.get("/executive-summary", dependencies=[Depends(api_key_auth)])
 def get_executive_summary(
-    org_id: str = Query(default="default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return 3-bullet executive summary suitable for board presentation."""
     gen = _get_generator()
@@ -64,7 +65,7 @@ def get_executive_summary(
 
 @router.get("/risk-delta", dependencies=[Depends(api_key_auth)])
 def get_risk_delta(
-    org_id: str = Query(default="default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(default=7, ge=1, le=90, description="Look-back period in days"),
 ) -> Dict[str, Any]:
     """Return risk posture delta (score change) over the last N days."""
@@ -74,7 +75,7 @@ def get_risk_delta(
 
 @router.get("/top-risks", dependencies=[Depends(api_key_auth)])
 def get_top_risks(
-    org_id: str = Query(default="default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=5, ge=1, le=20, description="Max number of risks to return"),
 ) -> List[Dict[str, Any]]:
     """Return top N risks requiring CISO attention this week."""
@@ -84,7 +85,7 @@ def get_top_risks(
 
 @router.get("/export/markdown", dependencies=[Depends(api_key_auth)])
 def export_markdown(
-    org_id: str = Query(default="default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> PlainTextResponse:
     """Export full CISO brief as Markdown text (suitable for Slack/email)."""
     gen = _get_generator()
@@ -95,7 +96,7 @@ def export_markdown(
 @router.get("/context/{entity_id}", dependencies=[Depends(api_key_auth)])
 def get_trustgraph_context(
     entity_id: str,
-    org_id: str = Query(default="default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return TrustGraph cross-domain context for a CISO report entity (related assets, findings, incidents)."""
     gen = _get_generator()

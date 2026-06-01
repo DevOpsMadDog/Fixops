@@ -141,7 +141,7 @@ def _inv() -> AssetInventory:
     return get_asset_inventory()
 
 
-def _require_asset(asset_id: str, org_id: str = "default") -> ManagedAsset:
+def _require_asset(asset_id: str, org_id: str = Depends(get_org_id)) -> ManagedAsset:
     """Fetch asset and enforce tenant isolation — 404 if missing or wrong org."""
     asset = _inv().get_asset(asset_id)
     if not asset:

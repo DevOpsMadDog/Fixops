@@ -50,6 +50,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -512,7 +513,7 @@ async def import_rules(body: ImportRulesRequest) -> ImportRulesResponse:
 
 @router.get("/rules", response_model=RulesListResponse)
 async def list_rules(
-    org_id: str = Query(default="default", min_length=1, max_length=256),
+    org_id: str = Depends(get_org_id),
     ruleset: Optional[str] = Query(None, description="Filter by ruleset: suricata | snort | custom"),
 ) -> RulesListResponse:
     """List IDS/IPS rules, optionally filtered by ruleset."""
@@ -569,7 +570,7 @@ async def create_verdict(body: CreateVerdictRequest) -> VerdictResponse:
 
 @router.get("/verdicts", response_model=VerdictListResponse)
 async def list_verdicts(
-    org_id: str = Query(default="default", min_length=1, max_length=256),
+    org_id: str = Depends(get_org_id),
     hours: int = Query(default=24, ge=1, le=8760, description="Look-back window in hours (max 365d)"),
     severity: Optional[str] = Query(None, description="Filter by severity: critical | high | medium | low"),
 ) -> VerdictListResponse:

@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 from apps.api.auth_deps import api_key_auth as _verify_api_key
+from apps.api.dependencies import get_org_id
 
 # ---------------------------------------------------------------------------
 # Lazy singleton
@@ -61,7 +62,7 @@ class CreateTemplateRequest(BaseModel):
     sections: List[Dict[str, Any]] = Field(default_factory=list)
     schedule: Optional[str] = None
     recipients: List[str] = Field(default_factory=list)
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     created_by: str = "system"
 
 

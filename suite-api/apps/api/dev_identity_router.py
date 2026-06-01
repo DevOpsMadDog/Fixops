@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -82,7 +83,7 @@ def _get_insider():
 
 
 class AnalyzeRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     author_email: str
     commits: List[Dict[str, Any]] = Field(default_factory=list)
     # If true, also mirror detected signals into access_anomaly_engine
@@ -90,14 +91,14 @@ class AnalyzeRequest(BaseModel):
 
 
 class WatchRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     author_email: str
     reason: str = ""
     watched_by: str = ""
 
 
 class UnwatchRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     author_email: str
     unwatched_by: str = ""
 

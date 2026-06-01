@@ -16,6 +16,8 @@ from core.threat_modeling_engine import (
     ThreatModelingEngine,
 )
 from fastapi import APIRouter, HTTPException
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -41,7 +43,7 @@ class CreateModelRequest(BaseModel):
     name: str = Field(..., min_length=1)
     description: str = ""
     scope: str = ""
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class AddComponentRequest(BaseModel):
@@ -81,7 +83,7 @@ def create_model(req: CreateModelRequest) -> Dict[str, Any]:
 
 
 @router.get("/models", summary="List threat models")
-def list_models(org_id: str = "default") -> List[Dict[str, Any]]:
+def list_models(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     return _get_engine().list_models(org_id=org_id)
 
 

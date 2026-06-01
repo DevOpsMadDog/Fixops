@@ -49,7 +49,7 @@ def _get_engine():
     return _engine
 
 
-def _get_connector(org_id: str = "default"):
+def _get_connector(org_id: str = Depends(get_org_id)):
     from suite_integrations_prowler import ProwlerConnector
     return ProwlerConnector(org_id=org_id, engine=_get_engine())
 
@@ -61,7 +61,7 @@ except ImportError:
     _PC = None
 
 
-def _get_connector(org_id: str = "default"):
+def _get_connector(org_id: str = Depends(get_org_id)):
     """Get a ProwlerConnector for the given org."""
     if _PC is not None:
         return _PC(org_id=org_id, engine=_get_engine())

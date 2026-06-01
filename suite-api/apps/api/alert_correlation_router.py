@@ -40,6 +40,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -344,8 +345,7 @@ async def router_info() -> RouterInfoResponse:
 
 @router.get("/rules", response_model=RuleListResponse)
 async def list_rules(
-    org_id: str = Query(default="default", min_length=1, max_length=256,
-                        description="Organization ID to scope rules"),
+    org_id: str = Depends(get_org_id),
 ) -> RuleListResponse:
     """List all correlation rules for the given org_id."""
     db = _get_db()

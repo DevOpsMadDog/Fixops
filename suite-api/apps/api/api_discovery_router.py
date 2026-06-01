@@ -25,6 +25,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -50,7 +52,7 @@ def _get_engine():
 # ---------------------------------------------------------------------------
 
 class EndpointCreate(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     service_name: str
     endpoint_path: str
     http_method: str
@@ -63,7 +65,7 @@ class EndpointCreate(BaseModel):
 
 
 class ScanCreate(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     scan_name: str
     scan_target: str
     scan_type: str = "passive"
@@ -75,14 +77,14 @@ class ScanComplete(BaseModel):
 
 
 class ChangeCreate(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     endpoint_id: str
     change_type: str
     change_description: str = ""
 
 
 class LinkLayerRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     layer: str = "api"
 
 

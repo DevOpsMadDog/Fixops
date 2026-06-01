@@ -84,7 +84,7 @@ def _get_advisor():
 @router.post("/snippet", dependencies=[Depends(api_key_auth)], status_code=200)
 def scan_snippet_endpoint(
     body: ScanSnippetRequest,
-    org_id: str = Query(default="default", description="Organisation identifier."),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Scan a single snippet with the SAST ruleset. Idempotent by snippet SHA-256."""
     try:
@@ -109,7 +109,7 @@ def scan_snippet_endpoint(
 @router.post("/analyze", dependencies=[Depends(api_key_auth)], status_code=200)
 def analyze_ai_generated_endpoint(
     body: AnalyzeRequest,
-    org_id: str = Query(default="default", description="Organisation identifier."),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Full analysis: SAST findings + AI-specific risk signals + combined score."""
     try:

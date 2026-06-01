@@ -57,7 +57,7 @@ class PolicyCreate(BaseModel):
     rules: List[Dict[str, Any]] = Field(default_factory=list)
     decision_on_match: str = "deny"
     enabled: bool = True
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class PolicyUpdate(BaseModel):
@@ -73,7 +73,7 @@ class PolicyUpdate(BaseModel):
 class EvaluateRequest(BaseModel):
     input_data: Dict[str, Any]
     scope: str  # PolicyScope value
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class BatchEvaluateRequest(BaseModel):

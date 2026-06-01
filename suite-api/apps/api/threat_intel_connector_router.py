@@ -26,6 +26,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
 
@@ -117,7 +118,7 @@ def _connector_for(misp_feed_urls: Optional[List[str]]):
 @router.post("/sync")
 async def sync_all(
     body: SyncRequest = SyncRequest(),
-    org_id: str = Query(default="default", max_length=128),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     """Run all enabled adapters then cross-correlate IoCs against tenant findings."""
@@ -143,7 +144,7 @@ async def sync_all(
 
 @router.post("/sync/misp")
 async def sync_misp(
-    org_id: str = Query(default="default", max_length=128),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     org_id = _validate_org(org_id)
@@ -158,7 +159,7 @@ async def sync_misp(
 @router.post("/sync/circl")
 async def sync_circl(
     hours_back: int = Query(default=24, ge=1, le=168),
-    org_id: str = Query(default="default", max_length=128),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     org_id = _validate_org(org_id)
@@ -177,7 +178,7 @@ async def sync_circl(
 
 @router.post("/sync/phishtank")
 async def sync_phishtank(
-    org_id: str = Query(default="default", max_length=128),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     org_id = _validate_org(org_id)
@@ -191,7 +192,7 @@ async def sync_phishtank(
 
 @router.post("/sync/otx")
 async def sync_otx(
-    org_id: str = Query(default="default", max_length=128),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     org_id = _validate_org(org_id)
@@ -207,7 +208,7 @@ async def sync_otx(
 async def sync_ghsa(
     per_page: int = Query(default=100, ge=1, le=100),
     max_pages: int = Query(default=5, ge=1, le=20),
-    org_id: str = Query(default="default", max_length=128),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     """Pull GitHub Security Advisories from the official REST API.
@@ -234,7 +235,7 @@ async def sync_ghsa(
 
 @router.post("/correlate")
 async def correlate(
-    org_id: str = Query(default="default", max_length=128),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     """Re-run cross-correlation against the current IoC store."""

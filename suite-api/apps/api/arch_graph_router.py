@@ -19,6 +19,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -97,7 +98,7 @@ class TraceFlowBody(BaseModel):
 @router.post("/classify")
 def classify_node(
     body: ClassifyBody,
-    org_id: str = Query(default="default", max_length=256),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Classify a node into one of data|api|ui|service|standalone."""
     try:
@@ -112,7 +113,7 @@ def classify_node(
 
 @router.get("/classifications")
 def list_classifications(
-    org_id: str = Query(default="default", max_length=256),
+    org_id: str = Depends(get_org_id),
     layer: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
     """List layer classifications for an org, optionally filtered."""
@@ -127,7 +128,7 @@ def list_classifications(
 @router.post("/link-api")
 def link_api(
     body: LinkApiBody,
-    org_id: str = Query(default="default", max_length=256),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Link an API endpoint path to an architecture layer."""
     try:
@@ -143,7 +144,7 @@ def link_api(
 @router.post("/link-datastore")
 def link_datastore(
     body: LinkDatastoreBody,
-    org_id: str = Query(default="default", max_length=256),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Link a datastore reference to an architecture layer."""
     try:
@@ -159,7 +160,7 @@ def link_datastore(
 @router.post("/trace-flow")
 def trace_flow(
     body: TraceFlowBody,
-    org_id: str = Query(default="default", max_length=256),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Walk the dep-mapping graph annotating each hop with its layer.
 

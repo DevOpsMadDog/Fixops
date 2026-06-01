@@ -13,6 +13,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -54,7 +56,7 @@ class CreatePlaybookRequest(BaseModel):
     requires_approval: bool = False
     auto_rollback: bool = True
     target_finding_id: Optional[str] = None
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     created_by: str = "system"
 
 

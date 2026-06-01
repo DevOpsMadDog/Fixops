@@ -10,6 +10,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 try:
@@ -75,7 +76,7 @@ class AddMetricRequest(BaseModel):
 
 
 class ListReportsQuery(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     report_type: Optional[str] = None
     status: Optional[str] = None
 

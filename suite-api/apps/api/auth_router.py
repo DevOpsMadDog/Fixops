@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 
 import jwt
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from apps.api.endpoint_rate_limit import enforce as _rl_enforce
 from core.auth_db import AuthDB
 from core.auth_models import AuthProvider, SSOConfig, SSOStatus
@@ -969,7 +970,7 @@ class SignupResponseBody(BaseModel):
     # Use as: X-API-Key: <api_key>  OR  Authorization: Bearer <api_key>
     api_key: Optional[str] = None
     api_key_id: Optional[str] = None
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 def _mint_signup_api_key(user_id: str, email: str, org_id: str) -> tuple:

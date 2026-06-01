@@ -15,6 +15,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -61,7 +62,7 @@ class BatchGeneratePRRequest(BaseModel):
     findings: List[Dict[str, Any]] = Field(..., description="List of security findings")
     repo: str
     owner: str
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 # ---------------------------------------------------------------------------

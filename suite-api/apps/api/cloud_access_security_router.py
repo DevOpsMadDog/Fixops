@@ -59,7 +59,7 @@ def _get_engine():
 
 
 class RegisterCloudAppRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     name: str
     app_category: str = "saas"
     vendor: str = ""
@@ -70,7 +70,7 @@ class RegisterCloudAppRequest(BaseModel):
 
 
 class RecordAccessEventRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     app_id: str
     user_id: str = ""
     access_type: str = "oauth"
@@ -82,7 +82,7 @@ class RecordAccessEventRequest(BaseModel):
 
 
 class CreatePolicyRequest(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
     name: str = ""
     app_category: str = "saas"
     policy_action: str = "monitor"

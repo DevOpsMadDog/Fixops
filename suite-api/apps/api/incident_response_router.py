@@ -16,6 +16,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ class CreateIncidentRequest(BaseModel):
     type: str
     severity: str
     reported_by: str
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class UpdateStatusRequest(BaseModel):

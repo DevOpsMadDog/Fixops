@@ -13,6 +13,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -49,7 +50,7 @@ class CreateRequestModel(BaseModel):
     compensating_controls: str = ""
     priority: str = "medium"
     expires_at: Optional[str] = None
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class ReviewRequestModel(BaseModel):
@@ -58,18 +59,18 @@ class ReviewRequestModel(BaseModel):
     conditions: str = ""
     risk_rating: str = "medium"
     comments: str = ""
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class RenewRequestModel(BaseModel):
     renewed_by: str
     new_expiry: str
     reason: str = ""
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 class RevokeRequestModel(BaseModel):
-    org_id: str = "default"
+    org_id: str = Depends(get_org_id)
 
 
 # ---------------------------------------------------------------------------

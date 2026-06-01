@@ -16,6 +16,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from core.sla_escalation_engine import EscalationAction, SLAEscalationEngine
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -94,7 +95,7 @@ class CycleSummary(BaseModel):
     description="Scan all tracked findings for SLA deadline breaches. Returns list of breached findings.",
 )
 async def check_breaches(
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: SLAEscalationEngine = Depends(_get_engine),
 ) -> List[BreachItem]:
     try:
@@ -112,7 +113,7 @@ async def check_breaches(
     description="Check all SLA breaches and auto-escalate per configured policy.",
 )
 async def run_cycle(
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: SLAEscalationEngine = Depends(_get_engine),
 ) -> CycleSummary:
     try:
@@ -130,7 +131,7 @@ async def run_cycle(
 )
 async def get_history(
     finding_id: Optional[str] = Query(default=None, description="Filter by finding ID"),
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: SLAEscalationEngine = Depends(_get_engine),
 ) -> List[Dict[str, Any]]:
     try:
@@ -148,7 +149,7 @@ async def get_history(
 )
 async def set_policy(
     payload: EscalationPolicyRequest,
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: SLAEscalationEngine = Depends(_get_engine),
 ) -> EscalationPolicyResponse:
     try:
@@ -166,7 +167,7 @@ async def set_policy(
     description="Return the current escalation policy for an org.",
 )
 async def get_policy(
-    org_id: str = Query(default="default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: SLAEscalationEngine = Depends(_get_engine),
 ) -> EscalationPolicyResponse:
     try:

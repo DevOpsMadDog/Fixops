@@ -50,6 +50,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -542,7 +543,7 @@ async def router_info() -> RouterInfoResponse:
 
 @router.get("/raas-groups", response_model=GroupListResponse)
 async def list_groups(
-    org_id: str = Query(default="default", min_length=1, max_length=256),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None, description="Filter by status: active | defunct | sanctioned"),
 ) -> GroupListResponse:
     """List RaaS affiliate groups, optionally filtered by status."""
@@ -624,7 +625,7 @@ async def update_group(group_id: str, body: UpdateGroupRequest) -> RaasGroupResp
 
 @router.get("/extortion-intel", response_model=NegotiationListResponse)
 async def list_negotiations(
-    org_id: str = Query(default="default", min_length=1, max_length=256),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None, description="Filter by status: open | paid | expired | negotiating"),
 ) -> NegotiationListResponse:
     """List extortion negotiations, optionally filtered by status."""
@@ -681,7 +682,7 @@ async def create_negotiation(body: CreateNegotiationRequest) -> ExtortionNegotia
 
 @router.get("/leak-posts", response_model=LeakPostListResponse)
 async def list_leak_posts(
-    org_id: str = Query(default="default", min_length=1, max_length=256),
+    org_id: str = Depends(get_org_id),
     days: int = Query(default=30, ge=1, le=3650, description="Look-back window in days (max 10y)"),
 ) -> LeakPostListResponse:
     """List dark-web leak-site posts within the specified time window."""
