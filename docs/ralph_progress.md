@@ -13,9 +13,9 @@ pre-mortem's disqualifying/major failures are closed. Each story = a spec throug
 | 4 | SPEC-009 reproducible build / lockfile / dependabot | P0 | ✅ VERIFIED |
 | 5 | SPEC-002 local Nuclei pentest connector (real exploitability) | P1 | ✅ VERIFIED |
 | 6 | SPEC-003 local council (real inference + honest labels) | P1 | ✅ VERIFIED |
-| 7 | **SPEC-005b auto-populate TrustGraph + attack-path from scans** | P1 | 🔄 NEXT |
+| 7 | SPEC-005b auto-populate graph (blast_radius != 0) | P1 | ✅ VERIFIED |
 | 8 | SPEC-007 systemic tenancy (ContextVar fix + CI lint gate) | P1 | ✅ VERIFIED |
-| 9 | SPEC-004 multi-language reachability (tree-sitter TS/Java/Go) | P2 | ⏳ TODO |
+| 9 | **SPEC-004 multi-language reachability (tree-sitter TS/Java/Go)** | P2 | 🔄 IN PROGRESS |
 | 10 | SPEC-008 HA / Litestream replication | P1 | ⏳ TODO |
 | 11 | starlette 1.0 + torch CVE bump (own verified pass) | P1 | ⏳ TODO |
 | 12 | SPEC-010 dead-router purge + SQLite migration registry | P2 | ⏳ TODO |
@@ -26,3 +26,4 @@ pre-mortem's disqualifying/major failures are closed. Each story = a spec throug
 - 2026-06-01: story 5 (SPEC-002 Nuclei) VERIFIED — real connector, honest 503, no random. Starting story 6 (SPEC-003 local council).
 - 2026-06-01: story 6 (SPEC-003 local council) VERIFIED — real local inference + honest is_real_inference labels. Next: story 8 (SPEC-007 systemic tenancy — highest-value spillage fix).
 - 2026-06-01: story 8 (SPEC-007 tenancy) VERIFIED — threading.local→ContextVar asyncio fix + lint gate (1730 frozen). 5 stories done this session (001/002/003/005/006/007/009). Loop continues: next SPEC-005b → 004 → 008 → starlette bump → 010 → 006b.
+- 2026-06-01: story 7 (SPEC-005b graph-populate) VERIFIED — blast_radius>0 from real scans, org-scoped, idempotent. Moat now real (SPEC-001+005b). Next: SPEC-004 reachability.

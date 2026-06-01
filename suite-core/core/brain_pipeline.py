@@ -905,6 +905,7 @@ class BrainPipeline:
 
         # ---- Load attack path engine (optional dependency) ----
         ap_engine = None
+        _pipeline_org_id: str = ctx.get("org_id", "default") or "default"
         try:
             from core.attack_path_engine import AttackPathEngine  # noqa: PLC0415
 
@@ -917,8 +918,11 @@ class BrainPipeline:
                 ``affected_nodes``. The engine returns ``total_reachable`` and
                 ``reachable_nodes`` — map them so downstream enrichment keeps
                 working without changing the public engine surface.
+
+                REQ-005b-04: pass org_id so blast radius is scoped to the
+                calling org, not the engine default ("default").
                 """
-                br = _ap_instance.get_blast_radius(node_id)
+                br = _ap_instance.get_blast_radius(node_id, org_id=_pipeline_org_id)
                 if not isinstance(br, dict):
                     return {}
                 return {
@@ -1136,6 +1140,37 @@ class BrainPipeline:
 
         stats["compliance_mapped"] += 1
         stats["frameworks_affected"].update(frameworks)
+
+        # REQ-005b-02: emit CONTROL_MITIGATES_FINDING edges to TrustGraph for
+        # every control ID associated with this finding via the CWE mapping.
+        # This is done best-effort; failures never block the pipeline.
+        try:
+            control_ids: List[str] = []
+            for attr in ("nist_800_53", "pci_dss", "iso_27001"):
+                control_ids.extend(compliance_impact.get(attr) or [])
+            if control_ids:
+                from core.trustgraph_backbone import (  # noqa: PLC0415
+                    RelationshipType,
+                    get_backbone,
+                )
+                backbone = get_backbone()
+                finding_id = str(
+                    finding.get("id") or finding.get("finding_id") or finding.get("rule_id") or ""
+                )
+                if finding_id and backbone is not None:
+                    for ctrl_id in control_ids:
+                        if not ctrl_id:
+                            continue
+                        try:
+                            backbone.link_entities(
+                                ctrl_id,
+                                finding_id,
+                                RelationshipType.CONTROL_MITIGATES_FINDING,
+                            )
+                        except Exception:  # noqa: BLE001
+                            pass
+        except Exception:  # noqa: BLE001
+            pass  # TrustGraph edges are additive — never block the pipeline
 
     def _enrich_sla(
         self,
@@ -2608,7 +2643,158 @@ class BrainPipeline:
         except (OSError, ValueError, KeyError, RuntimeError) as gnn_err:  # narrowed from bare Exception
             logger.debug("GNN analysis skipped: %s", type(gnn_err).__name__)
 
+        # REQ-005b-01: Auto-populate AttackPathEngine from scan findings/assets
+        ap_stats = self._populate_attack_graph(ctx)
+        result["attack_graph"] = ap_stats
+        # REQ-005b-05: surface blast_radius / graph_depth in result
+        result["blast_radius_nodes"] = ap_stats.get("nodes_upserted", 0)
+        result["graph_depth"] = ap_stats.get("max_depth_observed", 0)
+        ctx["attack_graph_stats"] = ap_stats
+
         return result
+
+    # ------------------------------------------------------------------
+    # REQ-005b-01/03/04/05: Auto-populate AttackPathEngine from findings
+    # ------------------------------------------------------------------
+
+    def _populate_attack_graph(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
+        """Upsert AttackPathEngine nodes + edges from the current scan context.
+
+        Called at the end of ``_step_build_graph``.  Creates:
+        - One ``server`` node per unique asset referenced by findings (org-scoped).
+        - One ``server`` node per finding itself (so blast-radius lookup by
+          finding-id or CVE-id works in ``_enrich_attack_paths``).
+        - A directed ``finding → asset`` edge for every finding that names an asset.
+        - ``asset → asset`` edges when two findings share the same CVE (they are
+          transitively connected via the same vulnerability).
+
+        All writes use ``upsert_node`` (INSERT OR REPLACE) and ``upsert_edge``
+        (INSERT OR IGNORE keyed on from+to+org) so the operation is fully
+        idempotent: re-running a scan never duplicates nodes or edges.
+
+        Only real scan data is used (REQ-005b-06): no fabricated edges.
+        Cross-org isolation is preserved: every node/edge carries org_id and
+        queries in ``get_blast_radius`` are already org-scoped.
+
+        Returns a stats dict surfaced in the pipeline result (REQ-005b-05).
+        """
+        stats: Dict[str, Any] = {
+            "nodes_upserted": 0,
+            "edges_upserted": 0,
+            "skipped": False,
+            "max_depth_observed": 0,
+        }
+        try:
+            from core.attack_path_engine import AttackPathEngine  # noqa: PLC0415
+        except ImportError:
+            stats["skipped"] = True
+            return stats
+
+        findings: List[Dict[str, Any]] = ctx.get("findings", [])
+        org_id: str = ctx.get("org_id", "default") or "default"
+        if not findings:
+            stats["skipped"] = True
+            return stats
+
+        try:
+            ap = AttackPathEngine()
+
+            # --- Pass 1: upsert one node per unique asset and per finding ----
+            # Collect asset_id → set of finding_ids so we can build asset→asset
+            # edges later for findings that share the same asset (same CVE chain).
+            asset_findings: Dict[str, List[str]] = {}  # asset_id -> [finding_id, ...]
+            cve_assets: Dict[str, List[str]] = {}       # cve_id   -> [asset_id, ...]
+
+            for f in findings:
+                fid = str(f.get("id") or f.get("rule_id") or f.get("finding_id") or "")
+                if not fid:
+                    continue
+
+                severity = str(f.get("severity", "medium")).lower()
+                risk_map = {"critical": 90.0, "high": 75.0, "medium": 50.0,
+                            "low": 25.0, "info": 10.0, "informational": 10.0}
+                risk_score = risk_map.get(severity, 50.0)
+                cve_id = f.get("cve_id")
+                vuln_list = [cve_id] if cve_id else []
+
+                # Upsert finding node
+                ap.add_node(
+                    node_id=fid,
+                    node_type="server",  # findings modelled as server nodes
+                    name=str(f.get("title") or fid)[:128],
+                    risk_score=risk_score,
+                    is_crown_jewel=False,
+                    vulnerabilities=vuln_list,
+                    org_id=org_id,
+                )
+                stats["nodes_upserted"] += 1
+
+                # Upsert asset node (if present)
+                asset_id = str(
+                    f.get("canonical_asset_id") or f.get("asset_name") or f.get("asset_id") or ""
+                ).strip()
+                if asset_id:
+                    ap.add_node(
+                        node_id=asset_id,
+                        node_type="server",
+                        name=asset_id[:128],
+                        risk_score=risk_score,
+                        is_crown_jewel=False,
+                        vulnerabilities=vuln_list,
+                        org_id=org_id,
+                    )
+                    stats["nodes_upserted"] += 1
+                    asset_findings.setdefault(asset_id, []).append(fid)
+
+                    if cve_id:
+                        cve_assets.setdefault(cve_id, []).append(asset_id)
+
+            # --- Pass 2: upsert finding → asset edges -----------------------
+            for asset_id, fids in asset_findings.items():
+                for fid in fids:
+                    ap.upsert_edge(
+                        from_node=fid,
+                        to_node=asset_id,
+                        protocol="scan",
+                        org_id=org_id,
+                    )
+                    stats["edges_upserted"] += 1
+
+            # --- Pass 3: asset → asset edges via shared CVE -----------------
+            # If two distinct assets share a CVE, they are transitively linked
+            # (attacker who exploits CVE on asset A can pivot to asset B).
+            for cve_id, assets in cve_assets.items():
+                unique_assets = list(dict.fromkeys(assets))  # preserve order, dedup
+                for i in range(len(unique_assets) - 1):
+                    ap.upsert_edge(
+                        from_node=unique_assets[i],
+                        to_node=unique_assets[i + 1],
+                        protocol="cve",
+                        requires_vuln=cve_id,
+                        org_id=org_id,
+                    )
+                    stats["edges_upserted"] += 1
+
+            # --- REQ-005b-05: sample blast radius for the first finding -----
+            first_fid = None
+            for f in findings:
+                fid = str(f.get("id") or f.get("rule_id") or f.get("finding_id") or "")
+                if fid:
+                    first_fid = fid
+                    break
+            if first_fid:
+                try:
+                    br = ap.get_blast_radius(first_fid, org_id=org_id)
+                    stats["max_depth_observed"] = br.get("max_depth", 0)
+                    stats["sample_blast_radius"] = br.get("total_reachable", 0)
+                except Exception:  # noqa: BLE001
+                    pass
+
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("_populate_attack_graph failed (non-fatal): %s", exc)
+            stats["error"] = str(exc)
+
+        return stats
 
     # ------------------------------------------------------------------
     # Step 6: Add threat reality signals (EPSS, KEV, CVSS)

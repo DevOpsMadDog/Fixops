@@ -313,6 +313,48 @@ class AttackPathEngine:
         _logger.debug("Edge added", from_node=from_node, to_node=to_node)
         return edge.to_dict()
 
+    def upsert_edge(
+        self,
+        from_node: str,
+        to_node: str,
+        protocol: str = "tcp",
+        port: int = 0,
+        requires_vuln: str | None = None,
+        org_id: str = "default",
+    ) -> dict:
+        """Idempotent edge upsert — keyed on (from_node, to_node, org_id).
+
+        Unlike ``add_edge`` (which always inserts with a new uuid), this method
+        first checks whether an edge between the same pair already exists for the
+        org.  If it does, the existing edge is returned unchanged so that
+        re-running a pipeline scan does NOT duplicate edges in the graph.
+        Only edges derived from real scan/finding/asset data should be written
+        here (REQ-005b-06).
+
+        Returns: existing or newly-created edge dict.
+        """
+        with self._conn() as conn:
+            existing = conn.execute(
+                "SELECT * FROM edges WHERE from_node = ? AND to_node = ? AND org_id = ? LIMIT 1",
+                (from_node, to_node, org_id),
+            ).fetchone()
+            if existing:
+                return dict(existing)
+            edge_id = hashlib.sha256(
+                f"{org_id}:{from_node}:{to_node}".encode()
+            ).hexdigest()[:32]
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO edges
+                    (edge_id, from_node, to_node, protocol, port, requires_vuln, org_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (edge_id, from_node, to_node, protocol, port, requires_vuln, org_id),
+            )
+        edge = AttackEdge(edge_id, from_node, to_node, protocol, port, requires_vuln, org_id)
+        _logger.debug("Edge upserted", from_node=from_node, to_node=to_node, org_id=org_id)
+        return edge.to_dict()
+
     # ------------------------------------------------------------------
     # Graph traversal helpers
     # ------------------------------------------------------------------
