@@ -22,6 +22,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -79,7 +80,7 @@ class AnomalyCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/accounts", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_privileged_account(body: AccountCreate, org_id: str = Query(default="default")):
+def register_privileged_account(body: AccountCreate, org_id: str = Depends(get_org_id)):
     """Register a new privileged account."""
     try:
         return _get_engine().register_privileged_account(org_id, body.model_dump())
@@ -89,7 +90,7 @@ def register_privileged_account(body: AccountCreate, org_id: str = Query(default
 
 @router.get("/accounts", dependencies=[Depends(api_key_auth)])
 def list_privileged_accounts(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     account_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -107,7 +108,7 @@ def list_privileged_accounts(
 
 
 @router.get("/accounts/{account_id}", dependencies=[Depends(api_key_auth)])
-def get_privileged_account(account_id: str, org_id: str = Query(default="default")):
+def get_privileged_account(account_id: str, org_id: str = Depends(get_org_id)):
     """Get a single privileged account by ID."""
     result = _get_engine().get_privileged_account(org_id, account_id)
     if result is None:
@@ -125,7 +126,7 @@ def get_privileged_account(account_id: str, org_id: str = Query(default="default
     status_code=201,
 )
 def record_access_session(
-    account_id: str, body: SessionCreate, org_id: str = Query(default="default")
+    account_id: str, body: SessionCreate, org_id: str = Depends(get_org_id)
 ):
     """Record an access session for a privileged account."""
     return _get_engine().record_access_session(org_id, account_id, body.model_dump())
@@ -133,7 +134,7 @@ def record_access_session(
 
 @router.get("/sessions", dependencies=[Depends(api_key_auth)])
 def list_sessions(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     account_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -155,7 +156,7 @@ def list_sessions(
     status_code=201,
 )
 def flag_anomaly(
-    account_id: str, body: AnomalyCreate, org_id: str = Query(default="default")
+    account_id: str, body: AnomalyCreate, org_id: str = Depends(get_org_id)
 ):
     """Flag a behavioral anomaly on a privileged account."""
     try:
@@ -166,7 +167,7 @@ def flag_anomaly(
 
 @router.get("/anomalies", dependencies=[Depends(api_key_auth)])
 def list_anomalies(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     account_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
 ):
@@ -183,6 +184,6 @@ def list_anomalies(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_pag_stats(org_id: str = Query(default="default")):
+def get_pag_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated privileged access governance statistics."""
     return _get_engine().get_pag_stats(org_id)

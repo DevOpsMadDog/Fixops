@@ -15,6 +15,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -76,7 +78,7 @@ class CreatePolicyRequest(BaseModel):
 
 
 @router.post("/groups", summary="Create a sharing group")
-def create_group(req: CreateGroupRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def create_group(req: CreateGroupRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().create_group(org_id, req.model_dump())
     except ValueError as e:
@@ -84,7 +86,7 @@ def create_group(req: CreateGroupRequest, org_id: str = Query(default="default")
 
 
 @router.get("/groups", summary="List sharing groups")
-def list_groups(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def list_groups(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     return _get_engine().list_groups(org_id)
 
 
@@ -94,7 +96,7 @@ def list_groups(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
 
 
 @router.post("/groups/{group_id}/indicators", summary="Share an indicator")
-def share_indicator(group_id: str, req: ShareIndicatorRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def share_indicator(group_id: str, req: ShareIndicatorRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().share_indicator(org_id, group_id, req.model_dump(exclude_none=True))
     except ValueError as e:
@@ -106,7 +108,7 @@ def list_indicators(
     group_id: Optional[str] = Query(None),
     indicator_type: Optional[str] = Query(None),
     tlp: Optional[str] = Query(None),
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     return _get_engine().list_indicators(
         org_id, group_id=group_id, indicator_type=indicator_type, tlp=tlp
@@ -119,7 +121,7 @@ def list_indicators(
 
 
 @router.get("/groups/{group_id}/export/stix", summary="Export indicators as STIX 2.1 bundle")
-def export_stix_bundle(group_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def export_stix_bundle(group_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().export_stix_bundle(org_id, group_id)
     except ValueError as e:
@@ -127,7 +129,7 @@ def export_stix_bundle(group_id: str, org_id: str = Query(default="default")) ->
 
 
 @router.post("/import/stix", summary="Import a STIX 2.1 bundle")
-def import_stix_bundle(req: ImportBundleRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def import_stix_bundle(req: ImportBundleRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().import_stix_bundle(org_id, req.bundle, req.source_name)
     except ValueError as e:
@@ -140,7 +142,7 @@ def import_stix_bundle(req: ImportBundleRequest, org_id: str = Query(default="de
 
 
 @router.post("/policies", summary="Create a sharing policy")
-def create_policy(req: CreatePolicyRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def create_policy(req: CreatePolicyRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().create_policy(org_id, req.model_dump())
     except ValueError as e:
@@ -153,5 +155,5 @@ def create_policy(req: CreatePolicyRequest, org_id: str = Query(default="default
 
 
 @router.get("/stats", summary="Get threat sharing statistics")
-def get_sharing_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_sharing_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().get_sharing_stats(org_id)

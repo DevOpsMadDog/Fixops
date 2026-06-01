@@ -20,6 +20,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -72,7 +73,7 @@ class TreatmentCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/risks", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_risk(body: RiskCreate, org_id: str = Query(default="default")):
+def create_risk(body: RiskCreate, org_id: str = Depends(get_org_id)):
     """Create a new risk with auto-computed risk_score and risk_level."""
     try:
         return _get_engine().create_risk(org_id, body.model_dump())
@@ -82,7 +83,7 @@ def create_risk(body: RiskCreate, org_id: str = Query(default="default")):
 
 @router.get("/risks", dependencies=[Depends(api_key_auth)])
 def list_risks(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     risk_category: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -97,7 +98,7 @@ def list_risks(
 
 
 @router.get("/risks/{risk_id}", dependencies=[Depends(api_key_auth)])
-def get_risk(risk_id: str, org_id: str = Query(default="default")):
+def get_risk(risk_id: str, org_id: str = Depends(get_org_id)):
     """Get a single risk by ID."""
     risk = _get_engine().get_risk(org_id, risk_id)
     if not risk:
@@ -106,7 +107,7 @@ def get_risk(risk_id: str, org_id: str = Query(default="default")):
 
 
 @router.patch("/risks/{risk_id}/status", dependencies=[Depends(api_key_auth)])
-def update_risk_status(risk_id: str, body: RiskStatusUpdate, org_id: str = Query(default="default")):
+def update_risk_status(risk_id: str, body: RiskStatusUpdate, org_id: str = Depends(get_org_id)):
     """Update risk status and optional treatment plan."""
     try:
         result = _get_engine().update_risk_status(
@@ -124,7 +125,7 @@ def update_risk_status(risk_id: str, body: RiskStatusUpdate, org_id: str = Query
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def add_risk_treatment(risk_id: str, body: TreatmentCreate, org_id: str = Query(default="default")):
+def add_risk_treatment(risk_id: str, body: TreatmentCreate, org_id: str = Depends(get_org_id)):
     """Add a treatment record to a risk."""
     try:
         return _get_engine().add_risk_treatment(org_id, risk_id, body.model_dump())
@@ -138,7 +139,7 @@ def add_risk_treatment(risk_id: str, body: TreatmentCreate, org_id: str = Query(
 
 @router.get("/treatments", dependencies=[Depends(api_key_auth)])
 def list_treatments(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     risk_id: Optional[str] = Query(None),
 ):
     """List all treatments for an org, optionally filtered by risk_id."""
@@ -150,7 +151,7 @@ def list_treatments(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_risk_stats(org_id: str = Query(default="default")):
+def get_risk_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated risk statistics for an org."""
     return _get_engine().get_risk_stats(org_id)
 
@@ -158,7 +159,7 @@ def get_risk_stats(org_id: str = Query(default="default")):
 @router.get("/risks/{risk_id}/context", dependencies=[Depends(api_key_auth)])
 def get_risk_context(
     risk_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return TrustGraph cross-domain context for a risk (related findings, assets, incidents)."""
     return _get_engine().get_risk_context(org_id, risk_id)

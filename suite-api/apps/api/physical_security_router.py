@@ -22,6 +22,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -96,7 +97,7 @@ class ResolveIncidentRequest(BaseModel):
 @router.post("/locations", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_location(
     body: RegisterLocationRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Register a new physical location."""
     try:
@@ -114,7 +115,7 @@ def register_location(
 
 @router.get("/locations", dependencies=[Depends(api_key_auth)])
 def list_locations(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     location_type: Optional[str] = Query(default=None),
     security_level: Optional[str] = Query(default=None),
 ):
@@ -127,7 +128,7 @@ def list_locations(
 @router.get("/locations/{location_id}", dependencies=[Depends(api_key_auth)])
 def get_location(
     location_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Get a specific location by ID."""
     try:
@@ -142,7 +143,7 @@ def get_location(
 @router.post("/events", dependencies=[Depends(api_key_auth)], status_code=201)
 def record_access_event(
     body: RecordAccessEventRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record a physical access event."""
     try:
@@ -160,7 +161,7 @@ def record_access_event(
 
 @router.get("/events", dependencies=[Depends(api_key_auth)])
 def list_access_events(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     location_id: Optional[str] = Query(default=None),
     access_type: Optional[str] = Query(default=None),
 ):
@@ -173,7 +174,7 @@ def list_access_events(
 @router.post("/incidents", dependencies=[Depends(api_key_auth)], status_code=201)
 def record_incident(
     body: RecordIncidentRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record a new physical security incident."""
     try:
@@ -193,7 +194,7 @@ def record_incident(
 def resolve_incident(
     incident_id: str,
     body: ResolveIncidentRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Resolve an open physical security incident."""
     try:
@@ -206,6 +207,6 @@ def resolve_incident(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_physical_stats(org_id: str = Query(default="default")):
+def get_physical_stats(org_id: str = Depends(get_org_id)):
     """Return physical security overview stats."""
     return _get_engine().get_physical_stats(org_id)

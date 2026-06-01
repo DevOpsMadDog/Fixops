@@ -19,6 +19,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -77,7 +78,7 @@ class CompareRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/benchmarks", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_benchmark(body: BenchmarkCreate, org_id: str = Query(default="default")):
+def create_benchmark(body: BenchmarkCreate, org_id: str = Depends(get_org_id)):
     """Create an industry benchmark definition."""
     try:
         return _get_engine().create_benchmark(
@@ -101,7 +102,7 @@ def create_benchmark(body: BenchmarkCreate, org_id: str = Query(default="default
 
 @router.get("/benchmarks", dependencies=[Depends(api_key_auth)])
 def list_benchmarks(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     sector: Optional[str] = Query(None),
     metric_category: Optional[str] = Query(None),
 ):
@@ -120,7 +121,7 @@ def list_benchmarks(
 
 
 @router.post("/import-dbir", dependencies=[Depends(api_key_auth)])
-def import_dbir_benchmarks(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def import_dbir_benchmarks(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Import Verizon DBIR / VERIS Community Database breach incidents.
 
     Pulls https://github.com/vz-risk/VCDB and upserts every validated incident
@@ -140,7 +141,7 @@ def import_dbir_benchmarks(org_id: str = Query(default="default")) -> Dict[str, 
 # ---------------------------------------------------------------------------
 
 @router.post("/metrics", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_org_metric(body: OrgMetricCreate, org_id: str = Query(default="default")):
+def record_org_metric(body: OrgMetricCreate, org_id: str = Depends(get_org_id)):
     """Record an org security metric measurement."""
     try:
         return _get_engine().record_org_metric(
@@ -158,7 +159,7 @@ def record_org_metric(body: OrgMetricCreate, org_id: str = Query(default="defaul
 @router.get("/metrics/{metric_name}/trend", dependencies=[Depends(api_key_auth)])
 def get_metric_trend(
     metric_name: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     days: int = Query(90, ge=1, le=365),
 ):
     """Return metric trend for an org over the past N days."""
@@ -170,7 +171,7 @@ def get_metric_trend(
 # ---------------------------------------------------------------------------
 
 @router.post("/compare", dependencies=[Depends(api_key_auth)], status_code=201)
-def compare_to_benchmark(body: CompareRequest, org_id: str = Query(default="default")):
+def compare_to_benchmark(body: CompareRequest, org_id: str = Depends(get_org_id)):
     """Compare an org metric to a benchmark and compute percentile rank."""
     try:
         return _get_engine().compare_to_benchmark(
@@ -183,12 +184,12 @@ def compare_to_benchmark(body: CompareRequest, org_id: str = Query(default="defa
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_org_benchmark_summary(org_id: str = Query(default="default")):
+def get_org_benchmark_summary(org_id: str = Depends(get_org_id)):
     """Return benchmark comparison summary with performance counts and overall percentile."""
     return _get_engine().get_org_benchmark_summary(org_id)
 
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def get_root(org_id: str = Query(default="default")):
+def get_root(org_id: str = Depends(get_org_id)):
     """Root endpoint — returns benchmarks list for dashboard health-checks."""
     return _get_engine().list_benchmarks(org_id)

@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -97,7 +98,7 @@ class AddControlBody(BaseModel):
 @router.post("/reviews", dependencies=[Depends(api_key_auth)])
 def create_review(
     body: CreateReviewBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new architecture review."""
     try:
@@ -114,7 +115,7 @@ def create_review(
 
 @router.get("/reviews", dependencies=[Depends(api_key_auth)])
 def list_reviews(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
     """List architecture reviews, optionally filtered by status."""
@@ -124,7 +125,7 @@ def list_reviews(
 @router.get("/reviews/{review_id}", dependencies=[Depends(api_key_auth)])
 def get_review(
     review_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Fetch a single architecture review with findings and controls."""
     result = _get_engine().get_review(review_id, org_id)
@@ -137,7 +138,7 @@ def get_review(
 def add_finding(
     review_id: str,
     body: AddFindingBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a finding to an architecture review."""
     try:
@@ -159,7 +160,7 @@ def add_finding(
 def add_control(
     review_id: str,
     body: AddControlBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a control assessment to an architecture review."""
     try:
@@ -179,7 +180,7 @@ def add_control(
 @router.post("/reviews/{review_id}/complete", dependencies=[Depends(api_key_auth)])
 def complete_review(
     review_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Complete an architecture review and compute the overall score."""
     try:
@@ -190,7 +191,7 @@ def complete_review(
 
 @router.get("/control-gaps", dependencies=[Depends(api_key_auth)])
 def get_control_gaps(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return all unimplemented controls ordered by effectiveness ascending."""
     return _get_engine().get_control_gaps(org_id)
@@ -198,7 +199,7 @@ def get_control_gaps(
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
 def get_summary(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate summary statistics for architecture reviews."""
     return _get_engine().get_summary(org_id)

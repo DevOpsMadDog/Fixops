@@ -22,6 +22,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -90,7 +91,7 @@ class CreateCampaignRequest(BaseModel):
 @router.post("/decoys", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_decoy(
     body: CreateDecoyRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new deception decoy (honeypot, canary, honeydoc, etc.)."""
     try:
@@ -104,7 +105,7 @@ def create_decoy(
 
 @router.get("/decoys", dependencies=[Depends(api_key_auth)])
 def list_decoys(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     decoy_type: Optional[str] = Query(default=None),
     active: Optional[bool] = Query(default=None),
 ):
@@ -115,7 +116,7 @@ def list_decoys(
 @router.get("/decoys/{decoy_id}", dependencies=[Depends(api_key_auth)])
 def get_decoy(
     decoy_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Retrieve a single decoy by ID."""
     decoy = _get_engine().get_decoy(org_id, decoy_id)
@@ -132,7 +133,7 @@ def get_decoy(
 def record_interaction(
     decoy_id: str,
     body: RecordInteractionRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record an attacker interaction with a specific decoy."""
     try:
@@ -146,7 +147,7 @@ def record_interaction(
 
 @router.get("/interactions", dependencies=[Depends(api_key_auth)])
 def list_interactions(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     decoy_id: Optional[str] = Query(default=None),
     interaction_type: Optional[str] = Query(default=None),
 ):
@@ -163,7 +164,7 @@ def list_interactions(
 @router.post("/campaigns", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_campaign(
     body: CreateCampaignRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new deception campaign."""
     try:
@@ -177,7 +178,7 @@ def create_campaign(
 
 @router.get("/campaigns", dependencies=[Depends(api_key_auth)])
 def list_campaigns(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
 ):
     """List campaigns with optional status filter."""
@@ -189,6 +190,6 @@ def list_campaigns(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_deception_stats(org_id: str = Query(default="default")):
+def get_deception_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated deception stats: decoys, interactions, unique attackers, hottest decoy."""
     return _get_engine().get_deception_stats(org_id)

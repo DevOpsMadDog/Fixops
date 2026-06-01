@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -78,7 +79,7 @@ class SnapshotCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/dashboards", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_dashboard(body: DashboardCreate, org_id: str = Query(default="default")):
+def create_dashboard(body: DashboardCreate, org_id: str = Depends(get_org_id)):
     """Create a new metrics dashboard."""
     try:
         return _get_engine().create_dashboard(org_id, body.model_dump())
@@ -88,7 +89,7 @@ def create_dashboard(body: DashboardCreate, org_id: str = Query(default="default
 
 @router.get("/dashboards", dependencies=[Depends(api_key_auth)])
 def list_dashboards(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     dashboard_type: Optional[str] = Query(None),
 ):
     """List dashboards with optional type filter."""
@@ -96,7 +97,7 @@ def list_dashboards(
 
 
 @router.get("/dashboards/{dashboard_id}", dependencies=[Depends(api_key_auth)])
-def get_dashboard(dashboard_id: str, org_id: str = Query(default="default")):
+def get_dashboard(dashboard_id: str, org_id: str = Depends(get_org_id)):
     """Get a single dashboard by ID."""
     dashboard = _get_engine().get_dashboard(org_id, dashboard_id)
     if not dashboard:
@@ -113,7 +114,7 @@ def get_dashboard(dashboard_id: str, org_id: str = Query(default="default")):
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def add_widget(dashboard_id: str, body: WidgetCreate, org_id: str = Query(default="default")):
+def add_widget(dashboard_id: str, body: WidgetCreate, org_id: str = Depends(get_org_id)):
     """Add a widget to a dashboard."""
     try:
         result = _get_engine().add_widget(org_id, dashboard_id, body.model_dump())
@@ -125,7 +126,7 @@ def add_widget(dashboard_id: str, body: WidgetCreate, org_id: str = Query(defaul
 
 
 @router.get("/dashboards/{dashboard_id}/widgets", dependencies=[Depends(api_key_auth)])
-def list_widgets(dashboard_id: str, org_id: str = Query(default="default")):
+def list_widgets(dashboard_id: str, org_id: str = Depends(get_org_id)):
     """List all widgets for a dashboard."""
     return _get_engine().list_widgets(org_id, dashboard_id)
 
@@ -135,7 +136,7 @@ def list_widgets(dashboard_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/snapshots", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_snapshot(body: SnapshotCreate, org_id: str = Query(default="default")):
+def record_snapshot(body: SnapshotCreate, org_id: str = Depends(get_org_id)):
     """Record a metric snapshot."""
     try:
         return _get_engine().record_metric_snapshot(org_id, body.model_dump())
@@ -145,7 +146,7 @@ def record_snapshot(body: SnapshotCreate, org_id: str = Query(default="default")
 
 @router.get("/snapshots", dependencies=[Depends(api_key_auth)])
 def get_metric_history(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     dashboard_id: str = Query(...),
     metric_name: str = Query(...),
     limit: int = Query(50, ge=1, le=500),
@@ -161,6 +162,6 @@ def get_metric_history(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_stats(org_id: str = Query(default="default")):
+def get_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated dashboard statistics."""
     return _get_engine().get_dashboard_stats(org_id)

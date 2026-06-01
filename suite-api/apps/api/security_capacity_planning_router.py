@@ -21,6 +21,7 @@ import logging
 from typing import List
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -80,7 +81,7 @@ class ResourceAssign(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/resources", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_resource(body: ResourceCreate, org_id: str = Query(default="default")):
+def register_resource(body: ResourceCreate, org_id: str = Depends(get_org_id)):
     """Register a new security team resource."""
     try:
         return _get_engine().register_resource(
@@ -98,7 +99,7 @@ def register_resource(body: ResourceCreate, org_id: str = Query(default="default
 
 
 @router.put("/resources/{resource_id}/utilization", dependencies=[Depends(api_key_auth)])
-def update_utilization(resource_id: str, body: UtilizationUpdate, org_id: str = Query(default="default")):
+def update_utilization(resource_id: str, body: UtilizationUpdate, org_id: str = Depends(get_org_id)):
     """Update utilization percentage for a resource (clamped 0-100)."""
     try:
         return _get_engine().update_utilization(resource_id, org_id, body.utilization_pct)
@@ -111,7 +112,7 @@ def update_utilization(resource_id: str, body: UtilizationUpdate, org_id: str = 
 # ---------------------------------------------------------------------------
 
 @router.post("/demands", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_demand(body: DemandCreate, org_id: str = Query(default="default")):
+def add_demand(body: DemandCreate, org_id: str = Depends(get_org_id)):
     """Add a capacity demand with auto-computed gap_fte."""
     try:
         return _get_engine().add_demand(
@@ -128,7 +129,7 @@ def add_demand(body: DemandCreate, org_id: str = Query(default="default")):
 
 
 @router.put("/demands/{demand_id}/assign", dependencies=[Depends(api_key_auth)])
-def assign_resource(demand_id: str, body: ResourceAssign, org_id: str = Query(default="default")):
+def assign_resource(demand_id: str, body: ResourceAssign, org_id: str = Depends(get_org_id)):
     """Assign a resource to a demand."""
     try:
         return _get_engine().assign_resource(demand_id, org_id, body.resource_id)
@@ -141,7 +142,7 @@ def assign_resource(demand_id: str, body: ResourceAssign, org_id: str = Query(de
 # ---------------------------------------------------------------------------
 
 @router.post("/snapshots", dependencies=[Depends(api_key_auth)], status_code=201)
-def take_snapshot(org_id: str = Query(default="default")):
+def take_snapshot(org_id: str = Depends(get_org_id)):
     """Take a capacity snapshot for the current date."""
     try:
         return _get_engine().take_snapshot(org_id)
@@ -154,18 +155,18 @@ def take_snapshot(org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_capacity_summary(org_id: str = Query(default="default")):
+def get_capacity_summary(org_id: str = Depends(get_org_id)):
     """Get aggregated capacity summary."""
     return _get_engine().get_capacity_summary(org_id)
 
 
 @router.get("/skill-gaps", dependencies=[Depends(api_key_auth)])
-def get_skill_gap_analysis(org_id: str = Query(default="default")):
+def get_skill_gap_analysis(org_id: str = Depends(get_org_id)):
     """Get open demands with no assigned resource (skill gaps)."""
     return _get_engine().get_skill_gap_analysis(org_id)
 
 
 @router.get("/teams", dependencies=[Depends(api_key_auth)])
-def get_team_breakdown(org_id: str = Query(default="default")):
+def get_team_breakdown(org_id: str = Depends(get_org_id)):
     """Get per-team resource count, total FTE, and avg utilization."""
     return _get_engine().get_team_breakdown(org_id)

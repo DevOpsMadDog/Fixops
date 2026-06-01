@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -64,7 +65,7 @@ class ExecuteRuleRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/rules", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_automation_rule(body: RuleCreate, org_id: str = Query(default="default")):
+def create_automation_rule(body: RuleCreate, org_id: str = Depends(get_org_id)):
     """Create a new automation rule for the org."""
     try:
         return _get_engine().create_automation_rule(org_id, body.model_dump())
@@ -74,7 +75,7 @@ def create_automation_rule(body: RuleCreate, org_id: str = Query(default="defaul
 
 @router.get("/rules", dependencies=[Depends(api_key_auth)])
 def list_automation_rules(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     enabled: Optional[bool] = Query(None),
 ):
     """List automation rules, optionally filtered by enabled state."""
@@ -82,7 +83,7 @@ def list_automation_rules(
 
 
 @router.get("/rules/{rule_id}", dependencies=[Depends(api_key_auth)])
-def get_rule(rule_id: str, org_id: str = Query(default="default")):
+def get_rule(rule_id: str, org_id: str = Depends(get_org_id)):
     """Get a single automation rule by ID."""
     rule = _get_engine().get_rule(org_id, rule_id)
     if not rule:
@@ -91,7 +92,7 @@ def get_rule(rule_id: str, org_id: str = Query(default="default")):
 
 
 @router.patch("/rules/{rule_id}/enable", dependencies=[Depends(api_key_auth)])
-def enable_rule(rule_id: str, org_id: str = Query(default="default")):
+def enable_rule(rule_id: str, org_id: str = Depends(get_org_id)):
     """Enable an automation rule."""
     rule = _get_engine().enable_rule(org_id, rule_id)
     if not rule:
@@ -100,7 +101,7 @@ def enable_rule(rule_id: str, org_id: str = Query(default="default")):
 
 
 @router.patch("/rules/{rule_id}/disable", dependencies=[Depends(api_key_auth)])
-def disable_rule(rule_id: str, org_id: str = Query(default="default")):
+def disable_rule(rule_id: str, org_id: str = Depends(get_org_id)):
     """Disable an automation rule."""
     rule = _get_engine().disable_rule(org_id, rule_id)
     if not rule:
@@ -113,7 +114,7 @@ def disable_rule(rule_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/rules/{rule_id}/execute", dependencies=[Depends(api_key_auth)], status_code=201)
-def execute_rule(rule_id: str, body: ExecuteRuleRequest, org_id: str = Query(default="default")):
+def execute_rule(rule_id: str, body: ExecuteRuleRequest, org_id: str = Depends(get_org_id)):
     """Execute an automation rule against a given context."""
     result = _get_engine().execute_rule(org_id, rule_id, body.context)
     if not result:
@@ -123,7 +124,7 @@ def execute_rule(rule_id: str, body: ExecuteRuleRequest, org_id: str = Query(def
 
 @router.get("/executions", dependencies=[Depends(api_key_auth)])
 def list_executions(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     rule_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
@@ -137,6 +138,6 @@ def list_executions(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_automation_stats(org_id: str = Query(default="default")):
+def get_automation_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated automation statistics for the org."""
     return _get_engine().get_automation_stats(org_id)

@@ -21,6 +21,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -84,7 +85,7 @@ class CalculateScoreRequest(BaseModel):
 @router.post("/controls", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_control(
     body: RegisterControlRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Register a new security control."""
     try:
@@ -98,7 +99,7 @@ def register_control(
 
 @router.get("/controls", dependencies=[Depends(api_key_auth)])
 def list_controls(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     domain: Optional[str] = Query(default=None),
     control_status: Optional[str] = Query(default=None),
 ):
@@ -111,7 +112,7 @@ def list_controls(
 @router.get("/controls/{control_id}", dependencies=[Depends(api_key_auth)])
 def get_control(
     control_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Retrieve a single control by ID."""
     ctrl = _get_engine().get_control(org_id, control_id)
@@ -124,7 +125,7 @@ def get_control(
 def update_control_status(
     control_id: str,
     body: UpdateControlStatusRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Update a control's status and optional evidence URL."""
     try:
@@ -147,7 +148,7 @@ def update_control_status(
 @router.post("/score", dependencies=[Depends(api_key_auth)])
 def calculate_posture_score(
     body: CalculateScoreRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Compute weighted posture score and persist a snapshot."""
     try:
@@ -159,7 +160,7 @@ def calculate_posture_score(
 
 @router.get("/history", dependencies=[Depends(api_key_auth)])
 def get_posture_history(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     domain: Optional[str] = Query(default=None),
     limit: int = Query(default=30, ge=1, le=500),
 ):
@@ -172,7 +173,7 @@ def get_posture_history(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_posture_stats(org_id: str = Query(default="default")):
+def get_posture_stats(org_id: str = Depends(get_org_id)):
     """Return overall posture score, per-domain scores, and control gap counts."""
     return _get_engine().get_posture_stats(org_id)
 
@@ -180,7 +181,7 @@ def get_posture_stats(org_id: str = Query(default="default")):
 @router.get("/context/{entity_id}", dependencies=[Depends(api_key_auth)])
 def get_trustgraph_context(
     entity_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return TrustGraph cross-domain context for a posture entity (related assets, findings, incidents)."""
     return _get_engine().get_trustgraph_context(org_id, entity_id)
