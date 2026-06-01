@@ -191,6 +191,23 @@ class KeyManager:
                     timestamp TEXT NOT NULL
                 )
             """)
+            # REQ-006b-02: append-only enforcement on the key audit log.
+            # DELETE and UPDATE raise ABORT so no process can remove or alter
+            # an audit record once written.  INSERT is unaffected.
+            conn.execute("""
+                CREATE TRIGGER IF NOT EXISTS key_audit_log_block_delete
+                    BEFORE DELETE ON key_audit_log
+                    BEGIN
+                        SELECT RAISE(ABORT, 'key_audit_log: deletion not permitted — table is append-only');
+                    END
+            """)
+            conn.execute("""
+                CREATE TRIGGER IF NOT EXISTS key_audit_log_block_update
+                    BEFORE UPDATE ON key_audit_log
+                    BEGIN
+                        SELECT RAISE(ABORT, 'key_audit_log: update not permitted — table is append-only');
+                    END
+            """)
 
     def _log_action(self, key_id: str, action: str, performed_by: str = "system", details: str = "") -> None:
         with self._conn() as conn:

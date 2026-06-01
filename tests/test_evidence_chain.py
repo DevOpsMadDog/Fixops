@@ -283,22 +283,18 @@ class TestVerifyChain:
         # Should parse as ISO datetime
         datetime.fromisoformat(result["verified_at"].replace("Z", "+00:00"))
 
-    def test_tampered_data_hash_detected(self, chain, org):
-        """Directly corrupt a DB row and confirm detect_tampering finds it."""
+    def test_tampered_data_hash_detected(self, chain, org, monkeypatch):
+        """Directly corrupt a DB row and confirm detect_tampering finds it.
+
+        Uses _corrupt_entry_for_test() (FIXOPS_TESTING=1 required) which
+        temporarily drops the append-only trigger to simulate an attacker
+        with SQLite DDL access — the actual tamper-evidence is the HMAC chain.
+        """
+        monkeypatch.setenv("FIXOPS_TESTING", "1")
         chain.append("event", {"k": "original"}, org)
         chain.append("event", {"k": "second"}, org)
 
-        # Corrupt the first entry's data_hash in SQLite
-        conn = chain._get_conn()
-        try:
-            conn.execute(
-                "UPDATE chain_entries SET data_hash = 'deadbeef' "
-                "WHERE org_id = ? AND sequence_number = 0",
-                (org,),
-            )
-            conn.commit()
-        finally:
-            conn.close()
+        chain._corrupt_entry_for_test(org, 0, data_hash="deadbeef")
 
         result = chain.verify_chain(org)
         # The second entry's previous_hash now references the corrupted entry,
@@ -315,39 +311,24 @@ class TestDetectTampering:
             chain.append("event", {}, org)
         assert chain.detect_tampering(org) == []
 
-    def test_returns_tampered_entries(self, chain, org):
+    def test_returns_tampered_entries(self, chain, org, monkeypatch):
+        monkeypatch.setenv("FIXOPS_TESTING", "1")
         chain.append("event", {"k": "v"}, org)
         chain.append("event", {"k": "w"}, org)
 
-        # Corrupt signature of entry 0
-        conn = chain._get_conn()
-        try:
-            conn.execute(
-                "UPDATE chain_entries SET signature = 'badsig' "
-                "WHERE org_id = ? AND sequence_number = 0",
-                (org,),
-            )
-            conn.commit()
-        finally:
-            conn.close()
+        # Corrupt signature of entry 0 via test helper (bypasses append-only trigger)
+        chain._corrupt_entry_for_test(org, 0, signature="badsig")
 
         tampered = chain.detect_tampering(org)
         assert len(tampered) >= 1
         seq_nums = [t["sequence_number"] for t in tampered]
         assert 0 in seq_nums
 
-    def test_tampered_entry_has_reason(self, chain, org):
+    def test_tampered_entry_has_reason(self, chain, org, monkeypatch):
+        monkeypatch.setenv("FIXOPS_TESTING", "1")
         chain.append("event", {}, org)
 
-        conn = chain._get_conn()
-        try:
-            conn.execute(
-                "UPDATE chain_entries SET signature = 'badsig' WHERE org_id = ?",
-                (org,),
-            )
-            conn.commit()
-        finally:
-            conn.close()
+        chain._corrupt_entry_for_test(org, 0, signature="badsig")
 
         tampered = chain.detect_tampering(org)
         assert len(tampered) == 1
@@ -374,18 +355,11 @@ class TestGetChainStats:
         assert stats["last_timestamp"] is not None
         assert stats["integrity_status"] == "valid"
 
-    def test_tampered_chain_reports_tampered(self, chain, org):
+    def test_tampered_chain_reports_tampered(self, chain, org, monkeypatch):
+        monkeypatch.setenv("FIXOPS_TESTING", "1")
         chain.append("event", {}, org)
 
-        conn = chain._get_conn()
-        try:
-            conn.execute(
-                "UPDATE chain_entries SET signature = 'badsig' WHERE org_id = ?",
-                (org,),
-            )
-            conn.commit()
-        finally:
-            conn.close()
+        chain._corrupt_entry_for_test(org, 0, signature="badsig")
 
         stats = chain.get_chain_stats(org)
         assert stats["integrity_status"] == "tampered"

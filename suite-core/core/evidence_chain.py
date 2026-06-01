@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import logging
 import os
 import sqlite3
 import threading
@@ -20,9 +21,46 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
-# HMAC key — sourced from env or a stable fallback for deterministic testing
+# HMAC key — REQ-006b-03: sourced from a SEPARATE env var so the key is
+# NOT co-located with the database it protects.
+#
+# Primary:  FIXOPS_AUDIT_HMAC_KEY  — set this to an out-of-band secret in
+#           production (e.g. from a secrets manager / Vault / env inject).
+# Fallback: EVIDENCE_CHAIN_HMAC_KEY — legacy variable, still accepted for
+#           backward-compatibility but logs a warning.
+# Last resort: static default — loudly warned, suitable for dev only.
+#
+# An attacker who can write to evidence_chain.db CANNOT re-HMAC entries
+# if this key is stored separately (e.g. in a KMS / different host).
 # ---------------------------------------------------------------------------
-_HMAC_KEY: bytes = os.environ.get("EVIDENCE_CHAIN_HMAC_KEY", "fixops-evidence-chain-key").encode()
+_hmac_logger = logging.getLogger(__name__)
+
+
+def _load_hmac_key() -> bytes:
+    """Load and return the HMAC key, with honest warnings on insecure paths."""
+    primary = os.environ.get("FIXOPS_AUDIT_HMAC_KEY", "")
+    if primary:
+        return primary.encode("utf-8")
+    legacy = os.environ.get("EVIDENCE_CHAIN_HMAC_KEY", "")
+    if legacy:
+        _hmac_logger.warning(
+            "SECURITY WARNING [REQ-006b-03]: EVIDENCE_CHAIN_HMAC_KEY is set but "
+            "FIXOPS_AUDIT_HMAC_KEY is not. "
+            "Migrate to FIXOPS_AUDIT_HMAC_KEY so the HMAC key is stored separately "
+            "from the database it protects."
+        )
+        return legacy.encode("utf-8")
+    _hmac_logger.warning(
+        "SECURITY WARNING [REQ-006b-03]: Neither FIXOPS_AUDIT_HMAC_KEY nor "
+        "EVIDENCE_CHAIN_HMAC_KEY is set. "
+        "Using a static fallback HMAC key — this means an attacker with DB write "
+        "access can re-HMAC modified entries. "
+        "Set FIXOPS_AUDIT_HMAC_KEY to an out-of-band secret in production."
+    )
+    return b"fixops-evidence-chain-key"
+
+
+_HMAC_KEY: bytes = _load_hmac_key()
 
 
 # ---------------------------------------------------------------------------
@@ -131,6 +169,22 @@ class EvidenceChain:
 
             CREATE INDEX IF NOT EXISTS idx_chain_org_ts
                 ON chain_entries (org_id, timestamp);
+
+            -- REQ-006b-02: append-only enforcement.
+            -- DELETE and UPDATE on chain_entries raise an ABORT error so that
+            -- no process (including a compromised application) can remove or
+            -- alter an entry.  INSERT is unaffected — the chain is append-only.
+            CREATE TRIGGER IF NOT EXISTS chain_entries_block_delete
+                BEFORE DELETE ON chain_entries
+                BEGIN
+                    SELECT RAISE(ABORT, 'chain_entries: deletion not permitted — table is append-only');
+                END;
+
+            CREATE TRIGGER IF NOT EXISTS chain_entries_block_update
+                BEFORE UPDATE ON chain_entries
+                BEGIN
+                    SELECT RAISE(ABORT, 'chain_entries: update not permitted — table is append-only');
+                END;
             """
         )
         conn.commit()
@@ -146,6 +200,45 @@ class EvidenceChain:
             signature=row["signature"],
             org_id=row["org_id"],
         )
+
+    def _corrupt_entry_for_test(self, org_id: str, sequence_number: int, **field_updates: str) -> None:
+        """Bypass append-only triggers to corrupt a row for tampering-detection tests.
+
+        THIS METHOD IS FOR TESTING ONLY.  It is intentionally only callable when
+        ``FIXOPS_TESTING=1`` so it can never be triggered in production.
+
+        The triggers that block DELETE/UPDATE are dropped, the row is corrupted,
+        and the triggers are immediately recreated.  This models the real-world
+        threat: an attacker with SQLite DDL access CAN bypass the triggers, which
+        is why the HMAC chain (and an out-of-band HMAC key) are the actual
+        tamper-evidence mechanism — the triggers are a deterrent layer, not the
+        last line of defence.
+        """
+        if not os.environ.get("FIXOPS_TESTING"):
+            raise RuntimeError(
+                "_corrupt_entry_for_test() requires FIXOPS_TESTING=1 — "
+                "not available in production."
+            )
+        if not field_updates:
+            return
+        set_clause = ", ".join(f"{col} = ?" for col in field_updates)
+        values = list(field_updates.values()) + [org_id, sequence_number]
+        conn = self._get_conn()
+        with self._lock:
+            conn.execute("DROP TRIGGER IF EXISTS chain_entries_block_update")
+            conn.execute(
+                f"UPDATE chain_entries SET {set_clause} "  # noqa: S608
+                "WHERE org_id = ? AND sequence_number = ?",
+                values,
+            )
+            conn.execute(
+                """CREATE TRIGGER IF NOT EXISTS chain_entries_block_update
+                   BEFORE UPDATE ON chain_entries
+                   BEGIN
+                     SELECT RAISE(ABORT, 'chain_entries: update not permitted — table is append-only');
+                   END"""
+            )
+            conn.commit()
 
     # ------------------------------------------------------------------
     # Core operations

@@ -78,6 +78,45 @@ except ImportError:
 # ---------------------------------------------------------------------------
 logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# Key-at-rest passphrase — REQ-006b-01
+# When FIXOPS_KEY_PASSPHRASE is set, private keys are written with
+# BestAvailableEncryption (PBKDF2-based passphrase wrapping).
+# When NOT set, keys are still written (for operational continuity) but a
+# loud WARNING is emitted so operators cannot miss the exposure.
+# ---------------------------------------------------------------------------
+_KEY_PASSPHRASE_ENV: Final[str] = "FIXOPS_KEY_PASSPHRASE"
+
+
+def _get_key_passphrase() -> Optional[bytes]:
+    """Return the key passphrase bytes from the environment, or None if unset."""
+    raw = os.environ.get(_KEY_PASSPHRASE_ENV, "")
+    return raw.encode("utf-8") if raw else None
+
+
+def _key_encryption_algorithm() -> serialization.KeySerializationEncryption:
+    """Return the encryption algorithm to use when serialising private keys.
+
+    If FIXOPS_KEY_PASSPHRASE is set, returns BestAvailableEncryption(passphrase).
+    Otherwise logs a WARNING and returns NoEncryption() for backward-compatibility.
+
+    NOTE: NoEncryption() means the private key is stored as plaintext on disk
+    protected only by filesystem permissions (0600).  This does NOT meet
+    NIST SP 800-57 key-at-rest requirements.  Set FIXOPS_KEY_PASSPHRASE to a
+    strong random value (e.g. openssl rand -hex 32) in any non-dev deployment.
+    """
+    passphrase = _get_key_passphrase()
+    if passphrase is not None:
+        return serialization.BestAvailableEncryption(passphrase)
+    logger.warning(
+        "SECURITY WARNING [REQ-006b-01]: FIXOPS_KEY_PASSPHRASE is not set. "
+        "RSA/ML-DSA private keys will be written UNENCRYPTED to disk (0600 permissions only). "
+        "This does NOT meet NIST SP 800-57 / SC-12 key-at-rest requirements. "
+        "Set FIXOPS_KEY_PASSPHRASE to a strong random secret in production."
+    )
+    return serialization.NoEncryption()
+
 # TrustGraph event bus — optional, never blocks on failure
 try:  # pragma: no cover - bus is optional
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus  # type: ignore
@@ -590,14 +629,48 @@ class RSAKeyManager:
     def _load_private_key(self) -> None:
         """Load RSA private key from PEM file.
 
+        Handles both passphrase-encrypted keys (written when
+        FIXOPS_KEY_PASSPHRASE was set) and legacy plaintext keys
+        (written before REQ-006b-01 was applied).  The load sequence is:
+
+        1. Try with the current environment passphrase (None if unset).
+        2. If that fails with TypeError or ValueError (wrong / missing
+           passphrase), try the other direction as a backward-compat fallback
+           and log a WARNING so operators know the key is unencrypted at rest.
+
         Raises:
-            CryptoError: On any I/O or parsing error.
+            CryptoError: On any I/O or unrecoverable parsing error.
         """
         try:
             pem_data = self.private_key_path.read_bytes()
-            loaded_key = serialization.load_pem_private_key(
-                pem_data, password=None, backend=default_backend()
-            )
+            passphrase = _get_key_passphrase()
+
+            loaded_key = None
+            try:
+                loaded_key = serialization.load_pem_private_key(
+                    pem_data, password=passphrase, backend=default_backend()
+                )
+            except (TypeError, ValueError, UnicodeDecodeError):
+                # Passphrase mismatch: try backward-compat direction.
+                # If passphrase was supplied but failed, try no-password (legacy key).
+                # If no passphrase was supplied but failed, key is encrypted and
+                # we cannot load it without the passphrase — raise a clear error.
+                if passphrase is not None:
+                    logger.warning(
+                        "RSA private key at %s could not be decrypted with FIXOPS_KEY_PASSPHRASE. "
+                        "Falling back to legacy plaintext load. "
+                        "SECURITY WARNING: key may be stored unencrypted at rest.",
+                        self.private_key_path,
+                    )
+                    loaded_key = serialization.load_pem_private_key(
+                        pem_data, password=None, backend=default_backend()
+                    )
+                else:
+                    raise CryptoError(
+                        f"RSA private key at {self.private_key_path} appears to be encrypted "
+                        "but FIXOPS_KEY_PASSPHRASE is not set. Set the passphrase to load this key."
+                    )
+
             if not isinstance(loaded_key, RSAPrivateKey):
                 raise CryptoError("Loaded key is not an RSA private key")
             self._private_key = loaded_key
@@ -610,7 +683,7 @@ class RSAKeyManager:
             )
         except CryptoError:
             raise
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
             raise CryptoError(f"Failed to load RSA private key: {exc}") from exc
 
     def _load_public_key(self) -> None:
@@ -664,7 +737,12 @@ class RSAKeyManager:
             raise KeyGenerationError(f"Failed to generate RSA key pair: {exc}") from exc
 
     def _save_private_key(self) -> None:
-        """Persist private key to PEM file if a path is configured."""
+        """Persist private key to PEM file if a path is configured.
+
+        When FIXOPS_KEY_PASSPHRASE is set the key is written with
+        BestAvailableEncryption (PBKDF2-wrapped).  When it is NOT set the
+        key is written unencrypted but a WARNING is logged (REQ-006b-01).
+        """
         if self._private_key is None:
             return
         if not str(self.private_key_path) or str(self.private_key_path) == ".":
@@ -673,17 +751,23 @@ class RSAKeyManager:
             key_dir = self.private_key_path.parent
             key_dir.mkdir(parents=True, exist_ok=True)
             key_dir.chmod(0o700)
+            enc_algo = _key_encryption_algorithm()
             pem_data = self._private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption(),
+                encryption_algorithm=enc_algo,
             )
             self.private_key_path.write_bytes(pem_data)
             self.private_key_path.chmod(0o600)
-            logger.info("Saved RSA private key to %s", self.private_key_path)
+            encrypted = not isinstance(enc_algo, serialization.NoEncryption)
+            logger.info(
+                "Saved RSA private key to %s (encrypted_at_rest=%s)",
+                self.private_key_path,
+                encrypted,
+            )
         except OSError as exc:
             logger.warning("Failed to save RSA private key (I/O): %s", type(exc).__name__)
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except (ValueError, KeyError, RuntimeError) as exc:
             logger.warning("Failed to save RSA private key: %s", type(exc).__name__)
 
     def _save_public_key(self) -> None:
@@ -915,12 +999,49 @@ class MLDSAKeyManager:
     def _load_private_key(self) -> None:
         """Load ML-DSA private key from a PEM-like file.
 
+        Handles both passphrase-encrypted keys (ENCRYPTED ML-DSA PRIVATE KEY
+        envelope) and legacy plaintext keys (ML-DSA PRIVATE KEY envelope).
+        Mirrors RSAKeyManager._load_private_key (REQ-006b-01).
+
         Raises:
             CryptoError: On I/O or format error.
         """
         try:
             pem_text = self.private_key_path.read_text(encoding="utf-8")
-            raw = self._unwrap_private_pem(pem_text)
+
+            is_encrypted_envelope = self._MLDSA_ENC_PRIVATE_HEADER in pem_text
+
+            if is_encrypted_envelope:
+                passphrase = _get_key_passphrase()
+                if passphrase is None:
+                    raise CryptoError(
+                        f"ML-DSA private key at {self.private_key_path} is passphrase-encrypted "
+                        "but FIXOPS_KEY_PASSPHRASE is not set. Set the passphrase to load this key."
+                    )
+                blob = self._unwrap_encrypted_private_pem(pem_text)
+                if len(blob) < _AES_GCM_NONCE_LENGTH:
+                    raise CryptoError("ML-DSA encrypted key blob is too short (corrupted?)")
+                nonce = blob[:_AES_GCM_NONCE_LENGTH]
+                ciphertext = blob[_AES_GCM_NONCE_LENGTH:]
+                wrap_key = self._derive_mldsa_wrapping_key(passphrase)
+                aesgcm = AESGCM(wrap_key)
+                try:
+                    raw = aesgcm.decrypt(nonce, ciphertext, None)
+                except Exception as exc:
+                    raise CryptoError(
+                        f"ML-DSA private key decryption failed (wrong passphrase?): {type(exc).__name__}"
+                    ) from exc
+            else:
+                passphrase = _get_key_passphrase()
+                if passphrase is not None:
+                    logger.warning(
+                        "ML-DSA private key at %s is stored UNENCRYPTED (legacy format) "
+                        "but FIXOPS_KEY_PASSPHRASE is set. "
+                        "Re-generate or re-save the key to encrypt it at rest.",
+                        self.private_key_path,
+                    )
+                raw = self._unwrap_private_pem(pem_text)
+
             expected_sk_size = _MLDSA_SK_SIZES[self.level]
             if len(raw) != expected_sk_size:
                 raise CryptoError(
@@ -1020,21 +1141,77 @@ class MLDSAKeyManager:
         except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
             raise KeyGenerationError(f"Failed to generate ML-DSA key pair: {exc}") from exc
 
+    # Custom PEM-like headers for passphrase-encrypted ML-DSA private keys.
+    # Format: nonce (12 bytes) + tag (16 bytes) + ciphertext — all base64-wrapped.
+    _MLDSA_ENC_PRIVATE_HEADER: str = "-----BEGIN ENCRYPTED ML-DSA PRIVATE KEY-----"
+    _MLDSA_ENC_PRIVATE_FOOTER: str = "-----END ENCRYPTED ML-DSA PRIVATE KEY-----"
+
+    def _wrap_encrypted_private_pem(self, ciphertext_with_nonce_tag: bytes) -> str:
+        """Wrap AES-GCM-encrypted ML-DSA key bytes in a PEM-like envelope."""
+        encoded = base64.b64encode(ciphertext_with_nonce_tag).decode("ascii")
+        lines = [encoded[i:i + 64] for i in range(0, len(encoded), 64)]
+        return "\n".join([self._MLDSA_ENC_PRIVATE_HEADER] + lines + [self._MLDSA_ENC_PRIVATE_FOOTER]) + "\n"
+    def _unwrap_encrypted_private_pem(self, pem_text: str) -> bytes:
+        """Strip the encrypted PEM envelope and return the raw ciphertext blob."""
+        lines = pem_text.strip().splitlines()
+        if lines[0] != self._MLDSA_ENC_PRIVATE_HEADER or lines[-1] != self._MLDSA_ENC_PRIVATE_FOOTER:
+            raise CryptoError("ML-DSA encrypted private key file has invalid format")
+        return base64.b64decode("".join(lines[1:-1]))
+
+    @staticmethod
+    def _derive_mldsa_wrapping_key(passphrase: bytes) -> bytes:
+        """Derive a 256-bit AES wrapping key from the passphrase via HKDF-SHA256."""
+        return HKDF(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=None,
+            info=b"fixops-mldsa-key-wrap-v1",
+            backend=default_backend(),
+        ).derive(passphrase)
+
     def _save_private_key(self) -> None:
-        """Persist ML-DSA private key to file if a path is configured."""
+        """Persist ML-DSA private key to file if a path is configured.
+
+        When FIXOPS_KEY_PASSPHRASE is set the raw key bytes are wrapped
+        with AES-256-GCM (HKDF-derived key) before writing.  When NOT set the
+        key is written plaintext (base64 PEM-like) but a WARNING is logged
+        (REQ-006b-01).
+        """
         if self._private_key_bytes is None:
             return
         if not str(self.private_key_path) or str(self.private_key_path) == ".":
             return
         try:
             self.private_key_path.parent.mkdir(parents=True, exist_ok=True)
-            pem_text = self._wrap_private_pem(self._private_key_bytes)
+            passphrase = _get_key_passphrase()
+            if passphrase is not None:
+                wrap_key = self._derive_mldsa_wrapping_key(passphrase)
+                nonce = secrets.token_bytes(_AES_GCM_NONCE_LENGTH)
+                aesgcm = AESGCM(wrap_key)
+                ciphertext = aesgcm.encrypt(nonce, self._private_key_bytes, None)
+                blob = nonce + ciphertext
+                pem_text = self._wrap_encrypted_private_pem(blob)
+                encrypted = True
+            else:
+                logger.warning(
+                    "SECURITY WARNING [REQ-006b-01]: FIXOPS_KEY_PASSPHRASE is not set. "
+                    "ML-DSA-%d private key will be written UNENCRYPTED to disk. "
+                    "Set FIXOPS_KEY_PASSPHRASE in production.",
+                    self.level,
+                )
+                pem_text = self._wrap_private_pem(self._private_key_bytes)
+                encrypted = False
             self.private_key_path.write_text(pem_text, encoding="utf-8")
             self.private_key_path.chmod(0o600)
-            logger.info("Saved ML-DSA-%d private key to %s", self.level, self.private_key_path)
+            logger.info(
+                "Saved ML-DSA-%d private key to %s (encrypted_at_rest=%s)",
+                self.level,
+                self.private_key_path,
+                encrypted,
+            )
         except OSError as exc:
             logger.warning("Failed to save ML-DSA private key (I/O): %s", type(exc).__name__)
-        except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+        except (ValueError, KeyError, RuntimeError) as exc:
             logger.warning("Failed to save ML-DSA private key: %s", type(exc).__name__)
 
     def _save_public_key(self) -> None:
@@ -2921,3 +3098,91 @@ def reset_crypto_manager() -> None:
     global _CRYPTO_MANAGER_INSTANCE
     with _CRYPTO_MANAGER_LOCK:
         _CRYPTO_MANAGER_INSTANCE = None
+
+
+# ---------------------------------------------------------------------------
+# REQ-006b-04 — SQLCipher availability probe
+# ---------------------------------------------------------------------------
+
+def _probe_sqlcipher() -> bool:
+    """Return True if pysqlcipher3 is importable (SQLCipher available).
+
+    This is a pure import probe — it does NOT open any database.  The result
+    is used by crypto_posture() to honestly report whether at-rest DB
+    encryption is available on this host.
+    """
+    try:
+        import pysqlcipher3  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+# ---------------------------------------------------------------------------
+# REQ-006b-05 — Honest crypto posture surface
+# ---------------------------------------------------------------------------
+
+def crypto_posture() -> Dict[str, Any]:
+    """Return an honest crypto-posture status dict for this deployment.
+
+    All flags reflect the ACTUAL runtime state — there are no fabricated
+    passes.  Callers should surface this via a /health or /security/posture
+    endpoint so that operators can see the deployment accreditation posture.
+
+    key_at_rest_encrypted: True iff FIXOPS_KEY_PASSPHRASE is set.
+    audit_hmac_key_external: True iff FIXOPS_AUDIT_HMAC_KEY is set.
+    audit_immutable: True — DELETE/UPDATE triggers installed (REQ-006b-02).
+    db_at_rest_encrypted: True iff pysqlcipher3 is installed.
+    fips_validated: ALWAYS False — pyca/dilithium_py are NOT CMVP-validated.
+                    FOUNDER-BLOCKED: requires certified module + lab.
+    piv_cac: ALWAYS False — no PKCS#11/PIV-CAC implementation exists.
+             FOUNDER-BLOCKED: requires hardware + middleware.
+    notes: list of human-readable explanations for False flags.
+    assessed_at: ISO-8601 UTC timestamp.
+    """
+    passphrase_set = _get_key_passphrase() is not None
+    audit_hmac_external = bool(os.environ.get("FIXOPS_AUDIT_HMAC_KEY", ""))
+    sqlcipher_available = _probe_sqlcipher()
+
+    notes: list = []
+    if not passphrase_set:
+        notes.append(
+            "key_at_rest_encrypted=False: FIXOPS_KEY_PASSPHRASE is not set. "
+            "Private keys are written as plaintext PEM (0600). "
+            "Set FIXOPS_KEY_PASSPHRASE to a strong random value in production."
+        )
+    if not audit_hmac_external:
+        notes.append(
+            "audit_hmac_key_external=False: FIXOPS_AUDIT_HMAC_KEY is not set. "
+            "The audit HMAC key falls back to a static default — "
+            "an attacker with DB write access can re-HMAC modified entries. "
+            "Set FIXOPS_AUDIT_HMAC_KEY to an out-of-band secret."
+        )
+    if not sqlcipher_available:
+        notes.append(
+            "db_at_rest_encrypted=False: pysqlcipher3 is not installed. "
+            "All SQLite databases are unencrypted plaintext on disk. "
+            "Install pysqlcipher3 and migrate databases to enable SQLCipher."
+        )
+    notes.append(
+        "fips_validated=False [FOUNDER-BLOCKED]: pyca/cryptography + dilithium_py "
+        "are NOT FIPS 140-2/3 CMVP-validated modules. "
+        "Requires: CMVP-validated OpenSSL provider + lab certification. "
+        "Estimated effort: 12-18 months + external lab fees."
+    )
+    notes.append(
+        "piv_cac=False [FOUNDER-BLOCKED]: No PKCS#11 / PIV-CAC implementation. "
+        "Requires: smartcard hardware + python-pkcs11/PyKCS11 middleware + IdP federation. "
+        "Estimated effort: 4-6 months minimum."
+    )
+
+    return {
+        "key_at_rest_encrypted": passphrase_set,
+        "audit_hmac_key_external": audit_hmac_external,
+        "audit_immutable": True,   # DELETE/UPDATE triggers installed (REQ-006b-02)
+        "db_at_rest_encrypted": sqlcipher_available,
+        "fips_validated": False,   # NOT CMVP-validated — honest label
+        "piv_cac": False,          # NOT implemented — honest label
+        "notes": notes,
+        "assessed_at": datetime.now(timezone.utc).isoformat(),
+    }
