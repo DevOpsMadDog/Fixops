@@ -24,6 +24,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -85,7 +86,7 @@ class RemediationStatusUpdate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/experiments", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_experiment(body: ExperimentCreate, org_id: str = Query(default="default")):
+def create_experiment(body: ExperimentCreate, org_id: str = Depends(get_org_id)):
     """Create a new chaos experiment."""
     try:
         return _get_engine().create_experiment(org_id, body.model_dump())
@@ -95,7 +96,7 @@ def create_experiment(body: ExperimentCreate, org_id: str = Query(default="defau
 
 @router.get("/experiments", dependencies=[Depends(api_key_auth)])
 def list_experiments(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     experiment_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     limit: int = Query(default=50, ge=1, le=500),
@@ -135,7 +136,7 @@ def list_experiments(
 
 
 @router.get("/experiments/{experiment_id}", dependencies=[Depends(api_key_auth)])
-def get_experiment(experiment_id: str, org_id: str = Query(default="default")):
+def get_experiment(experiment_id: str, org_id: str = Depends(get_org_id)):
     """Get a single chaos experiment by ID."""
     exp = _get_engine().get_experiment(org_id, experiment_id)
     if not exp:
@@ -144,7 +145,7 @@ def get_experiment(experiment_id: str, org_id: str = Query(default="default")):
 
 
 @router.put("/experiments/{experiment_id}/start", dependencies=[Depends(api_key_auth)])
-def start_experiment(experiment_id: str, org_id: str = Query(default="default")):
+def start_experiment(experiment_id: str, org_id: str = Depends(get_org_id)):
     """Start a planned chaos experiment."""
     try:
         return _get_engine().start_experiment(org_id, experiment_id)
@@ -156,7 +157,7 @@ def start_experiment(experiment_id: str, org_id: str = Query(default="default"))
 
 @router.put("/experiments/{experiment_id}/complete", dependencies=[Depends(api_key_auth)])
 def complete_experiment(
-    experiment_id: str, body: CompleteExperiment, org_id: str = Query(default="default")
+    experiment_id: str, body: CompleteExperiment, org_id: str = Depends(get_org_id)
 ):
     """Complete a chaos experiment with outcome and resilience score."""
     try:
@@ -175,7 +176,7 @@ def complete_experiment(
     status_code=201,
 )
 def add_observation(
-    experiment_id: str, body: ObservationCreate, org_id: str = Query(default="default")
+    experiment_id: str, body: ObservationCreate, org_id: str = Depends(get_org_id)
 ):
     """Add an observation to a chaos experiment."""
     try:
@@ -190,7 +191,7 @@ def add_observation(
     "/experiments/{experiment_id}/observations",
     dependencies=[Depends(api_key_auth)],
 )
-def list_observations(experiment_id: str, org_id: str = Query(default="default")):
+def list_observations(experiment_id: str, org_id: str = Depends(get_org_id)):
     """List observations for a chaos experiment."""
     return _get_engine().list_observations(org_id, experiment_id)
 
@@ -205,7 +206,7 @@ def list_observations(experiment_id: str, org_id: str = Query(default="default")
     status_code=201,
 )
 def add_remediation(
-    experiment_id: str, body: RemediationCreate, org_id: str = Query(default="default")
+    experiment_id: str, body: RemediationCreate, org_id: str = Depends(get_org_id)
 ):
     """Add a remediation item for a chaos experiment finding."""
     try:
@@ -218,7 +219,7 @@ def add_remediation(
 
 @router.put("/remediations/{remediation_id}/status", dependencies=[Depends(api_key_auth)])
 def update_remediation_status(
-    remediation_id: str, body: RemediationStatusUpdate, org_id: str = Query(default="default")
+    remediation_id: str, body: RemediationStatusUpdate, org_id: str = Depends(get_org_id)
 ):
     """Update the status of a remediation item."""
     try:
@@ -236,6 +237,6 @@ def update_remediation_status(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_stats(org_id: str = Query(default="default")):
+def get_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated chaos engineering statistics."""
     return _get_engine().get_chaos_stats(org_id)

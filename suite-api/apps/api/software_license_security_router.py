@@ -24,6 +24,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -105,7 +107,7 @@ def add_license_record(body: AddLicenseRecordRequest) -> Dict[str, Any]:
 
 @router.get("/records")
 def list_license_records(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     license_type: Optional[str] = Query(default=None),
     license_risk: Optional[str] = Query(default=None),
     approved: Optional[bool] = Query(default=None),
@@ -121,7 +123,7 @@ def list_license_records(
 
 
 @router.get("/records/{record_id}")
-def get_license_record(record_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_license_record(record_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get a single license record by ID."""
     engine = _get_engine()
     record = engine.get_license_record(org_id, record_id)
@@ -131,7 +133,7 @@ def get_license_record(record_id: str, org_id: str = Query(default="default")) -
 
 
 @router.put("/records/{record_id}/approve")
-def approve_license(record_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def approve_license(record_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Approve a license record."""
     engine = _get_engine()
     try:
@@ -159,7 +161,7 @@ def record_violation(body: RecordViolationRequest) -> Dict[str, Any]:
 def resolve_violation(
     violation_id: str,
     body: ResolveViolationRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Resolve a license violation (waived or remediated)."""
     engine = _get_engine()
@@ -173,7 +175,7 @@ def resolve_violation(
 
 @router.get("/violations")
 def list_violations(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -198,7 +200,7 @@ def create_policy(body: CreatePolicyRequest) -> Dict[str, Any]:
 
 
 @router.get("/policies")
-def list_policies(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def list_policies(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List all license policies for an org."""
     engine = _get_engine()
     return engine.list_policies(org_id)
@@ -210,7 +212,7 @@ def list_policies(org_id: str = Query(default="default")) -> List[Dict[str, Any]
 
 
 @router.get("/stats")
-def get_license_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_license_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregated license compliance statistics."""
     engine = _get_engine()
     return engine.get_license_stats(org_id)

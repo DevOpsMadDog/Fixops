@@ -11,6 +11,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -63,7 +64,7 @@ class IncidentCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/checks", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_check(body: HealthCheckCreate, org_id: str = Query(default="default")):
+def register_check(body: HealthCheckCreate, org_id: str = Depends(get_org_id)):
     """Register a new security health check."""
     try:
         return _get_engine().register_check(org_id, body.model_dump())
@@ -73,7 +74,7 @@ def register_check(body: HealthCheckCreate, org_id: str = Query(default="default
 
 @router.get("/checks", dependencies=[Depends(api_key_auth)])
 def list_checks(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     category: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -85,7 +86,7 @@ def list_checks(
 def update_check_status(
     check_id: str,
     body: CheckStatusUpdate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Update the status and score of a health check."""
     try:
@@ -104,13 +105,13 @@ def update_check_status(
 # ---------------------------------------------------------------------------
 
 @router.post("/snapshots", dependencies=[Depends(api_key_auth)], status_code=201)
-def run_snapshot(org_id: str = Query(default="default")):
+def run_snapshot(org_id: str = Depends(get_org_id)):
     """Run a health snapshot and persist it. Returns the snapshot."""
     return _get_engine().run_health_snapshot(org_id)
 
 
 @router.get("/snapshots/latest", dependencies=[Depends(api_key_auth)])
-def get_latest_snapshot(org_id: str = Query(default="default")):
+def get_latest_snapshot(org_id: str = Depends(get_org_id)):
     """Return the most recent health snapshot."""
     snapshot = _get_engine().get_latest_snapshot(org_id)
     if not snapshot:
@@ -119,7 +120,7 @@ def get_latest_snapshot(org_id: str = Query(default="default")):
 
 
 @router.get("/snapshots", dependencies=[Depends(api_key_auth)])
-def list_snapshots(org_id: str = Query(default="default"), limit: int = Query(default=30, ge=1, le=100)):
+def list_snapshots(org_id: str = Depends(get_org_id), limit: int = Query(default=30, ge=1, le=100)):
     """Return recent health snapshots (default last 30)."""
     return _get_engine().list_snapshots(org_id, limit=limit)
 
@@ -132,7 +133,7 @@ def list_snapshots(org_id: str = Query(default="default"), limit: int = Query(de
 def log_incident(
     check_id: str,
     body: IncidentCreate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Log a security health incident linked to a check."""
     try:
@@ -142,7 +143,7 @@ def log_incident(
 
 
 @router.post("/incidents/{incident_id}/resolve", dependencies=[Depends(api_key_auth)])
-def resolve_incident(incident_id: str, org_id: str = Query(default="default")):
+def resolve_incident(incident_id: str, org_id: str = Depends(get_org_id)):
     """Mark a health incident as resolved."""
     resolved = _get_engine().resolve_incident(org_id, incident_id)
     if not resolved:
@@ -152,7 +153,7 @@ def resolve_incident(incident_id: str, org_id: str = Query(default="default")):
 
 @router.get("/incidents", dependencies=[Depends(api_key_auth)])
 def list_incidents(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     resolved: bool = Query(default=False, description="Set true to list resolved incidents"),
 ):
     """List open or resolved health incidents."""
@@ -164,6 +165,6 @@ def list_incidents(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_health_stats(org_id: str = Query(default="default")):
+def get_health_stats(org_id: str = Depends(get_org_id)):
     """Return aggregate health statistics for an org."""
     return _get_engine().get_health_stats(org_id)

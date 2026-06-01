@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -72,7 +73,7 @@ class SubmitScanRequest(BaseModel):
 @router.post("/projects", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_project(
     body: RegisterProjectRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Register a new project for SCA dependency tracking."""
     try:
@@ -85,13 +86,13 @@ def register_project(
 
 
 @router.get("/projects", dependencies=[Depends(api_key_auth)])
-def list_projects(org_id: str = Query(default="default")):
+def list_projects(org_id: str = Depends(get_org_id)):
     """List all SCA-tracked projects for an org."""
     return _get_engine().list_projects(org_id)
 
 
 @router.get("/projects/{project_id}", dependencies=[Depends(api_key_auth)])
-def get_project(project_id: str, org_id: str = Query(default="default")):
+def get_project(project_id: str, org_id: str = Depends(get_org_id)):
     """Retrieve a single project by ID."""
     result = _get_engine().get_project(org_id, project_id)
     if not result:
@@ -103,7 +104,7 @@ def get_project(project_id: str, org_id: str = Query(default="default")):
 def submit_scan(
     project_id: str,
     body: SubmitScanRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Submit a dependency scan result for a project."""
     try:
@@ -115,7 +116,7 @@ def submit_scan(
 
 @router.get("/scans", dependencies=[Depends(api_key_auth)])
 def list_scans(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     project_id: Optional[str] = Query(default=None),
 ):
     """List scans, optionally filtered by project."""
@@ -123,7 +124,7 @@ def list_scans(
 
 
 @router.get("/scans/{scan_id}", dependencies=[Depends(api_key_auth)])
-def get_scan(scan_id: str, org_id: str = Query(default="default")):
+def get_scan(scan_id: str, org_id: str = Depends(get_org_id)):
     """Retrieve a single scan by ID."""
     result = _get_engine().get_scan(org_id, scan_id)
     if not result:
@@ -132,7 +133,7 @@ def get_scan(scan_id: str, org_id: str = Query(default="default")):
 
 
 @router.get("/scans/{scan_id}/vulnerable-deps", dependencies=[Depends(api_key_auth)])
-def get_vulnerable_dependencies(scan_id: str, org_id: str = Query(default="default")):
+def get_vulnerable_dependencies(scan_id: str, org_id: str = Depends(get_org_id)):
     """Return only vulnerable dependencies (with known CVEs) from a scan."""
     try:
         return _get_engine().get_vulnerable_dependencies(org_id, scan_id)
@@ -144,7 +145,7 @@ def get_vulnerable_dependencies(scan_id: str, org_id: str = Query(default="defau
 
 
 @router.get("/scans/{scan_id}/license-report", dependencies=[Depends(api_key_auth)])
-def get_license_report(scan_id: str, org_id: str = Query(default="default")):
+def get_license_report(scan_id: str, org_id: str = Depends(get_org_id)):
     """Return license distribution and risky license list for a scan."""
     try:
         return _get_engine().get_license_report(org_id, scan_id)
@@ -156,7 +157,7 @@ def get_license_report(scan_id: str, org_id: str = Query(default="default")):
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_sca_stats(org_id: str = Query(default="default")):
+def get_sca_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated SCA statistics for the org."""
     return _get_engine().get_sca_stats(org_id)
 
@@ -170,7 +171,7 @@ def test_package_version(
     ecosystem: str,
     package: str,
     version: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Check whether a specific package version is vulnerable.
 

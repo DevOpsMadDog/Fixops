@@ -13,6 +13,8 @@ import os
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -85,7 +87,7 @@ class BenchmarkSet(BaseModel):
 @router.post("/scorecards", status_code=201, response_model=Dict[str, Any])
 async def create_scorecard(
     body: ScorecardCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new scorecard with dimension scores. Computes weighted overall score and grade."""
     engine = _get_engine()
@@ -96,7 +98,7 @@ async def create_scorecard(
 @router.post("/scorecards/domain", status_code=201, response_model=Dict[str, Any])
 async def generate_domain_scorecard(
     body: DomainScorecardCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Generate a scorecard from 6 weighted domain scores.
 
@@ -109,7 +111,7 @@ async def generate_domain_scorecard(
 
 @router.get("/scorecards", response_model=List[Dict[str, Any]])
 async def list_scorecards(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     entity_type: Optional[str] = Query(default=None),
     period_label: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -121,7 +123,7 @@ async def list_scorecards(
 @router.get("/scorecards/{scorecard_id}", response_model=Dict[str, Any])
 async def get_scorecard(
     scorecard_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a scorecard by ID with dimensions embedded."""
     engine = _get_engine()
@@ -143,7 +145,7 @@ async def get_scorecard(
 async def get_entity_trend(
     entity_type: str,
     entity_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return trend records for an entity ordered by recorded_at ascending."""
     engine = _get_engine()
@@ -152,7 +154,7 @@ async def get_entity_trend(
 
 @router.get("/trend", response_model=List[Dict[str, Any]])
 async def get_org_trend(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(default=30, ge=1, le=365),
 ) -> List[Dict[str, Any]]:
     """Return the org's own scorecard trend for the last N days.
@@ -171,7 +173,7 @@ async def get_org_trend(
 @router.post("/benchmarks", status_code=201, response_model=Dict[str, Any])
 async def set_benchmark(
     body: BenchmarkSet,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Set or update an industry benchmark for an entity type."""
     engine = _get_engine()
@@ -186,7 +188,7 @@ async def set_benchmark(
 
 @router.get("/benchmarks", response_model=List[Dict[str, Any]])
 async def get_benchmarks(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     entity_type: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
     """List industry benchmarks, optionally filtered by entity_type."""
@@ -197,7 +199,7 @@ async def get_benchmarks(
 @router.get("/scorecards/{scorecard_id}/compare", response_model=Dict[str, Any])
 async def compare_to_benchmark(
     scorecard_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Compare a scorecard to its industry benchmark.
 
@@ -220,7 +222,7 @@ async def compare_to_benchmark(
 
 @router.get("/stats", response_model=Dict[str, Any])
 async def get_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Aggregate scorecard stats: total, by_grade, by_entity_type, avg_overall_score, top_performers."""
     engine = _get_engine()

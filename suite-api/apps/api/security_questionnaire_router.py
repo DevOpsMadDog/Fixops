@@ -22,6 +22,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -78,7 +79,7 @@ class ResponseSubmit(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/questionnaires", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_questionnaire(body: QuestionnaireCreate, org_id: str = Query(default="default")):
+def create_questionnaire(body: QuestionnaireCreate, org_id: str = Depends(get_org_id)):
     """Create a new security questionnaire template."""
     try:
         return _get_engine().create_questionnaire(
@@ -96,7 +97,7 @@ def create_questionnaire(body: QuestionnaireCreate, org_id: str = Query(default=
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def add_question(questionnaire_id: str, body: QuestionCreate, org_id: str = Query(default="default")):
+def add_question(questionnaire_id: str, body: QuestionCreate, org_id: str = Depends(get_org_id)):
     """Add a question to an existing questionnaire."""
     try:
         return _get_engine().add_question(
@@ -116,7 +117,7 @@ def add_question(questionnaire_id: str, body: QuestionCreate, org_id: str = Quer
 # ---------------------------------------------------------------------------
 
 @router.post("/assessments", dependencies=[Depends(api_key_auth)], status_code=201)
-def send_assessment(body: AssessmentSend, org_id: str = Query(default="default")):
+def send_assessment(body: AssessmentSend, org_id: str = Depends(get_org_id)):
     """Send a questionnaire to a vendor for completion."""
     try:
         return _get_engine().send_assessment(
@@ -135,7 +136,7 @@ def send_assessment(body: AssessmentSend, org_id: str = Query(default="default")
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def submit_response(assessment_id: str, body: ResponseSubmit, org_id: str = Query(default="default")):
+def submit_response(assessment_id: str, body: ResponseSubmit, org_id: str = Depends(get_org_id)):
     """Submit a response to a question in an assessment."""
     try:
         return _get_engine().submit_response(
@@ -153,7 +154,7 @@ def submit_response(assessment_id: str, body: ResponseSubmit, org_id: str = Quer
     "/assessments/{assessment_id}/score",
     dependencies=[Depends(api_key_auth)],
 )
-def score_assessment(assessment_id: str, org_id: str = Query(default="default")):
+def score_assessment(assessment_id: str, org_id: str = Depends(get_org_id)):
     """Manually trigger scoring of an assessment."""
     try:
         result = _get_engine().score_assessment(assessment_id, org_id)
@@ -165,7 +166,7 @@ def score_assessment(assessment_id: str, org_id: str = Query(default="default"))
 
 
 @router.get("/assessments/{assessment_id}", dependencies=[Depends(api_key_auth)])
-def get_assessment(assessment_id: str, org_id: str = Query(default="default")):
+def get_assessment(assessment_id: str, org_id: str = Depends(get_org_id)):
     """Get an assessment with its responses."""
     result = _get_engine().get_assessment(assessment_id, org_id)
     if result is None:
@@ -175,7 +176,7 @@ def get_assessment(assessment_id: str, org_id: str = Query(default="default")):
 
 @router.get("/assessments", dependencies=[Depends(api_key_auth)])
 def list_assessments(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     vendor_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -184,19 +185,19 @@ def list_assessments(
 
 
 @router.get("", dependencies=[Depends(api_key_auth)])
-def get_root(org_id: str = Query(default="default")):
+def get_root(org_id: str = Depends(get_org_id)):
     """Root endpoint — returns assessments list for dashboard health-checks."""
     return _get_engine().list_assessments(org_id)
 
 
 @router.get("/overdue", dependencies=[Depends(api_key_auth)])
-def get_overdue_assessments(org_id: str = Query(default="default")):
+def get_overdue_assessments(org_id: str = Depends(get_org_id)):
     """Return assessments that are past their due date."""
     return _get_engine().get_overdue_assessments(org_id)
 
 
 @router.get("/vendor/{vendor_id}/summary", dependencies=[Depends(api_key_auth)])
-def get_vendor_risk_summary(vendor_id: str, org_id: str = Query(default="default")):
+def get_vendor_risk_summary(vendor_id: str, org_id: str = Depends(get_org_id)):
     """Return risk summary for a specific vendor."""
     summaries = _get_engine().get_vendor_risk_summary(org_id)
     vendor_summaries = [s for s in summaries if s["vendor_id"] == vendor_id]

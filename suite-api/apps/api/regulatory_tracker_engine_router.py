@@ -12,6 +12,8 @@ import os
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -94,7 +96,7 @@ class AssessmentCreate(BaseModel):
 @router.post("/regulations", status_code=201, response_model=Dict[str, Any])
 async def add_regulation(
     body: RegulationCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a new regulation to track."""
     engine = _get_engine()
@@ -103,7 +105,7 @@ async def add_regulation(
 
 @router.get("/regulations", response_model=List[Dict[str, Any]])
 async def list_regulations(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     category: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -121,7 +123,7 @@ async def list_regulations(
 async def add_change(
     reg_id: str,
     body: ChangeCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a regulatory change to a tracked regulation."""
     engine = _get_engine()
@@ -131,7 +133,7 @@ async def add_change(
 
 @router.get("/changes", response_model=List[Dict[str, Any]])
 async def list_changes(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     impact_level: Optional[str] = Query(default=None),
     action_required: bool = Query(default=True),
 ) -> List[Dict[str, Any]]:
@@ -142,7 +144,7 @@ async def list_changes(
 
 @router.get("/changes/upcoming", response_model=List[Dict[str, Any]])
 async def get_upcoming_changes(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     days_ahead: int = Query(default=90, ge=1, le=730),
 ) -> List[Dict[str, Any]]:
     """Return changes effective within the next N days (default 90)."""
@@ -158,7 +160,7 @@ async def get_upcoming_changes(
 @router.post("/obligations", status_code=201, response_model=Dict[str, Any])
 async def add_obligation(
     body: ObligationCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a compliance obligation."""
     engine = _get_engine()
@@ -167,7 +169,7 @@ async def add_obligation(
 
 @router.get("/obligations", response_model=List[Dict[str, Any]])
 async def list_obligations(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
     deadline_before: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -180,7 +182,7 @@ async def list_obligations(
 async def update_obligation_status(
     obligation_id: str,
     body: ObligationStatusUpdate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update the status (and optionally owner) of a compliance obligation."""
     engine = _get_engine()
@@ -203,7 +205,7 @@ async def update_obligation_status(
 @router.post("/assessments", status_code=201, response_model=Dict[str, Any])
 async def record_assessment(
     body: AssessmentCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record a compliance assessment for a regulation."""
     engine = _get_engine()
@@ -217,7 +219,7 @@ async def record_assessment(
 
 @router.get("/stats", response_model=Dict[str, Any])
 async def get_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Aggregate regulatory stats for an org."""
     engine = _get_engine()

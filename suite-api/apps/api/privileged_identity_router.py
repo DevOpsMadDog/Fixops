@@ -24,6 +24,7 @@ import logging
 from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -101,7 +102,7 @@ class CertifyAccountBody(BaseModel):
 @router.post("/accounts", dependencies=[Depends(api_key_auth)])
 def register_account(
     body: RegisterAccountBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Register a privileged account (deduped on org+username+system)."""
     try:
@@ -122,7 +123,7 @@ def register_account(
 def update_risk_level(
     account_id: str,
     body: UpdateRiskBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Override the risk level of a privileged account."""
     try:
@@ -134,7 +135,7 @@ def update_risk_level(
 @router.post("/sessions", dependencies=[Depends(api_key_auth)])
 def open_session(
     body: OpenSessionBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Open a new privileged session."""
     try:
@@ -152,7 +153,7 @@ def open_session(
 def close_session(
     session_id: str,
     body: CloseSessionBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Close a privileged session and record metrics."""
     try:
@@ -170,7 +171,7 @@ def close_session(
 def certify_account(
     account_id: str,
     body: CertifyAccountBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Certify a privileged account (approved / revoked / suspended)."""
     try:
@@ -189,7 +190,7 @@ def certify_account(
 @router.put("/accounts/{account_id}/rotate", dependencies=[Depends(api_key_auth)])
 def rotate_password(
     account_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record a password rotation for a privileged account."""
     try:
@@ -200,7 +201,7 @@ def rotate_password(
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
 def get_privileged_summary(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate summary for privileged accounts."""
     return _get_engine().get_privileged_summary(org_id)
@@ -208,7 +209,7 @@ def get_privileged_summary(
 
 @router.get("/high-risk", dependencies=[Depends(api_key_auth)])
 def get_high_risk_accounts(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return critical and high risk privileged accounts."""
     return _get_engine().get_high_risk_accounts(org_id)
@@ -216,7 +217,7 @@ def get_high_risk_accounts(
 
 @router.get("/sessions/active", dependencies=[Depends(api_key_auth)])
 def get_active_sessions(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return active privileged sessions with account details."""
     return _get_engine().get_active_sessions(org_id)
@@ -225,7 +226,7 @@ def get_active_sessions(
 @router.get("/accounts/{account_id}/sessions", dependencies=[Depends(api_key_auth)])
 def get_session_history(
     account_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> List[Dict[str, Any]]:
     """Return session history for a privileged account."""
