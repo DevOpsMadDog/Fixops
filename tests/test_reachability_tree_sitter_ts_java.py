@@ -144,7 +144,14 @@ def test_parse_java_simple(tmp_path):
 
 
 def test_parse_typescript_no_treesitter_raises(tmp_path, monkeypatch):
-    """When tree-sitter-typescript missing, raise NotImplementedError with hint."""
+    """When tree-sitter-typescript missing, raise ParserUnavailableError with hint.
+
+    SPEC-004 update: the engine now raises ParserUnavailableError (RuntimeError
+    subclass) instead of NotImplementedError so the pipeline can distinguish
+    "dep genuinely absent" from "feature not coded yet".
+    """
+    from core.function_reachability_engine import ParserUnavailableError
+
     eng = _engine(tmp_path)
 
     repo = tmp_path / "repo"
@@ -162,7 +169,7 @@ def test_parse_typescript_no_treesitter_raises(tmp_path, monkeypatch):
     monkeypatch.delitem(sys.modules, "tree_sitter_typescript", raising=False)
     monkeypatch.setattr("builtins.__import__", _blocked_import)
 
-    with pytest.raises(NotImplementedError) as excinfo:
+    with pytest.raises(ParserUnavailableError) as excinfo:
         eng.parse_typescript_repo("org-x", "repo-sha-x", str(repo))
     assert "tree-sitter-typescript" in str(excinfo.value)
-    assert "pip install" in str(excinfo.value)
+    assert "pip install" in excinfo.value.install_hint

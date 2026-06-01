@@ -76,3 +76,14 @@ idna>=3.15,<4.0
 mistune>=3.2.1,<4.0
 microsoft-kiota-http>=1.9.9,<2.0
 dulwich>=1.2.5,<2.0
+
+# ---------------------------------------------------------------------------
+# Static call-graph / reachability parsers (SPEC-004 REQ-004-01)
+# tree-sitter core + language bindings for TS/JS, Java, Go.
+# These are local C extensions — zero network access at runtime (air-gap safe).
+# Exact versions pinned to match requirements.lock.
+# ---------------------------------------------------------------------------
+tree-sitter>=0.25.2,<0.26
+tree-sitter-typescript>=0.23.2,<0.24
+tree-sitter-java>=0.23.5,<0.24
+tree-sitter-go>=0.25.0,<0.26

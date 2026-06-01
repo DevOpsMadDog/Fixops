@@ -130,7 +130,31 @@ _DYNAMIC_DISPATCH_PATTERNS = re.compile(
     r"globals|locals|compile|hasattr)\b"
 )
 
-_VALID_LANGUAGES = {"python", "typescript", "javascript", "java"}
+_VALID_LANGUAGES = {"python", "typescript", "javascript", "java", "go"}
+
+
+class ParserUnavailableError(RuntimeError):
+    """Raised when a tree-sitter language binding is missing at runtime.
+
+    The pipeline catches this as a typed signal to apply the conservative
+    "assume reachable" fallback instead of raising a 500.  It is intentionally
+    *not* a subclass of NotImplementedError so callers can distinguish "dep
+    genuinely absent" from "feature not coded yet".
+
+    Attributes:
+        language:   The language whose parser is unavailable ("typescript",
+                    "java", "go", …).
+        install_hint: pip install command to add the missing dep.
+    """
+
+    def __init__(self, language: str, install_hint: str = "") -> None:
+        self.language = language
+        self.install_hint = install_hint
+        super().__init__(
+            f"Parser for '{language}' unavailable (dep missing). "
+            + (f"Run: {install_hint}" if install_hint else "")
+            + " Air-gap deployments: vendor the wheel."
+        )
 _VALID_EDGE_TYPES = {
     "direct_call",
     "dynamic_dispatch",
@@ -896,11 +920,11 @@ class FunctionReachabilityEngine:
             tsx_lang = Language(tst.language_tsx())
             ts_parser = Parser(ts_lang)
             tsx_parser = Parser(tsx_lang)
-        except ImportError:
-            raise NotImplementedError(
-                "tree-sitter-typescript not installed. "
-                "Run: pip install tree-sitter tree-sitter-typescript"
-            )
+        except ImportError as _ts_err:
+            raise ParserUnavailableError(
+                "typescript",
+                "pip install tree-sitter tree-sitter-typescript",
+            ) from _ts_err
 
         root = Path(root_path)
         if not root.exists():
@@ -1006,11 +1030,11 @@ class FunctionReachabilityEngine:
             from tree_sitter import Language, Parser
             java_lang = Language(tsj.language())
             parser = Parser(java_lang)
-        except ImportError:
-            raise NotImplementedError(
-                "tree-sitter-java not installed. "
-                "Run: pip install tree-sitter tree-sitter-java"
-            )
+        except ImportError as _java_err:
+            raise ParserUnavailableError(
+                "java",
+                "pip install tree-sitter tree-sitter-java",
+            ) from _java_err
 
         root = Path(root_path)
         if not root.exists():
@@ -1076,6 +1100,106 @@ class FunctionReachabilityEngine:
             org_id, repo_ref, "java",
             nodes_to_insert, edges_to_insert, fqn_to_node_id, now,
             files_count=len(java_files),
+        )
+
+    def parse_go_repo(
+        self, org_id: str, repo_ref: str, root_path: str
+    ) -> int:
+        """Parse a Go repo via tree-sitter.
+
+        Walks ``*.go`` files; extracts function/method declarations and
+        ``call_expression`` call sites.  Skips ``vendor``, ``.git``.
+
+        Falls back gracefully (ParserUnavailableError with install hint) when
+        the optional ``tree-sitter-go`` binding isn't installed — never raises
+        a 500 to the caller.
+        """
+        if not repo_ref:
+            raise ValueError("repo_ref is required")
+        if not root_path:
+            raise ValueError("root_path is required")
+
+        try:
+            import tree_sitter_go as tsg
+            from tree_sitter import Language, Parser
+            go_lang = Language(tsg.language())
+            parser = Parser(go_lang)
+        except ImportError as _go_err:
+            raise ParserUnavailableError(
+                "go",
+                "pip install tree-sitter tree-sitter-go",
+            ) from _go_err
+
+        root = Path(root_path)
+        if not root.exists():
+            raise ValueError(f"root_path '{root_path}' does not exist")
+
+        nodes_to_insert: List[Dict[str, Any]] = []
+        edges_to_insert: List[Dict[str, Any]] = []
+        fqn_to_node_id: Dict[str, str] = {}
+        now = self._now()
+
+        go_files = list(root.rglob("*.go"))
+        go_files = [
+            f for f in go_files
+            if not any(
+                skip in f.parts
+                for skip in ("vendor", ".git")
+            )
+        ]
+
+        for go_file in go_files:
+            try:
+                source = go_file.read_bytes()
+                tree = parser.parse(source)
+                try:
+                    rel = go_file.relative_to(root)
+                except ValueError:
+                    rel = Path(go_file.name)
+                # Use directory path as package name approximation
+                module_name = str(rel.parent).replace(os.sep, "/")
+                if module_name == ".":
+                    module_name = go_file.stem
+                else:
+                    module_name = module_name.replace("/", ".")
+
+                for fn_node, receiver_type in self._walk_go_functions(tree.root_node):
+                    name_node = fn_node.child_by_field_name("name")
+                    fn_name = (
+                        name_node.text.decode(errors="ignore")
+                        if name_node is not None
+                        else f"<anon:{fn_node.start_point[0]}>"
+                    )
+                    # Go method: Type.Method; function: pkg.FuncName
+                    if receiver_type:
+                        qualname = f"{receiver_type}.{fn_name}"
+                    else:
+                        qualname = fn_name
+                    fqn = f"{module_name}.{qualname}" if module_name else qualname
+                    node_id = str(uuid.uuid4())
+                    fqn_to_node_id[fqn] = node_id
+                    nodes_to_insert.append({
+                        "id": node_id, "org_id": org_id, "repo_ref": repo_ref,
+                        "language": "go", "function_fqn": fqn,
+                        "source_file": str(rel),
+                        "start_line": int(fn_node.start_point[0]),
+                        "end_line": int(fn_node.end_point[0]),
+                        "created_at": now,
+                    })
+                    for callee_fqn in self._find_go_calls(fn_node):
+                        edges_to_insert.append({
+                            "caller_fqn": fqn,
+                            "callee_fqn": callee_fqn,
+                            "edge_type": "direct_call",
+                        })
+            except Exception as exc:  # nosec B112 — best-effort per-file
+                _logger.warning("go_parse_skip file=%s err=%s", go_file, exc)
+                continue
+
+        return self._bulk_insert_nodes_edges(
+            org_id, repo_ref, "go",
+            nodes_to_insert, edges_to_insert, fqn_to_node_id, now,
+            files_count=len(go_files),
         )
 
     # ------------------------------------------------------------------
@@ -1211,6 +1335,87 @@ class FunctionReachabilityEngine:
             for child in reversed(cur.children):
                 stack.append(child)
         return out
+
+    # ------------------------------------------------------------------
+    # tree-sitter helpers (Go)
+    # ------------------------------------------------------------------
+
+    def _walk_go_functions(self, root_node: Any):
+        """Yield (function_node, receiver_type_or_None) for every Go func/method.
+
+        Handles:
+          - ``function_declaration`` — top-level functions (receiver=None)
+          - ``method_declaration`` — methods on a named type (receiver=TypeName)
+        """
+        stack = [root_node]
+        while stack:
+            node = stack.pop()
+            if node.type == "function_declaration":
+                yield node, None
+            elif node.type == "method_declaration":
+                # receiver is a parameter_list with one element whose type
+                # is a pointer_type or type_identifier.
+                recv_type: Optional[str] = None
+                recv_node = node.child_by_field_name("receiver")
+                if recv_node is not None:
+                    # Walk receiver children looking for type_identifier
+                    for child in self._walk_ts_tree(recv_node):
+                        if child.type == "type_identifier":
+                            recv_type = child.text.decode(errors="ignore")
+                            break
+                yield node, recv_type
+            else:
+                for child in reversed(node.children):
+                    stack.append(child)
+
+    def _find_go_calls(self, fn_node: Any) -> List[str]:
+        """Walk a Go function body, return FQNs of every call_expression callee.
+
+        Handles:
+          - Simple calls: ``helper()``           -> "helper"
+          - Selector calls: ``pkg.Helper()``     -> "pkg.Helper"
+          - Method calls: ``obj.Method()``       -> "obj.Method"
+        Skips nested function_literal nodes so their calls are attributed
+        to the inner closure (emitted separately if we recurse the outer walk).
+        """
+        out: List[str] = []
+        nested_types = {"function_literal", "func_literal"}
+        stack = list(fn_node.children)
+        while stack:
+            cur = stack.pop()
+            if cur.type in nested_types:
+                continue  # inner closure — calls belong to it, not outer fn
+            if cur.type == "call_expression":
+                func_child = cur.child_by_field_name("function")
+                if func_child is None and cur.children:
+                    func_child = cur.children[0]
+                if func_child is not None:
+                    fqn = self._go_callee_fqn(func_child)
+                    if fqn:
+                        out.append(fqn)
+            for child in reversed(cur.children):
+                stack.append(child)
+        return out
+
+    def _go_callee_fqn(self, node: Any) -> Optional[str]:
+        """Resolve a Go call function node to a dotted FQN string."""
+        if node is None:
+            return None
+        if node.type == "identifier":
+            return node.text.decode(errors="ignore")
+        if node.type == "selector_expression":
+            # operand.field_name
+            operand = node.child_by_field_name("operand")
+            field = node.child_by_field_name("field")
+            op_text = operand.text.decode(errors="ignore") if operand else ""
+            fn_text = field.text.decode(errors="ignore") if field else ""
+            if op_text and fn_text:
+                return f"{op_text}.{fn_text}"
+            return fn_text or op_text or None
+        try:
+            return node.text.decode(errors="ignore") or None
+        except Exception:
+            return None
 
     # ------------------------------------------------------------------
     # Shared bulk-insert (Python uses inline path; TS/Java use this)

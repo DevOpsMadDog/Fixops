@@ -3235,38 +3235,172 @@ class BrainPipeline:
         except ImportError as e:
             logger.debug("ML risk scorer unavailable: %s", type(e).__name__)
 
-        # ── Reachability analysis ──
-        # [V5] Populate the "reachable" field on each finding using real
-        # call-graph + data-flow analysis rather than assuming True.
-        reachability_stats = {"analyzed": 0, "reachable": 0, "unreachable": 0, "skipped": 0}
+        # ── Reachability analysis (SPEC-004 REQ-004-04) ──
+        # When a repo_path is present, auto-index the repo with the matching
+        # language parser and annotate findings with call-graph reachability.
+        # Rules:
+        #   - Best-effort: never blocks / hangs / raises into the pipeline.
+        #   - 30-second timeout per parse call (large repos bounded).
+        #   - Missing dep → ParserUnavailableError → conservative fallback
+        #     (assume reachable = True, verdict = "parser_unavailable").
+        #   - Already-set "reachable" fields (from upstream scanners) are kept.
+        reachability_stats: Dict[str, Any] = {
+            "analyzed": 0,
+            "reachable": 0,
+            "unreachable": 0,
+            "skipped": 0,
+            "fallback": 0,
+            "languages_indexed": [],
+        }
         repo_path_str = (inp.metadata or {}).get("repo_path", "")
         if repo_path_str and ctx.get("findings"):
             try:
+                import concurrent.futures
                 from pathlib import Path as _Path
 
-                from risk.reachability.call_graph import CallGraphBuilder
+                from core.function_reachability_engine import (
+                    FunctionReachabilityEngine,
+                    ParserUnavailableError,
+                )
+
                 _repo = _Path(repo_path_str)
                 if _repo.is_dir():
-                    _cg_builder = CallGraphBuilder()
-                    _call_graph = _cg_builder.build_call_graph(_repo)
+                    _reach_eng = FunctionReachabilityEngine()
+                    _org_id = ctx.get("org_id", "pipeline")
+                    _repo_ref = repo_path_str
+
+                    # Detect which languages are present in the findings
+                    _lang_set: set = set()
+                    for _f in ctx.get("findings", []):
+                        _lang = (
+                            _f.get("language", "")
+                            or _f.get("lang", "")
+                        ).lower().strip()
+                        if _lang:
+                            _lang_set.add(_lang)
+                    # Also sniff file extensions in the repo (cheap stat walk)
+                    _EXT_LANG = {
+                        ".ts": "typescript", ".tsx": "typescript",
+                        ".js": "javascript", ".jsx": "javascript",
+                        ".java": "java",
+                        ".go": "go",
+                        ".py": "python",
+                    }
+                    _SKIP_DIRS = {
+                        "node_modules", ".git", "vendor", "dist",
+                        "build", ".next", "__pycache__",
+                    }
+                    for _p in _repo.iterdir():
+                        if _p.is_dir() and _p.name not in _SKIP_DIRS:
+                            for _child in _p.rglob("*"):
+                                if _child.suffix in _EXT_LANG:
+                                    _lang_set.add(_EXT_LANG[_child.suffix])
+                        elif _p.is_file() and _p.suffix in _EXT_LANG:
+                            _lang_set.add(_EXT_LANG[_p.suffix])
+
+                    _PARSER_MAP = {
+                        "python": _reach_eng.parse_python_repo,
+                        "typescript": _reach_eng.parse_typescript_repo,
+                        "javascript": _reach_eng.parse_typescript_repo,
+                        "java": _reach_eng.parse_java_repo,
+                        "go": _reach_eng.parse_go_repo,
+                    }
+                    _indexed_langs: list = []
+                    _unavailable_langs: list = []
+
+                    for _lang in sorted(_lang_set):
+                        _parser_fn = _PARSER_MAP.get(_lang)
+                        if _parser_fn is None:
+                            continue
+                        try:
+                            with concurrent.futures.ThreadPoolExecutor(
+                                max_workers=1
+                            ) as _pool:
+                                _fut = _pool.submit(
+                                    _parser_fn, _org_id, _repo_ref, str(_repo)
+                                )
+                                _fut.result(timeout=30)
+                            _indexed_langs.append(_lang)
+                        except concurrent.futures.TimeoutError:
+                            logger.warning(
+                                "Reachability parse timeout lang=%s repo=%s",
+                                _lang, repo_path_str,
+                            )
+                        except ParserUnavailableError as _pue:
+                            logger.info(
+                                "Reachability parser unavailable lang=%s: %s",
+                                _lang, _pue,
+                            )
+                            _unavailable_langs.append(_lang)
+                        except Exception as _parse_err:  # noqa: BLE001
+                            logger.warning(
+                                "Reachability parse failed lang=%s: %s",
+                                _lang, _parse_err,
+                            )
+
+                    reachability_stats["languages_indexed"] = _indexed_langs
+
+                    # Annotate findings using the indexed call graph
                     for _f in ctx.get("findings", []):
                         if "reachable" in _f:
                             reachability_stats["skipped"] += 1
                             continue  # already set (e.g. by external scanner)
+
+                        _f_lang = (
+                            _f.get("language", "") or _f.get("lang", "")
+                        ).lower().strip()
+                        if _f_lang and _f_lang not in _indexed_langs:
+                            # Parser unavailable for this language — conservative
+                            _f["reachable"] = True
+                            _f["reachability_verdict"] = "parser_unavailable"
+                            reachability_stats["fallback"] += 1
+                            continue
+
                         func_name = _f.get("function", _f.get("symbol", ""))
                         if not func_name:
                             reachability_stats["skipped"] += 1
                             continue
-                        _reached_result = CallGraphBuilder.is_reachable_from_entry(_call_graph, func_name)
-                        _reached = _reached_result[0] if isinstance(_reached_result, tuple) else _reached_result
-                        _f["reachable"] = _reached
-                        reachability_stats["analyzed"] += 1
-                        if _reached:
-                            reachability_stats["reachable"] += 1
-                        else:
-                            reachability_stats["unreachable"] += 1
-                    logger.info("Reachability: %s", reachability_stats)
-            except Exception as _reach_err:  # noqa: BLE001 - reachability is optional; ImportError, OSError, or library errors must never halt the pipeline
+
+                        try:
+                            _reached, _path = _reach_eng.is_reachable(
+                                _org_id, func_name, func_name
+                            )
+                            # is_reachable with same start==target returns True
+                            # only if the node exists in the graph; otherwise
+                            # use vulnerable_reachability for CVE-based check.
+                            cve_id = _f.get("cve_id", "")
+                            if cve_id:
+                                _pkg = _f.get("package_name", "")
+                                _pattern = (
+                                    _f.get("dependency_fqn_pattern")
+                                    or (f"{_pkg}.%" if _pkg else "")
+                                )
+                                if _pattern.replace(".%", ""):
+                                    _callers = _reach_eng.vulnerable_reachability(
+                                        _org_id, cve_id, _pattern
+                                    )
+                                    _reached = bool(_callers)
+                                    _f["reachable_callers"] = _callers[:5]
+                            _f["reachable"] = _reached
+                            _f["reachability_verdict"] = (
+                                "reachable" if _reached else "unreachable"
+                            )
+                            reachability_stats["analyzed"] += 1
+                            if _reached:
+                                reachability_stats["reachable"] += 1
+                            else:
+                                reachability_stats["unreachable"] += 1
+                        except Exception as _q_err:  # noqa: BLE001
+                            logger.debug(
+                                "Reachability query failed for finding: %s", _q_err
+                            )
+                            # Conservative fallback — never silence a real risk
+                            _f["reachable"] = True
+                            _f["reachability_verdict"] = "fallback_conservative"
+                            reachability_stats["fallback"] += 1
+
+                    logger.info("Reachability SPEC-004: %s", reachability_stats)
+            except Exception as _reach_err:  # noqa: BLE001 - reachability is optional; must never halt pipeline
                 logger.warning("Reachability analysis skipped: %s", _reach_err)
 
         scores = []
@@ -3379,7 +3513,8 @@ class BrainPipeline:
             "scored": len(scores),
             "model": f"ml-gbt-v{ML_MODEL_VERSION}" if ml_available else "deterministic-v1.0",
         }
-        if reachability_stats["analyzed"]:
+        # REQ-004-06: always emit reachability coverage block when a repo was provided
+        if repo_path_str or reachability_stats["analyzed"] or reachability_stats["fallback"]:
             result["reachability"] = reachability_stats
         if predictions_meta:
             avg_ci = sum(p["ci_width"] for p in predictions_meta) / len(predictions_meta)
