@@ -1,0 +1,209 @@
+# Litestream WAL streaming replication config for ALDECI / FixOps
+# REQ-008-01: covers critical SQLite DBs; replica target configurable via env.
+#
+# Default replica target: local file directory (air-gap safe, REQ-008-05).
+# Override targets via environment variables:
+#   FIXOPS_REPLICA_PATH   — local filesystem replica base dir
+#                           (default: ./data/replicas)
+#   FIXOPS_S3_BUCKET      — optional S3 bucket name (enables s3 replica)
+#   FIXOPS_S3_ENDPOINT    — optional S3-compatible endpoint (MinIO, etc.)
+#   FIXOPS_S3_REGION      — AWS region (default: us-east-1)
+#   FIXOPS_S3_ACCESS_KEY  — S3 access key (never commit real values)
+#   FIXOPS_S3_SECRET_KEY  — S3 secret key (never commit real values)
+#
+# Run with:
+#   litestream replicate -config docker/litestream.yml
+#
+# Restore example (see scripts/restore_runbook.md for full steps):
+#   litestream restore -config docker/litestream.yml -db findings \
+#       /path/to/restored/security_findings_engine.db
+
+dbs:
+  # ── TIER-1 CRITICAL: findings + brain (highest loss impact) ──────────────
+
+  - path: ${FIXOPS_DATA_DIR:-.}/security_findings_engine.db
+    replicas:
+      - name: local-findings
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/security_findings_engine
+        retention: 72h
+        snapshot-interval: 1h
+        sync-interval: 1s
+
+  - path: ${FIXOPS_DATA_DIR:-.}/data/fixops_brain.db
+    replicas:
+      - name: local-brain
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/fixops_brain
+        retention: 72h
+        snapshot-interval: 1h
+        sync-interval: 1s
+
+  - path: ${FIXOPS_DATA_DIR:-.}/fixops_brain.db
+    replicas:
+      - name: local-brain-root
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/fixops_brain_root
+        retention: 72h
+        snapshot-interval: 1h
+        sync-interval: 1s
+
+  # ── TIER-1 CRITICAL: auth + API keys ─────────────────────────────────────
+
+  - path: ${FIXOPS_DATA_DIR:-.}/data/auth.db
+    replicas:
+      - name: local-auth
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/auth
+        retention: 72h
+        snapshot-interval: 30m
+        sync-interval: 1s
+
+  - path: ${FIXOPS_DATA_DIR:-.}/.fixops_data/api_keys.db
+    replicas:
+      - name: local-api-keys
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/api_keys
+        retention: 72h
+        snapshot-interval: 30m
+        sync-interval: 1s
+
+  # ── TIER-1 CRITICAL: evidence chain + vault ───────────────────────────────
+
+  - path: ${FIXOPS_DATA_DIR:-.}/data/evidence_chain.db
+    replicas:
+      - name: local-evidence-chain
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/evidence_chain
+        retention: 72h
+        snapshot-interval: 1h
+        sync-interval: 1s
+
+  - path: ${FIXOPS_DATA_DIR:-.}/.fixops_data/evidence_chain.db
+    replicas:
+      - name: local-evidence-chain-fixops
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/evidence_chain_fixops
+        retention: 72h
+        snapshot-interval: 1h
+        sync-interval: 1s
+
+  - path: ${FIXOPS_DATA_DIR:-.}/.fixops_data/evidence_vault.db
+    replicas:
+      - name: local-evidence-vault
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/evidence_vault
+        retention: 72h
+        snapshot-interval: 1h
+        sync-interval: 1s
+
+  # ── TIER-1 CRITICAL: compliance ───────────────────────────────────────────
+
+  - path: ${FIXOPS_DATA_DIR:-.}/data/compliance_planner.db
+    replicas:
+      - name: local-compliance-planner
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/compliance_planner
+        retention: 72h
+        snapshot-interval: 1h
+        sync-interval: 1s
+
+  - path: ${FIXOPS_DATA_DIR:-.}/data/compliance_automation.db
+    replicas:
+      - name: local-compliance-automation
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/compliance_automation
+        retention: 72h
+        snapshot-interval: 1h
+        sync-interval: 1s
+
+  - path: ${FIXOPS_DATA_DIR:-.}/.fixops_data/compliance.db
+    replicas:
+      - name: local-compliance-main
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/compliance_main
+        retention: 72h
+        snapshot-interval: 1h
+        sync-interval: 1s
+
+  # ── TIER-1 CRITICAL: analytics ────────────────────────────────────────────
+
+  - path: ${FIXOPS_DATA_DIR:-.}/data/analytics.db
+    replicas:
+      - name: local-analytics
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/analytics
+        retention: 72h
+        snapshot-interval: 2h
+        sync-interval: 5s
+
+  - path: ${FIXOPS_DATA_DIR:-.}/.fixops_data/analytics_metrics.db
+    replicas:
+      - name: local-analytics-metrics
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/analytics_metrics
+        retention: 72h
+        snapshot-interval: 2h
+        sync-interval: 5s
+
+  # ── TIER-2 IMPORTANT: audit trail ─────────────────────────────────────────
+
+  - path: ${FIXOPS_DATA_DIR:-.}/data/audit_trail.db
+    replicas:
+      - name: local-audit-trail
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/audit_trail
+        retention: 168h
+        snapshot-interval: 1h
+        sync-interval: 1s
+
+  - path: ${FIXOPS_DATA_DIR:-.}/.fixops_data/audit.db
+    replicas:
+      - name: local-audit-main
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/audit_main
+        retention: 168h
+        snapshot-interval: 1h
+        sync-interval: 1s
+
+  # ── TIER-2 IMPORTANT: brain pipeline secondary ────────────────────────────
+
+  - path: ${FIXOPS_DATA_DIR:-.}/data/phase1_trustgraph.db
+    replicas:
+      - name: local-trustgraph
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/phase1_trustgraph
+        retention: 72h
+        snapshot-interval: 2h
+        sync-interval: 5s
+
+  - path: ${FIXOPS_DATA_DIR:-.}/.fixops_data/brain.db
+    replicas:
+      - name: local-brain-fixops
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/brain_fixops
+        retention: 72h
+        snapshot-interval: 1h
+        sync-interval: 1s
+
+  # ── TIER-2 IMPORTANT: secrets engine ─────────────────────────────────────
+
+  - path: ${FIXOPS_DATA_DIR:-.}/data/secrets.db
+    replicas:
+      - name: local-secrets
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/secrets
+        retention: 72h
+        snapshot-interval: 30m
+        sync-interval: 1s
+
+  # ── TIER-2 IMPORTANT: security findings variants ──────────────────────────
+
+  - path: ${FIXOPS_DATA_DIR:-.}/.fixops_data/security_findings_engine.db
+    replicas:
+      - name: local-findings-fixops
+        type: file
+        path: ${FIXOPS_REPLICA_PATH:-./data/replicas}/security_findings_engine_fixops
+        retention: 72h
+        snapshot-interval: 1h
+        sync-interval: 1s

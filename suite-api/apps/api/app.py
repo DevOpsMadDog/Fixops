@@ -2258,6 +2258,18 @@ def create_app() -> FastAPI:
             "error": str(_fips_exc),
         }
 
+    # ── SPEC-008: WAL replication durability boot check ──────────────────────
+    # Best-effort — logs WARNING when durability is off, never crashes boot.
+    try:
+        from core.db_durability import log_boot_durability_status
+        log_boot_durability_status()
+    except Exception as _dur_exc:  # pragma: no cover
+        logging.getLogger(__name__).warning(
+            "durability: boot check skipped (%s) — run "
+            "`litestream replicate -config docker/litestream.yml` to enable WAL replication",
+            _dur_exc,
+        )
+
     # ── /api/v1/scif/* — ISSO-readable SCIF/FIPS-boot posture endpoints ──
     # NOTE: prefix is /scif (not /fips) to avoid collision with the existing
     # FIPSComplianceModeEngine router at /api/v1/fips. These endpoints expose
