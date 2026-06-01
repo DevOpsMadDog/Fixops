@@ -24,6 +24,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -84,7 +85,7 @@ class IsolateRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/endpoints", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_endpoint(body: EndpointCreate, org_id: str = Query(default="default")):
+def register_endpoint(body: EndpointCreate, org_id: str = Depends(get_org_id)):
     """Register a new managed endpoint."""
     try:
         return _get_engine().register_endpoint(org_id, body.model_dump())
@@ -94,7 +95,7 @@ def register_endpoint(body: EndpointCreate, org_id: str = Query(default="default
 
 @router.get("/endpoints", dependencies=[Depends(api_key_auth)])
 def list_endpoints(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     os_type: Optional[str] = Query(None),
 ):
@@ -103,7 +104,7 @@ def list_endpoints(
 
 
 @router.get("/endpoints/{endpoint_id}", dependencies=[Depends(api_key_auth)])
-def get_endpoint(endpoint_id: str, org_id: str = Query(default="default")):
+def get_endpoint(endpoint_id: str, org_id: str = Depends(get_org_id)):
     """Get a single endpoint by ID."""
     ep = _get_engine().get_endpoint(org_id, endpoint_id)
     if not ep:
@@ -123,7 +124,7 @@ def get_endpoint(endpoint_id: str, org_id: str = Query(default="default")):
 def ingest_process_event(
     endpoint_id: str,
     body: ProcessEventCreate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Ingest a process event. Auto-detects suspicious patterns and creates detections."""
     try:
@@ -134,7 +135,7 @@ def ingest_process_event(
 
 @router.get("/process-events", dependencies=[Depends(api_key_auth)])
 def list_process_events(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     endpoint_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     limit: int = Query(default=100, ge=1, le=1000),
@@ -151,7 +152,7 @@ def list_process_events(
 
 @router.get("/detections", dependencies=[Depends(api_key_auth)])
 def list_detections(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     detection_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
@@ -169,7 +170,7 @@ def list_detections(
 def update_detection_status(
     detection_id: str,
     body: DetectionStatusUpdate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Update the status of a detection."""
     try:
@@ -193,7 +194,7 @@ def update_detection_status(
 def isolate_endpoint(
     endpoint_id: str,
     body: IsolateRequest,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Isolate an endpoint (network quarantine). Creates an isolation record."""
     return _get_engine().isolate_endpoint(
@@ -202,7 +203,7 @@ def isolate_endpoint(
 
 
 @router.post("/endpoints/{endpoint_id}/release", dependencies=[Depends(api_key_auth)])
-def release_endpoint(endpoint_id: str, org_id: str = Query(default="default")):
+def release_endpoint(endpoint_id: str, org_id: str = Depends(get_org_id)):
     """Release an isolated endpoint back to online status."""
     released = _get_engine().release_endpoint(org_id, endpoint_id)
     if not released:
@@ -215,7 +216,7 @@ def release_endpoint(endpoint_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_edr_stats(org_id: str = Query(default="default")):
+def get_edr_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated EDR statistics for the org."""
     return _get_engine().get_edr_stats(org_id)
 
@@ -225,7 +226,7 @@ def get_edr_stats(org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def get_edr_root(org_id: str = Query(default="default")):
+def get_edr_root(org_id: str = Depends(get_org_id)):
     """Return EDR service capabilities and live stats summary."""
     stats = _get_engine().get_edr_stats(org_id)
     return {

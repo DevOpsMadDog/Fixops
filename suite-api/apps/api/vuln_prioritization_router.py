@@ -17,6 +17,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 try:
@@ -88,7 +89,7 @@ class RiskAcceptanceCreate(BaseModel):
 @router.post("/score", status_code=201)
 async def score_vulnerability(
     payload: VulnScoreCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Score a single vulnerability and store the result."""
     engine = _get_engine(org_id)
@@ -101,7 +102,7 @@ async def score_vulnerability(
 @router.post("/batch-score", status_code=201)
 async def batch_score(
     payload: BatchScoreRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Score multiple vulnerabilities in one call and create a run record."""
     engine = _get_engine(org_id)
@@ -110,7 +111,7 @@ async def batch_score(
 
 @router.get("/scored")
 async def list_scored(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     priority_tier: Optional[str] = Query(default=None),
     kev_only: bool = Query(default=False),
     limit: int = Query(default=50, ge=1, le=500),
@@ -123,7 +124,7 @@ async def list_scored(
 @router.get("/scored/{vuln_id}")
 async def get_scored(
     vuln_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single scored vulnerability by ID."""
     engine = _get_engine(org_id)
@@ -137,7 +138,7 @@ async def get_scored(
 async def assign_sla(
     vuln_id: str,
     payload: SLAAssignRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Assign SLA tracking to a scored vulnerability."""
     engine = _get_engine(org_id)
@@ -149,7 +150,7 @@ async def assign_sla(
 
 @router.get("/sla")
 async def list_sla_assignments(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
     team: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -160,7 +161,7 @@ async def list_sla_assignments(
 
 @router.get("/runs")
 async def list_runs(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all prioritization batch runs for an org."""
     engine = _get_engine(org_id)
@@ -169,7 +170,7 @@ async def list_runs(
 
 @router.get("/stats")
 async def get_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get high-level prioritization stats: totals, by_tier, KEV count, SLA breaches."""
     engine = _get_engine(org_id)
@@ -184,7 +185,7 @@ async def get_stats(
 @router.post("/risk-acceptance", status_code=201)
 async def create_risk_acceptance(
     payload: RiskAcceptanceCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Accept a risk for a specific finding and persist it with a full audit trail."""
     engine = _get_engine(org_id)
@@ -203,7 +204,7 @@ async def create_risk_acceptance(
 
 @router.get("/risk-acceptance")
 async def list_risk_acceptances(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: str = Query(default="active"),
 ) -> List[Dict[str, Any]]:
     """List risk acceptances for an org, filtered by status (default: active)."""
@@ -214,7 +215,7 @@ async def list_risk_acceptances(
 @router.post("/risk-acceptance/{acceptance_id}/revoke", status_code=200)
 async def revoke_risk_acceptance(
     acceptance_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Revoke (soft-delete) an active risk acceptance by ID."""
     engine = _get_engine(org_id)

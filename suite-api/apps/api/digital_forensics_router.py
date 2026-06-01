@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -56,7 +57,7 @@ class CustodyCreate(BaseModel):
 
 @router.get("/cases")
 async def list_cases(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
     auth=Depends(api_key_auth),
 ):
@@ -67,7 +68,7 @@ async def list_cases(
 
 
 @router.post("/cases")
-async def create_case(body: CaseCreate, org_id: str = Query(default="default"), auth=Depends(api_key_auth)):
+async def create_case(body: CaseCreate, org_id: str = Depends(get_org_id), auth=Depends(api_key_auth)):
     try:
         return _get_engine().create_case(org_id=org_id, data=body.model_dump())
     except Exception as exc:
@@ -75,7 +76,7 @@ async def create_case(body: CaseCreate, org_id: str = Query(default="default"), 
 
 
 @router.get("/cases/{case_id}")
-async def get_case(case_id: str, org_id: str = Query(default="default"), auth=Depends(api_key_auth)):
+async def get_case(case_id: str, org_id: str = Depends(get_org_id), auth=Depends(api_key_auth)):
     result = _get_engine().get_case(org_id=org_id, case_id=case_id)
     if not result:
         raise HTTPException(status_code=404, detail="Case not found")
@@ -83,7 +84,7 @@ async def get_case(case_id: str, org_id: str = Query(default="default"), auth=De
 
 
 @router.post("/cases/{case_id}/close")
-async def close_case(case_id: str, org_id: str = Query(default="default"), auth=Depends(api_key_auth)):
+async def close_case(case_id: str, org_id: str = Depends(get_org_id), auth=Depends(api_key_auth)):
     ok = _get_engine().close_case(org_id=org_id, case_id=case_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Case not found")
@@ -91,7 +92,7 @@ async def close_case(case_id: str, org_id: str = Query(default="default"), auth=
 
 
 @router.get("/cases/{case_id}/evidence")
-async def list_evidence(case_id: str, org_id: str = Query(default="default"), auth=Depends(api_key_auth)):
+async def list_evidence(case_id: str, org_id: str = Depends(get_org_id), auth=Depends(api_key_auth)):
     return _get_engine().list_evidence(org_id=org_id, case_id=case_id)
 
 
@@ -99,7 +100,7 @@ async def list_evidence(case_id: str, org_id: str = Query(default="default"), au
 async def add_evidence(
     case_id: str,
     body: EvidenceCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     try:
@@ -109,7 +110,7 @@ async def add_evidence(
 
 
 @router.get("/cases/{case_id}/analysis")
-async def list_analysis(case_id: str, org_id: str = Query(default="default"), auth=Depends(api_key_auth)):
+async def list_analysis(case_id: str, org_id: str = Depends(get_org_id), auth=Depends(api_key_auth)):
     return _get_engine().list_analysis_results(org_id=org_id, case_id=case_id)
 
 
@@ -117,7 +118,7 @@ async def list_analysis(case_id: str, org_id: str = Query(default="default"), au
 async def add_analysis(
     case_id: str,
     body: AnalysisCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     try:
@@ -127,7 +128,7 @@ async def add_analysis(
 
 
 @router.get("/evidence/{evidence_id}/custody")
-async def get_custody(evidence_id: str, org_id: str = Query(default="default"), auth=Depends(api_key_auth)):
+async def get_custody(evidence_id: str, org_id: str = Depends(get_org_id), auth=Depends(api_key_auth)):
     return _get_engine().get_chain_of_custody(org_id=org_id, evidence_id=evidence_id)
 
 
@@ -135,7 +136,7 @@ async def get_custody(evidence_id: str, org_id: str = Query(default="default"), 
 async def log_custody(
     evidence_id: str,
     body: CustodyCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     try:
@@ -151,5 +152,5 @@ async def log_custody(
 
 
 @router.get("/stats")
-async def get_stats(org_id: str = Query(default="default"), auth=Depends(api_key_auth)):
+async def get_stats(org_id: str = Depends(get_org_id), auth=Depends(api_key_auth)):
     return _get_engine().get_forensics_stats(org_id=org_id)
