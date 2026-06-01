@@ -40,15 +40,9 @@ except ImportError:
     _AUTH_DEP = []
 
 from core.openclaw_engine import OpenClawEngine, get_openclaw_engine
+from core.pentest_connectors.nuclei_connector import NucleiNotConfiguredError
 
 logger = logging.getLogger(__name__)
-
-_SIMULATION_WARNING = {
-    "is_simulated": True,
-    "engine": "openclaw_engine",
-    "real_integration_required": "/api/v1/connectors/pentest/configure",
-    "do_not_use_in_demo": True,
-}
 
 router = APIRouter(
     prefix="/api/v1/openclaw",
@@ -146,11 +140,18 @@ def start_campaign(
 ) -> Dict[str, Any]:
     """Start a staged campaign.
 
-    Returns 501 until PENTEST_CONNECTOR_URL is configured in the environment.
+    Runs real Nuclei scans against campaign targets.
+    Returns 503 not_configured when neither PENTEST_CONNECTOR_URL nor a local
+    nuclei binary is available (REQ-002-04).
     """
     engine = _get_engine(org_id)
     try:
         return engine.start_campaign(org_id, campaign_id)
+    except NucleiNotConfiguredError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "not_configured", "detail": str(exc)},
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -162,12 +163,18 @@ def advance_phase(
 ) -> Dict[str, Any]:
     """Advance the campaign to the next MITRE ATT&CK phase.
 
-    Returns 501 until PENTEST_CONNECTOR_URL is configured in the environment.
+    Runs real Nuclei scans against campaign targets for the new phase.
+    Returns 503 not_configured when no connector is available (REQ-002-04).
     """
     engine = _get_engine(org_id)
     try:
         result = engine.advance_phase(org_id, campaign_id)
         return {"data": result}
+    except NucleiNotConfiguredError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "not_configured", "detail": str(exc)},
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -349,6 +356,11 @@ def start_self_scan(
         campaign = engine.create_campaign(org_id, campaign_data)
         campaign_id = campaign["id"]
         start_result = engine.start_campaign(org_id, campaign_id)
+    except NucleiNotConfiguredError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "not_configured", "detail": str(exc)},
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

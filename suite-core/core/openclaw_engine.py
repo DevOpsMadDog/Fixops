@@ -1,30 +1,28 @@
 """
 OpenClaw Autonomous Pentest Swarm Engine — ALDECI.
 
-STATUS: STUB — campaign and finding CRUD (create_campaign, list_campaigns,
-get_campaign, pause_campaign, resume_campaign, complete_campaign,
-list_tasks, list_findings, update_finding_status, get_stats) are
-production-ready (SQLite WAL).
+Campaign and finding CRUD (create_campaign, list_campaigns, get_campaign,
+pause_campaign, resume_campaign, complete_campaign, list_tasks,
+list_findings, update_finding_status, get_stats) are production-ready
+(SQLite WAL).
 
-NOT PRODUCTION READY: start_campaign() and advance_phase() call
-_simulate_tasks() which uses random.random() < success_prob to decide
-exploit success — no real network probes or payloads are executed.
-Customers must NOT be shown campaign findings from simulated execution.
+start_campaign() and advance_phase() use the NucleiConnector to run real
+Nuclei scans against campaign targets.  When no connector is configured
+(no PENTEST_CONNECTOR_URL env var and no local nuclei binary), they raise
+NucleiNotConfiguredError — the router maps this to HTTP 503 not_configured.
 
-To make real: integrate Metasploit RPC, Nuclei, or Pentera/Cymulate via
-/api/v1/connectors/pentest/configure. Set PENTEST_CONNECTOR_URL env var
-to enable. Until wired, start_campaign() and advance_phase() raise
-NotImplementedError.
+No random/simulated outcomes anywhere in the execution path (REQ-002-01).
 
 Orchestrates coordinated red team campaigns aligned to MITRE ATT&CK, with
-up to 5 virtual operators running tasks across reconnaissance, initial access,
-privilege escalation, lateral movement, collection, and exfiltration phases.
+up to 5 virtual operators running tasks across reconnaissance, initial
+access, privilege escalation, lateral movement, collection, and exfiltration
+phases.
 
 Capabilities:
   - Multi-phase campaign lifecycle (staged → running → paused → completed)
   - MITRE ATT&CK technique-mapped task queue per phase
   - 5-operator swarm coordination with specialization roles
-  - Automatic finding generation from succeeded exploit tasks
+  - Real finding generation from Nuclei connector results
   - Full multi-tenant isolation via org_id
   - SQLite WAL persistence, thread-safe via RLock
 
@@ -35,7 +33,6 @@ from __future__ import annotations
 
 import json
 import logging
-import random
 import sqlite3
 import threading
 import uuid
@@ -44,6 +41,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional
 
+from core.pentest_connectors.nuclei_connector import (
+    NucleiConnector,
+    NucleiNotConfiguredError,
+    NucleiResult,
+)
+
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
 except ImportError:
@@ -51,12 +54,6 @@ except ImportError:
 
 
 _logger = logging.getLogger(__name__)
-_logger.warning(
-    "⚠️  %s: start_campaign() and advance_phase() are STUB — task outcomes are random. "
-    "Set PENTEST_CONNECTOR_URL to enable real pentest execution. "
-    "Campaign CRUD and finding management are production-ready.",
-    __name__,
-)
 
 _DEFAULT_DB_DIR = Path(__file__).resolve().parents[2] / ".fixops_data"
 
@@ -306,18 +303,6 @@ FINDING_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "remediation": "Implement egress filtering. Deploy network DLP. Monitor and alert on anomalous outbound traffic.",
     },
 }
-
-# Success probability per task type (simulated)
-_SUCCESS_RATES: Dict[str, float] = {
-    "recon": 0.95,
-    "exploit_attempt": 0.55,
-    "privilege_escalation": 0.50,
-    "lateral_move": 0.60,
-    "data_access": 0.70,
-    "persistence": 0.65,
-    "cleanup": 0.90,
-}
-
 
 # ---------------------------------------------------------------------------
 # Engine
@@ -587,47 +572,132 @@ class OpenClawEngine:
     # ------------------------------------------------------------------
 
     def start_campaign(self, org_id: str, campaign_id: str) -> dict:
-        """Start a campaign by dispatching tasks to real pentest tooling.
+        """Start a campaign by running real Nuclei scans against the campaign targets.
 
-        Requires a pentest connector configured via
-        /api/v1/connectors/pentest/configure. Raises NotImplementedError
-        until PENTEST_CONNECTOR_URL env var is set, to prevent random
-        task outcomes from reaching customers.
-
-        create_campaign(), pause_campaign(), resume_campaign(),
-        complete_campaign(), list_findings(), update_finding_status(),
-        and get_stats() are all production-ready now.
+        Raises NucleiNotConfiguredError (→ HTTP 503) when neither
+        PENTEST_CONNECTOR_URL nor a local nuclei binary is present.
+        No random/simulated outcomes (REQ-002-01).
         """
-        import os
-        if not os.environ.get("PENTEST_CONNECTOR_URL"):
-            raise NotImplementedError(
-                "start_campaign() requires a real pentest executor "
-                "(Metasploit RPC, Nuclei, Pentera, Cymulate). "
-                "Configure via /api/v1/connectors/pentest/configure and set "
-                "PENTEST_CONNECTOR_URL env var. "
-                "Campaign CRUD and finding management work now."
+        campaign = self.get_campaign(org_id, campaign_id)
+        if campaign is None:
+            raise ValueError(f"Campaign {campaign_id} not found")
+        if campaign["status"] != "staged":
+            raise ValueError(
+                f"Campaign must be in 'staged' status to start (current: {campaign['status']})"
             )
-        raise NotImplementedError(
-            "start_campaign() pentest connector integration not yet implemented."
+
+        # Raises NucleiNotConfiguredError if no connector available (REQ-002-04)
+        connector = NucleiConnector()
+
+        targets: List[str] = campaign.get("target_scope") or []
+        if not targets:
+            raise ValueError("Campaign has no targets in target_scope")
+
+        # Transition to running
+        now = self._now()
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    "UPDATE swarm_campaigns SET status='running', start_time=?, phase=?, updated_at=? WHERE id=? AND org_id=?",
+                    (now, "recon", now, campaign_id, org_id),
+                )
+                conn.execute(
+                    "UPDATE swarm_operators SET status='active' WHERE campaign_id=? AND org_id=?",
+                    (campaign_id, org_id),
+                )
+
+        # Queue task records for the recon phase
+        task_ids = self._queue_phase_tasks(org_id, campaign_id, "recon")
+
+        # Run real Nuclei scan and persist findings (REQ-002-02/03)
+        nuclei_results = connector.run(targets)
+        self._persist_nuclei_findings(org_id, campaign_id, task_ids, nuclei_results)
+        self._refresh_campaign_counts(org_id, campaign_id)
+
+        _logger.info(
+            "openclaw: start_campaign %s — %d targets, %d nuclei findings",
+            campaign_id, len(targets), len(nuclei_results),
         )
+
+        if _get_tg_bus:
+            try:
+                _bus = _get_tg_bus()
+                if _bus:
+                    _bus.emit("ENTITY_UPDATED", {
+                        "entity_type": "openclaw_campaign",
+                        "org_id": org_id,
+                        "source_engine": "openclaw",
+                        "campaign_id": campaign_id,
+                    })
+            except Exception:
+                pass
+
+        return {
+            "campaign_id": campaign_id,
+            "status": "running",
+            "phase": "recon",
+            "tasks_queued": len(task_ids),
+            "nuclei_findings": len(nuclei_results),
+        }
 
     def advance_phase(self, org_id: str, campaign_id: str) -> dict:
-        """Advance the campaign to the next MITRE phase via real pentest tooling.
+        """Advance the campaign to the next MITRE ATT&CK phase.
 
-        Requires a pentest connector configured via
-        /api/v1/connectors/pentest/configure. Raises NotImplementedError
-        until PENTEST_CONNECTOR_URL env var is set.
+        Runs real Nuclei scans against the campaign targets for the new phase.
+        Raises NucleiNotConfiguredError (→ HTTP 503) when no connector is present.
+        No random/simulated outcomes (REQ-002-01).
         """
-        import os
-        if not os.environ.get("PENTEST_CONNECTOR_URL"):
-            raise NotImplementedError(
-                "advance_phase() requires a real pentest executor. "
-                "Configure via /api/v1/connectors/pentest/configure and set "
-                "PENTEST_CONNECTOR_URL env var."
+        campaign = self.get_campaign(org_id, campaign_id)
+        if campaign is None:
+            raise ValueError(f"Campaign {campaign_id} not found")
+        if campaign["status"] != "running":
+            raise ValueError(
+                f"Campaign must be 'running' to advance phase (current: {campaign['status']})"
             )
-        raise NotImplementedError(
-            "advance_phase() pentest connector integration not yet implemented."
+
+        # Raises NucleiNotConfiguredError if no connector available (REQ-002-04)
+        connector = NucleiConnector()
+
+        current_phase = campaign.get("phase", "recon")
+        try:
+            current_idx = _PHASE_ORDER.index(current_phase)
+        except ValueError:
+            current_idx = 0
+
+        if current_idx >= len(_PHASE_ORDER) - 1:
+            raise ValueError(f"Campaign is already at the final phase ({current_phase})")
+
+        next_phase = _PHASE_ORDER[current_idx + 1]
+        targets: List[str] = campaign.get("target_scope") or []
+        if not targets:
+            raise ValueError("Campaign has no targets in target_scope")
+
+        now = self._now()
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    "UPDATE swarm_campaigns SET phase=?, updated_at=? WHERE id=? AND org_id=?",
+                    (next_phase, now, campaign_id, org_id),
+                )
+
+        task_ids = self._queue_phase_tasks(org_id, campaign_id, next_phase)
+
+        nuclei_results = connector.run(targets)
+        self._persist_nuclei_findings(org_id, campaign_id, task_ids, nuclei_results)
+        self._refresh_campaign_counts(org_id, campaign_id)
+
+        _logger.info(
+            "openclaw: advance_phase %s → %s — %d nuclei findings",
+            campaign_id, next_phase, len(nuclei_results),
         )
+
+        return {
+            "campaign_id": campaign_id,
+            "status": "running",
+            "phase": next_phase,
+            "tasks_queued": len(task_ids),
+            "nuclei_findings": len(nuclei_results),
+        }
 
     def pause_campaign(self, org_id: str, campaign_id: str) -> dict:
         """Pause a running campaign."""
@@ -866,67 +936,89 @@ class OpenClawEngine:
 
         return task_ids
 
-    def _simulate_tasks(
-        self, org_id: str, campaign_id: str, task_ids: List[str]
+    def _persist_nuclei_findings(
+        self,
+        org_id: str,
+        campaign_id: str,
+        task_ids: List[str],
+        nuclei_results: List[NucleiResult],
     ) -> None:
-        """Simulate task execution (synchronous demo — no real network calls)."""
+        """Persist real Nuclei findings into swarm_findings and mark tasks succeeded.
+
+        Each Nuclei result becomes one swarm_finding record.  Task records for
+        the phase are marked 'succeeded' (findings present) or 'skipped' (none).
+        No random logic here — outcome is determined entirely by Nuclei output.
+        """
         now = self._now()
-        for task_id in task_ids:
-            # Fetch the task
+
+        # Mark all queued tasks for the phase as completed
+        result_status = "succeeded" if nuclei_results else "skipped"
+        output_preview = (
+            f"Nuclei scan completed — {len(nuclei_results)} finding(s) detected"
+            if nuclei_results
+            else "Nuclei scan completed — no findings for this phase"
+        )
+
+        with self._lock:
             with self._conn() as conn:
-                row = conn.execute(
-                    "SELECT * FROM campaign_tasks WHERE id=? AND org_id=?",
-                    (task_id, org_id),
-                ).fetchone()
-            if row is None:
-                continue
-
-            task = dict(row)
-            task_type = task["task_type"]
-            technique_id = task["technique_id"]
-            operator_id = task["operator_id"]
-
-            success_prob = _SUCCESS_RATES.get(task_type, 0.5)
-            succeeded = random.random() < success_prob
-
-            result_status = "succeeded" if succeeded else "failed"
-            output_preview = (
-                f"[Operator-{operator_id}] {task['technique_name']}: "
-                f"{'SUCCESS — vulnerability confirmed' if succeeded else 'FAILED — target hardened'}"
-            )
-
-            with self._lock:
-                with self._conn() as conn:
+                for task_id in task_ids:
                     conn.execute(
                         """
                         UPDATE campaign_tasks
-                        SET status=?, started_at=?, completed_at=?, output_preview=?,
-                            result_data=?
+                        SET status=?, started_at=?, completed_at=?,
+                            output_preview=?, result_data=?
                         WHERE id=? AND org_id=?
                         """,
                         (
                             result_status, now, now, output_preview,
-                            json.dumps({"success": succeeded, "operator_id": operator_id}),
+                            json.dumps({"source": "nuclei", "findings_count": len(nuclei_results)}),
                             task_id, org_id,
                         ),
                     )
-                    # Update operator stats
-                    if succeeded:
-                        conn.execute(
-                            "UPDATE swarm_operators SET tasks_completed=tasks_completed+1, status='active' WHERE campaign_id=? AND operator_id=? AND org_id=?",
-                            (campaign_id, operator_id, org_id),
-                        )
-                    else:
-                        conn.execute(
-                            "UPDATE swarm_operators SET tasks_failed=tasks_failed+1 WHERE campaign_id=? AND operator_id=? AND org_id=?",
-                            (campaign_id, operator_id, org_id),
-                        )
+                if result_status == "succeeded":
+                    conn.execute(
+                        "UPDATE swarm_operators SET tasks_completed=tasks_completed+1, status='active' WHERE campaign_id=? AND org_id=?",
+                        (campaign_id, org_id),
+                    )
 
-            # Generate finding if exploit task succeeded and we have a template
-            if succeeded and task_type in ("exploit_attempt", "privilege_escalation", "lateral_move", "data_access"):
-                tmpl = FINDING_TEMPLATES.get(technique_id)
-                if tmpl:
-                    self._create_finding(org_id, campaign_id, task_id, task, tmpl)
+        # Persist one finding per Nuclei result (REQ-002-03)
+        for result in nuclei_results:
+            self._create_nuclei_finding(org_id, campaign_id, result)
+
+    def _create_nuclei_finding(
+        self,
+        org_id: str,
+        campaign_id: str,
+        result: NucleiResult,
+    ) -> None:
+        """Persist a real Nuclei result as a swarm_finding (REQ-002-03)."""
+        finding_id = str(uuid.uuid4())
+        now = self._now()
+        with self._lock:
+            with self._conn() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO swarm_findings
+                        (id, org_id, campaign_id, task_id, title, severity, category,
+                         technique_id, technique_name, target, evidence_preview,
+                         remediation, cvss_score, status, created_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    """,
+                    (
+                        finding_id, org_id, campaign_id, "",
+                        result.title,
+                        result.severity,
+                        "initial_access",       # nuclei does not emit ATT&CK categories
+                        result.template_id,
+                        result.name,
+                        result.host,
+                        result.evidence,
+                        "Review and remediate the Nuclei-detected vulnerability.",
+                        result.cvss_score,
+                        "open",
+                        now,
+                    ),
+                )
 
     def _create_finding(
         self,
@@ -936,6 +1028,7 @@ class OpenClawEngine:
         task: dict,
         tmpl: dict,
     ) -> None:
+        """Persist a finding from a FINDING_TEMPLATES entry (retained for completeness)."""
         finding_id = str(uuid.uuid4())
         now = self._now()
         with self._lock:
@@ -956,7 +1049,7 @@ class OpenClawEngine:
                         task.get("technique_id", ""),
                         task.get("technique_name", ""),
                         task.get("target", ""),
-                        f"Evidence captured by Operator-{task.get('operator_id', 1)} during {task.get('technique_name', '')} phase",
+                        f"Evidence captured during {task.get('technique_name', '')} phase",
                         tmpl.get("remediation", "Review and remediate the identified vulnerability."),
                         float(tmpl.get("cvss_score", 5.0)),
                         "open",
