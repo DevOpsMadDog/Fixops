@@ -52,12 +52,35 @@ except Exception:
 
 
 def _tg_emit(event_type: str, payload: dict) -> None:
+    """Schedule a TrustGraph event emission without blocking the pipeline.
+
+    bus.emit() is an async coroutine; calling it bare (without await) creates
+    the coroutine object but never schedules it, so the event is silently
+    discarded.  We schedule it as a fire-and-forget asyncio task so it runs
+    on the running event loop without blocking the pipeline step.
+    """
     try:
         if _get_tg_bus is None:
             return
         bus = _get_tg_bus()
-        if bus:
-            bus.emit(event_type, payload)
+        if bus is None:
+            return
+        coro = bus.emit(event_type, payload)
+        try:
+            asyncio.ensure_future(coro)
+        except RuntimeError:
+            # No running event loop (e.g. called from a sync context / CLI).
+            # Fall back to get_event_loop() — creates one if needed.
+            try:
+                loop = asyncio.get_event_loop()
+                loop.create_task(coro)
+            except RuntimeError:
+                # Truly no event loop available — best-effort: close the coro
+                # to avoid ResourceWarning and move on.
+                try:
+                    coro.close()
+                except Exception:
+                    pass
     except Exception:
         pass
 

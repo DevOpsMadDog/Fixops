@@ -628,6 +628,46 @@ def uuid_hex() -> str:
     return _uuid.uuid4().hex[:8]
 
 
+async def _handle_scan_completed(data: Dict[str, Any]) -> bool:
+    """Route scan.completed to TrustGraphBackbone as a scan/asset entity.
+
+    Scan completion events carry a scan_id and typically a campaign_id.
+    We index the scan as an Asset entity in Core 1 (Customer Environment)
+    so it participates in blast-radius queries (e.g. which assets were
+    scanned, when, by which campaign).
+    """
+    try:
+        backbone = _get_backbone(org_id=_payload_org_id(data))
+        # Normalise to the shape index_asset() expects
+        asset_payload: Dict[str, Any] = {
+            "id": data.get("scan_id") or data.get("id") or f"scan_{uuid_hex()}",
+            "name": data.get("name") or data.get("scan_id") or "scan",
+            "type": "scan",
+            "status": data.get("status", "completed"),
+            "campaign_id": data.get("campaign_id"),
+            "started_at": data.get("started_at"),
+            "org_id": _payload_org_id(data),
+        }
+        entity_id = backbone.index_asset(asset_payload)
+        logger.debug("event_bus: indexed scan as asset", entity_id=entity_id)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("event_bus: scan.completed index failed", error=str(exc))
+    return True
+
+
+async def _handle_session_created(data: Dict[str, Any]) -> bool:
+    """No-op handler for session.created events.
+
+    Security session events (login, token refresh, OAuth callback) are not
+    graph-relevant — indexing them would create noise without actionable
+    graph edges.  We register an explicit handler so these events are
+    acknowledged and drained from the queue rather than accumulating
+    indefinitely as 'queued' (no handler registered).
+    """
+    logger.debug("event_bus: session.created acknowledged (no-op)", session_id=data.get("session_id") or data.get("id"))
+    return True
+
+
 # Default handler registry
 _DEFAULT_HANDLERS: Dict[str, Callable[[Dict[str, Any]], Coroutine]] = {
     EVENT_FINDING_CREATED: _handle_finding_created,
@@ -639,6 +679,10 @@ _DEFAULT_HANDLERS: Dict[str, Callable[[Dict[str, Any]], Coroutine]] = {
     EVENT_ACTOR_IDENTIFIED: _handle_actor_identified,
     EVENT_CVE_DISCOVERED: _handle_cve_discovered,
     EVENT_RISK_ASSESSED: _handle_risk_assessed,
+    # scan.completed — index scan as asset in Core 1 (Customer Environment)
+    EVENT_SCAN_COMPLETED: _handle_scan_completed,
+    # session.created — acknowledged no-op; sessions are not graph-relevant
+    EVENT_SESSION_CREATED: _handle_session_created,
 }
 
 
@@ -942,20 +986,42 @@ def register_default_handlers(bus: EventBus) -> None:
     registered for that event type. Safe to call multiple times.
 
     Wired here:
-      - finding.created  → UniversalFindingIndexer.index
-      - finding.updated  → UniversalFindingIndexer.index
-      - asset.discovered → TrustGraphBackbone.index_asset
-      - incident.created → TrustGraphBackbone.index_incident
-      - control.assessed → TrustGraphBackbone.index_compliance_control
-      - vendor.updated   → TrustGraphBackbone.index_vendor (fallback: index_asset)
-      - actor.identified → TrustGraphBackbone.index_threat_actor (fallback: indexer)
-      - cve.discovered   → UniversalFindingIndexer.index (engine=feed, entity_type=cve)
-      - risk.assessed    → KnowledgeBrain.add_node (EntityType.FINDING; fallback: indexer)
+      - finding.created      → UniversalFindingIndexer.index
+      - finding.updated      → UniversalFindingIndexer.index
+      - asset.discovered     → TrustGraphBackbone.index_asset
+      - incident.created     → TrustGraphBackbone.index_incident
+      - control.assessed     → TrustGraphBackbone.index_compliance_control
+      - vendor.updated       → TrustGraphBackbone.index_vendor (fallback: index_asset)
+      - actor.identified     → TrustGraphBackbone.index_threat_actor (fallback: indexer)
+      - cve.discovered       → UniversalFindingIndexer.index (engine=feed, entity_type=cve)
+      - risk.assessed        → KnowledgeBrain.add_node (EntityType.FINDING; fallback: indexer)
+      - scan.completed       → TrustGraphBackbone.index_asset (type=scan)
+      - session.created      → no-op (sessions are not graph-relevant)
+      - competitive.*        → no-op drain (legacy events from a retired engine;
+                               no longer emitted but still stranded in the queue)
     """
     for event_type, handler in _DEFAULT_HANDLERS.items():
         # Only register if no handlers already registered for this event type
         if not bus._handlers.get(event_type):
             bus.on(event_type, handler)
+
+    # Drain legacy competitive.* events that accumulated when this engine was
+    # active.  These event types are no longer emitted; we register no-op
+    # handlers so flush_queue() can mark them as indexed and stop retrying.
+    _LEGACY_NOOP_TYPES = (
+        "competitive.capability_required",
+        "competitive.gap_identified",
+        "competitive.engine_new_proposed",
+    )
+
+    async def _noop_legacy_handler(data: Dict[str, Any]) -> bool:
+        """Acknowledge and drain a legacy event that no longer needs indexing."""
+        return True
+
+    for legacy_type in _LEGACY_NOOP_TYPES:
+        if not bus._handlers.get(legacy_type):
+            bus.on(legacy_type, _noop_legacy_handler)
+
     logger.info("TrustGraph event bus: default handlers registered")
 
 
@@ -1038,9 +1104,41 @@ class ResponseInterceptorMiddleware(BaseHTTPMiddleware):
         Walks nested wrapper shapes recursively (max depth 3) so envelopes
         like {"data": {"finding_id": ...}}, {"result": [...]} and
         {"items": [{...}, {...}]} are correctly unwrapped before ID matching.
+
+        org_id is resolved from the authenticated request — NOT from the
+        response body.  The response body rarely contains org_id (or contains
+        it only for some entity types), causing 93%+ of emitted events to be
+        stored under the 'default' org.  Resolution order:
+          1. request.state.org_id (set by OrgIdMiddleware from JWT claim)
+          2. _org_id_var contextvar (same source, accessible without request)
+          3. X-Org-ID request header
+          4. 'default' fallback (single-tenant / unauthenticated)
         """
         if not self._bus.enabled:
             return
+
+        # Resolve the request-scoped org_id once for all events in this response.
+        request_org_id: str = "default"
+        try:
+            state_org = getattr(request.state, "org_id", None)
+            if state_org and str(state_org).strip() and str(state_org).strip() != "default":
+                request_org_id = str(state_org).strip()
+            else:
+                # Fallback 1: contextvar set by OrgIdMiddleware
+                try:
+                    from apps.api.org_middleware import get_current_org_id as _get_current_org_id
+                    ctx_org = _get_current_org_id()
+                    if ctx_org and ctx_org != "default":
+                        request_org_id = ctx_org
+                except Exception:
+                    pass
+            if request_org_id == "default":
+                # Fallback 2: X-Org-ID header
+                hdr_org = request.headers.get("X-Org-ID", "").strip()
+                if hdr_org:
+                    request_org_id = hdr_org
+        except Exception:
+            pass  # Never let org_id resolution crash the interceptor
 
         # Determine if this is a create or update from request method
         is_update = request.method in ("PUT", "PATCH")
@@ -1072,12 +1170,18 @@ class ResponseInterceptorMiddleware(BaseHTTPMiddleware):
 
                 if event_type not in emitted:
                     emitted.add(event_type)
-                    await self._bus.emit(event_type, candidate)
+                    # Stamp the request-scoped org_id into the payload so the
+                    # downstream handler indexes the entity under the correct
+                    # tenant.  We create a shallow copy to avoid mutating the
+                    # original response body dict.
+                    stamped = {**candidate, "org_id": request_org_id}
+                    await self._bus.emit(event_type, stamped)
                     logger.debug(
                         "ResponseInterceptor: emitted event",
                         event_type=event_type,
                         path=request.url.path,
                         key=key,
+                        org_id=request_org_id,
                     )
 
 
