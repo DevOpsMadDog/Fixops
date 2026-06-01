@@ -98,5 +98,11 @@ filterwarnings = [
     "ignore:Duplicate Operation ID:UserWarning",
     "ignore:Field name .* shadows an attribute in parent:UserWarning",
     "ignore:Module .* was never imported\\.:coverage.exceptions.CoverageWarning",
+    # starlette 1.x raises StarletteDeprecationWarning(UserWarning) when httpx is used
+    # without httpx2. httpx2 is installed so this path should never fire, but guard it
+    # here so a future environment without httpx2 doesn't hard-error on collection.
+    # StarletteDeprecationWarning subclasses UserWarning (NOT DeprecationWarning) so
+    # the existing ignore::DeprecationWarning does NOT cover it — this entry is required.
+    "ignore::starlette.exceptions.StarletteDeprecationWarning",
 ]
 

@@ -1,10 +1,17 @@
-fastapi>=0.115,<0.128
+# PYSEC-2026-161 CLOSED 2026-06-01: starlette>=1.0.1 fixes the CVE.
+# fastapi>=0.133 is the first version that allows starlette>=1.0 (no upper bound).
+# httpx2>=2.2.0 is required by starlette 1.x TestClient (replaces httpx in test transport).
+# httpx is kept for runtime HTTP calls (connectors, feeds, etc.) — starlette's testclient
+# now imports httpx2 first so no StarletteDeprecationWarning fires at test collection.
+fastapi>=0.133,<0.137
+starlette>=1.0.1,<2.0
 uvicorn>=0.30.0,<1.0
 pydantic>=2.6,<3.0
 email-validator>=2.0.0,<3.0
 python-multipart>=0.0.26,<1.0
 requests>=2.33.0,<3.0
 httpx>=0.27.0,<1.0
+httpx2>=2.2.0,<3.0
 pgmpy==0.1.24
 PyJWT>=2.12.0,<3.0
 cryptography>=46.0.7,<47.0.0

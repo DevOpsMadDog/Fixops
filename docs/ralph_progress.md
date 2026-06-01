@@ -18,7 +18,7 @@ pre-mortem's disqualifying/major failures are closed. Each story = a spec throug
 | 9 | SPEC-004 multi-language reachability (Python/TS/JS/Java/Go + auto-run) | P2 | ✅ VERIFIED |
 | 10 | SPEC-008 HA / Litestream replication + restore | P1 | ✅ VERIFIED |
 | 11 | starlette CVE — DEFERRED (needs httpx2 migration, 561 files); torch dispositioned | P1 | 🟡 DOCUMENTED/BLOCKED |
-| 11b | httpx2 migration to close starlette PYSEC-2026-161 (DISQUALIFYING) | P1 | ⏳ TODO (own pass) |
+| 11b | starlette PYSEC-2026-161 CLOSED (starlette 1.2.1 + fastapi 0.136.3 + httpx2) | P1 | ✅ VERIFIED |
 | 12 | SPEC-010 maintainability (inventory+gate+schema-registry; only 5 dead, archived) | P2 | ✅ VERIFIED |
 | 13 | SPEC-006b crypto hardening (key-at-rest + immutable audit + honest posture) | P2 | ✅ VERIFIED |
 | 14 | FIPS-CMVP cert + PIV-CAC hardware | P2 | 🔒 FOUNDER-BLOCKED |
@@ -34,3 +34,4 @@ pre-mortem's disqualifying/major failures are closed. Each story = a spec throug
 - 2026-06-01: story 11 — starlette 1.x bump REVERTED (needs project-wide httpx2 test migration; boot was fine but Beast collection hard-errors on httpx-testclient deprecation). Documented close-path (story 11b). torch = training-only, not in SCIF runtime, no upstream fix. requirements unchanged. Next: SPEC-010.
 - 2026-06-01: story 12 (SPEC-010) VERIFIED — PM-5 '686 dead' was STALE; real=5 unmounted (archived), 875/880 mounted. Inventory tool + CI gate + schema_registry. boot 8301 unchanged. Next: SPEC-006b (achievable FIPS increments).
 - 2026-06-01: story 13 (SPEC-006b) VERIFIED — key passphrase-encryption, append-only audit triggers, HMAC key separation, honest crypto_posture (fips/piv=false). FIPS-CMVP+PIV-CAC=founder-blocked. BUILDABLE BACKLOG EXHAUSTED. Remaining: founder-blocked (push, FIPS cert, PIV hardware, GPU training, httpx2 migration). Writing handoff + stopping loop.
+- 2026-06-01: story 11b DONE — starlette 1.2.1/fastapi 0.136.3/httpx2 2.2.0, 756/756 Beast green, boot 8301 both modes. DISQUALIFYING starlette CVE CLOSED. All buildable + the one risky CVE now done.
