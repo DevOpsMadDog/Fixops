@@ -11,3 +11,19 @@
 ASPM ingest+findings · CTEM exposure-cases+prioritization · CSPM posture+compliance · Auth/tenancy ·
 Connectors · Evidence/SOC2 · Risk-aggregator · Council verdict. One spec per group, authored as we
 touch each, so the whole surface becomes spec-governed for Augment Code intent IDE.
+
+## Pre-mortem-driven de-risk specs (SCIF $100K, added 2026-06-01)
+| ID | Title | Priority | Effort | Kills failure |
+|----|-------|----------|--------|---------------|
+| SPEC-002 | Local Nuclei pen-test connector (real exploitability, no SaaS) | P1 | 2-3wk | intelligence value |
+| SPEC-003 | Local Qwen council (distill + AirGapLLMProvider) | P1 | 1.5wk | intelligence value |
+| SPEC-004 | Multi-language reachability (tree-sitter TS/Java/Go + auto-run) | P2 | 1wk | FP-reduction breadth |
+| SPEC-005 | Air-gap enforced-by-default (telemetry kill-switch, OFFLINE env) | P0 | days | day-1 air-gap leak |
+| SPEC-005b | Auto-populate TrustGraph + attack-path from scans (blast-radius≠0) | P1 | 1wk | intelligence value |
+| SPEC-006 | FIPS-validated crypto + at-rest encryption + immutable audit + PIV-CAC | P2 | months | accreditation/ATO |
+| SPEC-007 | Systemic tenancy (TenantScopedEngine + ContextVar + CI lint) | P1 | 1-2wk | spillage |
+| SPEC-008 | HA / Litestream replication (1s RPO) | P1 | 1wk | data loss |
+| SPEC-009 | Python lockfile + dependabot + SBOM'd reproducible build | P0 | 1day | procurement disqual |
+| SPEC-010 | Dead-router purge (686) + SQLite migration registry + CI gate | P2 | 1wk | 5-yr maintainability |
+
+Pre-mortem evidence: docs/premortem/PM-1..PM-5 + PREMORTEM_SCIF_2026-06-01.md
