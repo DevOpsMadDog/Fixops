@@ -875,14 +875,27 @@ _statsd_client: Any = None
 _obs_logger = logging.getLogger(__name__ + ".prod")
 
 
+def _is_airgap_enforced() -> bool:
+    """Return True when FIXOPS_AIRGAP_MODE=enforced (fast env-var check, no import cost)."""
+    return os.environ.get("FIXOPS_AIRGAP_MODE", "").strip().lower() == "enforced"
+
+
 def init_sentry(dsn: Optional[str] = None) -> bool:
     """Initialise Sentry SDK if a DSN is available.
 
     Priority: explicit ``dsn`` argument > ``SENTRY_DSN`` env var.
     Returns True on successful init, False when DSN is absent or
     ``sentry_sdk`` is not installed.  Never raises.
+
+    When ``FIXOPS_AIRGAP_MODE=enforced`` this is a guaranteed no-op
+    regardless of any DSN configured — telemetry must never leave the perimeter.
     """
     global _sentry_active
+    if _is_airgap_enforced():
+        _obs_logger.info(
+            "init_sentry: FIXOPS_AIRGAP_MODE=enforced — Sentry disabled (no egress)"
+        )
+        return False
     resolved_dsn = dsn or os.environ.get("SENTRY_DSN", "").strip() or None
     if not resolved_dsn:
         _obs_logger.debug("init_sentry: no DSN configured — Sentry inactive")
@@ -917,8 +930,16 @@ def init_statsd(host: Optional[str] = None, port: int = 8125) -> bool:
     Priority: explicit ``host`` argument > ``DATADOG_STATSD_HOST`` env var.
     Returns True on successful init, False when host is absent or
     ``datadog`` package is not installed.  Never raises.
+
+    When ``FIXOPS_AIRGAP_MODE=enforced`` this is a guaranteed no-op — no
+    metrics must leave the perimeter.
     """
     global _statsd_active, _statsd_client
+    if _is_airgap_enforced():
+        _obs_logger.info(
+            "init_statsd: FIXOPS_AIRGAP_MODE=enforced — StatsD disabled (no egress)"
+        )
+        return False
     resolved_host = host or os.environ.get("DATADOG_STATSD_HOST", "").strip() or None
     if not resolved_host:
         _obs_logger.debug("init_statsd: no host configured — StatsD inactive")

@@ -61,6 +61,7 @@ class ControlStatus(str, Enum):
     FAILING = "failing"
     NOT_STARTED = "not_started"
     STALE = "stale"
+    NOT_ASSESSED = "not_assessed"  # honest: no real evidence collected
 
 
 class EvidenceType(str, Enum):
@@ -950,7 +951,8 @@ def _check_rbac_config() -> Tuple[bool, str, Dict[str, Any]]:
         passing = len(roles) > 0
         return passing, "rbac_check", {"roles_found": len(roles), "source": "access_matrix"}
     except Exception:
-        return True, "rbac_check", {"roles_found": 6, "source": "simulated", "note": "RBAC module loaded"}
+        # Cannot load RBAC module — honest not_assessed, never a simulated pass
+        return False, "rbac_check", {"source": "not_configured", "note": "RBAC module unavailable; control not assessed"}
 
 
 def _check_scan_results() -> Tuple[bool, str, Dict[str, Any]]:
@@ -958,25 +960,45 @@ def _check_scan_results() -> Tuple[bool, str, Dict[str, Any]]:
 
     NOTE: ``core.scanner_parsers.get_latest_summary`` was removed in the
     2026-05-03 silenced-imports audit (no canonical helper exists; the module
-    only exposes per-vendor Normalizer classes). Returning the same
-    simulated-fallback envelope that the previous ``except Exception`` arm
-    already produced. Replace this with a real summary helper if scanner
-    parser results need to drive compliance verdicts.
+    only exposes per-vendor Normalizer classes).  Until a real summary helper
+    is wired, this control is honestly not_assessed rather than a fabricated
+    pass.
     """
-    return True, "scan_check", {"total_findings": 0, "critical": 0, "source": "simulated"}
+    # No real scanner summary helper available — honest not_assessed
+    return False, "scan_check", {"source": "not_configured", "note": "No scanner summary helper wired; control not assessed"}
 
 
 def _check_encryption_settings() -> Tuple[bool, str, Dict[str, Any]]:
-    """Check encryption settings from ALDECI configuration."""
+    """Check encryption settings from ALDECI configuration (SC-28 / encryption-at-rest).
+
+    Returns a genuine result only when AppConfig is loadable and carries
+    explicit boolean flags.  Missing config → not_assessed, never a
+    simulated pass (REQ-006-02).
+    """
     try:
         from core.app_config import AppConfig  # type: ignore
         cfg = AppConfig()
-        tls_enabled = getattr(cfg, "tls_enabled", True)
-        encryption_at_rest = getattr(cfg, "encryption_at_rest", True)
-        passing = tls_enabled and encryption_at_rest
-        return passing, "encryption_check", {"tls_enabled": tls_enabled, "encryption_at_rest": encryption_at_rest}
+        # Only treat as passing when the flags are explicitly True — not defaulted
+        tls_enabled = getattr(cfg, "tls_enabled", None)
+        encryption_at_rest = getattr(cfg, "encryption_at_rest", None)
+        if tls_enabled is None or encryption_at_rest is None:
+            # Config loaded but flags absent — honestly not_assessed
+            return False, "encryption_check", {
+                "source": "not_configured",
+                "note": "SC-28: encryption flags absent in config; control not assessed",
+            }
+        passing = bool(tls_enabled) and bool(encryption_at_rest)
+        return passing, "encryption_check", {
+            "tls_enabled": tls_enabled,
+            "encryption_at_rest": encryption_at_rest,
+            "source": "config",
+        }
     except Exception:
-        return True, "encryption_check", {"tls_enabled": True, "encryption_at_rest": True, "source": "simulated"}
+        # Config unavailable — SC-28 is not_assessed, never a simulated pass
+        return False, "encryption_check", {
+            "source": "not_configured",
+            "note": "SC-28: AppConfig unavailable; encryption-at-rest not assessed",
+        }
 
 
 def _check_audit_logs() -> Tuple[bool, str, Dict[str, Any]]:
@@ -986,9 +1008,10 @@ def _check_audit_logs() -> Tuple[bool, str, Dict[str, Any]]:
         al = AuditLogger()
         recent = al.count_recent(hours=24) if hasattr(al, "count_recent") else 1
         passing = recent > 0
-        return passing, "audit_log_check", {"recent_events_24h": recent}
+        return passing, "audit_log_check", {"recent_events_24h": recent, "source": "measured"}
     except Exception:
-        return True, "audit_log_check", {"recent_events_24h": 142, "source": "simulated"}
+        # AuditLogger unavailable — honest not_assessed, never a simulated pass
+        return False, "audit_log_check", {"source": "not_configured", "note": "AuditLogger unavailable; control not assessed"}
 
 
 def _check_config_snapshot() -> Tuple[bool, str, Dict[str, Any]]:
@@ -998,24 +1021,43 @@ def _check_config_snapshot() -> Tuple[bool, str, Dict[str, Any]]:
 
         cfg = AppConfig()
         has_config = cfg is not None
-        return has_config, "config_snapshot_check", {"snapshot_available": has_config}
+        return has_config, "config_snapshot_check", {"snapshot_available": has_config, "source": "config"}
     except Exception:
-        return True, "config_snapshot_check", {"snapshot_available": True, "source": "simulated"}
+        # AppConfig unavailable — honest not_assessed, never a simulated pass
+        return False, "config_snapshot_check", {"source": "not_configured", "note": "AppConfig unavailable; control not assessed"}
 
 
 def _check_policy_exists() -> Tuple[bool, str, Dict[str, Any]]:
-    """Check that security policies are documented."""
-    return True, "policy_check", {"policies_found": ["security_policy", "access_policy", "incident_policy"], "source": "simulated"}
+    """Check that security policies are documented.
+
+    No real policy store is wired yet — honest not_assessed, never a simulated pass.
+    """
+    return False, "policy_check", {
+        "source": "not_configured",
+        "note": "No policy document store wired; control not assessed",
+    }
 
 
 def _check_incident_reports() -> Tuple[bool, str, Dict[str, Any]]:
-    """Check incident report availability from ALDECI."""
-    return True, "incident_check", {"incident_procedures_defined": True, "source": "simulated"}
+    """Check incident report availability from ALDECI.
+
+    No real incident store is wired yet — honest not_assessed, never a simulated pass.
+    """
+    return False, "incident_check", {
+        "source": "not_configured",
+        "note": "No incident report store wired; control not assessed",
+    }
 
 
 def _check_training_records() -> Tuple[bool, str, Dict[str, Any]]:
-    """Check training records from ALDECI user management."""
-    return True, "training_check", {"training_records_found": True, "source": "simulated"}
+    """Check training records from ALDECI user management.
+
+    No real training record store is wired yet — honest not_assessed, never a simulated pass.
+    """
+    return False, "training_check", {
+        "source": "not_configured",
+        "note": "No training record store wired; control not assessed",
+    }
 
 
 _CHECK_DISPATCH: Dict[str, Any] = {
@@ -1304,7 +1346,12 @@ class ComplianceAutomationEngine:
                 item.ttl_days,
             ))
 
-            new_status = ControlStatus.PASSING if is_passing else ControlStatus.FAILING
+            # REQ-006-01/02: a not_configured source means we have no real
+            # evidence — record as NOT_ASSESSED so it never inflates the score.
+            if data.get("source") == "not_configured":
+                new_status = ControlStatus.NOT_ASSESSED
+            else:
+                new_status = ControlStatus.PASSING if is_passing else ControlStatus.FAILING
             status_updates.append((new_status.value, now_ts, control.id, framework))
             collected.append(item)
 
@@ -1405,7 +1452,10 @@ class ComplianceAutomationEngine:
                     stale_updates.append((status.value, now_ts, ctrl.id, framework))
 
             status_counts[status.value] = status_counts.get(status.value, 0) + 1
-            total_weight += ctrl.weight
+            # REQ-006-03: NOT_ASSESSED controls (no real evidence) are excluded
+            # from both numerator and denominator so they cannot inflate the score.
+            if status != ControlStatus.NOT_ASSESSED:
+                total_weight += ctrl.weight
             if status == ControlStatus.PASSING:
                 passing_weight += ctrl.weight
 

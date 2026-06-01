@@ -794,6 +794,20 @@ class GeoWeightedRisk:
         }
 
 
+def _feeds_airgap_offline() -> bool:
+    """Return True when feed network fetches must be skipped.
+
+    Triggered by either:
+      - FIXOPS_AIRGAP_MODE=enforced  (hard SCIF mode — no egress allowed)
+      - FIXOPS_FEEDS_OFFLINE=1       (explicit offline override)
+    """
+    import os
+    return (
+        os.environ.get("FIXOPS_AIRGAP_MODE", "").strip().lower() == "enforced"
+        or os.environ.get("FIXOPS_FEEDS_OFFLINE", "").strip() == "1"
+    )
+
+
 class FeedsService:
     """CVE/KEV Feed Scheduler with EPSS and KEV enrichment."""
 
@@ -1171,7 +1185,18 @@ class FeedsService:
 
         Returns:
             FeedRefreshResult with refresh status
+
+        When FIXOPS_AIRGAP_MODE=enforced or FIXOPS_FEEDS_OFFLINE=1, skips the
+        network fetch and returns status=offline immediately (no hang, no 500).
         """
+        if _feeds_airgap_offline():
+            logger.info("refresh_epss: airgap/offline mode — skipping network fetch")
+            return FeedRefreshResult(
+                feed_name="epss",
+                success=False,
+                records_updated=0,
+                error="offline: FIXOPS_AIRGAP_MODE=enforced or FIXOPS_FEEDS_OFFLINE=1",
+            )
         try:
             logger.info("Refreshing EPSS scores from FIRST.org")
 
@@ -1273,7 +1298,18 @@ class FeedsService:
 
         Returns:
             FeedRefreshResult with refresh status
+
+        When FIXOPS_AIRGAP_MODE=enforced or FIXOPS_FEEDS_OFFLINE=1, skips the
+        network fetch and returns status=offline immediately (no hang, no 500).
         """
+        if _feeds_airgap_offline():
+            logger.info("refresh_kev: airgap/offline mode — skipping network fetch")
+            return FeedRefreshResult(
+                feed_name="kev",
+                success=False,
+                records_updated=0,
+                error="offline: FIXOPS_AIRGAP_MODE=enforced or FIXOPS_FEEDS_OFFLINE=1",
+            )
         try:
             logger.info("Refreshing KEV catalog from CISA")
 
@@ -1384,7 +1420,20 @@ class FeedsService:
 
         Returns:
             FeedRefreshResult with refresh status
+
+        When FIXOPS_AIRGAP_MODE=enforced or FIXOPS_FEEDS_OFFLINE=1, skips the
+        network fetch and returns status=offline immediately (no hang, no 500).
+        Use the offline NVD SQLite path (airgap_deployment.OfflineCVEDatabase)
+        for CVE lookups in air-gapped deployments.
         """
+        if _feeds_airgap_offline():
+            logger.info("refresh_nvd: airgap/offline mode — skipping network fetch")
+            return FeedRefreshResult(
+                feed_name="nvd",
+                success=False,
+                records_updated=0,
+                error="offline: FIXOPS_AIRGAP_MODE=enforced or FIXOPS_FEEDS_OFFLINE=1",
+            )
         try:
             from datetime import timedelta
 

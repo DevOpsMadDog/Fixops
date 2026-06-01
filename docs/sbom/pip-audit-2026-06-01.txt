@@ -1,0 +1,23 @@
+Found 17 known vulnerabilities in 9 packages
+Name                 Version ID                  Fix Versions
+-------------------- ------- ------------------- ------------
+dulwich              0.23.0  CVE-2026-42305      1.2.5
+gitpython            3.1.46  CVE-2026-42215      3.1.47
+gitpython            3.1.46  CVE-2026-42284      3.1.47
+gitpython            3.1.46  CVE-2026-44244      3.1.49
+gitpython            3.1.46  GHSA-mv93-w799-cj2w 3.1.50
+idna                 3.11    CVE-2026-45409      3.15
+microsoft-kiota-http 1.9.2   CVE-2026-44503      1.9.9
+mistune              3.2.0   PYSEC-2026-168      3.2.1
+mistune              3.2.0   CVE-2026-33079      3.2.1
+mistune              3.2.0   CVE-2026-44708
+mistune              3.2.0   CVE-2026-44897      3.2.1
+pip                  26.0.1  CVE-2026-3219       26.1
+pip                  26.0.1  CVE-2026-6357       26.1
+starlette            0.50.0  PYSEC-2026-161      1.0.1
+torch                2.10.0  PYSEC-2026-139
+urllib3              2.6.3   PYSEC-2026-142      2.7.0
+urllib3              2.6.3   PYSEC-2026-141      2.7.0
+Name          Skip Reason
+------------- ----------------------------------------------------------------------------
+aldeci-client Dependency not found on PyPI and could not be audited: aldeci-client (1.0.0)

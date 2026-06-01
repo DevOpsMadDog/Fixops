@@ -219,6 +219,48 @@ def _with_banner(response: Dict[str, Any]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
+def _build_enforced_status_fields() -> Dict[str, Any]:
+    """Build the SPEC-005 required fields for the airgap status response.
+
+    Always present regardless of mode so the schema is stable.
+    Returns:
+        airgap_mode: current mode string
+        egress_blocked: True when enforced (all outbound refused)
+        telemetry_disabled: True when TelemetryKillSwitch has been applied
+        local_llm_backend: detected local backend name or "none"
+    """
+    airgap_mode = os.getenv("FIXOPS_AIRGAP_MODE", "disabled").strip().lower()
+    enforced = airgap_mode == "enforced"
+
+    # telemetry_disabled: check the kill-file written by TelemetryKillSwitch.disable_all()
+    telemetry_disabled = False
+    try:
+        from core.airgap_deployment import TelemetryKillSwitch
+        tel_status = TelemetryKillSwitch().verify()
+        telemetry_disabled = tel_status.all_disabled
+    except Exception:  # noqa: BLE001
+        # Fall back to env-var heuristic: if DO_NOT_TRACK=1 it was applied
+        telemetry_disabled = enforced and os.getenv("DO_NOT_TRACK", "") == "1"
+
+    # local_llm_backend: probe only when enforced to avoid latency on every status call
+    local_llm_backend = "none"
+    if enforced:
+        try:
+            from core.airgap_config import LocalLLMRouter
+            cfg = LocalLLMRouter().detect_available_backend()
+            if cfg.available:
+                local_llm_backend = cfg.backend
+        except Exception:  # noqa: BLE001
+            pass
+
+    return {
+        "airgap_mode": airgap_mode,
+        "egress_blocked": enforced,
+        "telemetry_disabled": telemetry_disabled,
+        "local_llm_backend": local_llm_backend,
+    }
+
+
 @router.get(
     "/status",
     summary="Current air-gap configuration status",
@@ -232,11 +274,18 @@ async def get_status(_: str = Depends(_require_api_key)) -> Dict[str, Any]:
     - Local LLM backend availability
     - Offline vulnerability DB info
     - Network isolation detection results
+
+    SPEC-005 fields always present:
+    - airgap_mode: current mode (enforced|configured|detected|disabled)
+    - egress_blocked: True when FIXOPS_AIRGAP_MODE=enforced
+    - telemetry_disabled: True when TelemetryKillSwitch has been applied
+    - local_llm_backend: detected local backend name or "none"
     """
     try:
         engine = _get_engine()
         status = engine.get_status()
-        return _with_banner({"status": "ok", **status})
+        enforced_fields = _build_enforced_status_fields()
+        return _with_banner({"status": "ok", **enforced_fields, **status})
     except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
         logger.exception("Error fetching air-gap status")
         raise HTTPException(status_code=500, detail=type(exc).__name__)

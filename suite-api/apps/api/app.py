@@ -2185,6 +2185,27 @@ def create_app() -> FastAPI:
     )
     FastAPIInstrumentor.instrument_app(app)
 
+    # ── Air-gap enforced: kill telemetry + block HF downloads BEFORE any init ─
+    _airgap_mode = os.environ.get("FIXOPS_AIRGAP_MODE", "").strip().lower()
+    if _airgap_mode == "enforced":
+        # Set HuggingFace offline flags before any model load can happen.
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        os.environ["HF_DATASETS_OFFLINE"] = "1"
+        try:
+            from core.airgap_deployment import TelemetryKillSwitch
+            TelemetryKillSwitch().disable_all()
+            logging.getLogger(__name__).info(
+                "airgap(enforced): TelemetryKillSwitch applied — "
+                "all egress disabled, HF offline flags set"
+            )
+        except Exception as _ag_exc:  # pragma: no cover
+            logging.getLogger(__name__).warning(
+                "airgap(enforced): TelemetryKillSwitch failed (%s) — "
+                "continuing with env-var guards only",
+                _ag_exc,
+            )
+
     # ── Production observability: Sentry + StatsD (cred-gated, honest no-op) ─
     try:
         from core.observability import init_sentry, init_statsd
