@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -107,7 +108,7 @@ def run_scan(snapshot_db_id: str) -> Dict[str, Any]:
 
 @router.get("/snapshots")
 def list_snapshots(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(None),
     scan_status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -121,7 +122,7 @@ def list_snapshots(
 
 @router.get("/findings")
 def list_findings(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None),
     min_severity: Optional[str] = Query(None),
     finding_type: Optional[str] = Query(None),
@@ -140,7 +141,7 @@ def list_findings(
 
 
 @router.get("/stats")
-def stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().stats(org_id=org_id)
 
 
@@ -152,7 +153,7 @@ __all__ = ["router"]
 # ---------------------------------------------------------------------------
 
 @router.get("/")
-def get_agentless_root(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_agentless_root(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return Agentless Snapshot Scan service capabilities and live stats summary."""
     live_stats = _get_engine().stats(org_id=org_id)
     return {

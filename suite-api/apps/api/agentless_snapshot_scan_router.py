@@ -20,6 +20,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -59,7 +60,7 @@ class EnqueueScanRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def root(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def root(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return snapshot scan stats summary for the org."""
     return _get_engine().stats(org_id)
 
@@ -82,7 +83,7 @@ def enqueue_scan(req: EnqueueScanRequest) -> List[Dict[str, Any]]:
 
 @router.get("/snapshots", dependencies=[Depends(api_key_auth)])
 def list_snapshots(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(default=None),
     scan_status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -114,7 +115,7 @@ def run_scan(snapshot_db_id: str) -> Dict[str, Any]:
 
 @router.get("/findings", dependencies=[Depends(api_key_auth)])
 def list_findings(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     snapshot_db_id: Optional[str] = Query(default=None),
     finding_type: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
@@ -135,7 +136,7 @@ def list_findings(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate snapshot scan statistics for the org."""
     try:
         return _get_engine().stats(org_id)

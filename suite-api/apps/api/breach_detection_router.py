@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -96,7 +97,7 @@ def create_detection_rule(req: CreateRuleRequest) -> Dict[str, Any]:
 
 @router.get("/rules", dependencies=[Depends(api_key_auth)])
 def list_detection_rules(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     rule_type: Optional[str] = Query(default=None),
     data_source: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -123,7 +124,7 @@ def record_detection_event(req: RecordEventRequest) -> Dict[str, Any]:
 
 @router.get("/events", dependencies=[Depends(api_key_auth)])
 def list_detection_events(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
     rule_id: Optional[str] = Query(default=None),
@@ -167,7 +168,7 @@ def close_event(event_id: str, req: CloseEventRequest) -> Dict[str, Any]:
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_detection_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_detection_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate detection statistics for the org."""
     try:
         return _get_engine().get_detection_stats(org_id)

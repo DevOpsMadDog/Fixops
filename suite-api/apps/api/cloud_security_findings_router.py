@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
@@ -175,7 +176,7 @@ def update_remediation(remediation_id: str, req: UpdateRemediationRequest) -> Di
 
 @router.get("/findings", summary="List findings with optional filters")
 def get_findings(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
@@ -186,13 +187,13 @@ def get_findings(
 
 
 @router.get("/summary", summary="Get finding summary stats")
-def get_finding_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_finding_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().get_finding_summary(org_id=org_id)
 
 
 @router.get("/top-resources", summary="Top resources by finding count")
 def get_top_affected_resources(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     limit: int = Query(default=10, ge=1, le=100),
 ) -> List[Dict[str, Any]]:
     return _get_engine().get_top_affected_resources(org_id=org_id, limit=limit)
@@ -205,7 +206,7 @@ def get_top_affected_resources(
     responses={200: {"content": {"text/csv": {}}, "description": "CSV export of cloud findings"}},
 )
 def export_findings_csv(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),

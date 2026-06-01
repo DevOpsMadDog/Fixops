@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -91,7 +92,7 @@ def reconcile(body: ReconcileRequest) -> Dict[str, Any]:
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
 def summary(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(default=7, ge=1, le=365),
 ) -> Dict[str, Any]:
     """Rolling `{new, unchanged, resolved}` counts over the last N days.
@@ -103,7 +104,7 @@ def summary(
 @router.get("/{finding_id}/history", dependencies=[Depends(api_key_auth)])
 def history(
     finding_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     max_depth: int = Query(default=50, ge=1, le=500),
 ) -> Dict[str, Any]:
     """Walk the ``previous_violation_id`` chain for a finding.

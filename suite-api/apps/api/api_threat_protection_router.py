@@ -20,6 +20,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -100,7 +101,7 @@ def create_protection_rule(req: CreateRuleRequest) -> Dict[str, Any]:
 
 @router.get("/rules", dependencies=[Depends(api_key_auth)])
 def list_rules(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     threat_type: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -115,7 +116,7 @@ def list_rules(
 @router.get("/rules/{rule_id}", dependencies=[Depends(api_key_auth)])
 def get_rule(
     rule_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single protection rule by id."""
     try:
@@ -144,7 +145,7 @@ def record_threat_event(req: RecordEventRequest) -> Dict[str, Any]:
 
 @router.get("/events", dependencies=[Depends(api_key_auth)])
 def list_threat_events(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     threat_type: Optional[str] = Query(default=None),
     source_ip: Optional[str] = Query(default=None),
     rule_id: Optional[str] = Query(default=None),
@@ -178,7 +179,7 @@ def update_rule_status(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_protection_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_protection_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate API threat protection statistics for the org."""
     try:
         return _get_engine().get_protection_stats(org_id)

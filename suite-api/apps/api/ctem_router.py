@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -88,7 +89,7 @@ class ScopeAssets(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/cycles", dependencies=[Depends(api_key_auth)], status_code=201)
-def start_cycle(body: CycleCreate, org_id: str = Query(default="default")):
+def start_cycle(body: CycleCreate, org_id: str = Depends(get_org_id)):
     """Create and start a new CTEM cycle at SCOPING stage."""
     try:
         cycle = _get_engine().start_cycle(body.name, org_id=org_id)
@@ -98,7 +99,7 @@ def start_cycle(body: CycleCreate, org_id: str = Query(default="default")):
 
 
 @router.get("/cycles", dependencies=[Depends(api_key_auth)])
-def list_cycles(org_id: str = Query(default="default")):
+def list_cycles(org_id: str = Depends(get_org_id)):
     """List all CTEM cycles for an org, newest first."""
     cycles = _get_engine().list_cycles(org_id)
     return [_cycle_to_dict(c) for c in cycles]
@@ -140,7 +141,7 @@ def advance_stage(cycle_id: str):
 def add_exposure(
     cycle_id: str,
     body: ExposureCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Add an exposure to a CTEM cycle."""
     try:

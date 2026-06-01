@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -90,7 +91,7 @@ def record_processing_activity(body: ProcessingActivityReq, _auth=Depends(api_ke
 
 @router.get("/activities")
 def list_processing_activities(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     lawful_basis: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     limit: int = Query(default=50, ge=1, le=500),
@@ -158,7 +159,7 @@ def record_consent(body: ConsentReq, _auth=Depends(api_key_auth)) -> Dict[str, A
 
 @router.get("/consents")
 def list_consents(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     subject_id: Optional[str] = Query(None),
     _auth=Depends(api_key_auth),
 ) -> List[Dict[str, Any]]:
@@ -191,7 +192,7 @@ def withdraw_consent(
 
 @router.get("/assessment")
 def run_gdpr_assessment(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     try:
@@ -208,7 +209,7 @@ def run_gdpr_assessment(
 
 @router.get("/")
 def get_gdpr_summary(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Return a 5-state summary envelope for the GDPR compliance domain.

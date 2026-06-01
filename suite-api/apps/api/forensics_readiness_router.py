@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -103,7 +104,7 @@ def register_evidence_source(req: RegisterSourceRequest) -> Dict[str, Any]:
 
 @router.get("/sources", dependencies=[Depends(api_key_auth)])
 def list_evidence_sources(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     source_type: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
     """List evidence sources for the org."""
@@ -167,7 +168,7 @@ def complete_collection_plan(plan_id: str, req: CompletePlanRequest) -> Dict[str
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_readiness_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_readiness_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate forensics readiness statistics for the org."""
     try:
         return _get_engine().get_readiness_stats(org_id)

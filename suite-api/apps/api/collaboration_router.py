@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Optional
 
 from core.services.collaboration import ActivityType, CollaborationService, EntityType
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel
 
 # SSRF protection: Slack webhook URL must be configured via environment variable
@@ -647,7 +649,7 @@ _collab_logger = _logging.getLogger(__name__)
 
 
 @router.get("/")
-def get_collaboration_root_summary(org_id: str = Query(default="default")):
+def get_collaboration_root_summary(org_id: str = Depends(get_org_id)):
     """Return a 5-state summary envelope for the Collaboration domain.
 
     States:

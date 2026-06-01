@@ -26,6 +26,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -103,7 +104,7 @@ def detect_anomalies(body: DetectRequest):
 
 @router.get("/list", dependencies=[Depends(api_key_auth)])
 def list_anomalies(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(default=None),
     limit: int = Query(default=100, ge=1, le=1000),
 ):

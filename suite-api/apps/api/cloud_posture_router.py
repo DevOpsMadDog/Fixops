@@ -20,6 +20,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -92,7 +93,7 @@ def register_account(req: RegisterAccountRequest) -> Dict[str, Any]:
 
 @router.get("/accounts", dependencies=[Depends(api_key_auth)])
 def list_accounts(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
     """List cloud accounts for the org."""
@@ -106,7 +107,7 @@ def list_accounts(
 @router.get("/accounts/{account_id}", dependencies=[Depends(api_key_auth)])
 def get_account(
     account_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single cloud account by internal id."""
     try:
@@ -135,7 +136,7 @@ def record_finding(req: RecordFindingRequest) -> Dict[str, Any]:
 
 @router.get("/findings", dependencies=[Depends(api_key_auth)])
 def list_findings(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
@@ -177,7 +178,7 @@ def update_finding_status(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_posture_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_posture_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate cloud posture statistics for the org."""
     try:
         return _get_engine().get_posture_stats(org_id)

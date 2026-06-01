@@ -28,7 +28,7 @@ except ImportError:
     _HAS_AUTH = False
     api_key_auth = None  # type: ignore[assignment]
 
-    def _get_org_id_dep(org_id: str = Query(default="default")) -> str:  # type: ignore[misc]
+    def _get_org_id_dep(org_id: str = Depends(get_org_id)) -> str:  # type: ignore[misc]
         return org_id
 
 try:

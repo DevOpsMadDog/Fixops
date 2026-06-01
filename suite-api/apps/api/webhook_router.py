@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Request, status
 from pydantic import BaseModel, Field
 
@@ -350,7 +351,7 @@ async def list_events(
 
 @router.get("/", summary="Webhooks index", tags=["webhooks"], dependencies=[Depends(api_key_auth)])
 async def webhooks_index(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=20, ge=1, le=200),
 ) -> Dict[str, Any]:
     """Return recent webhook events from the SQLite store."""
