@@ -24,6 +24,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -83,7 +84,7 @@ class CreateRiskThresholdRequest(BaseModel):
 @router.post("/scores", dependencies=[Depends(api_key_auth)], status_code=201)
 def record_risk_score(
     body: RecordRiskScoreRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record a risk score for an entity from any source engine."""
     try:
@@ -100,7 +101,7 @@ def record_risk_score(
 
 @router.get("/scores", dependencies=[Depends(api_key_auth)])
 def list_risk_scores(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     entity_type: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
     limit: int = Query(default=100, ge=1, le=1000),
@@ -114,21 +115,21 @@ def list_risk_scores(
 @router.get("/scores/entity/{entity_id}", dependencies=[Depends(api_key_auth)])
 def get_entity_risk(
     entity_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return the latest risk score and full history for a specific entity."""
     return _get_engine().get_entity_risk(org_id, entity_id)
 
 
 @router.get("/heatmap", dependencies=[Depends(api_key_auth)])
-def get_risk_heatmap(org_id: str = Query(default="default")):
+def get_risk_heatmap(org_id: str = Depends(get_org_id)):
     """Return a risk heatmap: entity_types x severity counts."""
     return _get_engine().get_risk_heatmap(org_id)
 
 
 @router.get("/top-risks", dependencies=[Depends(api_key_auth)])
 def get_top_risks(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=10, ge=1, le=100),
 ):
     """Return the highest-risk entities across all types."""
@@ -136,7 +137,7 @@ def get_top_risks(
 
 
 @router.get("/org-score", dependencies=[Depends(api_key_auth)])
-def calculate_org_risk_score(org_id: str = Query(default="default")):
+def calculate_org_risk_score(org_id: str = Depends(get_org_id)):
     """Calculate composite organisational risk score with grade and trend."""
     return _get_engine().calculate_org_risk_score(org_id)
 
@@ -144,7 +145,7 @@ def calculate_org_risk_score(org_id: str = Query(default="default")):
 @router.post("/thresholds", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_risk_threshold(
     body: CreateRiskThresholdRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a risk threshold rule that triggers an action when exceeded."""
     try:
@@ -157,20 +158,20 @@ def create_risk_threshold(
 
 
 @router.get("/thresholds", dependencies=[Depends(api_key_auth)])
-def list_risk_thresholds(org_id: str = Query(default="default")):
+def list_risk_thresholds(org_id: str = Depends(get_org_id)):
     """List all risk threshold rules for an org."""
     return _get_engine().list_risk_thresholds(org_id)
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_aggregator_stats(org_id: str = Query(default="default")):
+def get_aggregator_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated risk statistics: entity count, high-risk count, org score."""
     return _get_engine().get_aggregator_stats(org_id)
 
 
 @router.post("/sync", dependencies=[Depends(api_key_auth)])
 def sync_from_brain(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     brain_db_path: Optional[str] = Query(
         default=None,
         description="Override path to fixops_brain.db (defaults to FIXOPS_BRAIN_DB_PATH env or data/fixops_brain.db)",

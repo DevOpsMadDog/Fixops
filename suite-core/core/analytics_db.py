@@ -37,10 +37,12 @@ class AnalyticsDB:
         """Initialize database tables."""
         conn = self._get_connection()
         try:
+            # Step 1: create base tables (without org_id index — added after migration)
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS findings (
                     id TEXT PRIMARY KEY,
+                    org_id TEXT NOT NULL DEFAULT 'default',
                     application_id TEXT,
                     service_id TEXT,
                     rule_id TEXT NOT NULL,
@@ -91,6 +93,18 @@ class AnalyticsDB:
             """
             )
             conn.commit()
+            # Step 2: migrate existing DBs that lack org_id column (created before this change)
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(findings)").fetchall()}
+            if "org_id" not in cols:
+                conn.execute(
+                    "ALTER TABLE findings ADD COLUMN org_id TEXT NOT NULL DEFAULT 'default'"
+                )
+                conn.commit()
+            # Step 3: ensure org index exists (safe to run after migration)
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_findings_org ON findings(org_id)"
+            )
+            conn.commit()
         finally:
             conn.close()
 
@@ -101,9 +115,14 @@ class AnalyticsDB:
         conn = self._get_connection()
         try:
             conn.execute(
-                """INSERT INTO findings VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO findings
+                   (id, org_id, application_id, service_id, rule_id, severity, status,
+                    title, description, source, cve_id, cvss_score, epss_score,
+                    exploitable, metadata, created_at, updated_at, resolved_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     finding.id,
+                    getattr(finding, "org_id", "default") or "default",
                     finding.application_id,
                     finding.service_id,
                     finding.rule_id,
@@ -352,24 +371,34 @@ class AnalyticsDB:
         finally:
             conn.close()
 
-    def get_dashboard_overview(self) -> Dict[str, Any]:
-        """Get dashboard overview statistics."""
+    def get_dashboard_overview(self, org_id: Optional[str] = None) -> Dict[str, Any]:
+        """Get dashboard overview statistics, scoped to org_id when provided."""
         conn = self._get_connection()
         try:
-            total_findings = conn.execute("SELECT COUNT(*) FROM findings").fetchone()[0]
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(findings)").fetchall()}
+            has_org = "org_id" in cols
+            org_clause = " AND org_id = ?" if (org_id and has_org) else ""
+            org_params = [org_id] if (org_id and has_org) else []
+
+            total_findings = conn.execute(
+                f"SELECT COUNT(*) FROM findings WHERE 1=1{org_clause}",  # nosec B608
+                org_params,
+            ).fetchone()[0]
             open_findings = conn.execute(
-                "SELECT COUNT(*) FROM findings WHERE status = 'open'"
+                f"SELECT COUNT(*) FROM findings WHERE status = 'open'{org_clause}",  # nosec B608
+                org_params,
             ).fetchone()[0]
             critical_findings = conn.execute(
-                "SELECT COUNT(*) FROM findings WHERE severity = 'critical' AND status = 'open'"
+                f"SELECT COUNT(*) FROM findings WHERE severity = 'critical' AND status = 'open'{org_clause}",  # nosec B608
+                org_params,
             ).fetchone()[0]
 
             thirty_days_ago = (
                 datetime.now(timezone.utc) - timedelta(days=30)
             ).isoformat()
             recent_findings = conn.execute(
-                "SELECT COUNT(*) FROM findings WHERE created_at >= ?",
-                (thirty_days_ago,),
+                f"SELECT COUNT(*) FROM findings WHERE created_at >= ?{org_clause}",  # nosec B608
+                [thirty_days_ago] + org_params,
             ).fetchone()[0]
 
             return {
@@ -382,13 +411,18 @@ class AnalyticsDB:
         finally:
             conn.close()
 
-    def get_top_risks(self, limit: int = 10) -> List[Dict[str, Any]]:
-        """Get top risks by severity and exploitability."""
+    def get_top_risks(self, limit: int = 10, org_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get top risks by severity and exploitability, scoped to org_id when provided."""
         conn = self._get_connection()
         try:
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(findings)").fetchall()}
+            has_org = "org_id" in cols
+            org_clause = " AND org_id = ?" if (org_id and has_org) else ""
+            org_params = [org_id] if (org_id and has_org) else []
+
             rows = conn.execute(
-                """SELECT * FROM findings
-                   WHERE status = 'open'
+                f"""SELECT * FROM findings
+                   WHERE status = 'open'{org_clause}
                    ORDER BY
                      CASE severity
                        WHEN 'critical' THEN 1
@@ -399,8 +433,8 @@ class AnalyticsDB:
                      END,
                      exploitable DESC,
                      cvss_score DESC
-                   LIMIT ?""",
-                (limit,),
+                   LIMIT ?""",  # nosec B608
+                org_params + [limit],
             ).fetchall()
             return [self._row_to_finding(row).to_dict() for row in rows]
         finally:
@@ -442,16 +476,18 @@ class AnalyticsDB:
 
     def _row_to_finding(self, row) -> Finding:
         """Convert database row to Finding object."""
+        row_keys = row.keys() if hasattr(row, "keys") else []
         return Finding(
             id=row["id"],
-            application_id=row["application_id"],
-            service_id=row["service_id"],
             rule_id=row["rule_id"],
             severity=FindingSeverity(row["severity"]),
             status=FindingStatus(row["status"]),
             title=row["title"],
             description=row["description"],
             source=row["source"],
+            org_id=row["org_id"] if "org_id" in row_keys else "default",
+            application_id=row["application_id"],
+            service_id=row["service_id"],
             cve_id=row["cve_id"],
             cvss_score=row["cvss_score"],
             epss_score=row["epss_score"],

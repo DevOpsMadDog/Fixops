@@ -192,17 +192,64 @@ def top_risks(
 ) -> Dict[str, Any]:
     """
     Return the top N highest-scoring risks (sorted descending) for the org.
+
+    Primary: pre-computed composite_scores for this org (populated by /score/batch).
+    Fallback: if no pre-computed scores exist, synthesise ranked items directly
+    from SecurityFindingsEngine so a customer who has just ingested findings
+    always gets real data rather than an empty list.
     """
-    scorer = _scorer()
+    if _HAS_SCORER and _get_scorer is not None:
+        try:
+            results = _get_scorer().top_risks(org_id=org_id, n=n)
+            if results:
+                return {
+                    "org_id": org_id,
+                    "count": len(results),
+                    "top_risks": [_serialise(r) for r in results],
+                }
+        except Exception as exc:
+            logger.warning("top_risks composite scorer error (will try fallback): %s", exc)
+
+    # Fallback: pull directly from SecurityFindingsEngine (org-scoped, ranked by severity/cvss)
     try:
-        results = scorer.top_risks(org_id=org_id, n=n)
-        return {
-            "org_id": org_id,
-            "count": len(results),
-            "top_risks": [_serialise(r) for r in results],
-        }
+        from core.security_findings_engine import SecurityFindingsEngine
+        engine = SecurityFindingsEngine()
+        raw = engine.list_findings(org_id=org_id)
+        _SEV_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3, "informational": 4}
+        raw.sort(key=lambda f: (
+            _SEV_ORDER.get(str(f.get("severity", "low")).lower(), 5),
+            -(float(f.get("cvss_score") or 0)),
+        ))
+        top = raw[:n]
+        items = []
+        for f in top:
+            sev = str(f.get("severity", "low")).lower()
+            cvss = float(f.get("cvss_score") or 0)
+            # Simple score: critical=90, high=70, medium=45, low=20 + cvss bonus
+            base = {"critical": 90.0, "high": 70.0, "medium": 45.0, "low": 20.0}.get(sev, 20.0)
+            score = min(base + cvss * 1.0, 100.0)
+            items.append({
+                "score_id": f.get("id", ""),
+                "asset_id": f.get("asset_id") or None,
+                "finding_id": f.get("id", ""),
+                "org_id": org_id,
+                "score": round(score, 2),
+                "grade": "F" if score >= 80 else "D" if score >= 60 else "C" if score >= 40 else "B",
+                "factors": [
+                    {"name": "severity", "value": _SEV_ORDER.get(sev, 4), "weight": 0.6,
+                     "explanation": f"severity={sev}"},
+                    {"name": "cvss", "value": cvss, "weight": 0.4,
+                     "explanation": f"cvss_score={cvss}"},
+                ],
+                "scored_at": f.get("created_at", ""),
+                # extra fields for ASPM context
+                "title": f.get("title", ""),
+                "source_tool": f.get("source_tool", ""),
+                "status": f.get("status", "open"),
+            })
+        return {"org_id": org_id, "count": len(items), "top_risks": items}
     except Exception as exc:
-        logger.error("top_risks error: %s", exc)
+        logger.error("top_risks fallback error: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 

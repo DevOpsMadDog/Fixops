@@ -40,15 +40,18 @@ class DecisionOutcome(str, Enum):
 class Finding:
     """Security finding record."""
 
+    # Required fields first (no defaults) — dataclass ordering constraint
     id: str
-    application_id: Optional[str]
-    service_id: Optional[str]
     rule_id: str
     severity: FindingSeverity
     status: FindingStatus
     title: str
     description: str
     source: str
+    # Optional / defaulted fields
+    org_id: str = "default"
+    application_id: Optional[str] = None
+    service_id: Optional[str] = None
     cve_id: Optional[str] = None
     cvss_score: Optional[float] = None
     epss_score: Optional[float] = None
@@ -62,6 +65,7 @@ class Finding:
         """Convert to dictionary for API responses."""
         return {
             "id": self.id,
+            "org_id": self.org_id,
             "application_id": self.application_id,
             "service_id": self.service_id,
             "rule_id": self.rule_id,

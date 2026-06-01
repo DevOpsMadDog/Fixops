@@ -95,7 +95,7 @@ class FindingResponse(BaseModel):
     """Response model for a finding."""
 
     id: str
-    org_id: Optional[str] = None
+    org_id: str = "default"
     application_id: Optional[str]
     service_id: Optional[str]
     rule_id: str
@@ -165,7 +165,7 @@ async def get_dashboard_overview(
     org_id: str = Depends(get_org_id),
 ):
     """Get security posture overview for dashboard."""
-    overview = db.get_dashboard_overview()
+    overview = db.get_dashboard_overview(org_id=org_id)
     overview["org_id"] = org_id
     return overview
 
@@ -174,17 +174,32 @@ async def get_dashboard_overview(
 async def get_dashboard_summary(
     org_id: str = Depends(get_org_id),
 ):
-    """Compact dashboard summary with key counts and risk score."""
-    findings = db.list_findings(org_id=org_id, limit=5000)
+    """Compact dashboard summary with key counts and risk score.
+
+    Reads from SecurityFindingsEngine — the same store that scanner-ingest
+    writes to — so totals always match what GET /api/v1/findings returns
+    for the caller's org.
+    """
+    from core.security_findings_engine import SecurityFindingsEngine
+    sfe = SecurityFindingsEngine()
+    findings = sfe.list_findings(org_id=org_id)
+
     total = len(findings)
     by_severity: Dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
     open_count = 0
+    scanners: set = set()
     for f in findings:
-        sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
-        if sev.lower() in by_severity:
-            by_severity[sev.lower()] += 1
-        if (f.status.value if hasattr(f.status, "value") else str(f.status)).lower() == "open":
+        sev = str(f.get("severity", "low")).lower()
+        # normalise "informational" → "info"
+        if sev == "informational":
+            sev = "info"
+        if sev in by_severity:
+            by_severity[sev] += 1
+        if str(f.get("status", "open")).lower() == "open":
             open_count += 1
+        src = f.get("source_tool") or f.get("source")
+        if src:
+            scanners.add(src)
 
     risk_score = min(100, by_severity["critical"] * 25 + by_severity["high"] * 10 + by_severity["medium"] * 3)
     return {
@@ -195,10 +210,7 @@ async def get_dashboard_summary(
         "severity": by_severity,
         "risk_score": risk_score,
         "risk_level": "critical" if risk_score >= 75 else "high" if risk_score >= 50 else "medium" if risk_score >= 25 else "low",
-        "scanners_active": len(set(
-            getattr(f, "source", "unknown") for f in db.list_findings(limit=5000)
-            if getattr(f, "source", None)
-        )),
+        "scanners_active": len(scanners),
         "last_scan": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -262,7 +274,7 @@ async def get_analytics_overview(
     org_id: str = Depends(get_org_id),
 ):
     """High-level analytics overview across all compliance and risk domains."""
-    findings = db.list_findings(limit=5000)
+    findings = db.list_findings(org_id=org_id, limit=5000)
     total = len(findings)
     by_severity: Dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
     by_status: Dict[str, int] = {"open": 0, "resolved": 0, "in_progress": 0, "false_positive": 0}
@@ -433,18 +445,22 @@ async def query_findings(
 
 
 @router.post("/findings", response_model=FindingResponse, status_code=201)
-async def create_finding(finding_data: FindingCreate):
+async def create_finding(
+    finding_data: FindingCreate,
+    org_id: str = Depends(get_org_id),
+):
     """Create a new finding."""
     finding = Finding(
         id="",
-        application_id=finding_data.application_id,
-        service_id=finding_data.service_id,
         rule_id=finding_data.rule_id,
         severity=finding_data.severity,
         status=finding_data.status,
         title=finding_data.title,
         description=finding_data.description,
         source=finding_data.source,
+        org_id=finding_data.org_id or org_id,
+        application_id=finding_data.application_id,
+        service_id=finding_data.service_id,
         cve_id=finding_data.cve_id,
         cvss_score=finding_data.cvss_score,
         epss_score=finding_data.epss_score,
