@@ -30,6 +30,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -97,7 +98,7 @@ class RejectRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/firewalls", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_firewall(body: FirewallCreate, org_id: str = Query(default="default")):
+def add_firewall(body: FirewallCreate, org_id: str = Depends(get_org_id)):
     """Register a new firewall device."""
     try:
         return _get_engine().add_firewall(org_id, body.model_dump())
@@ -107,7 +108,7 @@ def add_firewall(body: FirewallCreate, org_id: str = Query(default="default")):
 
 @router.get("/firewalls", dependencies=[Depends(api_key_auth)])
 def list_firewalls(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
 ):
     """List registered firewalls, optionally filtered by status."""
@@ -115,7 +116,7 @@ def list_firewalls(
 
 
 @router.get("/firewalls/{firewall_id}", dependencies=[Depends(api_key_auth)])
-def get_firewall(firewall_id: str, org_id: str = Query(default="default")):
+def get_firewall(firewall_id: str, org_id: str = Depends(get_org_id)):
     """Get a single firewall by ID."""
     fw = _get_engine().get_firewall(org_id, firewall_id)
     if not fw:
@@ -132,7 +133,7 @@ def get_firewall(firewall_id: str, org_id: str = Query(default="default")):
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def add_rule(firewall_id: str, body: RuleCreate, org_id: str = Query(default="default")):
+def add_rule(firewall_id: str, body: RuleCreate, org_id: str = Depends(get_org_id)):
     """Add a firewall rule. Risk level is automatically assessed."""
     data = body.model_dump()
     data["firewall_id"] = firewall_id
@@ -144,7 +145,7 @@ def add_rule(firewall_id: str, body: RuleCreate, org_id: str = Query(default="de
 
 @router.get("/rules", dependencies=[Depends(api_key_auth)])
 def list_rules(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     firewall_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
@@ -156,7 +157,7 @@ def list_rules(
 
 
 @router.post("/rules/{rule_id}/disable", dependencies=[Depends(api_key_auth)])
-def disable_rule(rule_id: str, org_id: str = Query(default="default")):
+def disable_rule(rule_id: str, org_id: str = Depends(get_org_id)):
     """Disable a firewall rule."""
     updated = _get_engine().disable_rule(org_id, rule_id)
     if not updated:
@@ -168,7 +169,7 @@ def disable_rule(rule_id: str, org_id: str = Query(default="default")):
     "/firewalls/{firewall_id}/detect-shadows",
     dependencies=[Depends(api_key_auth)],
 )
-def detect_shadowed_rules(firewall_id: str, org_id: str = Query(default="default")):
+def detect_shadowed_rules(firewall_id: str, org_id: str = Depends(get_org_id)):
     """Detect and mark shadowed rules for a firewall."""
     shadowed = _get_engine().detect_shadowed_rules(org_id, firewall_id)
     return {"shadowed_rule_ids": shadowed, "count": len(shadowed)}
@@ -181,7 +182,7 @@ def detect_shadowed_rules(firewall_id: str, org_id: str = Query(default="default
 @router.post(
     "/change-requests", dependencies=[Depends(api_key_auth)], status_code=201
 )
-def create_change_request(body: ChangeRequestCreate, org_id: str = Query(default="default")):
+def create_change_request(body: ChangeRequestCreate, org_id: str = Depends(get_org_id)):
     """Create a firewall rule change request."""
     try:
         return _get_engine().create_change_request(org_id, body.model_dump())
@@ -191,7 +192,7 @@ def create_change_request(body: ChangeRequestCreate, org_id: str = Query(default
 
 @router.get("/change-requests", dependencies=[Depends(api_key_auth)])
 def list_change_requests(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
 ):
     """List change requests with optional status filter."""
@@ -202,7 +203,7 @@ def list_change_requests(
     "/change-requests/{request_id}/approve", dependencies=[Depends(api_key_auth)]
 )
 def approve_change_request(
-    request_id: str, body: ApproveRequest, org_id: str = Query(default="default")
+    request_id: str, body: ApproveRequest, org_id: str = Depends(get_org_id)
 ):
     """Approve a pending change request."""
     updated = _get_engine().approve_change_request(org_id, request_id, body.approver)
@@ -218,7 +219,7 @@ def approve_change_request(
     "/change-requests/{request_id}/reject", dependencies=[Depends(api_key_auth)]
 )
 def reject_change_request(
-    request_id: str, body: RejectRequest, org_id: str = Query(default="default")
+    request_id: str, body: RejectRequest, org_id: str = Depends(get_org_id)
 ):
     """Reject a pending change request."""
     updated = _get_engine().reject_change_request(org_id, request_id, body.approver)
@@ -233,7 +234,7 @@ def reject_change_request(
 @router.post(
     "/change-requests/{request_id}/implement", dependencies=[Depends(api_key_auth)]
 )
-def implement_change_request(request_id: str, org_id: str = Query(default="default")):
+def implement_change_request(request_id: str, org_id: str = Depends(get_org_id)):
     """Mark an approved change request as implemented."""
     updated = _get_engine().implement_change_request(org_id, request_id)
     if not updated:
@@ -251,7 +252,7 @@ def implement_change_request(request_id: str, org_id: str = Query(default="defau
 @router.post(
     "/firewalls/{firewall_id}/scan", dependencies=[Depends(api_key_auth)]
 )
-def run_compliance_scan(firewall_id: str, org_id: str = Query(default="default")):
+def run_compliance_scan(firewall_id: str, org_id: str = Depends(get_org_id)):
     """Run a compliance scan on all rules for a firewall. Creates violation records."""
     violations = _get_engine().run_compliance_scan(org_id, firewall_id)
     return {"violations_found": len(violations), "violations": violations}
@@ -259,7 +260,7 @@ def run_compliance_scan(firewall_id: str, org_id: str = Query(default="default")
 
 @router.get("/violations", dependencies=[Depends(api_key_auth)])
 def list_violations(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     firewall_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -273,7 +274,7 @@ def list_violations(
 @router.post(
     "/violations/{violation_id}/resolve", dependencies=[Depends(api_key_auth)]
 )
-def resolve_violation(violation_id: str, org_id: str = Query(default="default")):
+def resolve_violation(violation_id: str, org_id: str = Depends(get_org_id)):
     """Mark a compliance violation as resolved."""
     updated = _get_engine().resolve_violation(org_id, violation_id)
     if not updated:
@@ -286,6 +287,6 @@ def resolve_violation(violation_id: str, org_id: str = Query(default="default"))
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_firewall_stats(org_id: str = Query(default="default")):
+def get_firewall_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated firewall management stats for org."""
     return _get_engine().get_firewall_stats(org_id)

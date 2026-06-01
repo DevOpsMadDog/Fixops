@@ -10,6 +10,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from core.data_governance_engine import DataGovernanceEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -105,7 +106,7 @@ def register_asset(
 
 @router.get("/assets", summary="List data assets")
 def list_assets(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     classification: Optional[str] = Query(default=None),
     asset_type: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -115,7 +116,7 @@ def list_assets(
 @router.get("/assets/{asset_id}", summary="Get a data asset")
 def get_asset(
     asset_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     asset = _get_engine().get_asset(org_id, asset_id)
     if not asset:
@@ -127,7 +128,7 @@ def get_asset(
 def update_asset_classification(
     asset_id: str,
     body: UpdateClassificationRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     updated = _get_engine().update_asset_classification(org_id, asset_id, body.classification)
     if not updated:
@@ -143,7 +144,7 @@ def update_asset_classification(
 @router.post("/policies", status_code=201, summary="Create a governance policy")
 def create_policy(
     body: CreatePolicyRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().create_policy(org_id, body.model_dump())
@@ -154,7 +155,7 @@ def create_policy(
 
 @router.get("/policies", summary="List governance policies")
 def list_policies(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     policy_type: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -169,7 +170,7 @@ def list_policies(
 @router.post("/violations", status_code=201, summary="Log a policy violation")
 def log_violation(
     body: LogViolationRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().log_violation(org_id, body.model_dump())
@@ -180,7 +181,7 @@ def log_violation(
 
 @router.get("/violations", summary="List policy violations")
 def list_violations(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     resolved: bool = Query(default=False),
     severity: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -191,7 +192,7 @@ def list_violations(
 def resolve_violation(
     violation_id: str,
     body: ResolveViolationRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     resolved = _get_engine().resolve_violation(org_id, violation_id, body.resolved_by)
     if not resolved:
@@ -207,7 +208,7 @@ def resolve_violation(
 @router.post("/flows", status_code=201, summary="Add a data flow")
 def add_data_flow(
     body: AddDataFlowRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().add_data_flow(org_id, body.model_dump())
@@ -218,7 +219,7 @@ def add_data_flow(
 
 @router.get("/flows", summary="List data flows")
 def list_data_flows(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     flow_type: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
     return _get_engine().list_data_flows(org_id, flow_type=flow_type)
@@ -231,6 +232,6 @@ def list_data_flows(
 
 @router.get("/stats", summary="Get governance statistics for an org")
 def get_governance_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     return _get_engine().get_governance_stats(org_id)

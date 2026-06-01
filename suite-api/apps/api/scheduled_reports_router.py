@@ -27,6 +27,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -93,7 +94,7 @@ class TemplateCreate(BaseModel):
 
 @router.get("/schedules", dependencies=[Depends(api_key_auth)])
 def list_schedules(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     enabled: Optional[bool] = Query(default=None),
     report_type: Optional[str] = Query(default=None),
 ):
@@ -104,7 +105,7 @@ def list_schedules(
 @router.post("/schedules", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_schedule(
     body: ScheduleCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new report schedule."""
     try:
@@ -114,7 +115,7 @@ def create_schedule(
 
 
 @router.get("/schedules/{schedule_id}", dependencies=[Depends(api_key_auth)])
-def get_schedule(schedule_id: str, org_id: str = Query(default="default")):
+def get_schedule(schedule_id: str, org_id: str = Depends(get_org_id)):
     """Get a single report schedule by ID."""
     sched = _get_engine().get_schedule(org_id, schedule_id)
     if not sched:
@@ -126,7 +127,7 @@ def get_schedule(schedule_id: str, org_id: str = Query(default="default")):
 def update_schedule(
     schedule_id: str,
     body: ScheduleUpdate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Update fields on an existing schedule."""
     try:
@@ -137,7 +138,7 @@ def update_schedule(
 
 
 @router.post("/schedules/{schedule_id}/pause", dependencies=[Depends(api_key_auth)])
-def pause_schedule(schedule_id: str, org_id: str = Query(default="default")):
+def pause_schedule(schedule_id: str, org_id: str = Depends(get_org_id)):
     """Pause a schedule (stops automatic execution)."""
     try:
         return _get_engine().pause_schedule(org_id, schedule_id)
@@ -146,7 +147,7 @@ def pause_schedule(schedule_id: str, org_id: str = Query(default="default")):
 
 
 @router.post("/schedules/{schedule_id}/resume", dependencies=[Depends(api_key_auth)])
-def resume_schedule(schedule_id: str, org_id: str = Query(default="default")):
+def resume_schedule(schedule_id: str, org_id: str = Depends(get_org_id)):
     """Resume a paused schedule and recalculate next_run_at."""
     try:
         return _get_engine().resume_schedule(org_id, schedule_id)
@@ -155,7 +156,7 @@ def resume_schedule(schedule_id: str, org_id: str = Query(default="default")):
 
 
 @router.delete("/schedules/{schedule_id}", dependencies=[Depends(api_key_auth)])
-def delete_schedule(schedule_id: str, org_id: str = Query(default="default")):
+def delete_schedule(schedule_id: str, org_id: str = Depends(get_org_id)):
     """Permanently delete a report schedule."""
     deleted = _get_engine().delete_schedule(org_id, schedule_id)
     if not deleted:
@@ -171,7 +172,7 @@ def delete_schedule(schedule_id: str, org_id: str = Query(default="default")):
 def trigger_report(
     schedule_id: str,
     body: TriggerRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Immediately trigger a report run for the given schedule."""
     try:
@@ -188,7 +189,7 @@ def trigger_report(
 
 @router.get("/runs", dependencies=[Depends(api_key_auth)])
 def list_runs(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     schedule_id: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
     limit: int = Query(default=50, ge=1, le=500),
@@ -200,7 +201,7 @@ def list_runs(
 
 
 @router.get("/runs/{run_id}", dependencies=[Depends(api_key_auth)])
-def get_run(run_id: str, org_id: str = Query(default="default")):
+def get_run(run_id: str, org_id: str = Depends(get_org_id)):
     """Get a single report run by ID."""
     run = _get_engine().get_run(org_id, run_id)
     if not run:
@@ -214,7 +215,7 @@ def get_run(run_id: str, org_id: str = Query(default="default")):
 
 @router.get("/templates", dependencies=[Depends(api_key_auth)])
 def list_templates(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     report_type: Optional[str] = Query(default=None),
 ):
     """List report templates, optionally filtered by report_type."""
@@ -224,7 +225,7 @@ def list_templates(
 @router.post("/templates", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_template(
     body: TemplateCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new report template."""
     try:
@@ -238,7 +239,7 @@ def create_template(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_stats(org_id: str = Query(default="default")):
+def get_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated scheduled-reports statistics for the org."""
     return _get_engine().get_stats(org_id)
 
@@ -249,7 +250,7 @@ def get_stats(org_id: str = Query(default="default")):
 
 @router.post("/seed-defaults", dependencies=[Depends(api_key_auth)], status_code=201)
 def seed_defaults(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     overwrite: bool = Query(default=False),
 ):
     """Create the 3 canonical ALDECI report schedules for an org if they don't exist.

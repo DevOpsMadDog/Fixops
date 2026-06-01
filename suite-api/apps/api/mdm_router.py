@@ -26,6 +26,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -95,7 +96,7 @@ class PolicyCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/devices", dependencies=[Depends(api_key_auth)], status_code=201)
-def enroll_device(body: DeviceEnroll, org_id: str = Query(default="default")):
+def enroll_device(body: DeviceEnroll, org_id: str = Depends(get_org_id)):
     """Enroll a new mobile device into MDM."""
     try:
         return _get_engine().enroll_device(org_id, body.model_dump())
@@ -105,7 +106,7 @@ def enroll_device(body: DeviceEnroll, org_id: str = Query(default="default")):
 
 @router.get("/devices", dependencies=[Depends(api_key_auth)])
 def list_devices(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     platform: Optional[str] = Query(None),
     compliance_status: Optional[str] = Query(None),
 ):
@@ -122,7 +123,7 @@ def list_devices(
 
 
 @router.get("/devices/{device_id}", dependencies=[Depends(api_key_auth)])
-def get_device(device_id: str, org_id: str = Query(default="default")):
+def get_device(device_id: str, org_id: str = Depends(get_org_id)):
     """Get a single device by ID."""
     device = _get_engine().get_device(org_id, device_id)
     if not device:
@@ -131,7 +132,7 @@ def get_device(device_id: str, org_id: str = Query(default="default")):
 
 
 @router.post("/devices/{device_id}/compliance-check", dependencies=[Depends(api_key_auth)])
-def run_compliance_check(device_id: str, org_id: str = Query(default="default")):
+def run_compliance_check(device_id: str, org_id: str = Depends(get_org_id)):
     """Run a compliance check on the device and persist the result."""
     try:
         return _get_engine().run_compliance_check(org_id, device_id)
@@ -140,7 +141,7 @@ def run_compliance_check(device_id: str, org_id: str = Query(default="default"))
 
 
 @router.put("/devices/{device_id}/compliance", dependencies=[Depends(api_key_auth)])
-def update_compliance(device_id: str, body: ComplianceUpdate, org_id: str = Query(default="default")):
+def update_compliance(device_id: str, body: ComplianceUpdate, org_id: str = Depends(get_org_id)):
     """Manually update device compliance status and issues."""
     try:
         updated = _get_engine().update_compliance(
@@ -154,7 +155,7 @@ def update_compliance(device_id: str, body: ComplianceUpdate, org_id: str = Quer
 
 
 @router.post("/devices/{device_id}/wipe", dependencies=[Depends(api_key_auth)], status_code=201)
-def wipe_device(device_id: str, body: WipeRequest, org_id: str = Query(default="default")):
+def wipe_device(device_id: str, body: WipeRequest, org_id: str = Depends(get_org_id)):
     """Queue a remote wipe request for the device."""
     try:
         return _get_engine().wipe_device(org_id, device_id, body.wiped_by, body.wipe_type)
@@ -163,13 +164,13 @@ def wipe_device(device_id: str, body: WipeRequest, org_id: str = Query(default="
 
 
 @router.get("/devices/{device_id}/apps", dependencies=[Depends(api_key_auth)])
-def list_device_apps(device_id: str, org_id: str = Query(default="default")):
+def list_device_apps(device_id: str, org_id: str = Depends(get_org_id)):
     """List all apps recorded on a device."""
     return _get_engine().list_device_apps(org_id, device_id)
 
 
 @router.post("/devices/{device_id}/apps", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_app_install(device_id: str, body: AppInstall, org_id: str = Query(default="default")):
+def record_app_install(device_id: str, body: AppInstall, org_id: str = Depends(get_org_id)):
     """Record an app installation on a device."""
     return _get_engine().record_app_install(
         org_id, device_id, body.app_name, body.app_version, body.is_approved
@@ -182,7 +183,7 @@ def record_app_install(device_id: str, body: AppInstall, org_id: str = Query(def
 
 @router.get("/policies", dependencies=[Depends(api_key_auth)])
 def list_policies(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     platform: Optional[str] = Query(None),
 ):
     """List MDM policies, optionally filtered by platform."""
@@ -190,7 +191,7 @@ def list_policies(
 
 
 @router.post("/policies", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_policy(body: PolicyCreate, org_id: str = Query(default="default")):
+def create_policy(body: PolicyCreate, org_id: str = Depends(get_org_id)):
     """Create a new MDM policy."""
     try:
         data = body.model_dump()
@@ -204,7 +205,7 @@ def create_policy(body: PolicyCreate, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/wipe-requests", dependencies=[Depends(api_key_auth)])
-def list_wipe_requests(org_id: str = Query(default="default")):
+def list_wipe_requests(org_id: str = Depends(get_org_id)):
     """List all pending and completed wipe requests for the org."""
     return _get_engine().list_wipe_requests(org_id)
 
@@ -214,6 +215,6 @@ def list_wipe_requests(org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_mdm_stats(org_id: str = Query(default="default")):
+def get_mdm_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated MDM statistics for the org."""
     return _get_engine().get_mdm_stats(org_id)

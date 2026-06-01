@@ -28,6 +28,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -109,7 +110,7 @@ class ProcessingActivityCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/dsrs", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_dsr(body: DSRCreate, org_id: str = Query(default="default")):
+def create_dsr(body: DSRCreate, org_id: str = Depends(get_org_id)):
     """Create a Data Subject Request (access, erasure, portability, etc.)."""
     try:
         return _get_engine().create_dsr(org_id, body.model_dump())
@@ -119,7 +120,7 @@ def create_dsr(body: DSRCreate, org_id: str = Query(default="default")):
 
 @router.get("/dsrs", dependencies=[Depends(api_key_auth)])
 def list_dsrs(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     request_type: Optional[str] = Query(None),
 ):
@@ -128,7 +129,7 @@ def list_dsrs(
 
 
 @router.post("/dsrs/{request_id}/fulfill", dependencies=[Depends(api_key_auth)])
-def fulfill_dsr(request_id: str, body: DSRFulfill, org_id: str = Query(default="default")):
+def fulfill_dsr(request_id: str, body: DSRFulfill, org_id: str = Depends(get_org_id)):
     """Mark a Data Subject Request as fulfilled."""
     updated = _get_engine().fulfill_dsr(org_id, request_id, notes=body.notes)
     if not updated:
@@ -138,7 +139,7 @@ def fulfill_dsr(request_id: str, body: DSRFulfill, org_id: str = Query(default="
 
 @router.patch("/dsrs/{request_id}/status", dependencies=[Depends(api_key_auth)])
 def update_dsr_status(
-    request_id: str, body: DSRStatusUpdate, org_id: str = Query(default="default")
+    request_id: str, body: DSRStatusUpdate, org_id: str = Depends(get_org_id)
 ):
     """Update DSR status (received/processing/fulfilled/rejected/expired)."""
     try:
@@ -155,7 +156,7 @@ def update_dsr_status(
 # ---------------------------------------------------------------------------
 
 @router.post("/consents", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_consent(body: ConsentCreate, org_id: str = Query(default="default")):
+def record_consent(body: ConsentCreate, org_id: str = Depends(get_org_id)):
     """Record a consent decision for a data subject."""
     try:
         return _get_engine().record_consent(org_id, body.model_dump())
@@ -165,7 +166,7 @@ def record_consent(body: ConsentCreate, org_id: str = Query(default="default")):
 
 @router.get("/consents", dependencies=[Depends(api_key_auth)])
 def list_consents(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     subject_email: Optional[str] = Query(None),
     purpose: Optional[str] = Query(None),
 ):
@@ -176,7 +177,7 @@ def list_consents(
 
 
 @router.post("/consents/{consent_id}/withdraw", dependencies=[Depends(api_key_auth)])
-def withdraw_consent(consent_id: str, org_id: str = Query(default="default")):
+def withdraw_consent(consent_id: str, org_id: str = Depends(get_org_id)):
     """Withdraw consent for a data subject."""
     updated = _get_engine().withdraw_consent(org_id, consent_id)
     if not updated:
@@ -189,7 +190,7 @@ def withdraw_consent(consent_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/incidents", dependencies=[Depends(api_key_auth)], status_code=201)
-def report_incident(body: IncidentCreate, org_id: str = Query(default="default")):
+def report_incident(body: IncidentCreate, org_id: str = Depends(get_org_id)):
     """Report a privacy incident. Sets 72h DPA notification deadline for qualifying breaches."""
     try:
         return _get_engine().report_incident(org_id, body.model_dump())
@@ -199,7 +200,7 @@ def report_incident(body: IncidentCreate, org_id: str = Query(default="default")
 
 @router.get("/incidents", dependencies=[Depends(api_key_auth)])
 def list_incidents(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
 ):
@@ -210,7 +211,7 @@ def list_incidents(
 @router.post(
     "/incidents/{incident_id}/notify-dpa", dependencies=[Depends(api_key_auth)]
 )
-def notify_dpa(incident_id: str, org_id: str = Query(default="default")):
+def notify_dpa(incident_id: str, org_id: str = Depends(get_org_id)):
     """Mark DPA as notified for a privacy incident."""
     updated = _get_engine().notify_dpa(org_id, incident_id)
     if not updated:
@@ -222,7 +223,7 @@ def notify_dpa(incident_id: str, org_id: str = Query(default="default")):
     "/incidents/{incident_id}/status", dependencies=[Depends(api_key_auth)]
 )
 def update_incident_status(
-    incident_id: str, body: IncidentStatusUpdate, org_id: str = Query(default="default")
+    incident_id: str, body: IncidentStatusUpdate, org_id: str = Depends(get_org_id)
 ):
     """Update privacy incident status."""
     try:
@@ -241,7 +242,7 @@ def update_incident_status(
 @router.post(
     "/processing-activities", dependencies=[Depends(api_key_auth)], status_code=201
 )
-def add_processing_activity(body: ProcessingActivityCreate, org_id: str = Query(default="default")):
+def add_processing_activity(body: ProcessingActivityCreate, org_id: str = Depends(get_org_id)):
     """Register a processing activity (GDPR Art 30 RoPA record)."""
     try:
         return _get_engine().add_processing_activity(org_id, body.model_dump())
@@ -250,7 +251,7 @@ def add_processing_activity(body: ProcessingActivityCreate, org_id: str = Query(
 
 
 @router.get("/processing-activities", dependencies=[Depends(api_key_auth)])
-def list_processing_activities(org_id: str = Query(default="default")):
+def list_processing_activities(org_id: str = Depends(get_org_id)):
     """List all processing activities (RoPA) for org."""
     return _get_engine().list_processing_activities(org_id)
 
@@ -260,7 +261,7 @@ def list_processing_activities(org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_privacy_stats(org_id: str = Query(default="default")):
+def get_privacy_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated privacy compliance stats for org."""
     return _get_engine().get_privacy_stats(org_id)
 
@@ -271,7 +272,7 @@ def get_privacy_stats(org_id: str = Query(default="default")):
 
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def get_privacy_gdpr_summary(org_id: str = Query(default="default")):
+def get_privacy_gdpr_summary(org_id: str = Depends(get_org_id)):
     """Return a 5-state summary envelope for the privacy & GDPR domain.
 
     States:
