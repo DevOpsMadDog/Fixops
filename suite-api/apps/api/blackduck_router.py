@@ -122,11 +122,16 @@ def ingest(body: Optional[BlackDuckIngestBody] = None,
             _logger.warning("blackduck ingest promote failed: %s", type(exc).__name__)
     brain = _index_findings_into_brain(findings, org_id)
 
+    # SPEC-017: optional non-blocking full-pipeline auto-run (default OFF, bounded, air-gap-safe).
+    from apps.api.pipeline_on_ingest import dispatch_pipeline_on_ingest
+    pipeline_dispatch = dispatch_pipeline_on_ingest(findings, org_id, "blackduck")
+
     return {
         "ingested": len(findings),
         "promoted": promoted,
         "brain_nodes_added": brain.get("nodes_added", 0),
         "brain_edges_added": brain.get("edges_added", 0),
         "correlated": brain.get("nodes_added", 0) > 0,
+        "pipeline_dispatched": pipeline_dispatch.get("dispatched", False),
         "source": "blackduck",
     }

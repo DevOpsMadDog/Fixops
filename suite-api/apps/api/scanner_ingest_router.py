@@ -571,6 +571,13 @@ async def upload_scanner_output(
     # the LLM council can enrich them.  Best-effort — never blocks the response.
     brain_index_result = _index_findings_into_brain(canonical_dicts, org_id)
 
+    # SPEC-017: optionally auto-run the full Brain Pipeline (non-blocking, config-gated,
+    # bounded, air-gap-safe). Default OFF — unchanged unless FIXOPS_PIPELINE_ON_INGEST set.
+    from apps.api.pipeline_on_ingest import dispatch_pipeline_on_ingest
+    pipeline_dispatch = dispatch_pipeline_on_ingest(
+        canonical_dicts, org_id, f"scanner-ingest:{detected}"
+    )
+
     # Optionally push to brain pipeline
     pipeline_result = None
     if pipeline and findings:
@@ -625,6 +632,7 @@ async def upload_scanner_output(
         "promoted_to_issues": promoted_count,
         "brain_index": brain_index_result,
         "pipeline_result": pipeline_result,
+        "pipeline_dispatched": pipeline_dispatch.get("dispatched", False),
     }
 
 
@@ -705,6 +713,12 @@ async def webhook_ingest(
     # the LLM council can enrich them.  Best-effort — never blocks the response.
     brain_index_result = _index_findings_into_brain(canonical_dicts, org_id)
 
+    # SPEC-017: non-blocking, config-gated auto-run of the full Brain Pipeline (default OFF).
+    from apps.api.pipeline_on_ingest import dispatch_pipeline_on_ingest
+    pipeline_dispatch = dispatch_pipeline_on_ingest(
+        canonical_dicts, org_id, f"webhook:{scanner}"
+    )
+
     # Optionally push to brain pipeline
     pipeline_result = None
     if pipeline and findings:
@@ -757,6 +771,7 @@ async def webhook_ingest(
         "promoted_to_issues": promoted_count,
         "brain_index": brain_index_result,
         "pipeline_result": pipeline_result,
+        "pipeline_dispatched": pipeline_dispatch.get("dispatched", False),
     }
 
 

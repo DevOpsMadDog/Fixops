@@ -74,6 +74,25 @@ def test_ac_016_02_ingest_correlates(client, monkeypatch, _H):
     assert j["source"] == "wiz"
 
 
+def test_ac_017_04_wiz_ingest_dispatches_pipeline(client, monkeypatch, _H):
+    # SPEC-017 AC-017-04: with auto-run on, WIZ /ingest schedules the pipeline (non-blocking) + still 200.
+    import core.wiz_cnapp_engine as WE
+    import core.brain_pipeline as BP
+    monkeypatch.setattr(WE, "get_wiz_cnapp_engine", lambda: _FakeWiz())
+    monkeypatch.setenv("WIZ_API_URL", "https://wiz.acme.local/graphql")
+    monkeypatch.setenv("FIXOPS_PIPELINE_ON_INGEST", "1")
+    monkeypatch.delenv("FIXOPS_AIRGAP_MODE", raising=False)
+
+    class _FakeBP:
+        def run(self, pi):
+            return None
+
+    monkeypatch.setattr(BP, "BrainPipeline", _FakeBP)
+    r = client.post("/api/v1/wiz/ingest", headers=_H, json={})
+    assert r.status_code == 200, r.text
+    assert r.json()["pipeline_dispatched"] is True
+
+
 def test_req_016_07_enforced_blocks_saas(client, monkeypatch, _H):
     import core.wiz_cnapp_engine as WE
     monkeypatch.setattr(WE, "get_wiz_cnapp_engine", lambda: _FakeWiz())

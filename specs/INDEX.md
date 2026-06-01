@@ -7,6 +7,7 @@
 | SPEC-003 | Per-customer Local LLM (distillation run) | Council/Learning | PLANNED | llm_learning_loop, llm_distill_train |
 | SPEC-004 | Multi-language Reachability (TS/Java/Go) | ASPM | PLANNED | function_reachability_engine |
 | [SPEC-011](SPEC-011-aspm.md) | ASPM — Scanner Ingest, Findings, SmartDedup, Reachability | ASPM | BACKFILL | scanner_ingest_router, findings_routes, security_findings_router, findings_lifecycle_router, function_reachability_router, SecurityFindingsEngine, SmartDedup |
+| [SPEC-017](SPEC-017-full-pipeline-on-ingest.md) | Full Brain-Pipeline on ingest — config-gated, non-blocking, bounded, air-gap-safe | ASPM/BrainPipeline | IMPLEMENTED | pipeline_on_ingest, scanner_ingest_router, wiz_router, prisma_router, blackduck_router |
 | [SPEC-016](SPEC-016-scif-stack-fit.md) | SCIF Stack-Fit — correlate existing tools (WIZ/Prisma/BlackDuck/Confluence/Splunk/Jira/ServiceNow/GitHub) + close the loop | Connectors/TrustGraph/Orchestration | IMPLEMENTED | wiz_router, prisma_router, blackduck_router, closed_loop_router, design_context_router, connectors.py:Confluence, jira_cloud_router, servicenow_router, splunk_router, _index_findings_into_brain |
 
 ## Backfill backlog (existing API groups needing specs — extend over time)
