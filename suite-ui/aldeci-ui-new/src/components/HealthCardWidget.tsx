@@ -20,9 +20,27 @@ interface SubsystemHealth {
   error?: string;
 }
 
+// The API returns subsystems as a keyed object: { api: {status, ...}, databases: {status, ...}, ... }
+type SubsystemsObj = Record<string, { status?: string; [key: string]: unknown }>;
+
 interface SystemHealthReport {
-  overall_status: "healthy" | "degraded" | "critical" | "unknown";
-  subsystems: SubsystemHealth[];
+  // top-level status field (API uses "status", not "overall_status")
+  status?: "healthy" | "degraded" | "critical" | "unknown";
+  overall_status?: "healthy" | "degraded" | "critical" | "unknown";
+  subsystems: SubsystemHealth[] | SubsystemsObj;
+}
+
+/** Normalize subsystems: accept both array form and keyed-object form from the API. */
+function normalizeSubsystems(raw: SubsystemHealth[] | SubsystemsObj): SubsystemHealth[] {
+  if (Array.isArray(raw)) return raw;
+  return Object.entries(raw).map(([name, val]) => ({
+    name,
+    status: (["healthy", "degraded", "critical", "unknown"].includes(val?.status ?? "")
+      ? val.status
+      : "unknown") as SubsystemHealth["status"],
+    response_ms: typeof val?.response_ms === "number" ? (val.response_ms as number) : 0,
+    error: typeof val?.error === "string" ? (val.error as string) : undefined,
+  }));
 }
 
 export function HealthCardWidget() {
@@ -133,7 +151,7 @@ export function HealthCardWidget() {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
-          {health.subsystems.map((subsys) => (
+          {normalizeSubsystems(health.subsystems).map((subsys) => (
             <div
               key={subsys.name}
               className={cn(

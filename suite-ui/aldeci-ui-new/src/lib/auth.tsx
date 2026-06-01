@@ -150,6 +150,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Dev-bypass short-circuit — see isDevBypassActive() docstring above.
     if (isDevBypassActive()) {
       ensureDevBypassOrg();
+      // Persist the dev API key to localStorage so BOTH the axios interceptor and
+      // components that read getStoredAuthToken() directly send X-API-Key. Without
+      // this, dashboard widgets 401 in dev (the bypass set the React user but left
+      // the token unset → "failed to load"). DEV-only; tree-shaken out of prod.
+      const devKey = getStoredAuthToken() || import.meta.env.VITE_API_KEY || "";
+      if (devKey && !getStoredAuthToken()) {
+        setStoredAuthStrategy("token");
+        setStoredAuthToken(devKey);
+      }
       return userFromStorage() ?? DEV_BYPASS_USER;
     }
     // Restore session from localStorage if the token is valid
