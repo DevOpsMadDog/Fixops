@@ -210,25 +210,12 @@ async def get_application_topology(
                 "attack_path_length": trace["attack_path_length"],
             })
 
-    # If no traces exist, return a scaffold topology for the app
-    if not app_traces:
-        app_hash = hashlib.sha256(app_id.encode()).hexdigest()[:8]
-        layers["source_code"].append({
-            "id": f"repo-{app_hash}",
-            "name": f"{app_id}/main",
-            "type": "git_repository",
-            "metadata": {"branch": "main", "language": "auto-detect"},
-        })
-        layers["build_artifacts"].append({
-            "id": f"build-{app_hash}",
-            "name": f"{app_id}:latest",
-            "type": "docker_build",
-            "metadata": {"stage": "production"},
-        })
-
+    # No fabricated scaffold: if no traces exist, return an honest empty topology
+    # with data_available=false (a customer must see real provenance, not invented nodes).
     elapsed = (time.time() - t0) * 1000
     return {
         "app_id": app_id,
+        "data_available": bool(app_traces),
         "topology": {
             "layers": layers,
             "connections": connections,
