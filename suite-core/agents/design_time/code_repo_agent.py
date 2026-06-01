@@ -230,33 +230,88 @@ class CodeRepoAgent(BaseAgent):
             return []
 
     async def _collect_sarif(self) -> Optional[Dict[str, Any]]:
-        """Collect SARIF data by running security scan."""
-        try:
-            # Use proprietary analyzer or OSS fallback
-            from risk.reachability.analyzer import VulnerabilityReachabilityAnalyzer
+        """Collect SARIF data by running a real security scan via semgrep or bandit.
 
-            VulnerabilityReachabilityAnalyzer(config={})
+        Falls back to None (not an empty-results skeleton) when no scanner is
+        available so callers can distinguish "no scan ran" from "scan ran and
+        found nothing".
+        """
+        import subprocess
+        import json as _json
+        from pathlib import Path as _Path
 
-            # Run scan (simplified - would run actual scan)
-            # In real implementation, would run proprietary or OSS scanner
-            return {
-                "version": "2.1.0",
-                "runs": [
-                    {
-                        "tool": {
-                            "driver": {
-                                "name": "FixOps",
-                                "version": "1.0.0",
-                            }
-                        },
-                        "results": [],  # Would contain actual findings
-                    }
-                ],
-            }
-
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            logger.error(f"Error collecting SARIF: {e}")
+        if not self.repo_path or not _Path(self.repo_path).is_dir():
+            logger.warning("_collect_sarif: repo_path not set or missing, skipping scan")
             return None
+
+        # Try semgrep first (OWASP rulesets available), then bandit for Python.
+        for cmd, tool_name in [
+            (
+                ["semgrep", "--config", "p/owasp-top-ten", "--json",
+                 "--quiet", "--no-git-ignore", self.repo_path],
+                "semgrep",
+            ),
+            (
+                ["bandit", "-r", self.repo_path, "-f", "sarif", "-q"],
+                "bandit",
+            ),
+        ]:
+            try:
+                proc = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                if proc.returncode in (0, 1) and proc.stdout.strip():
+                    try:
+                        data = _json.loads(proc.stdout)
+                        # semgrep --json wraps results; bandit -f sarif emits SARIF directly
+                        if tool_name == "semgrep" and "results" in data:
+                            # Convert semgrep JSON to minimal SARIF envelope
+                            return {
+                                "version": "2.1.0",
+                                "runs": [{
+                                    "tool": {"driver": {"name": "semgrep", "version": "auto"}},
+                                    "results": [
+                                        {
+                                            "ruleId": r.get("check_id", "unknown"),
+                                            "message": {"text": r.get("extra", {}).get("message", "")},
+                                            "locations": [{
+                                                "physicalLocation": {
+                                                    "artifactLocation": {"uri": r.get("path", "")},
+                                                    "region": {
+                                                        "startLine": r.get("start", {}).get("line", 0),
+                                                        "endLine": r.get("end", {}).get("line", 0),
+                                                    },
+                                                }
+                                            }],
+                                            "level": r.get("extra", {}).get("severity", "warning").lower(),
+                                        }
+                                        for r in data.get("results", [])
+                                    ],
+                                }],
+                            }
+                        # bandit/other SARIF output — validate it has the SARIF version key
+                        if isinstance(data, dict) and "runs" in data:
+                            return data
+                    except (_json.JSONDecodeError, KeyError, TypeError) as parse_err:
+                        logger.warning(f"_collect_sarif: {tool_name} output parse error: {parse_err}")
+                        continue
+            except FileNotFoundError:
+                continue  # scanner not installed — try next
+            except subprocess.TimeoutExpired:
+                logger.warning(f"_collect_sarif: {tool_name} timed out after 120s")
+                continue
+            except (OSError, ValueError, KeyError, RuntimeError) as e:
+                logger.error(f"_collect_sarif: {tool_name} error: {e}")
+                continue
+
+        logger.warning(
+            "_collect_sarif: no scanner (semgrep/bandit) available — returning None. "
+            "Install semgrep or bandit to enable design-time SARIF capture."
+        )
+        return None
 
     async def _collect_sbom(self) -> Optional[Dict[str, Any]]:
         """Collect SBOM by generating from code."""
@@ -277,16 +332,72 @@ class CodeRepoAgent(BaseAgent):
             return None
 
     async def _collect_design_context(self) -> Optional[Dict[str, Any]]:
-        """Collect design context from repository."""
+        """Collect design context from the repository.
+
+        Extracts real structural signals from the repo:
+        - Component list derived from top-level directories
+        - Dependency manifest filenames present
+        - IaC / config file presence flags
+
+        Returns None when repo_path is not set rather than returning an empty
+        skeleton that looks like a successful scan.
+        """
+        from pathlib import Path as _Path
+        import os as _os
+
+        if not self.repo_path or not _Path(self.repo_path).is_dir():
+            logger.warning("_collect_design_context: repo_path not set or missing")
+            return None
+
         try:
-            # Extract design context (architecture, components, etc.)
-            # In real implementation, would parse design docs, architecture diagrams, etc.
+            repo_root = _Path(self.repo_path)
+
+            # Top-level directories as component candidates
+            components = sorted(
+                p.name for p in repo_root.iterdir()
+                if p.is_dir() and not p.name.startswith(".")
+            )
+
+            # Dependency manifest presence
+            dep_manifests = []
+            for fname in (
+                "requirements.txt", "requirements-dev.txt", "pyproject.toml",
+                "package.json", "go.mod", "pom.xml", "Gemfile", "Cargo.toml",
+            ):
+                if (repo_root / fname).exists():
+                    dep_manifests.append(fname)
+
+            # IaC presence
+            iac_signals = {}
+            for label, patterns in {
+                "terraform": ["*.tf", "*.tfvars"],
+                "kubernetes": ["*.yaml", "*.yml"],
+                "docker": ["Dockerfile", "docker-compose.yml", "docker-compose.yaml"],
+                "github_actions": [".github/workflows"],
+            }.items():
+                for pat in patterns:
+                    if pat.startswith("."):
+                        iac_signals[label] = (repo_root / pat).exists()
+                    else:
+                        iac_signals[label] = any(repo_root.rglob(pat))
+                    if iac_signals.get(label):
+                        break
+
+            # Rough language detection from extensions
+            ext_counts: dict = {}
+            for fp in repo_root.rglob("*"):
+                if fp.is_file() and fp.suffix:
+                    ext_counts[fp.suffix] = ext_counts.get(fp.suffix, 0) + 1
+            top_exts = sorted(ext_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+
             return {
-                "components": [],
-                "architecture": {},
-                "dependencies": {},
+                "components": components,
+                "dependency_manifests": dep_manifests,
+                "iac_signals": iac_signals,
+                "top_extensions": [{"ext": e, "count": c} for e, c in top_exts],
+                "architecture": {},  # populated by future diagram-parser integration
             }
 
-        except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-            logger.error(f"Error collecting design context: {e}")
+        except (OSError, ValueError, KeyError, RuntimeError) as e:
+            logger.error(f"_collect_design_context: error scanning {self.repo_path}: {e}")
             return None

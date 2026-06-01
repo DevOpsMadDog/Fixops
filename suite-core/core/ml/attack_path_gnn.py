@@ -281,7 +281,10 @@ class GATLayer:
 
         for h in range(self.n_heads):
             # 1. Linear transformation: (N, in) @ (in, out) → (N, out)
-            Wh = node_features @ self.W[h]
+            # errstate: numpy's BLAS backend can emit spurious fp warnings
+            # during large matmul even when the result is finite — suppress them.
+            with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+                Wh = node_features @ self.W[h]
 
             # 2. Attention coefficients
             # a_src: (N, out) @ (out, 1) → (N, 1)

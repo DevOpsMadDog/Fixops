@@ -756,9 +756,9 @@ class HybridSignatureV2:
     payload_b64: str                     # Base64-encoded payload
     payload_hash: str                    # SHA-512 hex digest of raw payload
     classical_sig_b64: str               # RSA-4096-SHA512 signature (base64)
-    pq_sig_b64: str                      # ML-DSA-65 (HMAC-SHA512 placeholder) signature (base64)
+    pq_sig_b64: str                      # HMAC-SHA512 placeholder (NOT real ML-DSA-65; install dilithium-py for genuine PQC)
     classical_algorithm: str             # "RSA-4096-SHA512"
-    pq_algorithm: str                    # "ML-DSA-65"
+    pq_algorithm: str                    # "HMAC-SHA512-placeholder" until dilithium-py is installed
     key_id: str                          # Key rotation identifier
     app_id: str                          # Application / service identifier
     signed_at: str                       # ISO-8601 UTC timestamp
@@ -906,7 +906,8 @@ class HybridSignerV2:
         # Classical RSA-4096-SHA512 signature
         classical_sig = self._rsa_sign(payload, payload_hash)
 
-        # Post-quantum ML-DSA-65 placeholder signature
+        # HMAC-SHA512 placeholder (NOT real ML-DSA-65).
+        # Replace _pq_sign/_pq_verify with dilithium-py calls once installed.
         pq_sig = self._pq_sign(payload, app_key, key_entry.key_id)
 
         return HybridSignatureV2(
@@ -915,7 +916,7 @@ class HybridSignerV2:
             classical_sig_b64=base64.b64encode(classical_sig).decode(),
             pq_sig_b64=base64.b64encode(pq_sig).decode(),
             classical_algorithm="RSA-4096-SHA512",
-            pq_algorithm="ML-DSA-65",
+            pq_algorithm="HMAC-SHA512-placeholder (install dilithium-py for real ML-DSA-65)",
             key_id=key_entry.key_id,
             app_id=app_id,
             signed_at=datetime.now(timezone.utc).isoformat(),

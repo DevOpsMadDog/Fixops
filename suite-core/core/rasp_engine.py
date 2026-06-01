@@ -459,6 +459,43 @@ _RAW_PATTERNS: List[Dict[str, Any]] = [
         "severity": ThreatSeverity.CRITICAL,
         "confidence": 0.93,
     },
+    # ---- Zero-day / CVE-specific signatures ----
+    {
+        "rule_id": "ZDAY-001",
+        "category": ThreatCategory.CMDI,
+        "name": "Log4Shell JNDI injection (CVE-2021-44228)",
+        "description": "Log4j2 JNDI lookup injection via ${jndi:...}",
+        "pattern": r"(?i)\$\{jndi\s*:",
+        "severity": ThreatSeverity.CRITICAL,
+        "confidence": 0.99,
+    },
+    {
+        "rule_id": "ZDAY-002",
+        "category": ThreatCategory.CMDI,
+        "name": "Spring4Shell class loader (CVE-2022-22965)",
+        "description": "Spring Framework class.module.classLoader RCE",
+        "pattern": r"(?i)class\.module\.classLoader",
+        "severity": ThreatSeverity.CRITICAL,
+        "confidence": 0.97,
+    },
+    {
+        "rule_id": "ZDAY-003",
+        "category": ThreatCategory.CMDI,
+        "name": "Text4Shell (CVE-2022-42889)",
+        "description": "Apache Commons Text ${script:...} interpolation",
+        "pattern": r"(?i)\$\{script\s*:",
+        "severity": ThreatSeverity.CRITICAL,
+        "confidence": 0.97,
+    },
+    {
+        "rule_id": "ZDAY-004",
+        "category": ThreatCategory.CMDI,
+        "name": "Confluence OGNL injection (CVE-2022-26134)",
+        "description": "Confluence OGNL template injection via %{...}",
+        "pattern": r"(%\{|#cmd=|#iswin=)",
+        "severity": ThreatSeverity.CRITICAL,
+        "confidence": 0.95,
+    },
 ]
 
 

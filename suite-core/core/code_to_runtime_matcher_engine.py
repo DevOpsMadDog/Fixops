@@ -63,6 +63,16 @@ class CodeToRuntimeMatcherEngine:
             db_path = str(Path(_DEFAULT_DB_DIR) / "code_to_runtime_matcher.db")
         self._db_path = db_path
         self._lock = threading.RLock()
+        # For :memory: databases every sqlite3.connect() call creates an
+        # independent empty database.  Pin a single connection so all methods
+        # share the same in-memory state (same pattern as HostRuntimeEngine).
+        if db_path == ":memory:":
+            self._mem_conn: Optional[sqlite3.Connection] = sqlite3.connect(
+                ":memory:", check_same_thread=False
+            )
+            self._mem_conn.row_factory = sqlite3.Row
+        else:
+            self._mem_conn = None
         self._init_db()
 
     # ------------------------------------------------------------------
@@ -70,7 +80,8 @@ class CodeToRuntimeMatcherEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
+        if self._db_path != ":memory:":
+            Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
         with self._conn() as conn:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.executescript(
@@ -124,6 +135,12 @@ class CodeToRuntimeMatcherEngine:
             )
 
     def _conn(self) -> sqlite3.Connection:
+        if self._mem_conn is not None:
+            # Return the pinned in-memory connection; callers use it as a
+            # context manager (with self._conn() as conn:) — sqlite3 connections
+            # used as context managers commit/rollback but do NOT close, so the
+            # pinned connection stays alive across calls.
+            return self._mem_conn
         conn = sqlite3.connect(self._db_path, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         return conn

@@ -158,16 +158,26 @@ class SOC2EvidenceBundler:
         }
 
     def seal_bundle(self, bundle: Dict[str, Any], sign: bool = True) -> Dict[str, Any]:
-        """Compute SHA-256 over the canonical bundle JSON; optionally RSA-sign it.
+        """Compute SHA-256 over the canonical bundle JSON; sign with the strongest
+        available algorithm.
+
+        Signing priority:
+          1. Hybrid RSA-4096 + ML-DSA-65 (FIPS 204 post-quantum) — used when
+             ``dilithium_py`` is installed.  Both signatures cover the full
+             canonical JSON bytes.  ``signing_algorithm`` will be
+             ``"hybrid-rsa-ml-dsa"`` and ``pq_sig`` will be present.
+          2. RSA-4096-SHA256 only — used as fallback when ``dilithium_py`` is
+             absent.  ``signing_algorithm`` will be
+             ``"rsa-sha256-only (dilithium_py not installed)"`` so callers are
+             never misled about post-quantum protection.
 
         The canonical form is produced by ``json.dumps`` with
         ``sort_keys=True, separators=(',', ':')``.
 
         Args:
             bundle: The dict returned by :meth:`collect_quarterly_evidence`.
-            sign:   If *True* (default) and :class:`~core.crypto.RSAKeyManager`
-                    is available, sign the SHA-256 hash bytes with RSA-4096-SHA256
-                    and encode the signature as base64.
+            sign:   If *True* (default) attempt signing with the best available
+                    algorithm.
 
         Returns:
             A dict with keys:
@@ -177,13 +187,19 @@ class SOC2EvidenceBundler:
             ``sha256``
                 Hex-encoded SHA-256 digest of the canonical JSON.
             ``signature``
-                Base64-encoded RSA signature string, or *None* if signing was
-                skipped / unavailable.
+                Base64-encoded classical (RSA) signature, or *None*.
+            ``pq_sig``
+                Base64-encoded ML-DSA-65 signature, or *None* when
+                ``dilithium_py`` is not installed.
             ``signature_fingerprint``
-                RSA key fingerprint string, or *None*.
-            ``signing_status``
-                ``"signed"``, ``"unsigned"`` (sign=False), or
+                Key fingerprint string, or *None*.
+            ``signing_algorithm``
+                ``"hybrid-rsa-ml-dsa"``, ``"rsa-sha256-only (dilithium_py not
+                installed)"``, ``"unsigned"``, or
                 ``"signing_unavailable:<reason>"``.
+            ``signing_status``
+                ``"signed"``, ``"unsigned"``, or
+                ``"signing_unavailable:<reason>"`` (kept for backward compat).
             ``signed_at``
                 ISO-8601 UTC timestamp of the sealing operation.
         """
@@ -193,19 +209,29 @@ class SOC2EvidenceBundler:
 
         sha256_hex: str = hashlib.sha256(canonical_json).hexdigest()
 
-        signature_b64: Optional[str]      = None
-        fingerprint:   Optional[str]      = None
-        signing_status: str               = "unsigned"
-        signed_at: str                    = datetime.now(timezone.utc).isoformat()
+        signature_b64: Optional[str]   = None
+        pq_sig_b64: Optional[str]      = None
+        fingerprint: Optional[str]     = None
+        signing_algorithm: str         = "unsigned"
+        signing_status: str            = "unsigned"
+        signed_at: str                 = datetime.now(timezone.utc).isoformat()
 
         if sign:
-            signature_b64, fingerprint, signing_status = self._rsa_sign(sha256_hex.encode("utf-8"))
+            (
+                signature_b64,
+                pq_sig_b64,
+                fingerprint,
+                signing_algorithm,
+                signing_status,
+            ) = self._hybrid_sign(canonical_json)
 
         return {
             "bundle":                bundle,
             "sha256":                sha256_hex,
             "signature":             signature_b64,
+            "pq_sig":                pq_sig_b64,
             "signature_fingerprint": fingerprint,
+            "signing_algorithm":     signing_algorithm,
             "signing_status":        signing_status,
             "signed_at":             signed_at,
         }
@@ -497,24 +523,71 @@ class SOC2EvidenceBundler:
     # Signing helper
     # ------------------------------------------------------------------
 
-    def _rsa_sign(
+    def _hybrid_sign(
         self, data: bytes
-    ) -> Tuple[Optional[str], Optional[str], str]:
-        """Attempt RSA signing; return (b64_sig, fingerprint, status_string).
+    ) -> Tuple[Optional[str], Optional[str], Optional[str], str, str]:
+        """Attempt hybrid RSA + ML-DSA-65 signing; fall back to RSA-only.
 
-        Returns ``(None, None, "signing_unavailable:<reason>")`` on any
-        failure rather than raising.
+        Returns (classical_b64, pq_b64, fingerprint, signing_algorithm, signing_status).
+
+        Priority:
+          1. HybridSigner (RSA-4096 + ML-DSA-65 FIPS 204) — real post-quantum.
+          2. RSASigner only — when dilithium_py is absent; labelled honestly.
+          3. Failure tuple — never raises.
         """
+        # --- Attempt 1: genuine hybrid (RSA + ML-DSA-65) ---
+        try:
+            from core.crypto import HybridSigner  # type: ignore
+
+            signer = HybridSigner()
+            hybrid_sig = signer.sign(data)
+            return (
+                hybrid_sig.classical_sig,
+                hybrid_sig.pq_sig,
+                hybrid_sig.key_fingerprint,
+                "hybrid-rsa-ml-dsa",
+                "signed",
+            )
+        except ImportError as exc:
+            _logger.warning("HybridSigner import failed, falling back to RSA-only: %s", exc)
+        except Exception as exc:  # noqa: BLE001
+            # Most likely dilithium_py not installed → MLDSAKeyManager raises KeyGenerationError
+            _logger.warning(
+                "HybridSigner unavailable (%s: %s), falling back to RSA-only",
+                type(exc).__name__,
+                exc,
+            )
+
+        # --- Attempt 2: RSA-only fallback (honest label) ---
         try:
             from core.crypto import RSAKeyManager, RSASigner  # type: ignore
 
-            km     = RSAKeyManager()
+            km = RSAKeyManager()
             signer = RSASigner(key_manager=km)
             sig_bytes, fingerprint = signer.sign(data)
             sig_b64 = base64.b64encode(sig_bytes).decode("utf-8")
-            return sig_b64, fingerprint, "signed"
+            return (
+                sig_b64,
+                None,   # no post-quantum signature
+                fingerprint,
+                "rsa-sha256-only (dilithium_py not installed)",
+                "signed",
+            )
         except ImportError as exc:
-            return None, None, f"signing_unavailable:import_error:{exc}"
+            return None, None, None, f"signing_unavailable:import_error:{exc}", f"signing_unavailable:import_error:{exc}"
         except Exception as exc:  # noqa: BLE001
-            _logger.warning("RSA signing failed: %s", exc)
-            return None, None, f"signing_unavailable:{exc}"
+            _logger.warning("RSA signing also failed: %s", exc)
+            reason = f"signing_unavailable:{type(exc).__name__}"
+            return None, None, None, reason, reason
+
+    # Kept for backward-compatibility with any callers that imported _rsa_sign directly.
+    def _rsa_sign(
+        self, data: bytes
+    ) -> Tuple[Optional[str], Optional[str], str]:
+        """Legacy RSA-only signing helper (backward compat shim).
+
+        New code should call :meth:`_hybrid_sign` directly.
+        Returns (b64_sig, fingerprint, status_string).
+        """
+        classical_b64, _pq, fingerprint, _algo, status = self._hybrid_sign(data)
+        return classical_b64, fingerprint, status

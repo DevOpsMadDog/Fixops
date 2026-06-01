@@ -313,6 +313,14 @@ try:
 except ImportError as e:
     logging.getLogger(__name__).warning("Security Findings Engine router not available: %s", e)
 
+# CVSS Cross-Tool Reconciliation router — team-validated CVSS override with audit trail
+cvss_reconciliation_router: Optional[APIRouter] = None
+try:
+    from apps.api.cvss_reconciliation_router import router as cvss_reconciliation_router
+    logging.getLogger(__name__).info("Loaded CVSS Reconciliation router")
+except ImportError as e:
+    logging.getLogger(__name__).warning("CVSS Reconciliation router not available: %s", e)
+
 # Findings Persistence router — real SQLite persistence with dedup + indexed queries
 findings_persistence_router: Optional[APIRouter] = None
 try:
@@ -3263,6 +3271,14 @@ def create_app() -> FastAPI:
             dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
         )
         _logger.info("Mounted Security Findings Engine router")
+
+    # CVSS Cross-Tool Reconciliation — team-validated CVSS override with full audit trail
+    if cvss_reconciliation_router:
+        app.include_router(
+            cvss_reconciliation_router,
+            dependencies=[Depends(_verify_api_key)],
+        )
+        _logger.info("Mounted CVSS Reconciliation router")
 
     # Findings Persistence — real SQLite store with dedup + indexed queries
     if findings_persistence_router:

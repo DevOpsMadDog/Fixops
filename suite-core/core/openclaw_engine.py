@@ -504,7 +504,13 @@ class OpenClawEngine:
             try:
                 _bus = _get_tg_bus()
                 if _bus:
-                    _bus.emit("ENTITY_UPDATED", {"entity_type": "openclaw", "org_id": org_id, "source_engine": "openclaw"})
+                    import asyncio as _aio, inspect as _insp
+                    _coro = _bus.emit("ENTITY_UPDATED", {"entity_type": "openclaw", "org_id": org_id, "source_engine": "openclaw"})
+                    if _insp.iscoroutine(_coro):
+                        try:
+                            _aio.get_running_loop().create_task(_coro)
+                        except RuntimeError:
+                            _coro.close()
             except Exception:
                 pass
 
@@ -623,12 +629,18 @@ class OpenClawEngine:
             try:
                 _bus = _get_tg_bus()
                 if _bus:
-                    _bus.emit("ENTITY_UPDATED", {
+                    import asyncio as _aio, inspect as _insp
+                    _coro = _bus.emit("ENTITY_UPDATED", {
                         "entity_type": "openclaw_campaign",
                         "org_id": org_id,
                         "source_engine": "openclaw",
                         "campaign_id": campaign_id,
                     })
+                    if _insp.iscoroutine(_coro):
+                        try:
+                            _aio.get_running_loop().create_task(_coro)
+                        except RuntimeError:
+                            _coro.close()
             except Exception:
                 pass
 
