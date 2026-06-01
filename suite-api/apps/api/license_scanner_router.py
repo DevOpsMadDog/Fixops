@@ -17,6 +17,8 @@ import logging
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -211,7 +213,7 @@ def evaluate_policy(body: EvaluatePolicyRequest) -> ScanResponse:
     response_model=SummaryResponse,
     summary="Get license risk distribution for an org",
 )
-def get_summary(org_id: str = Query(default="default")) -> SummaryResponse:
+def get_summary(org_id: str = Depends(get_org_id)) -> SummaryResponse:
     """Return counts of scanned packages grouped by risk level and policy action."""
     scanner = _get_scanner()
     summary = scanner.get_license_summary(org_id=org_id)
@@ -242,7 +244,7 @@ def set_policy(body: SetPolicyRequest) -> PolicyResponse:
     response_model=ViolationsResponse,
     summary="List packages that violate the org license policy",
 )
-def get_violations(org_id: str = Query(default="default")) -> ViolationsResponse:
+def get_violations(org_id: str = Depends(get_org_id)) -> ViolationsResponse:
     """Return all scan results where policy_action is BLOCK for the given org."""
     scanner = _get_scanner()
     violations = scanner.get_violations(org_id=org_id)

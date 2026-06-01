@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -104,7 +105,7 @@ def create_chain(req: CreateChainRequest) -> Dict[str, Any]:
 
 @router.get("/chains", dependencies=[Depends(api_key_auth)])
 def list_chains(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
     kill_chain_phase: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -117,7 +118,7 @@ def list_chains(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_attack_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_attack_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregated attack chain statistics."""
     try:
         return _get_engine().get_attack_stats(org_id)
@@ -127,7 +128,7 @@ def get_attack_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
 
 
 @router.get("/chains/{chain_id}", dependencies=[Depends(api_key_auth)])
-def get_chain(chain_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_chain(chain_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get a single attack chain by ID."""
     try:
         result = _get_engine().get_chain(org_id, chain_id)
@@ -142,7 +143,7 @@ def get_chain(chain_id: str, org_id: str = Query(default="default")) -> Dict[str
 
 
 @router.put("/chains/{chain_id}/status", dependencies=[Depends(api_key_auth)])
-def update_chain_status(chain_id: str, body: UpdateStatusRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def update_chain_status(chain_id: str, body: UpdateStatusRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Update the status of an attack chain."""
     try:
         return _get_engine().update_chain_status(org_id, chain_id, body.new_status)
@@ -170,7 +171,7 @@ def add_chain_step(chain_id: str, req: AddStepRequest) -> Dict[str, Any]:
 
 
 @router.get("/chains/{chain_id}/steps", dependencies=[Depends(api_key_auth)])
-def list_chain_steps(chain_id: str, org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def list_chain_steps(chain_id: str, org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List all steps for an attack chain ordered by step_number."""
     try:
         return _get_engine().list_chain_steps(org_id, chain_id)
@@ -194,7 +195,7 @@ def link_chains(req: LinkChainsRequest) -> Dict[str, Any]:
 
 
 @router.get("/chains/{chain_id}/links", dependencies=[Depends(api_key_auth)])
-def get_chain_links(chain_id: str, org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def get_chain_links(chain_id: str, org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Get all links for an attack chain (source or target)."""
     try:
         return _get_engine().get_chain_links(org_id, chain_id)

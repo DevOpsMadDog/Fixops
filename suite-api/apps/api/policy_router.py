@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -84,14 +85,14 @@ class BatchEvaluateRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate policy and evaluation statistics."""
     return _get_engine().get_policy_stats(org_id=org_id)
 
 
 @router.get("/history", dependencies=[Depends(api_key_auth)])
 def get_history(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     policy_id: Optional[str] = Query(None),
     limit: int = Query(default=100, ge=1, le=1000),
 ):
@@ -145,7 +146,7 @@ def evaluate_batch(body: BatchEvaluateRequest):
 
 @router.get("", dependencies=[Depends(api_key_auth)])
 def list_policies(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     scope: Optional[str] = Query(None),
 ):
     """List policies for an org, optionally filtered by scope."""
@@ -185,7 +186,7 @@ def create_policy(body: PolicyCreate):
 
 
 @router.get("/{policy_id}", dependencies=[Depends(api_key_auth)])
-def get_policy(policy_id: str, org_id: str = Query(default="default")):
+def get_policy(policy_id: str, org_id: str = Depends(get_org_id)):
     """Get a single policy by ID."""
     policies = _get_engine().list_policies(org_id=org_id)
     match = next((p for p in policies if p.id == policy_id), None)

@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -84,14 +85,14 @@ def get_templates():
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return workflow statistics for an org."""
     return _get_engine().get_workflow_stats(org_id=org_id)
 
 
 @router.get("/executions", dependencies=[Depends(api_key_auth)])
 def list_executions(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     workflow_id: Optional[str] = Query(None),
     limit: int = Query(default=100, ge=1, le=1000),
 ):
@@ -104,7 +105,7 @@ def list_executions(
 
 @router.get("", dependencies=[Depends(api_key_auth)])
 def list_workflows(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     trigger_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -169,7 +170,7 @@ def delete_workflow(workflow_id: str):
 def trigger_workflow(
     workflow_id: str,
     body: TriggerEventRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Evaluate an event against all matching workflows and execute them."""
     executions = _get_engine().evaluate_event(body.event, org_id=org_id)

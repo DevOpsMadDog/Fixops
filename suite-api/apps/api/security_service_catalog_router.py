@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from core.security_service_catalog_engine import SecurityServiceCatalogEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -109,7 +110,7 @@ async def submit_request(service_id: str, body: SubmitRequestIn) -> Dict[str, An
 
 
 @router.put("/requests/{request_id}/acknowledge")
-async def acknowledge_request(request_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+async def acknowledge_request(request_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Acknowledge a service request."""
     req = _get_engine().acknowledge_request(request_id, org_id)
     if req is None:
@@ -118,7 +119,7 @@ async def acknowledge_request(request_id: str, org_id: str = Query(default="defa
 
 
 @router.put("/requests/{request_id}/resolve")
-async def resolve_request(request_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+async def resolve_request(request_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Resolve a service request and compute SLA compliance."""
     req = _get_engine().resolve_request(request_id, org_id)
     if req is None:
@@ -141,7 +142,7 @@ async def record_outage(service_id: str, body: RecordOutageIn) -> Dict[str, Any]
 
 
 @router.put("/outages/{outage_id}/resolve")
-async def resolve_outage(outage_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+async def resolve_outage(outage_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Resolve an outage and recompute service availability."""
     outage = _get_engine().resolve_outage(outage_id, org_id)
     if outage is None:
@@ -150,13 +151,13 @@ async def resolve_outage(outage_id: str, org_id: str = Query(default="default"))
 
 
 @router.get("/summary")
-async def get_service_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+async def get_service_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return catalog-wide statistics."""
     return _get_engine().get_service_summary(org_id)
 
 
 @router.get("/services/{service_id}")
-async def get_service_detail(service_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+async def get_service_detail(service_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return service detail with recent requests and outages."""
     svc = _get_engine().get_service_detail(service_id, org_id)
     if svc is None:
@@ -165,7 +166,7 @@ async def get_service_detail(service_id: str, org_id: str = Query(default="defau
 
 
 @router.get("/sla-performance")
-async def get_sla_performance(org_id: str = Query(default="default")) -> Dict[str, Any]:
+async def get_sla_performance(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return per-service SLA performance metrics."""
     data = _get_engine().get_sla_performance(org_id)
     return {"services": data, "total": len(data)}

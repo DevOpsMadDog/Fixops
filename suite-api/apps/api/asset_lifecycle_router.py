@@ -19,6 +19,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -78,7 +79,7 @@ class DecommissionRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/assets", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_asset(body: AssetCreate, org_id: str = Query(default="default")):
+def register_asset(body: AssetCreate, org_id: str = Depends(get_org_id)):
     """Register a new asset."""
     try:
         return _get_engine().register_asset(org_id, body.model_dump())
@@ -88,7 +89,7 @@ def register_asset(body: AssetCreate, org_id: str = Query(default="default")):
 
 @router.get("/assets", dependencies=[Depends(api_key_auth)])
 def list_assets(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     asset_type: Optional[str] = Query(None),
     lifecycle_phase: Optional[str] = Query(None),
     criticality: Optional[str] = Query(None),
@@ -103,7 +104,7 @@ def list_assets(
 
 
 @router.get("/assets/{asset_id}", dependencies=[Depends(api_key_auth)])
-def get_asset(asset_id: str, org_id: str = Query(default="default")):
+def get_asset(asset_id: str, org_id: str = Depends(get_org_id)):
     """Retrieve a single asset by ID."""
     result = _get_engine().get_asset(org_id, asset_id)
     if not result:
@@ -113,7 +114,7 @@ def get_asset(asset_id: str, org_id: str = Query(default="default")):
 
 @router.put("/assets/{asset_id}/lifecycle-phase", dependencies=[Depends(api_key_auth)])
 def update_lifecycle_phase(
-    asset_id: str, body: LifecyclePhaseUpdate, org_id: str = Query(default="default")
+    asset_id: str, body: LifecyclePhaseUpdate, org_id: str = Depends(get_org_id)
 ):
     """Transition an asset to a new lifecycle phase."""
     try:
@@ -126,7 +127,7 @@ def update_lifecycle_phase(
 
 @router.post("/assets/{asset_id}/maintenance", dependencies=[Depends(api_key_auth)], status_code=201)
 def record_maintenance(
-    asset_id: str, body: MaintenanceRecord, org_id: str = Query(default="default")
+    asset_id: str, body: MaintenanceRecord, org_id: str = Depends(get_org_id)
 ):
     """Record a maintenance event for an asset."""
     try:
@@ -137,7 +138,7 @@ def record_maintenance(
 
 @router.post("/assets/{asset_id}/decommission", dependencies=[Depends(api_key_auth)])
 def decommission_asset(
-    asset_id: str, body: DecommissionRequest, org_id: str = Query(default="default")
+    asset_id: str, body: DecommissionRequest, org_id: str = Depends(get_org_id)
 ):
     """Decommission an asset."""
     try:
@@ -147,6 +148,6 @@ def decommission_asset(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_lifecycle_stats(org_id: str = Query(default="default")):
+def get_lifecycle_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated lifecycle statistics for the org."""
     return _get_engine().get_lifecycle_stats(org_id)

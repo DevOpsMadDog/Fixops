@@ -21,6 +21,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -66,7 +67,7 @@ class MeasurementCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/kpis", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_kpi(body: KPICreate, org_id: str = Query(default="default")):
+def create_kpi(body: KPICreate, org_id: str = Depends(get_org_id)):
     """Create a new KPI definition."""
     try:
         return _get_engine().create_kpi(org_id, body.model_dump())
@@ -76,7 +77,7 @@ def create_kpi(body: KPICreate, org_id: str = Query(default="default")):
 
 @router.get("/kpis", dependencies=[Depends(api_key_auth)])
 def list_kpis(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     kpi_category: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -85,7 +86,7 @@ def list_kpis(
 
 
 @router.get("/kpis/{kpi_id}", dependencies=[Depends(api_key_auth)])
-def get_kpi(kpi_id: str, org_id: str = Query(default="default")):
+def get_kpi(kpi_id: str, org_id: str = Depends(get_org_id)):
     """Get a single KPI by ID."""
     kpi = _get_engine().get_kpi(org_id, kpi_id)
     if not kpi:
@@ -102,7 +103,7 @@ def get_kpi(kpi_id: str, org_id: str = Query(default="default")):
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def record_measurement(kpi_id: str, body: MeasurementCreate, org_id: str = Query(default="default")):
+def record_measurement(kpi_id: str, body: MeasurementCreate, org_id: str = Depends(get_org_id)):
     """Record a measurement for a KPI."""
     try:
         result = _get_engine().record_measurement(
@@ -118,7 +119,7 @@ def record_measurement(kpi_id: str, body: MeasurementCreate, org_id: str = Query
 @router.get("/kpis/{kpi_id}/measurements", dependencies=[Depends(api_key_auth)])
 def list_measurements(
     kpi_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     limit: int = Query(30, ge=1, le=500),
 ):
     """List measurements for a KPI."""
@@ -126,7 +127,7 @@ def list_measurements(
 
 
 @router.get("/kpis/{kpi_id}/performance", dependencies=[Depends(api_key_auth)])
-def get_kpi_performance(kpi_id: str, org_id: str = Query(default="default")):
+def get_kpi_performance(kpi_id: str, org_id: str = Depends(get_org_id)):
     """Get performance summary for a KPI."""
     result = _get_engine().get_kpi_performance(org_id, kpi_id)
     if not result:
@@ -139,6 +140,6 @@ def get_kpi_performance(kpi_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_kpi_stats(org_id: str = Query(default="default")):
+def get_kpi_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated KPI statistics."""
     return _get_engine().get_kpi_stats(org_id)

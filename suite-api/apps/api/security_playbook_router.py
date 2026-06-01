@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -70,7 +71,7 @@ def get_builtin_playbooks() -> List[Dict[str, Any]]:
 
 
 @router.get("/playbooks", dependencies=[Depends(api_key_auth)])
-def list_playbooks(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def list_playbooks(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List all playbooks for the org."""
     return _get_engine().list_playbooks(org_id)
 
@@ -78,7 +79,7 @@ def list_playbooks(org_id: str = Query(default="default")) -> List[Dict[str, Any
 @router.post("/playbooks", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_playbook(
     body: PlaybookCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new playbook. Returns {playbook_id}."""
     try:
@@ -91,7 +92,7 @@ def create_playbook(
 @router.get("/playbooks/{playbook_id}", dependencies=[Depends(api_key_auth)])
 def get_playbook(
     playbook_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single playbook by ID."""
     pb = _get_engine().get_playbook(playbook_id, org_id)
@@ -108,7 +109,7 @@ def get_playbook(
 def execute_playbook(
     playbook_id: str,
     body: ExecuteRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Execute a playbook sequentially (currently simulated — no real connector calls).
 
@@ -123,7 +124,7 @@ def execute_playbook(
 
 @router.get("/executions", dependencies=[Depends(api_key_auth)])
 def list_executions(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=50, ge=1, le=1000),
 ) -> List[Dict[str, Any]]:
     """Return execution history for the org, newest first."""
@@ -133,7 +134,7 @@ def list_executions(
 @router.get("/executions/{execution_id}", dependencies=[Depends(api_key_auth)])
 def get_execution(
     execution_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single execution record by ID."""
     exec_record = _get_engine().get_execution(execution_id, org_id)

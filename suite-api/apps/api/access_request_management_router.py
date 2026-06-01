@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -84,7 +85,7 @@ class RevokeAccessBody(BaseModel):
 
 
 @router.post("/requests", dependencies=[Depends(api_key_auth)])
-def create_request(body: CreateAccessRequestBody, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def create_request(body: CreateAccessRequestBody, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Create a new access request."""
     try:
         return _get_engine().create_request(org_id, body.model_dump())
@@ -94,7 +95,7 @@ def create_request(body: CreateAccessRequestBody, org_id: str = Query(default="d
 
 @router.get("/requests", dependencies=[Depends(api_key_auth)])
 def list_requests(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     access_type: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
     resource_type: Optional[str] = Query(default=None),
@@ -138,7 +139,7 @@ def list_requests(
 
 
 @router.get("/requests/{request_id}", dependencies=[Depends(api_key_auth)])
-def get_request(request_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_request(request_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Fetch a single access request."""
     result = _get_engine().get_request(org_id, request_id)
     if result is None:
@@ -150,7 +151,7 @@ def get_request(request_id: str, org_id: str = Query(default="default")) -> Dict
 def approve_request(
     request_id: str,
     body: ApproveRequestBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Approve an access request."""
     try:
@@ -163,7 +164,7 @@ def approve_request(
 def reject_request(
     request_id: str,
     body: RejectRequestBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Reject an access request."""
     try:
@@ -176,7 +177,7 @@ def reject_request(
 def revoke_access(
     request_id: str,
     body: RevokeAccessBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Revoke access for an approved request."""
     try:
@@ -186,6 +187,6 @@ def revoke_access(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_access_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_access_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate stats for access requests."""
     return _get_engine().get_access_stats(org_id)

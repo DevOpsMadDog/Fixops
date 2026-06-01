@@ -35,6 +35,7 @@ _logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 from apps.api.auth_deps import api_key_auth as _verify_api_key
+from apps.api.dependencies import get_org_id
 
 # ---------------------------------------------------------------------------
 # Engine singleton
@@ -120,7 +121,7 @@ def create_cycle(request: StartCycleRequest) -> Dict[str, Any]:
 
 
 @router.get("/cycles", dependencies=[Depends(_verify_api_key)])
-def list_cycles(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def list_cycles(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """List all CTEM cycles for an org, newest first."""
     engine = _get_engine()
     cycles = engine.list_cycles(org_id=org_id)
@@ -294,21 +295,21 @@ def mobilize_remediation(exposure_id: str, request: MobilizeRequest) -> Dict[str
 
 
 @router.get("/dashboard", dependencies=[Depends(_verify_api_key)])
-def get_dashboard(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_dashboard(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return cycle progress and exposure statistics for the org dashboard."""
     engine = _get_engine()
     return engine.get_ctem_dashboard(org_id=org_id)
 
 
 @router.get("/stats", dependencies=[Depends(_verify_api_key)])
-def get_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate CTEM statistics for the org."""
     engine = _get_engine()
     return engine.get_ctem_stats(org_id=org_id)
 
 
 @router.get("/", dependencies=[Depends(_verify_api_key)])
-def get_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """5-state CTEM domain summary — delegates to dashboard + stats."""
     try:
         engine = _get_engine()

@@ -21,6 +21,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -71,7 +72,7 @@ class IOCCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/reports", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_intel_report(body: ReportCreate, org_id: str = Query(default="default")):
+def create_intel_report(body: ReportCreate, org_id: str = Depends(get_org_id)):
     """Create a new CTI report in draft status."""
     try:
         return _get_engine().create_intel_report(org_id, body.model_dump())
@@ -81,7 +82,7 @@ def create_intel_report(body: ReportCreate, org_id: str = Query(default="default
 
 @router.get("/reports", dependencies=[Depends(api_key_auth)])
 def list_reports(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     intel_type: Optional[str] = Query(None),
     tlp: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -96,7 +97,7 @@ def list_reports(
 
 
 @router.get("/reports/{report_id}", dependencies=[Depends(api_key_auth)])
-def get_report(report_id: str, org_id: str = Query(default="default")):
+def get_report(report_id: str, org_id: str = Depends(get_org_id)):
     """Get a single CTI report by ID."""
     report = _get_engine().get_report(org_id, report_id)
     if not report:
@@ -105,7 +106,7 @@ def get_report(report_id: str, org_id: str = Query(default="default")):
 
 
 @router.post("/reports/{report_id}/publish", dependencies=[Depends(api_key_auth)])
-def publish_report(report_id: str, org_id: str = Query(default="default")):
+def publish_report(report_id: str, org_id: str = Depends(get_org_id)):
     """Publish a CTI report."""
     try:
         return _get_engine().publish_report(org_id, report_id)
@@ -118,7 +119,7 @@ def publish_report(report_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/reports/{report_id}/iocs", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_ioc_to_report(report_id: str, body: IOCCreate, org_id: str = Query(default="default")):
+def add_ioc_to_report(report_id: str, body: IOCCreate, org_id: str = Depends(get_org_id)):
     """Add an IOC to a CTI report."""
     try:
         return _get_engine().add_ioc_to_report(org_id, report_id, body.model_dump())
@@ -128,7 +129,7 @@ def add_ioc_to_report(report_id: str, body: IOCCreate, org_id: str = Query(defau
 
 @router.get("/iocs", dependencies=[Depends(api_key_auth)])
 def list_iocs(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     report_id: Optional[str] = Query(None),
     ioc_type: Optional[str] = Query(None),
 ):
@@ -145,6 +146,6 @@ def list_iocs(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_intel_stats(org_id: str = Query(default="default")):
+def get_intel_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated CTI statistics."""
     return _get_engine().get_intel_stats(org_id)

@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -75,7 +76,7 @@ class ResolveRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/incidents", dependencies=[Depends(api_key_auth)], status_code=201)
-def submit_for_triage(body: IncidentSubmit, org_id: str = Query(default="default")):
+def submit_for_triage(body: IncidentSubmit, org_id: str = Depends(get_org_id)):
     """Submit a new incident for triage."""
     try:
         return _get_engine().submit_for_triage(org_id, body.model_dump())
@@ -85,7 +86,7 @@ def submit_for_triage(body: IncidentSubmit, org_id: str = Query(default="default
 
 @router.get("/incidents", dependencies=[Depends(api_key_auth)])
 def list_incidents(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     classification: Optional[str] = Query(None),
@@ -97,7 +98,7 @@ def list_incidents(
 
 
 @router.get("/incidents/{incident_id}", dependencies=[Depends(api_key_auth)])
-def get_incident(incident_id: str, org_id: str = Query(default="default")):
+def get_incident(incident_id: str, org_id: str = Depends(get_org_id)):
     """Get a single incident by ID."""
     incident = _get_engine().get_incident(org_id, incident_id)
     if not incident:
@@ -109,7 +110,7 @@ def get_incident(incident_id: str, org_id: str = Query(default="default")):
 def triage_incident(
     incident_id: str,
     body: TriageData,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Triage an incident: score, classify, assign."""
     try:
@@ -125,7 +126,7 @@ def triage_incident(
 def escalate_incident(
     incident_id: str,
     body: EscalateRequest,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Escalate an incident."""
     result = _get_engine().escalate_incident(
@@ -140,7 +141,7 @@ def escalate_incident(
 def resolve_triage(
     incident_id: str,
     body: ResolveRequest,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Resolve a triaged incident."""
     result = _get_engine().resolve_triage(org_id, incident_id, body.resolution)
@@ -154,6 +155,6 @@ def resolve_triage(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_triage_stats(org_id: str = Query(default="default")):
+def get_triage_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated triage stats for the org."""
     return _get_engine().get_triage_stats(org_id)

@@ -21,6 +21,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -79,7 +80,7 @@ class FindingResolve(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/clusters", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_cluster(body: ClusterCreate, org_id: str = Query(default="default")):
+def register_cluster(body: ClusterCreate, org_id: str = Depends(get_org_id)):
     """Register a new container cluster."""
     try:
         return _get_engine().register_cluster(org_id, body.model_dump())
@@ -89,7 +90,7 @@ def register_cluster(body: ClusterCreate, org_id: str = Query(default="default")
 
 @router.get("/clusters", dependencies=[Depends(api_key_auth)])
 def list_clusters(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     runtime: Optional[str] = Query(None),
 ):
     """List clusters with optional runtime filter."""
@@ -97,7 +98,7 @@ def list_clusters(
 
 
 @router.get("/clusters/{cluster_id}", dependencies=[Depends(api_key_auth)])
-def get_cluster(cluster_id: str, org_id: str = Query(default="default")):
+def get_cluster(cluster_id: str, org_id: str = Depends(get_org_id)):
     """Get a single cluster by ID."""
     cluster = _get_engine().get_cluster(org_id, cluster_id)
     if not cluster:
@@ -110,7 +111,7 @@ def get_cluster(cluster_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/findings", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_finding(body: FindingCreate, org_id: str = Query(default="default")):
+def record_finding(body: FindingCreate, org_id: str = Depends(get_org_id)):
     """Record a new security finding."""
     try:
         return _get_engine().record_finding(org_id, body.model_dump())
@@ -120,7 +121,7 @@ def record_finding(body: FindingCreate, org_id: str = Query(default="default")):
 
 @router.get("/findings", dependencies=[Depends(api_key_auth)])
 def list_findings(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     cluster_id: Optional[str] = Query(None),
     finding_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
@@ -137,7 +138,7 @@ def list_findings(
 
 
 @router.post("/findings/{finding_id}/resolve", dependencies=[Depends(api_key_auth)])
-def resolve_finding(finding_id: str, body: FindingResolve, org_id: str = Query(default="default")):
+def resolve_finding(finding_id: str, body: FindingResolve, org_id: str = Depends(get_org_id)):
     """Resolve a security finding and restore posture score."""
     try:
         return _get_engine().resolve_finding(org_id, finding_id, body.resolution)
@@ -150,6 +151,6 @@ def resolve_finding(finding_id: str, body: FindingResolve, org_id: str = Query(d
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_posture_stats(org_id: str = Query(default="default")):
+def get_posture_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated container security posture statistics."""
     return _get_engine().get_posture_stats(org_id)

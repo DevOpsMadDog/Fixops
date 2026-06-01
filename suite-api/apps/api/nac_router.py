@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -94,7 +95,7 @@ class AccessEventReq(BaseModel):
 
 @router.get("/devices")
 def list_devices(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     device_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     _auth=Depends(api_key_auth),
@@ -127,7 +128,7 @@ def register_device(body: DeviceCreateReq, _auth=Depends(api_key_auth)) -> Dict[
 @router.get("/devices/{device_id}")
 def get_device(
     device_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     try:
@@ -142,7 +143,7 @@ def get_device(
 @router.post("/devices/{device_id}/posture-check")
 def run_posture_check(
     device_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     try:
@@ -193,7 +194,7 @@ def apply_policy(
 
 @router.get("/policies")
 def list_policies(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> List[Dict[str, Any]]:
     try:
@@ -228,7 +229,7 @@ def create_policy(body: PolicyCreateReq, _auth=Depends(api_key_auth)) -> Dict[st
 
 @router.get("/events")
 def list_access_events(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     device_id: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
     _auth=Depends(api_key_auth),
@@ -266,7 +267,7 @@ def record_access_event(body: AccessEventReq, _auth=Depends(api_key_auth)) -> Di
 
 @router.get("/stats")
 def get_nac_stats(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     try:

@@ -19,6 +19,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 try:
@@ -112,7 +113,7 @@ def register_user(req: RegisterUserRequest) -> Dict[str, Any]:
 
 @router.get("/users", summary="List user profiles")
 def list_users(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     min_risk_score: Optional[int] = Query(None, ge=0, le=100),
 ) -> List[Dict[str, Any]]:
@@ -126,7 +127,7 @@ def list_users(
 @router.get("/users/{user_id}", summary="Get a user profile")
 def get_user(
     user_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     result = _get_engine().get_user(org_id, user_id)
     if result is None:
@@ -137,7 +138,7 @@ def get_user(
 @router.post("/users/{user_id}/analyze", summary="Analyze user risk")
 def analyze_user(
     user_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().analyze_user(org_id, user_id)
@@ -161,7 +162,7 @@ def ingest_event(req: IngestEventRequest) -> Dict[str, Any]:
 
 @router.get("/events", summary="List user behavior events")
 def list_events(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     user_id: Optional[str] = Query(None),
     event_type: Optional[str] = Query(None),
     is_anomalous: Optional[bool] = Query(None),
@@ -197,7 +198,7 @@ def create_alert(req: CreateAlertRequest) -> Dict[str, Any]:
 
 @router.get("/alerts", summary="List UBA alerts")
 def list_alerts(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     try:
@@ -222,7 +223,7 @@ def update_alert_status(
 
 
 @router.get("/stats", summary="UBA aggregate statistics")
-def get_uba_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_uba_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().get_uba_stats(org_id)
     except Exception as exc:

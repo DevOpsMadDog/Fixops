@@ -20,6 +20,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -99,7 +101,7 @@ def establish_baseline(body: EstablishBaselineRequest) -> Dict[str, Any]:
 
 @router.get("/baselines")
 def list_baselines(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     user_id: Optional[str] = Query(default=None),
     baseline_type: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -129,7 +131,7 @@ def detect_anomaly(body: DetectAnomalyRequest) -> Dict[str, Any]:
 
 @router.get("/anomalies")
 def list_anomalies(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     user_id: Optional[str] = Query(default=None),
     behavior_type: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
@@ -150,7 +152,7 @@ def list_anomalies(
 def update_anomaly_status(
     anomaly_id: str,
     body: UpdateAnomalyStatusRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update the status of a behavioral anomaly."""
     engine = _get_engine()
@@ -173,7 +175,7 @@ def update_anomaly_status(
 @router.get("/users/{user_id}/profile")
 def get_user_risk_profile(
     user_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get the behavioral risk profile for a specific user."""
     engine = _get_engine()
@@ -182,7 +184,7 @@ def get_user_risk_profile(
 
 @router.get("/stats")
 def get_behavioral_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return org-level behavioral analytics statistics."""
     engine = _get_engine()

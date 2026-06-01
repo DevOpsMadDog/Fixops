@@ -20,6 +20,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -105,7 +107,7 @@ def register_cloud_app(body: RegisterCloudAppRequest) -> Dict[str, Any]:
 
 @router.get("/apps")
 def list_cloud_apps(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     app_category: Optional[str] = Query(default=None),
     risk_level: Optional[str] = Query(default=None),
     sanctioned: Optional[bool] = Query(default=None),
@@ -123,7 +125,7 @@ def list_cloud_apps(
 @router.get("/apps/{app_id}")
 def get_cloud_app(
     app_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single cloud app by ID."""
     engine = _get_engine()
@@ -165,7 +167,7 @@ def create_policy(body: CreatePolicyRequest) -> Dict[str, Any]:
 
 @router.get("/policies")
 def list_policies(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     enabled: Optional[bool] = Query(default=None),
     app_category: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -185,7 +187,7 @@ def list_policies(
 
 @router.get("/stats")
 def get_cloud_access_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return cloud access security statistics for an org."""
     engine = _get_engine()

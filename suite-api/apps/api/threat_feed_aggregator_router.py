@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -44,7 +45,7 @@ class FeedItemCreate(BaseModel):
 
 @router.get("/sources")
 async def list_sources(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     feed_type: Optional[str] = Query(default=None),
     auth=Depends(api_key_auth),
 ):
@@ -55,7 +56,7 @@ async def list_sources(
 
 
 @router.post("/sources")
-async def add_source(body: FeedSourceCreate, org_id: str = Query(default="default"), auth=Depends(api_key_auth)):
+async def add_source(body: FeedSourceCreate, org_id: str = Depends(get_org_id), auth=Depends(api_key_auth)):
     try:
         return _get_engine().add_feed_source(org_id=org_id, data=body.model_dump())
     except Exception as exc:
@@ -63,7 +64,7 @@ async def add_source(body: FeedSourceCreate, org_id: str = Query(default="defaul
 
 
 @router.post("/items")
-async def ingest_item(body: FeedItemCreate, org_id: str = Query(default="default"), auth=Depends(api_key_auth)):
+async def ingest_item(body: FeedItemCreate, org_id: str = Depends(get_org_id), auth=Depends(api_key_auth)):
     try:
         return _get_engine().ingest_feed_item(org_id=org_id, data=body.model_dump())
     except Exception as exc:
@@ -72,7 +73,7 @@ async def ingest_item(body: FeedItemCreate, org_id: str = Query(default="default
 
 @router.get("/items")
 async def list_items(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     feed_type: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
     limit: int = Query(default=50),
@@ -86,7 +87,7 @@ async def list_items(
 
 @router.get("/search")
 async def search_iocs(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     q: str = Query(default=""),
     auth=Depends(api_key_auth),
 ):
@@ -97,7 +98,7 @@ async def search_iocs(
 
 
 @router.get("/stats")
-async def get_stats(org_id: str = Query(default="default"), auth=Depends(api_key_auth)):
+async def get_stats(org_id: str = Depends(get_org_id), auth=Depends(api_key_auth)):
     try:
         return _get_engine().get_feed_stats(org_id=org_id)
     except Exception as exc:

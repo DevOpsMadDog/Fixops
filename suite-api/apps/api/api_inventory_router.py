@@ -19,6 +19,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -74,7 +75,7 @@ class EndpointCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/apis", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_api(body: APICreate, org_id: str = Query(default="default")):
+def register_api(body: APICreate, org_id: str = Depends(get_org_id)):
     """Register a new API."""
     try:
         return _get_engine().register_api(org_id, body.model_dump())
@@ -84,7 +85,7 @@ def register_api(body: APICreate, org_id: str = Query(default="default")):
 
 @router.get("/apis", dependencies=[Depends(api_key_auth)])
 def list_apis(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     api_type: Optional[str] = Query(None),
     api_status: Optional[str] = Query(None),
 ):
@@ -93,7 +94,7 @@ def list_apis(
 
 
 @router.get("/apis/{api_id}", dependencies=[Depends(api_key_auth)])
-def get_api(api_id: str, org_id: str = Query(default="default")):
+def get_api(api_id: str, org_id: str = Depends(get_org_id)):
     """Get a single API by ID."""
     api = _get_engine().get_api(org_id, api_id)
     if not api:
@@ -102,7 +103,7 @@ def get_api(api_id: str, org_id: str = Query(default="default")):
 
 
 @router.patch("/apis/{api_id}/status", dependencies=[Depends(api_key_auth)])
-def update_api_status(api_id: str, body: APIStatusUpdate, org_id: str = Query(default="default")):
+def update_api_status(api_id: str, body: APIStatusUpdate, org_id: str = Depends(get_org_id)):
     """Update an API's status."""
     try:
         result = _get_engine().update_api_status(org_id, api_id, body.new_status)
@@ -118,7 +119,7 @@ def update_api_status(api_id: str, body: APIStatusUpdate, org_id: str = Query(de
 # ---------------------------------------------------------------------------
 
 @router.post("/apis/{api_id}/endpoints", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_endpoint(api_id: str, body: EndpointCreate, org_id: str = Query(default="default")):
+def add_endpoint(api_id: str, body: EndpointCreate, org_id: str = Depends(get_org_id)):
     """Add an endpoint to an API."""
     try:
         return _get_engine().add_endpoint(org_id, api_id, body.model_dump())
@@ -128,7 +129,7 @@ def add_endpoint(api_id: str, body: EndpointCreate, org_id: str = Query(default=
 
 @router.get("/endpoints", dependencies=[Depends(api_key_auth)])
 def list_endpoints(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     api_id: Optional[str] = Query(None),
     method: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
@@ -144,6 +145,6 @@ def list_endpoints(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_api_stats(org_id: str = Query(default="default")):
+def get_api_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated API inventory statistics for the org."""
     return _get_engine().get_api_stats(org_id)
