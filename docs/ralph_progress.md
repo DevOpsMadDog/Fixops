@@ -17,8 +17,9 @@ pre-mortem's disqualifying/major failures are closed. Each story = a spec throug
 | 8 | SPEC-007 systemic tenancy (ContextVar fix + CI lint gate) | P1 | ✅ VERIFIED |
 | 9 | SPEC-004 multi-language reachability (Python/TS/JS/Java/Go + auto-run) | P2 | ✅ VERIFIED |
 | 10 | SPEC-008 HA / Litestream replication + restore | P1 | ✅ VERIFIED |
-| 11 | **starlette 1.0 + torch CVE bump (own verified pass)** | P1 | 🔄 IN PROGRESS |
-| 12 | SPEC-010 dead-router purge + SQLite migration registry | P2 | ⏳ TODO |
+| 11 | starlette CVE — DEFERRED (needs httpx2 migration, 561 files); torch dispositioned | P1 | 🟡 DOCUMENTED/BLOCKED |
+| 11b | httpx2 migration to close starlette PYSEC-2026-161 (DISQUALIFYING) | P1 | ⏳ TODO (own pass) |
+| 12 | **SPEC-010 dead-router purge + SQLite migration registry** | P2 | 🔄 NEXT |
 | 13 | SPEC-006b FIPS-validated crypto + at-rest encryption + immutable audit + PIV-CAC | P2 | ⏳ TODO (long) |
 
 ## Loop log
@@ -29,3 +30,4 @@ pre-mortem's disqualifying/major failures are closed. Each story = a spec throug
 - 2026-06-01: story 7 (SPEC-005b graph-populate) VERIFIED — blast_radius>0 from real scans, org-scoped, idempotent. Moat now real (SPEC-001+005b). Next: SPEC-004 reachability.
 - 2026-06-01: story 9 (SPEC-004 reachability) VERIFIED — TS/JS/Java/Go all work + auto-run + coverage metric. 9 specs done. Next: SPEC-008 HA replication → starlette/torch bump → SPEC-010 → SPEC-006b.
 - 2026-06-01: story 10 (SPEC-008 HA) VERIFIED — litestream config 19 DBs + honest backup_verify + restore runbook + boot durability warning. 10 specs done. Next: starlette/torch CVE bump (careful, own pass).
+- 2026-06-01: story 11 — starlette 1.x bump REVERTED (needs project-wide httpx2 test migration; boot was fine but Beast collection hard-errors on httpx-testclient deprecation). Documented close-path (story 11b). torch = training-only, not in SCIF runtime, no upstream fix. requirements unchanged. Next: SPEC-010.
