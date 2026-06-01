@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -155,23 +156,23 @@ def take_snapshot(req: TakeSnapshotRequest) -> Dict[str, Any]:
 
 
 @router.get("/overview", summary="Get maturity overview (snapshot + assessments + roadmap)")
-def get_maturity_overview(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_maturity_overview(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().get_maturity_overview(org_id=org_id)
 
 
 @router.get("/domains", summary="Get per-domain maturity breakdown")
-def get_domain_breakdown(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def get_domain_breakdown(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     return _get_engine().get_domain_breakdown(org_id=org_id)
 
 
 @router.get("/roadmap", summary="List roadmap items")
 def get_roadmap(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None, description="Filter by status"),
 ) -> List[Dict[str, Any]]:
     return _get_engine().get_roadmap(org_id=org_id, status=status)
 
 
 @router.get("/overdue", summary="Get assessments with overdue reviews")
-def get_overdue_reviews(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def get_overdue_reviews(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     return _get_engine().get_overdue_reviews(org_id=org_id)

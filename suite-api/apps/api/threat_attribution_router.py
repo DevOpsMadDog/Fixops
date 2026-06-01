@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -117,7 +118,7 @@ def create_actor(req: CreateActorRequest) -> Dict[str, Any]:
 
 @router.get("/actors", dependencies=[Depends(api_key_auth)])
 def list_actors(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     actor_type: Optional[str] = Query(default=None),
     active: Optional[bool] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -130,7 +131,7 @@ def list_actors(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate threat attribution statistics."""
     try:
         return _get_engine().get_attribution_stats(org_id)
@@ -141,7 +142,7 @@ def get_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
 
 @router.get("/attributions", dependencies=[Depends(api_key_auth)])
 def list_attributions(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
     confidence: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -166,7 +167,7 @@ def create_attribution(req: CreateAttributionRequest) -> Dict[str, Any]:
 
 
 @router.get("/actors/{actor_id}", dependencies=[Depends(api_key_auth)])
-def get_actor(actor_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_actor(actor_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get a single threat actor by id."""
     try:
         actor = _get_engine().get_threat_actor(org_id, actor_id)
@@ -184,7 +185,7 @@ def get_actor(actor_id: str, org_id: str = Query(default="default")) -> Dict[str
 def update_attribution_status(
     attribution_id: str,
     req: UpdateAttributionStatusRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update the status of an attribution."""
     try:

@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -109,7 +110,7 @@ def register_workload(body: WorkloadCreateReq) -> Dict[str, Any]:
 
 @router.get("/workloads")
 def list_workloads(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     workload_type: Optional[str] = Query(None),
     cloud_provider: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
@@ -135,7 +136,7 @@ def list_workloads(
 @router.get("/workloads/{workload_id}")
 def get_workload(
     workload_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     result = _get_engine().get_workload(org_id, workload_id)
     if result is None:
@@ -179,7 +180,7 @@ def record_threat(body: ThreatCreateReq) -> Dict[str, Any]:
 
 @router.get("/threats")
 def list_threats(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     workload_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -227,7 +228,7 @@ def create_policy(body: PolicyCreateReq) -> Dict[str, Any]:
 
 @router.get("/policies")
 def list_policies(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     enabled: Optional[bool] = Query(None),
 ) -> List[Dict[str, Any]]:
     try:
@@ -243,7 +244,7 @@ def list_policies(
 
 
 @router.get("/stats")
-def get_cwp_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_cwp_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().get_cwp_stats(org_id)
     except Exception as exc:

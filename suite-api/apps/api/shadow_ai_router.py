@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -79,7 +80,7 @@ class AttackPathsRequest(BaseModel):
 @router.post("/discover", dependencies=[Depends(api_key_auth)])
 def discover(
     body: DiscoverRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Discover shadow AI signals; optionally flag unregistered hits in CMDB."""
     try:
@@ -106,7 +107,7 @@ def discover(
 
 
 @router.post("/register", dependencies=[Depends(api_key_auth)], status_code=201)
-def register(body: RegisterRequest, org_id: str = Query(default="default")):
+def register(body: RegisterRequest, org_id: str = Depends(get_org_id)):
     """Register an AI service into the approved registry."""
     try:
         return _get_ai_engine().register_ai_service(
@@ -121,7 +122,7 @@ def register(body: RegisterRequest, org_id: str = Query(default="default")):
 
 
 @router.get("/registry", dependencies=[Depends(api_key_auth)])
-def registry(org_id: str = Query(default="default")):
+def registry(org_id: str = Depends(get_org_id)):
     """List approved AI services for the org."""
     return _get_ai_engine().list_ai_services(org_id)
 
@@ -129,7 +130,7 @@ def registry(org_id: str = Query(default="default")):
 @router.post("/attack-paths", dependencies=[Depends(api_key_auth)])
 def attack_paths(
     body: AttackPathsRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return potential prompt-injection / data-exfiltration paths for a service."""
     try:
@@ -139,7 +140,7 @@ def attack_paths(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def stats(org_id: str = Query(default="default")):
+def stats(org_id: str = Depends(get_org_id)):
     """Summary stats combining discovery + registry."""
     eng = _get_ai_engine()
     try:

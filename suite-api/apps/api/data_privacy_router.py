@@ -19,6 +19,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -94,7 +95,7 @@ def register_data_asset(body: DataAssetReq, _auth=Depends(api_key_auth)) -> Dict
 
 @router.get("/assets")
 def list_data_assets(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     data_category: Optional[str] = Query(None),
     classification: Optional[str] = Query(None),
     _auth=Depends(api_key_auth),
@@ -111,7 +112,7 @@ def list_data_assets(
 @router.get("/assets/{asset_id}")
 def get_data_asset(
     asset_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     try:
@@ -147,7 +148,7 @@ def record_privacy_request(body: PrivacyRequestReq, _auth=Depends(api_key_auth))
 
 @router.get("/requests")
 def list_privacy_requests(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     request_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     _auth=Depends(api_key_auth),
@@ -185,7 +186,7 @@ def update_request_status(
 
 @router.get("/stats")
 def get_privacy_stats(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     try:
@@ -202,7 +203,7 @@ def get_privacy_stats(
 
 @router.get("/")
 def get_data_privacy_summary(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Return a 5-state summary envelope for the data-privacy domain.

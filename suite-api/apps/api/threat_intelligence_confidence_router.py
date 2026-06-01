@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -143,7 +144,7 @@ def expire_stale_iocs(req: ExpireRequest) -> Dict[str, Any]:
 
 
 @router.get("/summary", summary="IOC summary stats")
-def get_ioc_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_ioc_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().get_ioc_summary(org_id=org_id)
     except Exception as exc:
@@ -152,7 +153,7 @@ def get_ioc_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
 
 
 @router.get("/sources", summary="Source reliability rankings")
-def get_source_rankings(org_id: str = Query(default="default")):
+def get_source_rankings(org_id: str = Depends(get_org_id)):
     try:
         return _get_engine().get_source_rankings(org_id=org_id)
     except Exception as exc:
@@ -162,7 +163,7 @@ def get_source_rankings(org_id: str = Query(default="default")):
 
 @router.get("/high-confidence", summary="High confidence active IOCs")
 def get_high_confidence_iocs(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     min_confidence: float = Query(default=0.7, ge=0.0, le=1.0),
 ):
     try:
@@ -176,7 +177,7 @@ def get_high_confidence_iocs(
 
 @router.get("/search", summary="Search IOC by exact value")
 def search_ioc(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     ioc_value: str = Query(..., description="Exact IOC value to look up"),
 ) -> Dict[str, Any]:
     try:

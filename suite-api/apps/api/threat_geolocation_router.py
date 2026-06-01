@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -98,7 +99,7 @@ def record_geo_event(req: GeoEventRequest) -> Dict[str, Any]:
 
 @router.get("/events", dependencies=[Depends(api_key_auth)])
 def list_geo_events(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     country_code: Optional[str] = Query(default=None),
     risk_level: Optional[str] = Query(default=None),
     limit: int = Query(default=100, ge=1, le=1000),
@@ -113,7 +114,7 @@ def list_geo_events(
 
 @router.get("/heatmap", dependencies=[Depends(api_key_auth)])
 def get_country_heatmap(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     hours: int = Query(default=24, ge=1, le=8760),
 ) -> List[Dict[str, Any]]:
     """Return country-level event heatmap for the last N hours."""
@@ -145,7 +146,7 @@ def create_geo_block_rule(req: GeoBlockRuleRequest) -> Dict[str, Any]:
 
 
 @router.get("/block-rules", dependencies=[Depends(api_key_auth)])
-def list_geo_block_rules(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def list_geo_block_rules(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List all geo block rules for the org."""
     try:
         return _get_engine().list_geo_block_rules(org_id)
@@ -165,7 +166,7 @@ def check_ip_allowed(req: CheckIPRequest) -> Dict[str, Any]:
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_geo_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_geo_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return geo statistics for the org."""
     try:
         return _get_engine().get_geo_stats(org_id)

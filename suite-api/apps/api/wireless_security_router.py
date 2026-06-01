@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -88,7 +89,7 @@ def register_access_point(req: RegisterAPRequest) -> Dict[str, Any]:
 
 @router.get("/access-points", dependencies=[Depends(api_key_auth)])
 def list_access_points(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     band: Optional[str] = Query(default=None),
     security_protocol: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -101,7 +102,7 @@ def list_access_points(
 
 
 @router.get("/access-points/{ap_id}", dependencies=[Depends(api_key_auth)])
-def get_access_point(ap_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_access_point(ap_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get a single access point by ID."""
     try:
         return _get_engine().get_access_point(org_id, ap_id)
@@ -126,7 +127,7 @@ def record_wireless_threat(req: RecordThreatRequest) -> Dict[str, Any]:
 
 @router.get("/threats", dependencies=[Depends(api_key_auth)])
 def list_wireless_threats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     threat_type: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -151,7 +152,7 @@ def resolve_threat(threat_id: str, req: ResolveThreatRequest) -> Dict[str, Any]:
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_wireless_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_wireless_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get wireless security stats for org."""
     try:
         return _get_engine().get_wireless_stats(org_id)

@@ -25,6 +25,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -124,7 +125,7 @@ def register_asset(req: RegisterAssetRequest) -> Dict[str, Any]:
 
 @router.get("/assets", dependencies=[Depends(api_key_auth)])
 def list_assets(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     asset_type: Optional[str] = Query(default=None),
     quantum_vulnerable: Optional[bool] = Query(default=None),
     migration_status: Optional[str] = Query(default=None),
@@ -145,7 +146,7 @@ def list_assets(
 @router.get("/assets/{asset_id}", dependencies=[Depends(api_key_auth)])
 def get_asset(
     asset_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single cryptographic asset by ID."""
     try:
@@ -215,7 +216,7 @@ def complete_assessment(
 
 @router.get("/assessments", dependencies=[Depends(api_key_auth)])
 def list_assessments(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
     """List quantum readiness assessments."""
@@ -240,7 +241,7 @@ def create_migration(req: CreateMigrationRequest) -> Dict[str, Any]:
 
 @router.get("/migrations", dependencies=[Depends(api_key_auth)])
 def list_migrations(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     asset_id: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
     priority: Optional[str] = Query(default=None),
@@ -256,7 +257,7 @@ def list_migrations(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_quantum_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_quantum_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate quantum crypto statistics for the org."""
     try:
         return _get_engine().get_quantum_stats(org_id)

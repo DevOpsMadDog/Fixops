@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -83,7 +84,7 @@ class CreatePolicyRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def get_nac_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_nac_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """5-state envelope summarising NAC posture for the org.
 
     States: ok | warning | critical | empty | error
@@ -141,7 +142,7 @@ def register_endpoint(req: RegisterEndpointRequest) -> Dict[str, Any]:
 
 @router.get("/endpoints", dependencies=[Depends(api_key_auth)])
 def list_endpoints(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     device_type: Optional[str] = Query(default=None),
     nac_status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -154,7 +155,7 @@ def list_endpoints(
 
 
 @router.get("/endpoints/{endpoint_id}", dependencies=[Depends(api_key_auth)])
-def get_endpoint(endpoint_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_endpoint(endpoint_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get a single endpoint by ID."""
     try:
         return _get_engine().get_endpoint(org_id, endpoint_id)
@@ -203,7 +204,7 @@ def create_nac_policy(req: CreatePolicyRequest) -> Dict[str, Any]:
 
 
 @router.get("/policies", dependencies=[Depends(api_key_auth)])
-def list_nac_policies(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def list_nac_policies(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List all NAC policies for org."""
     try:
         return _get_engine().list_nac_policies(org_id)
@@ -213,7 +214,7 @@ def list_nac_policies(org_id: str = Query(default="default")) -> List[Dict[str, 
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_nac_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_nac_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get NAC stats for org."""
     try:
         return _get_engine().get_nac_stats(org_id)

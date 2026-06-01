@@ -1,7 +1,7 @@
 # SPEC-007 tenancy violation allowlist — frozen debt.
 # Format: relative/path/to/file.py:lineno:CATEGORY
 # This list may only SHRINK. Never add new entries manually.
-# Generated violations: 581
+# Generated violations: 499
 
 suite-api/apps/api/access_anomaly_router.py:167:V1
 suite-api/apps/api/access_anomaly_router.py:183:V1
@@ -65,11 +65,6 @@ suite-api/apps/api/asset_risk_calculator_router.py:81:V1
 suite-api/apps/api/asset_risk_calculator_router.py:90:V1
 suite-api/apps/api/attack_path_router.py:221:V1
 suite-api/apps/api/auth_router.py:972:V1
-suite-api/apps/api/auto_waiver_router.py:100:V1
-suite-api/apps/api/auto_waiver_router.py:106:V1
-suite-api/apps/api/auto_waiver_router.py:62:V1
-suite-api/apps/api/auto_waiver_router.py:79:V1
-suite-api/apps/api/auto_waiver_router.py:87:V1
 suite-api/apps/api/behavioral_analytics_router.py:62:V1
 suite-api/apps/api/behavioral_analytics_router.py:71:V1
 suite-api/apps/api/breach_detection_router.py:126:V1
@@ -119,16 +114,6 @@ suite-api/apps/api/cloud_security_findings_router.py:178:V1
 suite-api/apps/api/cloud_security_findings_router.py:189:V1
 suite-api/apps/api/cloud_security_findings_router.py:195:V1
 suite-api/apps/api/cloud_security_findings_router.py:208:V1
-suite-api/apps/api/cloud_workload_protection_router.py:112:V1
-suite-api/apps/api/cloud_workload_protection_router.py:138:V1
-suite-api/apps/api/cloud_workload_protection_router.py:182:V1
-suite-api/apps/api/cloud_workload_protection_router.py:230:V1
-suite-api/apps/api/cloud_workload_protection_router.py:246:V1
-suite-api/apps/api/cmdb_router.py:127:V1
-suite-api/apps/api/cmdb_router.py:153:V1
-suite-api/apps/api/cmdb_router.py:185:V1
-suite-api/apps/api/cmdb_router.py:214:V1
-suite-api/apps/api/cmdb_router.py:247:V1
 suite-api/apps/api/cnapp_router.py:120:V1
 suite-api/apps/api/cnapp_router.py:133:V1
 suite-api/apps/api/cnapp_router.py:154:V1
@@ -176,21 +161,11 @@ suite-api/apps/api/ctem_router.py:91:V1
 suite-api/apps/api/dashboard_builder_router.py:106:V1
 suite-api/apps/api/dashboard_builder_router.py:62:V1
 suite-api/apps/api/data_governance_router.py:98:V1
-suite-api/apps/api/data_privacy_router.py:114:V1
-suite-api/apps/api/data_privacy_router.py:150:V1
-suite-api/apps/api/data_privacy_router.py:188:V1
-suite-api/apps/api/data_privacy_router.py:205:V1
-suite-api/apps/api/data_privacy_router.py:97:V1
 suite-api/apps/api/deduplication_router.py:20:V1
 suite-api/apps/api/dev_identity_router.py:100:V1
 suite-api/apps/api/dev_identity_router.py:85:V1
 suite-api/apps/api/dev_identity_router.py:93:V1
 suite-api/apps/api/evidence_collector_router.py:220:V1
-suite-api/apps/api/evidence_vault_router.py:117:V1
-suite-api/apps/api/evidence_vault_router.py:163:V1
-suite-api/apps/api/evidence_vault_router.py:173:V1
-suite-api/apps/api/evidence_vault_router.py:189:V1
-suite-api/apps/api/evidence_vault_router.py:92:V1
 suite-api/apps/api/exposure_case_router.py:42:V3
 suite-api/apps/api/findings_lifecycle_router.py:106:V1
 suite-api/apps/api/findings_lifecycle_router.py:94:V1
@@ -244,11 +219,6 @@ suite-api/apps/api/ioc_enrichment_router.py:163:V1
 suite-api/apps/api/ioc_enrichment_router.py:173:V1
 suite-api/apps/api/ioc_enrichment_router.py:183:V1
 suite-api/apps/api/ioc_enrichment_router.py:89:V1
-suite-api/apps/api/ip_reputation_router.py:101:V1
-suite-api/apps/api/ip_reputation_router.py:135:V1
-suite-api/apps/api/ip_reputation_router.py:146:V1
-suite-api/apps/api/ip_reputation_router.py:157:V1
-suite-api/apps/api/ip_reputation_router.py:90:V1
 suite-api/apps/api/license_scanner_router.py:56:V1
 suite-api/apps/api/license_scanner_router.py:63:V1
 suite-api/apps/api/license_scanner_router.py:71:V1
@@ -259,11 +229,10 @@ suite-api/apps/api/llm_firewall_router.py:933:V1
 suite-api/apps/api/log_management_router.py:53:V1
 suite-api/apps/api/log_management_router.py:62:V1
 suite-api/apps/api/log_management_router.py:70:V1
-suite-api/apps/api/malicious_pkg_router.py:137:V1
-suite-api/apps/api/malicious_pkg_router.py:64:V1
-suite-api/apps/api/malicious_pkg_router.py:70:V1
-suite-api/apps/api/malicious_pkg_router.py:77:V1
-suite-api/apps/api/malicious_pkg_router.py:84:V1
+suite-api/apps/api/malicious_pkg_router.py:65:V1
+suite-api/apps/api/malicious_pkg_router.py:71:V1
+suite-api/apps/api/malicious_pkg_router.py:78:V1
+suite-api/apps/api/malicious_pkg_router.py:85:V1
 suite-api/apps/api/malware_analysis_router.py:101:V1
 suite-api/apps/api/malware_analysis_router.py:123:V1
 suite-api/apps/api/malware_analysis_router.py:136:V1
@@ -274,11 +243,6 @@ suite-api/apps/api/malware_analysis_router.py:88:V1
 suite-api/apps/api/mcp_routes.py:63:V3
 suite-api/apps/api/ml_anomaly_router.py:106:V1
 suite-api/apps/api/multi_csp_router.py:57:V1
-suite-api/apps/api/network_access_control_router.py:144:V1
-suite-api/apps/api/network_access_control_router.py:157:V1
-suite-api/apps/api/network_access_control_router.py:206:V1
-suite-api/apps/api/network_access_control_router.py:216:V1
-suite-api/apps/api/network_access_control_router.py:86:V1
 suite-api/apps/api/network_forensics_router.py:114:V1
 suite-api/apps/api/network_forensics_router.py:127:V1
 suite-api/apps/api/network_forensics_router.py:142:V1
@@ -295,10 +259,6 @@ suite-api/apps/api/network_threat_router.py:169:V1
 suite-api/apps/api/network_threat_router.py:180:V1
 suite-api/apps/api/network_threat_router.py:191:V1
 suite-api/apps/api/network_threat_router.py:88:V1
-suite-api/apps/api/nl_graph_router.py:110:V1
-suite-api/apps/api/nl_graph_router.py:123:V1
-suite-api/apps/api/nl_graph_router.py:81:V1
-suite-api/apps/api/nl_graph_router.py:96:V1
 suite-api/apps/api/offline_feed_router.py:149:V1
 suite-api/apps/api/openclaw_router.py:102:V1
 suite-api/apps/api/openclaw_router.py:114:V1
@@ -337,11 +297,6 @@ suite-api/apps/api/privacy_impact_assessment_router.py:221:V1
 suite-api/apps/api/privacy_impact_assessment_router.py:227:V1
 suite-api/apps/api/prowler_router.py:52:V1
 suite-api/apps/api/prowler_router.py:64:V1
-suite-api/apps/api/quantum_safe_crypto_router.py:127:V1
-suite-api/apps/api/quantum_safe_crypto_router.py:148:V1
-suite-api/apps/api/quantum_safe_crypto_router.py:218:V1
-suite-api/apps/api/quantum_safe_crypto_router.py:243:V1
-suite-api/apps/api/quantum_safe_crypto_router.py:259:V1
 suite-api/apps/api/questionnaire_router.py:77:V1
 suite-api/apps/api/raas_intel_router.py:545:V1
 suite-api/apps/api/raas_intel_router.py:627:V1
@@ -409,10 +364,6 @@ suite-api/apps/api/security_posture_history_router.py:159:V1
 suite-api/apps/api/security_posture_history_router.py:173:V1
 suite-api/apps/api/security_posture_history_router.py:182:V1
 suite-api/apps/api/security_posture_history_router.py:87:V1
-suite-api/apps/api/security_posture_maturity_router.py:158:V1
-suite-api/apps/api/security_posture_maturity_router.py:163:V1
-suite-api/apps/api/security_posture_maturity_router.py:169:V1
-suite-api/apps/api/security_posture_maturity_router.py:176:V1
 suite-api/apps/api/security_posture_reporting_router.py:78:V1
 suite-api/apps/api/security_registry_router.py:227:V1
 suite-api/apps/api/security_training_effectiveness_router.py:109:V1
@@ -423,11 +374,6 @@ suite-api/apps/api/security_training_effectiveness_router.py:158:V1
 suite-api/apps/api/security_training_effectiveness_router.py:170:V1
 suite-api/apps/api/security_training_effectiveness_router.py:176:V1
 suite-api/apps/api/security_training_effectiveness_router.py:91:V1
-suite-api/apps/api/shadow_ai_router.py:109:V1
-suite-api/apps/api/shadow_ai_router.py:124:V1
-suite-api/apps/api/shadow_ai_router.py:132:V1
-suite-api/apps/api/shadow_ai_router.py:142:V1
-suite-api/apps/api/shadow_ai_router.py:82:V1
 suite-api/apps/api/siem_integration_router.py:102:V1
 suite-api/apps/api/siem_integration_router.py:107:V1
 suite-api/apps/api/siem_integration_router.py:116:V1
@@ -445,20 +391,13 @@ suite-api/apps/api/sla_escalation_router.py:133:V1
 suite-api/apps/api/sla_escalation_router.py:151:V1
 suite-api/apps/api/sla_escalation_router.py:169:V1
 suite-api/apps/api/sla_escalation_router.py:97:V1
-suite-api/apps/api/soc_automation_router.py:134:V1
-suite-api/apps/api/soc_automation_router.py:205:V1
-suite-api/apps/api/soc_automation_router.py:59:V1
-suite-api/apps/api/soc_automation_router.py:72:V1
-suite-api/apps/api/soc_automation_router.py:77:V1
+suite-api/apps/api/soc_automation_router.py:61:V1
+suite-api/apps/api/soc_automation_router.py:74:V1
+suite-api/apps/api/soc_automation_router.py:79:V1
 suite-api/apps/api/software_license_security_router.py:62:V1
 suite-api/apps/api/software_license_security_router.py:74:V1
 suite-api/apps/api/software_license_security_router.py:86:V1
 suite-api/apps/api/stage_matrix_router.py:111:V1
-suite-api/apps/api/supply_chain_attack_detection_router.py:115:V1
-suite-api/apps/api/supply_chain_attack_detection_router.py:129:V1
-suite-api/apps/api/supply_chain_attack_detection_router.py:173:V1
-suite-api/apps/api/supply_chain_attack_detection_router.py:221:V1
-suite-api/apps/api/supply_chain_attack_detection_router.py:237:V1
 suite-api/apps/api/supply_chain_router.py:608:V1
 suite-api/apps/api/supply_chain_router.py:613:V1
 suite-api/apps/api/threat_actor_tracking_router.py:206:V1
@@ -466,16 +405,7 @@ suite-api/apps/api/threat_actor_tracking_router.py:49:V1
 suite-api/apps/api/threat_actor_tracking_router.py:60:V1
 suite-api/apps/api/threat_actor_tracking_router.py:69:V1
 suite-api/apps/api/threat_actor_tracking_router.py:73:V1
-suite-api/apps/api/threat_attribution_router.py:120:V1
-suite-api/apps/api/threat_attribution_router.py:133:V1
-suite-api/apps/api/threat_attribution_router.py:144:V1
-suite-api/apps/api/threat_attribution_router.py:169:V1
-suite-api/apps/api/threat_attribution_router.py:187:V1
 suite-api/apps/api/threat_brief_router.py:236:V1
-suite-api/apps/api/threat_geolocation_router.py:101:V1
-suite-api/apps/api/threat_geolocation_router.py:116:V1
-suite-api/apps/api/threat_geolocation_router.py:148:V1
-suite-api/apps/api/threat_geolocation_router.py:168:V1
 suite-api/apps/api/threat_hunter_router.py:136:V1
 suite-api/apps/api/threat_hunting_playbook_router.py:103:V1
 suite-api/apps/api/threat_hunting_playbook_router.py:123:V1
@@ -514,10 +444,6 @@ suite-api/apps/api/threat_intel_enrichment_router.py:233:V1
 suite-api/apps/api/threat_intel_enrichment_router.py:243:V1
 suite-api/apps/api/threat_intel_enrichment_router.py:99:V1
 suite-api/apps/api/threat_intel_platform_router.py:112:V1
-suite-api/apps/api/threat_intelligence_confidence_router.py:146:V1
-suite-api/apps/api/threat_intelligence_confidence_router.py:155:V1
-suite-api/apps/api/threat_intelligence_confidence_router.py:165:V1
-suite-api/apps/api/threat_intelligence_confidence_router.py:179:V1
 suite-api/apps/api/threat_modeling_router.py:44:V1
 suite-api/apps/api/threat_modeling_router.py:84:V1
 suite-api/apps/api/threat_response_router.py:114:V1
@@ -569,15 +495,7 @@ suite-api/apps/api/vuln_prioritizer_router.py:205:V1
 suite-api/apps/api/vuln_prioritizer_router.py:232:V1
 suite-api/apps/api/vuln_prioritizer_router.py:309:V1
 suite-api/apps/api/vuln_prioritizer_router.py:80:V1
-suite-api/apps/api/vulnerability_age_router.py:148:V1
-suite-api/apps/api/vulnerability_age_router.py:154:V1
-suite-api/apps/api/vulnerability_age_router.py:161:V1
-suite-api/apps/api/vulnerability_age_router.py:170:V1
 suite-api/apps/api/webhook_router.py:353:V1
-suite-api/apps/api/wireless_security_router.py:104:V1
-suite-api/apps/api/wireless_security_router.py:129:V1
-suite-api/apps/api/wireless_security_router.py:154:V1
-suite-api/apps/api/wireless_security_router.py:91:V1
 suite-api/apps/api/workflow_engine_router.py:70:V1
 suite-api/apps/api/workflow_engine_router.py:85:V1
 suite-api/apps/api/workflow_router.py:60:V1

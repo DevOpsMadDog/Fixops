@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 try:
@@ -124,7 +125,7 @@ class RecordChangeRequest(BaseModel):
 
 @router.get("/cis", summary="List configuration items")
 def list_cis(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     ci_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     environment: Optional[str] = Query(None),
@@ -150,7 +151,7 @@ def create_ci(req: CreateCIRequest) -> Dict[str, Any]:
 @router.get("/cis/{ci_id}", summary="Get a configuration item")
 def get_ci(
     ci_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     result = _get_engine().get_ci(org_id, ci_id)
     if result is None:
@@ -182,7 +183,7 @@ def update_ci(
 
 @router.get("/relationships", summary="List CI relationships")
 def list_relationships(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     ci_id: Optional[str] = Query(None, description="Filter by src or dst CI"),
 ) -> List[Dict[str, Any]]:
     try:
@@ -211,7 +212,7 @@ def create_relationship(req: CreateRelationshipRequest) -> Dict[str, Any]:
 
 @router.get("/changes", summary="List CI change records")
 def list_changes(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     ci_id: Optional[str] = Query(None, description="Filter by CI"),
 ) -> List[Dict[str, Any]]:
     try:
@@ -244,7 +245,7 @@ def record_change(req: RecordChangeRequest) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", summary="CMDB aggregate statistics")
-def get_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().get_cmdb_stats(org_id)
     except Exception as exc:

@@ -17,6 +17,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -59,7 +60,7 @@ class ApplyRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/rule", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_rule(body: RegisterRuleRequest, org_id: str = Query(default="default")):
+def register_rule(body: RegisterRuleRequest, org_id: str = Depends(get_org_id)):
     """Register (or replace) an auto-waiver rule."""
     try:
         return _get_engine().register_auto_waiver_rule(
@@ -76,7 +77,7 @@ def register_rule(body: RegisterRuleRequest, org_id: str = Query(default="defaul
 
 @router.get("/rules", dependencies=[Depends(api_key_auth)])
 def list_rules(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     enabled: Optional[bool] = Query(default=None),
 ):
     """List auto-waiver rules, optionally filtered by enabled flag."""
@@ -84,7 +85,7 @@ def list_rules(
 
 
 @router.post("/apply", dependencies=[Depends(api_key_auth)])
-def apply_waivers(body: ApplyRequest, org_id: str = Query(default="default")):
+def apply_waivers(body: ApplyRequest, org_id: str = Depends(get_org_id)):
     """Apply auto-waiver rules against a finding. Returns matched exception or {matched: False}."""
     try:
         result = _get_engine().apply_auto_waivers(org_id, body.finding)
@@ -97,12 +98,12 @@ def apply_waivers(body: ApplyRequest, org_id: str = Query(default="default")):
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def stats(org_id: str = Query(default="default")):
+def stats(org_id: str = Depends(get_org_id)):
     """Return auto-waiver rule and exception stats for the org."""
     return _get_engine().auto_waiver_stats(org_id)
 
 
 @router.delete("/rule/{rule_key}", dependencies=[Depends(api_key_auth)])
-def delete_rule(rule_key: str, org_id: str = Query(default="default")):
+def delete_rule(rule_key: str, org_id: str = Depends(get_org_id)):
     """Delete an auto-waiver rule by rule_key."""
     return _get_engine().delete_auto_waiver_rule(org_id, rule_key)

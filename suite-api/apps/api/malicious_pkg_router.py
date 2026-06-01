@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -134,7 +135,7 @@ def release(body: ReleaseReq) -> Dict[str, Any]:
 
 @router.get("/quarantine")
 def list_quarantine(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     active_only: bool = Query(default=True),
 ) -> List[Dict[str, Any]]:
     try:

@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from core.evidence_vault_engine import EvidenceVaultEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -89,7 +90,7 @@ class VerifyIn(BaseModel):
 
 
 @router.get("/")
-async def get_vault_root(org_id: str = Query(default="default")) -> Dict[str, Any]:
+async def get_vault_root(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Root health + summary for the evidence vault."""
     summary = _get_engine().get_vault_summary(org_id)
     return {"status": "ok", "prefix": "/api/v1/evidence-vault", **summary}
@@ -114,7 +115,7 @@ async def store_evidence(body: StoreEvidenceIn) -> Dict[str, Any]:
 
 
 @router.put("/evidence/{evidence_id}/seal")
-async def seal_evidence(evidence_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+async def seal_evidence(evidence_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Seal evidence making it immutable."""
     try:
         ev = _get_engine().seal_evidence(evidence_id, org_id)
@@ -160,7 +161,7 @@ async def add_to_collection(collection_id: str, body: AddToCollectionIn) -> Dict
 
 
 @router.get("/evidence/{evidence_id}")
-async def get_evidence_detail(evidence_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+async def get_evidence_detail(evidence_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return evidence details plus last 20 access log entries."""
     ev = _get_engine().get_evidence_detail(evidence_id, org_id)
     if ev is None:
@@ -170,7 +171,7 @@ async def get_evidence_detail(evidence_id: str, org_id: str = Query(default="def
 
 @router.get("/search")
 async def search_evidence(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     framework: Optional[str] = Query(None),
     control_id: Optional[str] = Query(None),
     evidence_type: Optional[str] = Query(None),
@@ -186,7 +187,7 @@ async def search_evidence(
 
 
 @router.get("/summary")
-async def get_vault_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+async def get_vault_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return vault statistics."""
     return _get_engine().get_vault_summary(org_id)
 

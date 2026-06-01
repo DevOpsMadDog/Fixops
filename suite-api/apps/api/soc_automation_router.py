@@ -17,6 +17,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -131,7 +133,7 @@ def create_rule(req: CreateRuleRequest) -> RuleResponse:
 
 
 @router.get("/rules", response_model=List[RuleResponse])
-def list_rules(org_id: str = Query(default="default")) -> List[RuleResponse]:
+def list_rules(org_id: str = Depends(get_org_id)) -> List[RuleResponse]:
     """List all automation rules for an org."""
     if not _HAS_SOC:
         raise HTTPException(status_code=503, detail="SOC automation engine not available")
@@ -202,7 +204,7 @@ def evaluate_finding(req: EvaluateFindingRequest) -> Dict[str, Any]:
 
 
 @router.get("/stats", response_model=AutomationStats)
-def get_stats(org_id: str = Query(default="default")) -> AutomationStats:
+def get_stats(org_id: str = Depends(get_org_id)) -> AutomationStats:
     """Return automation statistics for the org."""
     if not _HAS_SOC:
         raise HTTPException(status_code=503, detail="SOC automation engine not available")

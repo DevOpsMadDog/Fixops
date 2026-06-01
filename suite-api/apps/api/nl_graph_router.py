@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -78,7 +79,7 @@ class NLQuestionRequest(BaseModel):
 @router.post("/query", dependencies=[Depends(api_key_auth)])
 def nl_graph_query(
     body: NLQuestionRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Answer a natural-language graph question with trace + explanation."""
     try:
@@ -93,7 +94,7 @@ def nl_graph_query(
 @router.post("/trace", dependencies=[Depends(api_key_auth)])
 def nl_graph_trace(
     body: NLQuestionRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return only the traversal trace for a NL graph question."""
     try:
@@ -107,7 +108,7 @@ def nl_graph_trace(
 
 @router.get("/history", dependencies=[Depends(api_key_auth)])
 def nl_graph_history(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=50, ge=1, le=500),
 ) -> List[Dict[str, Any]]:
     """List cached NL graph queries for an org, newest first."""
@@ -120,7 +121,7 @@ def nl_graph_history(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def nl_graph_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate stats for NL traced queries."""
     try:

@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -87,7 +88,7 @@ def submit_reputation(req: SubmitReputationRequest) -> Dict[str, Any]:
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_reputation_stats(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_reputation_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate IP reputation statistics for the org."""
     try:
         return _get_engine().get_reputation_stats(org_id)
@@ -98,7 +99,7 @@ def get_reputation_stats(org_id: str = Query(default="default")) -> Dict[str, An
 
 @router.get("/blocklist", dependencies=[Depends(api_key_auth)])
 def get_blocklist(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> List[Dict[str, Any]]:
     """Return the org IP blocklist."""
@@ -132,7 +133,7 @@ def add_to_blocklist(req: BlocklistRequest) -> Dict[str, Any]:
 @router.delete("/blocklist/{ip}", dependencies=[Depends(api_key_auth)])
 def remove_from_blocklist(
     ip: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Remove an IP from the org blocklist."""
     try:
@@ -143,7 +144,7 @@ def remove_from_blocklist(
 
 
 @router.get("/blocked/{ip}", dependencies=[Depends(api_key_auth)])
-def is_blocked(ip: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def is_blocked(ip: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Check if a specific IP is on the blocklist."""
     try:
         blocked = _get_engine().is_blocked(org_id, ip)
@@ -154,7 +155,7 @@ def is_blocked(ip: str, org_id: str = Query(default="default")) -> Dict[str, Any
 
 
 @router.get("/{ip}", dependencies=[Depends(api_key_auth)])
-def get_reputation(ip: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_reputation(ip: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get reputation data for a single IP."""
     try:
         result = _get_engine().get_reputation(org_id, ip)
