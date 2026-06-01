@@ -428,18 +428,39 @@ async def query_findings(
     response-body parsing (e.g. integrations that expect a bare array via the
     items key).
     """
-    # Real total count with same filters (excludes test findings via source check)
-    total = db.count_findings(org_id=org_id, severity=severity, status=status)
-    findings = db.list_findings(
-        org_id=org_id,
-        severity=severity,
-        status=status,
-        limit=limit + 10,  # over-fetch to allow filtering
-        offset=offset,
-    )
-    # Exclude synthetic test-only findings
-    findings = [f for f in findings if getattr(f, "source", "") != "test"]
-    items = [FindingResponse(**f.to_dict()) for f in findings[:limit]]
+    # Read from SecurityFindingsEngine — the SAME store scanner-ingest writes to and that
+    # GET /api/v1/findings + the dashboard summary read — so the Finding Explorer shows the
+    # customer's real ingested findings (was reading the empty legacy AnalyticsDB → 0 findings
+    # while the dashboard correctly showed the real total — a visible customer-facing mismatch).
+    from core.security_findings_engine import SecurityFindingsEngine
+    sfe = SecurityFindingsEngine()
+    all_findings = sfe.list_findings(org_id=org_id)
+
+    def _norm(f, attr, default=""):
+        v = f.get(attr, default) if isinstance(f, dict) else getattr(f, attr, default)
+        return v if v is not None else default
+
+    rows = []
+    for f in all_findings:
+        sev = str(_norm(f, "severity")).lower()
+        st = str(_norm(f, "status"))
+        if severity and sev != severity.lower():
+            continue
+        if status and st != status:
+            continue
+        rows.append({
+            "id": str(_norm(f, "id") or _norm(f, "finding_id")),
+            "rule_id": _norm(f, "rule_id") or _norm(f, "cve_id"),
+            "severity": sev or "medium",
+            "status": st or "open",
+            "title": _norm(f, "title") or _norm(f, "message") or _norm(f, "description"),
+            "file_path": _norm(f, "file_path") or _norm(f, "location"),
+            "scanner": _norm(f, "scanner") or _norm(f, "tool"),
+            "cve_id": _norm(f, "cve_id"),
+            "app_id": _norm(f, "app_id"),
+        })
+    total = len(rows)
+    items = rows[offset:offset + limit]
     response.headers["X-Total-Count"] = str(total)
     return {"items": items, "total": total, "limit": limit, "offset": offset}
 
