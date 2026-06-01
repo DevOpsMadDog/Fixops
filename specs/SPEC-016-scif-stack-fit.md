@@ -68,8 +68,23 @@ Every connector returns an **honest unconfigured path** (503 `unavailable`/`not_
   on `block`/`defer` writes a Jira ticket, a ServiceNow change/incident, and a Splunk decision event, then signs the
   decision bundle with ML-DSA (SPEC-006b) — each delivery best-effort + idempotent, honest per-target failure.
 - **REQ-016-06**: All ingest + loop writes are org-scoped (SPEC-007 ContextVar `get_org_id`); cross-org read → 404.
-- **REQ-016-07**: In `FIXOPS_AIRGAP_MODE=enforced`, connector egress is allowed ONLY to operator-configured on-prem
-  tool endpoints (the customer's own WIZ/Splunk/etc.), never to vendor SaaS defaults; unset endpoint → 503, not silent.
+- **REQ-016-07**: In `FIXOPS_AIRGAP_MODE=enforced`, every connector outbound call MUST pass a pre-flight egress guard
+  (`assert_egress_allowed(url, connector)`) BEFORE any socket opens: (a) a custom on-prem URL must be explicitly set;
+  (b) known vendor-SaaS FQDNs (`*.wiz.io`, `prismacloud.io`) are rejected; (c) RFC-1918 / link-local /
+  metadata IPs (`169.254.169.254`, `10.*`, `172.16-31.*`, `127.*`, `::1`, `fd*`) and non-`https` schemes are rejected
+  (SSRF); (d) HTTP clients use `follow_redirects=False`. Failing any → honest 503, never a silent egress. *(both reviewers, P0)*
+- **REQ-016-08**: `/closed-loop/decide` finding lookup MUST be `WHERE finding_id=? AND org_id=get_org_id()` → 404 on miss
+  (ContextVar alone is insufficient); all finding text is escaped/stripped before being written to Jira/ServiceNow
+  fields (no `[~mention]` / script / business-rule injection). *(Red-Team, P0)*
+- **REQ-016-09**: Each `/closed-loop/decide` delivery is deduped on `(org_id, finding_id, verdict_hash)` via a UNIQUE
+  constraint in a `closed_loop_deliveries` table — replay returns the existing receipt, never re-writes Jira/ServiceNow. *(Red-Team, P1)*
+- **REQ-016-10**: The signed decision bundle (ML-DSA, SPEC-006b) is written to the append-only tamper-evident audit
+  store (`evidence_chain`) carrying subject identity (api-key principal), org_id, classification label, full verdict
+  input+output, and a monotonic timestamp — AU-2/3/9/12. Returning the signature in the HTTP response is NOT sufficient. *(SCIF-Accreditor, P0)*
+- **REQ-016-11**: `_index_findings_into_brain` stamps a `classification_level` on every node (from tenant metadata, default
+  per the org's banner level); the brain read path refuses nodes whose level exceeds the requesting org's clearance. *(SCIF-Accreditor, P1)*
+- **REQ-016-12**: The raw `POST /api/v1/wiz/graphql` passthrough is gated (admin-scope + audit-logged); `/wiz/ingest`
+  calls the engine's typed methods directly and never proxies caller-supplied GraphQL through a shared credential. *(Red-Team, P1)*
 
 ## 5. Non-functional requirements
 - Latency: ingest is async/paginated; GET capability < 1s; `/closed-loop/decide` < 10s (council bound).
@@ -91,8 +106,9 @@ Every connector returns an **honest unconfigured path** (503 `unavailable`/`not_
 | Date | Mode | Verdict / change |
 |------|------|------------------|
 | 2026-06-02 | Author (Chief-Architect) | Reframed from "build WIZ/Prisma/Confluence" to "wire existing real connectors + close loop" after code-truth audit. |
-| 2026-06-02 | SCIF-Accreditor (pending) | Verify REQ-016-07 egress allowlist: no vendor SaaS default reachable in enforced mode. |
-| 2026-06-02 | Red-Team (pending) | Attack: can `/closed-loop/decide` be used to write attacker-controlled Jira/ServiceNow tickets cross-org? Must prove org-scope + idempotency. |
+| 2026-06-02 | SCIF-Accreditor | **APPROVE-WITH-CHANGES**: (1) REQ-016-07 was policy-only, no code gate → added `assert_egress_allowed` pre-flight guard. (2) ML-DSA signature alone insufficient for AU-family → added REQ-016-10 (append-only evidence_chain w/ subject+class+full I/O). (3) brain nodes carry no classification marking → added REQ-016-11. |
+| 2026-06-02 | Red-Team | **APPROVE-WITH-CHANGES**: (1) cross-org `finding_id` probe → added REQ-016-08 (`AND org_id=` predicate, 404 on miss, field escaping). (2) raw `/wiz/graphql` shared-credential exfil → added REQ-016-12 (admin-gate, ingest uses typed methods). (3) `/ingest` as SSRF primitive (metadata URL) → folded into REQ-016-07. (4) replay → duplicate tickets → added REQ-016-09 (`(org,finding,verdict_hash)` UNIQUE). |
+| 2026-06-02 | Resolution | Both APPROVE-WITH-CHANGES; 6 new REQs (07-12) folded in. Increment-1 scope (WIZ /ingest) must ship REQ-016-07 (egress guard) + REQ-016-11 (class marking). Closed-loop REQs 08-10 land in increment 3. |
 
 ## 8. Implementation notes
 Build order: (1) `/wiz/ingest` normalize→brain (highest ROI — engine already real), (2) `prisma_router.py` + registry,

@@ -17,6 +17,7 @@ Vision Pillars: V1 (APP_ID-Centric), V3 (Decision Intelligence), V7 (MCP-Native)
 from __future__ import annotations
 
 import logging
+import os
 import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -323,6 +324,16 @@ def _index_findings_into_brain(
             )
             fid = str(fid)
 
+            # Classification marking (SPEC-016 REQ-016-11) — every node carries a
+            # classification level so the brain read path can enforce clearance-based
+            # access in a multi-compartment SCIF. Source: per-finding override, else
+            # the deployment default (FIXOPS_DEFAULT_CLASSIFICATION), else UNCLASSIFIED.
+            _classification = (
+                f.get("classification_level")
+                or os.environ.get("FIXOPS_DEFAULT_CLASSIFICATION")
+                or "UNCLASSIFIED"
+            )
+
             # Upsert finding node
             brain.upsert_node(GraphNode(
                 node_id=fid,
@@ -332,6 +343,7 @@ def _index_findings_into_brain(
                     "title": f.get("title") or f.get("name") or fid,
                     "severity": f.get("severity") or "medium",
                     "cve_id": f.get("cve_id") or None,
+                    "classification_level": _classification,
                 },
             ))
             nodes_added += 1
@@ -367,6 +379,7 @@ def _index_findings_into_brain(
                         properties={
                             "asset_type": f.get("asset_type") or "unknown",
                             "name": f.get("asset_name") or asset_id,
+                            "classification_level": _classification,
                         },
                     ))
                     nodes_added += 1

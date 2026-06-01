@@ -1853,3 +1853,78 @@ def is_airgap_enforced() -> bool:
         pass
 
     return False
+
+
+# ---------------------------------------------------------------------------
+# Connector egress guard (SPEC-016 REQ-016-07) — SSRF + air-gap SaaS allowlist.
+# ---------------------------------------------------------------------------
+
+# Vendor-SaaS FQDN fragments rejected in ENFORCED air-gap mode — the customer
+# must point each connector at its own on-prem endpoint, never the SaaS default.
+_VENDOR_SAAS_FQDNS = (
+    ".wiz.io", "prismacloud.io", "snyk.io", "veracode.com",
+    "blackduck.com", "synopsys.com", "polaris.blackduck.com",
+)
+
+
+class EgressBlocked(RuntimeError):
+    """Raised when an outbound connector URL violates the air-gap / SSRF egress policy.
+
+    Routers map this to an honest HTTP 503 (never a silent egress, never a 500).
+    """
+
+
+def assert_egress_allowed(url: Optional[str], connector: str = "connector",
+                          *, allow_loopback: bool = False) -> bool:
+    """Pre-flight guard every connector MUST call BEFORE opening an outbound socket.
+
+    Rules (SPEC-016 REQ-016-07, hardened per SCIF-Accreditor + Red-Team debate):
+      - Scheme must be http/https; ENFORCED mode requires https.
+      - Link-local / cloud-metadata / multicast / reserved IPs are ALWAYS rejected
+        (catches the 169.254.169.254 SSRF primitive). The well-known metadata
+        hostnames are rejected too.
+      - Loopback rejected unless allow_loopback=True (localhost sidecars opt in).
+      - RFC-1918 private IPs are ALLOWED — a SCIF on-prem WIZ/Splunk lives on 10.x.
+      - ENFORCED mode rejects vendor-SaaS FQDN defaults (must be on-prem).
+    Returns True when allowed; raises EgressBlocked otherwise. Never silently passes.
+    """
+    import ipaddress
+    from urllib.parse import urlparse
+
+    if not url or not str(url).strip():
+        raise EgressBlocked(f"{connector}: no endpoint URL configured")
+    parsed = urlparse(str(url).strip())
+    scheme = (parsed.scheme or "").lower()
+    host = (parsed.hostname or "").lower()
+    if not host:
+        raise EgressBlocked(f"{connector}: URL has no host")
+
+    if scheme not in ("http", "https"):
+        raise EgressBlocked(f"{connector}: scheme {scheme!r} not permitted")
+
+    enforced = is_airgap_enforced()
+    if enforced and scheme != "https":
+        raise EgressBlocked(f"{connector}: airgap_enforced requires https, got {scheme!r}")
+
+    # SSRF guard — always on. Block link-local/metadata; allow RFC-1918 (on-prem reality).
+    try:
+        ip = ipaddress.ip_address(host)
+        if ip.is_link_local or ip.is_multicast or ip.is_reserved or ip.is_unspecified:
+            raise EgressBlocked(f"{connector}: link-local/metadata IP {host} blocked (SSRF)")
+        if ip.is_loopback and not allow_loopback:
+            raise EgressBlocked(f"{connector}: loopback {host} blocked")
+    except ValueError:
+        # Not an IP literal — block the well-known cloud-metadata hostnames.
+        if host in ("metadata.google.internal", "metadata"):
+            raise EgressBlocked(f"{connector}: cloud-metadata host {host} blocked (SSRF)")
+
+    if enforced:
+        for saas in _VENDOR_SAAS_FQDNS:
+            bare = saas.lstrip(".")
+            if host == bare or host.endswith(saas):
+                raise EgressBlocked(
+                    f"{connector}: airgap_enforced — vendor SaaS endpoint {host} blocked; "
+                    "configure an on-prem URL"
+                )
+
+    return True

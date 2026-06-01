@@ -18,12 +18,14 @@ WIZ_API_URL unset. NO MOCKS — engine raises RuntimeError → mapped to 503.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any, Dict, List, Optional
 
 import httpx
 from fastapi import Depends, APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 
 _logger = logging.getLogger(__name__)
 
@@ -83,6 +85,132 @@ def capability_summary() -> Dict[str, Any]:
     """Return capability/health summary for the Wiz integration."""
     eng = _engine()
     return eng.capability_summary()
+
+
+# ---------------------------------------------------------------------------
+# Ingest → normalize → findings + correlation brain (SPEC-016 increment 1)
+# ---------------------------------------------------------------------------
+
+
+def _norm_wiz_issue(node: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize one Wiz issue node into a canonical finding dict.
+
+    Uses the engine's typed query output (NOT the raw /graphql passthrough — SPEC-016
+    REQ-016-12). Asset comes from the issue's entitySnapshot.
+    """
+    rule = node.get("sourceRule") or {}
+    entity = node.get("entitySnapshot") or {}
+    fid = f"wiz-issue-{node.get('id')}"
+    return {
+        "id": fid,
+        "rule_id": str(rule.get("id") or node.get("type") or fid),
+        "title": rule.get("name") or node.get("type") or "Wiz issue",
+        "severity": str(node.get("severity") or "medium").lower(),
+        "cve_id": None,  # Wiz issues are policy/posture, not CVE-keyed
+        "asset_id": entity.get("id"),
+        "asset_name": entity.get("name"),
+        "asset_type": entity.get("type") or "cloud_resource",
+        "source": "wiz",
+        "status": str(node.get("status") or "open").lower(),
+    }
+
+
+def _norm_wiz_vuln(node: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize one Wiz vulnerabilityFindings node into a canonical finding dict."""
+    name = str(node.get("name") or "").strip()
+    cve = name if name.upper().startswith("CVE-") else None
+    cvss = node.get("cvss31") or {}
+    fid = f"wiz-vuln-{node.get('id')}"
+    return {
+        "id": fid,
+        "rule_id": cve or fid,
+        "title": name or fid,
+        "severity": str(node.get("vendorSeverity") or "medium").lower(),
+        "cve_id": cve,
+        "cvss_score": cvss.get("score") or node.get("score"),
+        "source": "wiz",
+        "fixed_version": node.get("fixedVersion"),
+    }
+
+
+class WizIngestBody(BaseModel):
+    severity: Optional[List[str]] = Field(
+        default=None, description="Severity filter, e.g. ['CRITICAL','HIGH']. Default CRITICAL,HIGH."
+    )
+    max_pages: int = Field(default=5, ge=1, le=50, description="Page cap per stream (bounded).")
+    page_size: int = Field(default=100, ge=1, le=500)
+
+
+@router.post("/ingest")
+def ingest(body: Optional[WizIngestBody] = None,
+           org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
+    """Pull Wiz issues + vulnerabilities → normalize → findings + correlation brain.
+
+    SPEC-016 REQ-016-01/06/07/12. Org-scoped. Egress-guarded BEFORE any outbound call
+    (no SaaS default / SSRF in enforced air-gap). Honest 503 when WIZ env unset.
+    Calls the engine's typed methods (never the raw /graphql passthrough).
+    """
+    from core.airgap_config import assert_egress_allowed, EgressBlocked
+
+    # REQ-016-07: pre-flight egress guard BEFORE opening any socket. Unset URL → 503.
+    try:
+        assert_egress_allowed(os.environ.get("WIZ_API_URL"), "wiz")
+    except EgressBlocked as exc:
+        raise HTTPException(status_code=503, detail=f"wiz unavailable: {exc}") from exc
+
+    body = body or WizIngestBody()
+    sev = body.severity or ["CRITICAL", "HIGH"]
+    eng = _engine()
+    findings: List[Dict[str, Any]] = []
+
+    # --- Issues (paginated, bounded) ---
+    after: Optional[str] = None
+    for _ in range(body.max_pages):
+        page = _handle_engine_call(
+            lambda a=after: eng.list_issues(severity=sev, first=body.page_size, after=a)
+        )
+        for n in page.get("issues", []) or []:
+            findings.append(_norm_wiz_issue(n))
+        pi = page.get("pageInfo") or {}
+        if not pi.get("hasNextPage"):
+            break
+        after = pi.get("endCursor")
+
+    # --- Vulnerabilities (paginated, bounded) ---
+    after = None
+    for _ in range(body.max_pages):
+        page = _handle_engine_call(
+            lambda a=after: eng.list_vulnerabilities(severity=sev, first=body.page_size, after=a)
+        )
+        for n in page.get("nodes", []) or []:
+            findings.append(_norm_wiz_vuln(n))
+        pi = page.get("pageInfo") or {}
+        if not pi.get("hasNextPage"):
+            break
+        after = pi.get("endCursor")
+
+    # --- Promote to findings store + index into correlation brain (Store B) ---
+    from apps.api.scanner_ingest_router import (
+        _promote_findings_to_issues,
+        _index_findings_into_brain,
+    )
+
+    promoted = 0
+    if findings:
+        try:
+            promoted = _promote_findings_to_issues(findings, "wiz", org_id)
+        except Exception as exc:  # noqa: BLE001 - never 500 the ingest path
+            _logger.warning("wiz ingest promote failed: %s", type(exc).__name__)
+    brain = _index_findings_into_brain(findings, org_id)
+
+    return {
+        "ingested": len(findings),
+        "promoted": promoted,
+        "brain_nodes_added": brain.get("nodes_added", 0),
+        "brain_edges_added": brain.get("edges_added", 0),
+        "correlated": brain.get("nodes_added", 0) > 0,
+        "source": "wiz",
+    }
 
 
 # ---------------------------------------------------------------------------
