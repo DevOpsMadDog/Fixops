@@ -24,15 +24,17 @@ import {
 
 // ── Dev-bypass helpers ──
 //
-// When running under Vite dev (`import.meta.env.DEV`) OR when the operator
-// flips the `FIXOPS_VISUAL_VERIFY` localStorage flag, we treat the session as
+// When running under Vite dev (`import.meta.env.DEV`) we treat the session as
 // authenticated with a sensible default org so deep-link visual verification
 // (Playwright, manual browsing, screenshot scripts) does not get bounced to
-// `/login` for every protected route. This NEVER fires in a production build
-// unless the operator deliberately sets the localStorage key — `import.meta.env.DEV`
-// is replaced with `false` by Vite at build time.
+// `/login` for every protected route.
+//
+// `import.meta.env.DEV` is statically replaced with `false` by Vite at build
+// time, so this entire branch is dead code in production bundles. There is
+// intentionally NO localStorage escape hatch — a stale localStorage key set
+// by a Playwright session or operator would otherwise activate the bypass on
+// the production deployment.
 
-const VISUAL_VERIFY_KEY = "FIXOPS_VISUAL_VERIFY";
 const DEV_BYPASS_ORG_ID = "juice-shop-corp";
 
 const DEV_BYPASS_USER: AuthUser = {
@@ -45,16 +47,9 @@ const DEV_BYPASS_USER: AuthUser = {
 };
 
 export function isDevBypassActive(): boolean {
-  if (typeof window === "undefined") return false;
-  // Production guard — only Vite-dev builds OR explicit localStorage opt-in.
-  const visualVerify = (() => {
-    try {
-      return window.localStorage.getItem(VISUAL_VERIFY_KEY) === "1";
-    } catch {
-      return false;
-    }
-  })();
-  return Boolean((import.meta as any).env?.DEV) || visualVerify;
+  // Strictly Vite dev mode only. import.meta.env.DEV === false in prod builds,
+  // so this function always returns false in production — no runtime escape.
+  return import.meta.env.DEV === true;
 }
 
 function ensureDevBypassOrg() {
@@ -169,9 +164,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       persistUser(null);
       return null;
     }
-    // Token-based auth (API key) — no JWT session needed; treat as authenticated
-    const DEMO_TOKEN = "aldeci-demo-key";
-    const apiKey = getStoredAuthToken() || (import.meta as any).env?.VITE_API_KEY || DEMO_TOKEN;
+    // Token-based auth (API key) — treat as authenticated only when a real
+    // token exists in localStorage or is provided via VITE_API_KEY at build
+    // time. VITE_API_KEY is intentionally blank in .env.production, so a fresh
+    // prod visitor with nothing in localStorage correctly gets null here and is
+    // redirected to /login. No hardcoded sentinel fallback.
+    const apiKey = getStoredAuthToken() || import.meta.env.VITE_API_KEY || "";
     if (apiKey) {
       // Persist to localStorage so subsequent requests and reloads use it
       if (!getStoredAuthToken()) {

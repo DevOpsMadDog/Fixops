@@ -537,6 +537,9 @@ export default function App() {
 
           {/* Protected workspace */}
           <Route element={<RequireAuth><WorkspaceLayout /></RequireAuth>}>
+            {/* Root index — redirect / to the default executive landing */}
+            <Route index element={<Navigate to="/executive" replace />} />
+
             {/* CISO / Executive landing — P01 board-level view (Multica #3986) */}
             <Route path="/executive" element={<CISODashboard />} />
 

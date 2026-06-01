@@ -42,18 +42,17 @@ import {
   Zap,
 } from "lucide-react";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { getStoredAuthToken } from "@/lib/api";
 
 // ── API ──────────────────────────────────────────────────────────────────────
+
 const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY =
-  (typeof window !== "undefined" &&
-    window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_";
 
 async function apiFetch(path: string) {
+  // Use the central token store — no hardcoded fallback key here.
+  const apiKey = getStoredAuthToken() || import.meta.env.VITE_API_KEY || "";
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
+    headers: { "X-API-Key": apiKey, "Content-Type": "application/json" },
   });
   if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
   return res.json();

@@ -33,10 +33,12 @@ export function setStoredAuthStrategy(strategy: AuthStrategy) {
   setStoredValue(AUTH_STRATEGY_STORAGE_KEY, strategy);
 }
 
-const DEMO_API_KEY = 'fixops_ent_38wJA8mb7CsbJ3PaLvKNz7lFnLWvFWXti_5NcdISXSogi_4grP24NAe_XymVfps_';
-
 export function getStoredAuthToken() {
-  return getStoredValue(AUTH_TOKEN_STORAGE_KEY) || DEMO_API_KEY;
+  // Returns the token from localStorage only — no hardcoded fallback.
+  // A hardcoded key here would make every production visitor an authenticated
+  // admin without any login. VITE_API_KEY is intentionally blanked in
+  // .env.production so nothing leaks into the prod bundle either.
+  return getStoredValue(AUTH_TOKEN_STORAGE_KEY);
 }
 
 export function setStoredAuthToken(token: string | null) {
@@ -173,14 +175,11 @@ api.interceptors.response.use(
     }
 
     if (status === 401) {
-      // Non-JWT auth: redirect to login unless visual-verify bypass is active
-      const visualVerify = (() => {
-        try { return window.localStorage.getItem("FIXOPS_VISUAL_VERIFY") === "1"; } catch { return false; }
-      })();
-      if (!visualVerify) {
-        const next = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.assign(`/login?next=${next}`);
-      }
+      // Redirect to login on any 401 — no localStorage escape hatch.
+      // In dev, isDevBypassActive() in auth.tsx prevents real 401s from
+      // occurring so this path is not reached during local development.
+      const next = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.assign(`/login?next=${next}`);
     }
 
     return Promise.reject(err);

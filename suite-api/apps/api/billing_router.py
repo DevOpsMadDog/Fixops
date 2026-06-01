@@ -50,6 +50,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import httpx
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Request
 from pydantic import BaseModel, Field
 
@@ -439,6 +440,67 @@ class SubscriptionResponse(BaseModel):
 class WebhookResponse(BaseModel):
     received: bool = True
     event_type: Optional[str] = None
+
+
+class BillingTierResponse(BaseModel):
+    """Response shape for GET /api/v1/billing/tier.
+
+    The UI (WorkspaceLayout, api.ts BillingTierResponse) reads only ``tier``.
+    Additional fields are stable metadata included for operator debugging.
+    """
+
+    tier: str  # "starter" | "pro" | "enterprise"
+    org_id: str
+    billing_configured: bool
+
+
+# ---------------------------------------------------------------------------
+# GET /tier — caller's own org tier (customer-accessible, no admin scope)
+# ---------------------------------------------------------------------------
+
+
+# Tier → daily request limit mapping.  These match the values enforced by
+# OrgTierRateLimitMiddleware in app.py:
+#   starter    → 1 000 req/day
+#   pro        → 10 000 req/day
+#   enterprise → unlimited (represented as -1)
+_TIER_DAILY_LIMITS: Dict[str, int] = {
+    "starter": 1_000,
+    "pro": 10_000,
+    "enterprise": -1,
+}
+
+
+@router.get("/tier", response_model=BillingTierResponse)
+async def get_billing_tier(
+    org_id: str = Depends(get_org_id),
+) -> BillingTierResponse:
+    """Return the billing tier for the calling org.
+
+    Auth: api_key_auth (same as all billing endpoints on this router).
+    Any authenticated customer can read their own tier — no admin scope needed.
+
+    Response fields
+    ---------------
+    tier               — "starter" | "pro" | "enterprise"
+    org_id             — the resolved org identifier
+    billing_configured — True when STRIPE_SECRET_KEY is present in the environment
+
+    When STRIPE_SECRET_KEY is absent the tier is the default-allow value
+    returned by get_org_tier() (i.e. "enterprise" for self-hosted installs).
+    """
+    tier = get_org_tier(org_id)
+    billing_configured = _get_key() is not None
+
+    _logger.info(
+        "get_billing_tier org=%s tier=%s billing_configured=%s",
+        org_id, tier, billing_configured,
+    )
+    return BillingTierResponse(
+        tier=tier,
+        org_id=org_id,
+        billing_configured=billing_configured,
+    )
 
 
 # ---------------------------------------------------------------------------
