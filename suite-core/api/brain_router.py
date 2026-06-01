@@ -631,6 +631,53 @@ async def ingest_remediation(
 
 
 # ---------------------------------------------------------------------------
+# SPEC-001: TrustGraph correlation endpoint
+# ---------------------------------------------------------------------------
+
+
+@router.get("/correlations/{finding_id}")
+async def get_finding_correlations(
+    finding_id: str,
+    cve_id: Optional[str] = Query(None, description="Optional CVE ID to seed correlation"),
+    asset_id: Optional[str] = Query(None, description="Optional asset ID to seed blast-radius"),
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Return the TrustGraph enrichment block for a finding (SPEC-001 §2).
+
+    Reads Store B (KnowledgeBrain / data/fixops_brain.db) — the store written by
+    the brain pipeline — to compute blast radius, correlated CVEs, related findings,
+    and a dollar-risk estimate.
+
+    Org-scoped (REQ-001-03): only the caller's org nodes plus shared 'system' nodes
+    are traversed.  Cross-org data never appears in the response.
+
+    Graceful (REQ-001-04): returns ``enriched: false`` with empty collections when
+    the graph has no data for this finding — never 500.
+    """
+    from core.trustgraph_integrations import BrainCorrelator
+
+    correlator = BrainCorrelator(org_id=org_id)
+    result = correlator.enrich_finding(
+        finding_id=finding_id,
+        cve_id=cve_id or None,
+        asset_id=asset_id or None,
+    )
+    return {
+        "finding_id": finding_id,
+        "org_id": org_id,
+        "trustgraph": {
+            "blast_radius": result.blast_radius,
+            "correlated_cves": result.correlated_cves,
+            "related_findings": result.related_findings,
+            "dollar_risk_estimate": result.dollar_risk_estimate,
+            "violated_controls": result.violated_controls,
+            "source_store": result.source_store,
+            "enriched": result.enriched,
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------
 

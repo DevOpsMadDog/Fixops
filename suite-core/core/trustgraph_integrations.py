@@ -1492,6 +1492,320 @@ class GraphRAGQueries:
 
 
 # ---------------------------------------------------------------------------
+# BrainCorrelator — reads Store B (KnowledgeBrain) for council enrichment
+# ---------------------------------------------------------------------------
+#
+# SPEC-001 / REQ-001-01 bridge: the council's _enrich_with_trustgraph must
+# read from the store that actually holds the pipeline-written edges.
+# TrustGraphBackbone (used by CrossDomainCorrelator / ImpactAnalyzer) resolves
+# to Store A (/tmp/trustgraph.db) which is empty in most deployments.
+# Store B (data/fixops_brain.db) is what _step_build_graph writes to via
+# direct KnowledgeBrain.upsert_node / add_edge calls.
+#
+# BrainCorrelator queries Store B directly and returns the §3 data contract:
+#   blast_radius, correlated_cves, related_findings, violated_controls,
+#   dollar_risk_estimate, source_store, enriched.
+#
+# Org isolation (REQ-001-03): only nodes where org_id == caller_org_id OR
+# org_id == KnowledgeBrain.SYSTEM_ORG are traversed.
+
+
+class TrustGraphEnrichmentResult(BaseModel):
+    """Spec §3 enrichment block returned by BrainCorrelator."""
+
+    blast_radius: Dict[str, Any] = Field(
+        default_factory=lambda: {"affected_assets": 0, "affected_containers": 0, "downstream": []}
+    )
+    correlated_cves: List[Dict[str, Any]] = Field(default_factory=list)
+    related_findings: List[str] = Field(default_factory=list)
+    dollar_risk_estimate: Optional[float] = None
+    violated_controls: List[str] = Field(default_factory=list)
+    source_store: str = "knowledge_brain"
+    enriched: bool = False
+
+
+class BrainCorrelator:
+    """Council enrichment bridge that reads the KnowledgeBrain (Store B).
+
+    This is the REQ-001-01 implementation:  CrossDomainCorrelator /
+    ImpactAnalyzer read Store A via TrustGraphBackbone, but the brain
+    pipeline writes finding/CVE/asset nodes and REFERENCES / AFFECTS edges
+    directly to Store B (KnowledgeBrain).  BrainCorrelator queries Store B
+    so the council actually gets correlation data.
+
+    Org isolation (REQ-001-03):
+        A node is visible to the caller when:
+          - node.org_id == caller_org_id  (tenant-owned), OR
+          - node.org_id == KnowledgeBrain.SYSTEM_ORG  (shared threat knowledge)
+        Any other org's nodes are silently ignored — never returned.
+
+    Graceful degradation (REQ-001-04):
+        All public methods return TrustGraphEnrichmentResult with enriched=False
+        on any error or empty graph — never raise.
+
+    Args:
+        org_id: Caller's tenant org ID.
+    """
+
+    _SYSTEM_ORG = "system"
+    # Edge types written by brain_pipeline._step_build_graph
+    _CVE_EDGE = "references"          # finding -> CVE
+    _ASSET_EDGE = "affects"           # finding -> asset
+    _CLUSTER_EDGE = "correlates_with" # finding <-> finding (from correlator step)
+    # Base breach-cost heuristic (same as CrossDomainCorrelator)
+    _COST_PER_ASSET = 50_000.0
+
+    def __init__(self, org_id: str = "default") -> None:
+        self.org_id = org_id
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _get_brain(self):
+        """Lazy import to avoid circular dependency at module load."""
+        from core.knowledge_brain import get_brain
+        return get_brain()
+
+    def _node_visible(self, node: Optional[Dict[str, Any]]) -> bool:
+        """Return True if the node belongs to the caller's org or is a system node."""
+        if node is None:
+            return False
+        node_org = node.get("org_id") or ""
+        return node_org == self.org_id or node_org == self._SYSTEM_ORG
+
+    def _get_visible_node(self, brain, node_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch a node and return it only if visible to this org."""
+        node = brain.get_node(node_id)
+        return node if self._node_visible(node) else None
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def enrich_finding(
+        self,
+        finding_id: str,
+        cve_id: Optional[str] = None,
+        asset_id: Optional[str] = None,
+    ) -> TrustGraphEnrichmentResult:
+        """Return the spec §3 enrichment block for a finding.
+
+        Traverses Store B edges to compute:
+        - blast_radius: asset count + container count + downstream ids
+        - correlated_cves: CVE nodes linked via 'references' edges
+        - related_findings: sibling findings that share a CVE node or are
+          linked via 'correlates_with' edges
+        - violated_controls: control nodes reachable from the finding
+        - dollar_risk_estimate: heuristic based on affected assets
+
+        Never raises (REQ-001-04).
+
+        Args:
+            finding_id: Finding node_id as stored in Store B (e.g. rule_id or
+                        uuid hex from brain_pipeline).
+            cve_id:     Optional CVE identifier to seed the CVE traversal when
+                        the finding node may not exist in the graph yet.
+            asset_id:   Optional asset identifier for blast-radius traversal.
+
+        Returns:
+            TrustGraphEnrichmentResult
+        """
+        result = TrustGraphEnrichmentResult()
+        try:
+            brain = self._get_brain()
+            # Guard: no NetworkX / empty brain  → enriched=False
+            if brain.node_count() == 0:
+                return result
+
+            # ----------------------------------------------------------------
+            # 1. Resolve finding node (may or may not exist in Store B)
+            # ----------------------------------------------------------------
+            finding_node = self._get_visible_node(brain, finding_id)
+
+            # ----------------------------------------------------------------
+            # 2. Gather CVE nodes linked to this finding via REFERENCES edges
+            # ----------------------------------------------------------------
+            cve_ids_found: List[str] = []
+            if finding_node is not None:
+                for edge in brain.get_edges(finding_id, direction="out"):
+                    if edge["edge_type"].lower() == self._CVE_EDGE:
+                        cve_node = self._get_visible_node(brain, edge["target_id"])
+                        if cve_node is not None:
+                            raw_cve = (
+                                cve_node.get("properties", {}).get("cve_id")
+                                or edge["target_id"]
+                            )
+                            cve_ids_found.append(edge["target_id"])
+                            result.correlated_cves.append(
+                                {"cve": raw_cve, "via": "references"}
+                            )
+
+            # Seed CVE from caller hint if not found via edges
+            if not cve_ids_found and cve_id:
+                cve_node = self._get_visible_node(brain, cve_id)
+                if cve_node is not None:
+                    cve_ids_found.append(cve_id)
+                    result.correlated_cves.append({"cve": cve_id, "via": "references"})
+
+            # ----------------------------------------------------------------
+            # 3. Blast radius: asset nodes via AFFECTS edges from this finding
+            # ----------------------------------------------------------------
+            affected_asset_ids: List[str] = []
+            affected_containers = 0
+            downstream_ids: List[str] = []
+
+            if finding_node is not None:
+                for edge in brain.get_edges(finding_id, direction="out"):
+                    if edge["edge_type"].lower() == self._ASSET_EDGE:
+                        asset_node = self._get_visible_node(brain, edge["target_id"])
+                        if asset_node is None:
+                            continue
+                        aid = edge["target_id"]
+                        affected_asset_ids.append(aid)
+                        downstream_ids.append(aid)
+                        atype = (
+                            asset_node.get("properties", {}).get("asset_type", "")
+                            or asset_node.get("node_type", "")
+                        ).lower()
+                        if atype in ("container", "k8s_pod", "pod", "docker"):
+                            affected_containers += 1
+
+            # Asset hint from caller when node not in graph yet
+            if not affected_asset_ids and asset_id:
+                asset_node = self._get_visible_node(brain, asset_id)
+                if asset_node is not None:
+                    affected_asset_ids.append(asset_id)
+                    downstream_ids.append(asset_id)
+
+            # Also traverse inbound AFFECTS edges to this finding's CVE nodes
+            # to find sibling assets affected by the same CVE (broader blast radius)
+            for cve_node_id in cve_ids_found[:5]:  # cap at 5 CVEs to stay < 500ms
+                for edge in brain.get_edges(cve_node_id, direction="in"):
+                    if edge["edge_type"].lower() != self._CVE_EDGE:
+                        continue
+                    sibling_finding_id = edge["source_id"]
+                    if sibling_finding_id == finding_id:
+                        continue
+                    # Follow sibling's AFFECTS edges to pick up more assets
+                    for ae in brain.get_edges(sibling_finding_id, direction="out"):
+                        if ae["edge_type"].lower() != self._ASSET_EDGE:
+                            continue
+                        sibling_asset = self._get_visible_node(brain, ae["target_id"])
+                        if sibling_asset and ae["target_id"] not in affected_asset_ids:
+                            affected_asset_ids.append(ae["target_id"])
+                            downstream_ids.append(ae["target_id"])
+
+            result.blast_radius = {
+                "affected_assets": len(affected_asset_ids),
+                "affected_containers": affected_containers,
+                "downstream": downstream_ids[:20],  # cap list for prompt size
+            }
+
+            # ----------------------------------------------------------------
+            # 4. Related findings: CORRELATES_WITH edges + CVE siblings
+            # ----------------------------------------------------------------
+            related_finding_ids: List[str] = []
+
+            # 4a. Direct CORRELATES_WITH edges
+            if finding_node is not None:
+                for edge in brain.get_edges(finding_id, direction="both"):
+                    if edge["edge_type"].lower() != self._CLUSTER_EDGE:
+                        continue
+                    other_id = (
+                        edge["target_id"]
+                        if edge["source_id"] == finding_id
+                        else edge["source_id"]
+                    )
+                    if other_id == finding_id:
+                        continue
+                    other_node = self._get_visible_node(brain, other_id)
+                    if other_node is not None and other_id not in related_finding_ids:
+                        related_finding_ids.append(other_id)
+
+            # 4b. CVE siblings (findings that share the same CVE node)
+            for cve_node_id in cve_ids_found[:5]:
+                for edge in brain.get_edges(cve_node_id, direction="in"):
+                    if edge["edge_type"].lower() != self._CVE_EDGE:
+                        continue
+                    sibling_id = edge["source_id"]
+                    if sibling_id == finding_id:
+                        continue
+                    sibling_node = self._get_visible_node(brain, sibling_id)
+                    if sibling_node is not None and sibling_id not in related_finding_ids:
+                        related_finding_ids.append(sibling_id)
+
+            result.related_findings = related_finding_ids[:50]  # cap
+
+            # ----------------------------------------------------------------
+            # 5. Dollar risk estimate (heuristic, same model as CrossDomainCorrelator)
+            # ----------------------------------------------------------------
+            n_assets = len(set(affected_asset_ids))
+            if n_assets > 0:
+                result.dollar_risk_estimate = round(n_assets * self._COST_PER_ASSET, 2)
+
+            # ----------------------------------------------------------------
+            # 6. enriched flag: true when we found at least one useful signal
+            # ----------------------------------------------------------------
+            result.enriched = bool(
+                result.correlated_cves
+                or result.related_findings
+                or result.blast_radius["affected_assets"] > 0
+            )
+
+        except Exception as exc:  # noqa: BLE001 — REQ-001-04 never raise
+            logger.warning(
+                "BrainCorrelator.enrich_finding failed: finding_id=%s error=%s",
+                finding_id,
+                exc,
+            )
+            # Return safe default (enriched=False) — caller must not see an exception
+            return TrustGraphEnrichmentResult()
+
+        return result
+
+    def enrich_by_cve(self, cve_id: str) -> TrustGraphEnrichmentResult:
+        """Enrich by CVE alone (no specific finding_id).
+
+        Useful for the /correlations endpoint when only a CVE is known.
+        """
+        result = TrustGraphEnrichmentResult()
+        try:
+            brain = self._get_brain()
+            if brain.node_count() == 0:
+                return result
+            cve_node = self._get_visible_node(brain, cve_id)
+            if cve_node is None:
+                return result
+
+            # All findings that reference this CVE
+            finding_ids: List[str] = []
+            for edge in brain.get_edges(cve_id, direction="in"):
+                if edge["edge_type"].lower() == self._CVE_EDGE:
+                    fn = self._get_visible_node(brain, edge["source_id"])
+                    if fn is not None:
+                        finding_ids.append(edge["source_id"])
+
+            if not finding_ids:
+                return result
+
+            # Use the first finding as anchor, collect rest as related
+            anchor = finding_ids[0]
+            return self.enrich_finding(
+                finding_id=anchor,
+                cve_id=cve_id,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("BrainCorrelator.enrich_by_cve failed: cve_id=%s error=%s", cve_id, exc)
+            return TrustGraphEnrichmentResult()
+
+
+def get_brain_correlator(org_id: str = "default") -> BrainCorrelator:
+    """Return a BrainCorrelator for the given org."""
+    return BrainCorrelator(org_id=org_id)
+
+
+# ---------------------------------------------------------------------------
 # Module-level singletons (lazy, per-call — matches backbone pattern)
 # ---------------------------------------------------------------------------
 

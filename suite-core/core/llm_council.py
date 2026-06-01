@@ -366,58 +366,97 @@ class LLMCouncilEngine:
         context: Mapping[str, Any],
         org_id: str,
     ) -> dict:
-        """Enrich finding with blast radius, attack paths, CVE correlation.
+        """Enrich finding with blast radius, CVE correlation, related findings.
 
-        Pulls TrustGraph context (impact analysis + cross-domain correlation) so
-        the council prompts can reason about real organisational blast radius and
-        dollar risk instead of just the raw scanner finding payload.
+        SPEC-001 / REQ-001-01: reads Store B (KnowledgeBrain / data/fixops_brain.db)
+        via BrainCorrelator so the council sees the real pipeline-written edges.
+        Previous implementation used CrossDomainCorrelator / ImpactAnalyzer which
+        resolve to Store A (/tmp/trustgraph.db) — a separate DB that never receives
+        the pipeline's finding/CVE/asset writes, so enrichment always returned nothing.
 
         NEVER raises — returns the original finding shape on any error so the
-        council remains operational even if TrustGraph is unavailable.
+        council remains operational even if TrustGraph is unavailable (REQ-001-04).
+
+        Org isolation (REQ-001-03): BrainCorrelator only traverses nodes where
+        org_id == caller org_id OR org_id == 'system' (shared threat knowledge).
+
+        REQ-001-05: attaches a ``trustgraph`` key to the returned dict so every
+        stage-1/2/3 prompt receives the enrichment block.
 
         Args:
             finding: Mutable copy of the security finding dict.
-            context: Council context (currently unused but kept for future
-                cross-context enrichment, e.g. service criticality).
-            org_id: Tenant org ID for TrustGraph scoping.
+            context: Council context (passed through for future use).
+            org_id: Tenant org ID — scopes graph traversal to this tenant.
 
         Returns:
-            New dict with enrichment fields (blast_radius, dollar_risk_estimate,
-            etc.) merged onto the original finding payload.
+            New dict with a ``trustgraph`` key containing the spec §3 block.
         """
         enriched = dict(finding)
         try:
-            from core.trustgraph_integrations import (
-                CrossDomainCorrelator,
-                ImpactAnalyzer,
+            from core.trustgraph_integrations import BrainCorrelator
+
+            finding_id = (
+                finding.get("id")
+                or finding.get("finding_id")
+                or finding.get("rule_id")
+                or finding.get("_id")
+                or ""
+            )
+            cve_id = finding.get("cve_id") or None
+            asset_id = (
+                finding.get("asset_id")
+                or finding.get("canonical_asset_id")
+                or finding.get("asset_name")
+                or None
             )
 
-            asset_id = finding.get("asset_id")
-            cve_id = finding.get("cve_id")
+            correlator = BrainCorrelator(org_id=org_id)
+            result = correlator.enrich_finding(
+                finding_id=str(finding_id),
+                cve_id=str(cve_id) if cve_id else None,
+                asset_id=str(asset_id) if asset_id else None,
+            )
 
-            if asset_id:
-                analyzer = ImpactAnalyzer(org_id=org_id)
-                impact = analyzer.blast_radius(asset_id)
-                enriched["blast_radius"] = impact.blast_radius
-                enriched["upstream_dependencies"] = [
-                    d.get("id") for d in impact.upstream_dependencies[:5]
-                ]
-                enriched["compliance_impact"] = [
-                    c.get("framework") for c in impact.compliance_impact[:3]
-                ]
-                enriched["risk_weight"] = impact.risk_weight
+            # Attach the spec §3 trustgraph block (REQ-001-05)
+            enriched["trustgraph"] = {
+                "blast_radius": result.blast_radius,
+                "correlated_cves": result.correlated_cves,
+                "related_findings": result.related_findings,
+                "dollar_risk_estimate": result.dollar_risk_estimate,
+                "violated_controls": result.violated_controls,
+                "source_store": result.source_store,
+                "enriched": result.enriched,
+            }
 
-            if cve_id:
-                correlator = CrossDomainCorrelator(org_id=org_id)
-                chain = correlator.correlate_cve(cve_id)
-                enriched["affected_containers"] = len(chain.containers)
-                enriched["affected_namespaces"] = len(chain.namespaces)
-                enriched["dollar_risk_estimate"] = chain.dollar_risk_estimate
-                enriched["compliance_controls_violated"] = [
-                    c.get("control_id") for c in chain.compliance_controls[:5]
-                ]
+            if result.enriched:
+                logger.debug(
+                    "TrustGraph enrichment: org=%s finding=%s "
+                    "blast=%d cves=%d related=%d",
+                    org_id,
+                    finding_id,
+                    result.blast_radius.get("affected_assets", 0),
+                    len(result.correlated_cves),
+                    len(result.related_findings),
+                )
+            else:
+                logger.debug(
+                    "TrustGraph enrichment: no graph data for org=%s finding=%s",
+                    org_id,
+                    finding_id,
+                )
+
         except Exception as exc:  # noqa: BLE001 — enrichment must never break convene
             logger.debug("TrustGraph enrichment skipped: %s", exc)
+            # Attach safe empty block so downstream code always sees the key
+            enriched.setdefault("trustgraph", {
+                "blast_radius": {"affected_assets": 0, "affected_containers": 0, "downstream": []},
+                "correlated_cves": [],
+                "related_findings": [],
+                "dollar_risk_estimate": None,
+                "violated_controls": [],
+                "source_store": "knowledge_brain",
+                "enriched": False,
+            })
         return enriched
 
     def _augment_with_similar_decisions(
@@ -908,6 +947,29 @@ class LLMCouncilEngine:
         else:
             similar_block = ""
 
+        # Render TrustGraph enrichment block (SPEC-001 / REQ-001-05).
+        # The `trustgraph` key is always present on enriched findings (either
+        # real data or the safe-empty default from _enrich_with_trustgraph).
+        tg = finding.get("trustgraph") or {}
+        if tg.get("enriched"):
+            br = tg.get("blast_radius", {})
+            cves_str = ", ".join(
+                c.get("cve", "") for c in tg.get("correlated_cves", [])[:5]
+            ) or "none"
+            related_count = len(tg.get("related_findings", []))
+            dollar = tg.get("dollar_risk_estimate")
+            dollar_str = f"${dollar:,.0f}" if dollar is not None else "unknown"
+            tg_block = (
+                f"\nTrustGraph Enrichment (org-scoped, from KnowledgeBrain):\n"
+                f"  Blast radius: {br.get('affected_assets', 0)} asset(s), "
+                f"{br.get('affected_containers', 0)} container(s)\n"
+                f"  Correlated CVEs: {cves_str}\n"
+                f"  Related findings in org: {related_count}\n"
+                f"  Estimated dollar risk: {dollar_str}\n"
+            )
+        else:
+            tg_block = ""
+
         prompt = (
             f"Analyze this security finding for remediation decision:\n\n"
             f"Title: {title}\n"
@@ -915,6 +977,7 @@ class LLMCouncilEngine:
             f"CVE: {cve}\n"
             f"Risk Score: {risk_score:.2f}\n"
             f"Service: {context.get('service_name', 'unknown')}\n"
+            f"{tg_block}"
             f"{similar_block}\n"
             f"Provide your independent assessment in JSON with keys:\n"
             f"  - recommended_action: one of [remediate_critical, remediate_high, "
