@@ -6,6 +6,7 @@
 | SPEC-002 | Automated Pen-Test Execution (real runner) | Pentest | PLANNED | openclaw_engine, pentest connector |
 | SPEC-003 | Per-customer Local LLM (distillation run) | Council/Learning | PLANNED | llm_learning_loop, llm_distill_train |
 | SPEC-004 | Multi-language Reachability (TS/Java/Go) | ASPM | PLANNED | function_reachability_engine |
+| [SPEC-011](SPEC-011-aspm.md) | ASPM — Scanner Ingest, Findings, SmartDedup, Reachability | ASPM | BACKFILL | scanner_ingest_router, findings_routes, security_findings_router, findings_lifecycle_router, function_reachability_router, SecurityFindingsEngine, SmartDedup |
 
 ## Backfill backlog (existing API groups needing specs — extend over time)
 ASPM ingest+findings · CTEM exposure-cases+prioritization · CSPM posture+compliance · Auth/tenancy ·
