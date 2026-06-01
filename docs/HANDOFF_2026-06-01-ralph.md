@@ -28,7 +28,7 @@ Senior-Dev builds → Tester verifies against the running app (not stored tests)
 
 ## Pre-mortem deaths — status
 1. **AI-not-AI air-gapped** → CLOSED: SPEC-002 (real pentest) + 003 (real local inference) + 001/005b (real blast-radius). Needs the actual GPU distillation run (founder hardware) for a fine-tuned model, but the inference path + honest labels are real.
-2. **No ATO** → PARTIALLY CLOSED: honest compliance (006), key-at-rest + immutable audit (006b). FIPS-CMVP cert + PIV-CAC = founder-blocked (external lab + hardware, 12-18mo / 4-6mo).
+2. **Customer ATO enablement** (NOT vendor SOC2 — on-prem/air-gapped, see memory feedback_no_soc2_onprem_airgap) → PARTIALLY CLOSED: honest compliance + evidence engine supply the customer's NIST 800-53/RMF/ICD-503 control evidence (006); key-at-rest + immutable audit (006b). FIPS-CMVP cert + PIV-CAC = founder-blocked (external lab + hardware, 12-18mo / 4-6mo). NO vendor SOC2 needed.
 3. **Spillage** → CLOSED: ContextVar asyncio fix + tenancy lint gate (007) + ~76 leaks closed in prior waves.
 4. **Maintainability** → CLOSED: lockfile/dependabot/SBOM (009) + router inventory/gate + schema registry (010).
 5. **Day-1 air-gap leak** → CLOSED: air-gap safe-by-default (005 + debate fixes).
