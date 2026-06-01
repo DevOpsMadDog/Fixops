@@ -24,6 +24,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -101,7 +102,7 @@ def list_identity_lifecycle(org_id: str = Query("default")) -> Dict[str, Any]:
 @router.post("/accounts")
 def provision_account(
     body: ProvisionAccountBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Provision a new identity account."""
     try:
@@ -120,7 +121,7 @@ def provision_account(
 
 @router.get("/accounts")
 def list_accounts(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
     department: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -131,7 +132,7 @@ def list_accounts(
 @router.get("/accounts/{account_id}")
 def get_account(
     account_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Fetch a single account with events and active entitlements."""
     result = _get_engine().get_account(account_id, org_id)
@@ -144,7 +145,7 @@ def get_account(
 def deprovision_account(
     account_id: str,
     body: DeprovisionBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Deprovision an account and revoke all entitlements."""
     try:
@@ -157,7 +158,7 @@ def deprovision_account(
 def suspend_account(
     account_id: str,
     body: SuspendBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Suspend an identity account."""
     try:
@@ -170,7 +171,7 @@ def suspend_account(
 def reactivate_account(
     account_id: str,
     body: ReactivateBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Reactivate a suspended or deprovisioned account."""
     try:
@@ -183,7 +184,7 @@ def reactivate_account(
 def grant_access(
     account_id: str,
     body: GrantAccessBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Grant a system access entitlement to an account."""
     try:
@@ -204,7 +205,7 @@ def grant_access(
 def revoke_access(
     entitlement_id: str,
     body: RevokeEntitlementBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Revoke a specific access entitlement."""
     try:
@@ -215,7 +216,7 @@ def revoke_access(
 
 @router.get("/orphans")
 def get_orphan_accounts(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     days_inactive: int = Query(default=90, description="Inactivity threshold in days"),
 ) -> List[Dict[str, Any]]:
     """Return active accounts inactive for >= days_inactive days."""
@@ -224,7 +225,7 @@ def get_orphan_accounts(
 
 @router.get("/summary")
 def get_entitlement_summary(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate identity and entitlement summary for the org."""
     return _get_engine().get_entitlement_summary(org_id)

@@ -20,6 +20,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -75,7 +76,7 @@ class TransferRequest(BaseModel):
 
 
 @router.post("/bundle/export", dependencies=[Depends(api_key_auth)], status_code=201)
-def export_bundle(body: ExportRequest, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def export_bundle(body: ExportRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Export a signed intelligence bundle for air-gapped consumption."""
     try:
         return _get_engine().export_bundle(
@@ -184,7 +185,7 @@ def get_bundle(bundle_id: str) -> Dict[str, Any]:
 
 
 @router.get("/", summary="Air-gap bundles index", tags=["air-gap"])
-def air_gap_index(org_id: str = Query(default="default"), _auth: None = Depends(api_key_auth)) -> Dict[str, Any]:
+def air_gap_index(org_id: str = Depends(get_org_id), _auth: None = Depends(api_key_auth)) -> Dict[str, Any]:
     """Return a list of air-gap bundles for the org."""
     try:
         engine = _get_engine()

@@ -25,6 +25,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -115,7 +116,7 @@ class CreateTemplateRequest(BaseModel):
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
 def get_service_summary(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> dict:
     """Return incident-communications service summary (stats + available channels).
 

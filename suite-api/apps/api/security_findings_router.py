@@ -178,7 +178,7 @@ def suppress_finding(
 @router.get("/findings/{finding_id}", dependencies=[Depends(api_key_auth)])
 def get_finding(
     finding_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a finding with evidence and suppressions."""
     result = _get_engine().get_finding(finding_id=finding_id, org_id=org_id)
@@ -189,7 +189,7 @@ def get_finding(
 
 @router.get("/findings", dependencies=[Depends(api_key_auth)])
 def list_findings(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
     source_tool: Optional[str] = Query(default=None),
@@ -206,21 +206,21 @@ def list_findings(
 @router.get("/assets/{asset_id}/findings", dependencies=[Depends(api_key_auth)])
 def get_asset_findings(
     asset_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Get all findings for a specific asset."""
     return _get_engine().get_asset_findings(org_id=org_id, asset_id=asset_id)
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_findings_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_findings_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get findings summary: counts, severity breakdown, source breakdown, top assets."""
     return _get_engine().get_findings_summary(org_id=org_id)
 
 
 @router.get("/export", dependencies=[Depends(api_key_auth)])
 def export_findings(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     format: str = Query(default="csv", pattern="^(csv|json)$"),
 ) -> StreamingResponse:
     """Export findings as CSV or JSON stream.

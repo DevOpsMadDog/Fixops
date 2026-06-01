@@ -25,6 +25,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -86,7 +87,7 @@ def list_ioc_enrichment(org_id: str = Query("default")):
 
 @router.get("/iocs", dependencies=[Depends(api_key_auth)])
 def list_iocs(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     ioc_type: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
     limit: int = Query(default=50, ge=1, le=1000),
@@ -97,7 +98,7 @@ def list_iocs(
 
 
 @router.post("/iocs", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_ioc(body: IOCCreate, org_id: str = Query(default="default")):
+def add_ioc(body: IOCCreate, org_id: str = Depends(get_org_id)):
     """Add a new IOC indicator."""
     try:
         return _get_engine().add_ioc(org_id, body.model_dump())
@@ -114,7 +115,7 @@ def add_ioc(body: IOCCreate, org_id: str = Query(default="default")):
     dependencies=[Depends(api_key_auth)],
     status_code=201,
 )
-def enrich_ioc(ioc_id: str, org_id: str = Query(default="default")):
+def enrich_ioc(ioc_id: str, org_id: str = Depends(get_org_id)):
     """Trigger enrichment for an IOC against the abuse.ch Feodo Tracker C2 blocklist.
 
     Returns real verdict (malicious/unknown) and feed metadata for IP IOCs.
@@ -130,7 +131,7 @@ def enrich_ioc(ioc_id: str, org_id: str = Query(default="default")):
 
 
 @router.get("/iocs/{ioc_id}/enrichment", dependencies=[Depends(api_key_auth)])
-def get_enrichment(ioc_id: str, org_id: str = Query(default="default")):
+def get_enrichment(ioc_id: str, org_id: str = Depends(get_org_id)):
     """Fetch stored enrichment for an IOC."""
     result = _get_engine().get_enrichment(org_id, ioc_id)
     if not result:
@@ -150,7 +151,7 @@ def get_enrichment(ioc_id: str, org_id: str = Query(default="default")):
 def add_to_watchlist(
     watchlist_name: str,
     body: WatchlistAdd,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Add an IOC to a named watchlist."""
     success = _get_engine().add_to_watchlist(org_id, watchlist_name, body.ioc_id)
@@ -160,7 +161,7 @@ def add_to_watchlist(
 
 
 @router.get("/watchlist/{watchlist_name}", dependencies=[Depends(api_key_auth)])
-def get_watchlist(watchlist_name: str, org_id: str = Query(default="default")):
+def get_watchlist(watchlist_name: str, org_id: str = Depends(get_org_id)):
     """Return all IOC records on a named watchlist."""
     return _get_engine().get_watchlist(org_id, watchlist_name)
 
@@ -170,7 +171,7 @@ def get_watchlist(watchlist_name: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/bulk-import", dependencies=[Depends(api_key_auth)], status_code=201)
-def bulk_import(body: BulkImport, org_id: str = Query(default="default")):
+def bulk_import(body: BulkImport, org_id: str = Depends(get_org_id)):
     """Bulk import a list of IOC dicts. Returns imported/failed counts."""
     return _get_engine().bulk_import(org_id, body.iocs)
 
@@ -180,6 +181,6 @@ def bulk_import(body: BulkImport, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_ioc_stats(org_id: str = Query(default="default")):
+def get_ioc_stats(org_id: str = Depends(get_org_id)):
     """Return summary statistics for an org's IOC inventory."""
     return _get_engine().get_ioc_stats(org_id)

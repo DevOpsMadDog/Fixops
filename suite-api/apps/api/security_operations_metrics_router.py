@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -163,14 +164,14 @@ def update_analyst_workload(body: WorkloadUpdate) -> Dict[str, Any]:
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_soc_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_soc_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get SOC summary: open alerts, by_severity, by_status, last 7 snapshots, top analysts."""
     return _get_engine().get_soc_summary(org_id=org_id)
 
 
 @router.get("/mttd-trend", dependencies=[Depends(api_key_auth)])
 def get_mttd_trend(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     days: int = Query(default=30, ge=1, le=365),
 ) -> List[Dict[str, Any]]:
     """Get MTTD/MTTR trend from snapshots (last N days)."""
@@ -179,7 +180,7 @@ def get_mttd_trend(
 
 @router.get("/analyst-performance", dependencies=[Depends(api_key_auth)])
 def get_analyst_performance(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     date: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
     """Get analyst performance records, optionally filtered by date."""

@@ -29,6 +29,7 @@ from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 try:
@@ -99,7 +100,7 @@ def _get_engine(org_id: str) -> OpenClawEngine:
 
 @router.get("/campaigns")
 def list_campaigns(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
     campaign_type: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -111,7 +112,7 @@ def list_campaigns(
 @router.post("/campaigns", status_code=201)
 def create_campaign(
     body: CampaignCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new pentest campaign. Requires authorization_token."""
     engine = _get_engine(org_id)
@@ -124,7 +125,7 @@ def create_campaign(
 @router.get("/campaigns/{campaign_id}")
 def get_campaign(
     campaign_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a campaign with tasks, findings, and operators."""
     engine = _get_engine(org_id)
@@ -137,7 +138,7 @@ def get_campaign(
 @router.post("/campaigns/{campaign_id}/start")
 def start_campaign(
     campaign_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Start a staged campaign.
 
@@ -160,7 +161,7 @@ def start_campaign(
 @router.post("/campaigns/{campaign_id}/advance")
 def advance_phase(
     campaign_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Advance the campaign to the next MITRE ATT&CK phase.
 
@@ -183,7 +184,7 @@ def advance_phase(
 @router.post("/campaigns/{campaign_id}/pause")
 def pause_campaign(
     campaign_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Pause a running campaign."""
     engine = _get_engine(org_id)
@@ -196,7 +197,7 @@ def pause_campaign(
 @router.post("/campaigns/{campaign_id}/complete")
 def complete_campaign(
     campaign_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Complete a campaign and calculate final risk score."""
     engine = _get_engine(org_id)
@@ -209,7 +210,7 @@ def complete_campaign(
 @router.get("/campaigns/{campaign_id}/tasks")
 def list_tasks(
     campaign_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
     """List tasks for a campaign, optionally filtered by status."""
@@ -219,7 +220,7 @@ def list_tasks(
 
 @router.get("/findings")
 def list_findings(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     campaign_id: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -232,7 +233,7 @@ def list_findings(
 def update_finding_status(
     finding_id: str,
     body: FindingStatusUpdate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update a finding's status (open → accepted → remediated)."""
     engine = _get_engine(org_id)
@@ -244,7 +245,7 @@ def update_finding_status(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Aggregate pentest stats for an org."""
     engine = _get_engine(org_id)

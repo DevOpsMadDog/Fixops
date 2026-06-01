@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -89,7 +90,7 @@ def list_awareness_programs(org_id: str = Query("default")) -> Dict[str, Any]:
 
 
 @router.post("/programs", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_program(body: ProgramCreate, org_id: str = Query(default="default")):
+def create_program(body: ProgramCreate, org_id: str = Depends(get_org_id)):
     """Create a new awareness program."""
     try:
         return _get_engine().create_program(
@@ -106,7 +107,7 @@ def create_program(body: ProgramCreate, org_id: str = Query(default="default")):
 
 
 @router.post("/programs/{program_id}/enroll", dependencies=[Depends(api_key_auth)], status_code=201)
-def enroll_user(program_id: str, body: EnrollUser, org_id: str = Query(default="default")):
+def enroll_user(program_id: str, body: EnrollUser, org_id: str = Depends(get_org_id)):
     """Enroll a user in a program (dedup safe)."""
     try:
         return _get_engine().enroll_user(
@@ -125,7 +126,7 @@ def enroll_user(program_id: str, body: EnrollUser, org_id: str = Query(default="
 # ---------------------------------------------------------------------------
 
 @router.put("/enrollments/{enrollment_id}/complete", dependencies=[Depends(api_key_auth)])
-def record_completion(enrollment_id: str, body: CompletionRecord, org_id: str = Query(default="default")):
+def record_completion(enrollment_id: str, body: CompletionRecord, org_id: str = Depends(get_org_id)):
     """Record completion of an enrollment with a score."""
     try:
         return _get_engine().record_completion(
@@ -142,7 +143,7 @@ def record_completion(enrollment_id: str, body: CompletionRecord, org_id: str = 
 # ---------------------------------------------------------------------------
 
 @router.post("/events", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_event(body: EventRecord, org_id: str = Query(default="default")):
+def record_event(body: EventRecord, org_id: str = Depends(get_org_id)):
     """Record an awareness event."""
     try:
         return _get_engine().record_event(
@@ -163,7 +164,7 @@ def record_event(body: EventRecord, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/programs/{program_id}/stats", dependencies=[Depends(api_key_auth)])
-def get_program_stats(program_id: str, org_id: str = Query(default="default")):
+def get_program_stats(program_id: str, org_id: str = Depends(get_org_id)):
     """Return program stats including completion rate, pass rate, dept breakdown."""
     try:
         return _get_engine().get_program_stats(program_id, org_id)
@@ -172,18 +173,18 @@ def get_program_stats(program_id: str, org_id: str = Query(default="default")):
 
 
 @router.get("/department-compliance", dependencies=[Depends(api_key_auth)])
-def get_department_compliance(org_id: str = Query(default="default")):
+def get_department_compliance(org_id: str = Depends(get_org_id)):
     """Return per-department compliance rates."""
     return _get_engine().get_department_compliance(org_id)
 
 
 @router.get("/overdue", dependencies=[Depends(api_key_auth)])
-def get_overdue_enrollments(org_id: str = Query(default="default")):
+def get_overdue_enrollments(org_id: str = Depends(get_org_id)):
     """Return enrollments overdue (not completed within 30 days)."""
     return _get_engine().get_overdue_enrollments(org_id)
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_program_summary(org_id: str = Query(default="default")):
+def get_program_summary(org_id: str = Depends(get_org_id)):
     """Return org-level program summary statistics."""
     return _get_engine().get_program_summary(org_id)

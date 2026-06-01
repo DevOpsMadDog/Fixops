@@ -15,6 +15,7 @@ from core.attack_path_engine import AttackPathEngine
 from fastapi import Depends, APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 
 
 logger = logging.getLogger(__name__)
@@ -218,7 +219,7 @@ def toxic_combinations(
 
 
 @router.get("/", summary="Attack paths index", tags=["attack-paths"])
-async def attack_paths_index(org_id: str = Query(default="default")) -> Dict[str, Any]:
+async def attack_paths_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return a summary of attack paths for the org."""
     try:
         nodes = _get_engine().list_nodes(org_id=org_id)

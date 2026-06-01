@@ -23,6 +23,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -94,7 +95,7 @@ class ScanComplete(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/endpoints", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_endpoint(body: EndpointCreate, org_id: str = Query(default="default")):
+def register_endpoint(body: EndpointCreate, org_id: str = Depends(get_org_id)):
     """Register a new API endpoint."""
     try:
         return _get_engine().register_endpoint(org_id, body.model_dump())
@@ -104,7 +105,7 @@ def register_endpoint(body: EndpointCreate, org_id: str = Query(default="default
 
 @router.get("/endpoints", dependencies=[Depends(api_key_auth)])
 def list_endpoints(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     service_name: Optional[str] = Query(None),
     is_public: Optional[bool] = Query(None),
     sensitivity_level: Optional[str] = Query(None),
@@ -123,7 +124,7 @@ def list_endpoints(
 # ---------------------------------------------------------------------------
 
 @router.post("/keys", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_api_key(body: ApiKeyCreate, org_id: str = Query(default="default")):
+def create_api_key(body: ApiKeyCreate, org_id: str = Depends(get_org_id)):
     """Create an API key. Raw key is NOT stored or returned."""
     try:
         return _get_engine().create_api_key(org_id, body.model_dump())
@@ -133,7 +134,7 @@ def create_api_key(body: ApiKeyCreate, org_id: str = Query(default="default")):
 
 @router.get("/keys", dependencies=[Depends(api_key_auth)])
 def list_api_keys(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
 ):
     """List API keys (hashed_key never exposed)."""
@@ -141,7 +142,7 @@ def list_api_keys(
 
 
 @router.post("/keys/{key_id}/revoke", dependencies=[Depends(api_key_auth)])
-def revoke_api_key(key_id: str, org_id: str = Query(default="default")):
+def revoke_api_key(key_id: str, org_id: str = Depends(get_org_id)):
     """Revoke an API key."""
     revoked = _get_engine().revoke_api_key(org_id, key_id)
     if not revoked:
@@ -154,7 +155,7 @@ def revoke_api_key(key_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/abuse-events", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_abuse_event(body: AbuseEventCreate, org_id: str = Query(default="default")):
+def record_abuse_event(body: AbuseEventCreate, org_id: str = Depends(get_org_id)):
     """Record an API abuse event."""
     try:
         return _get_engine().record_abuse_event(org_id, body.model_dump())
@@ -164,7 +165,7 @@ def record_abuse_event(body: AbuseEventCreate, org_id: str = Query(default="defa
 
 @router.get("/abuse-events", dependencies=[Depends(api_key_auth)])
 def list_abuse_events(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     event_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -185,7 +186,7 @@ def list_abuse_events(
 # ---------------------------------------------------------------------------
 
 @router.post("/scans", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_scan(body: ScanCreate, org_id: str = Query(default="default")):
+def create_scan(body: ScanCreate, org_id: str = Depends(get_org_id)):
     """Create an API scan job."""
     try:
         return _get_engine().create_scan(org_id, body.model_dump())
@@ -194,7 +195,7 @@ def create_scan(body: ScanCreate, org_id: str = Query(default="default")):
 
 
 @router.post("/scans/{scan_id}/complete", dependencies=[Depends(api_key_auth)])
-def complete_scan(scan_id: str, body: ScanComplete, org_id: str = Query(default="default")):
+def complete_scan(scan_id: str, body: ScanComplete, org_id: str = Depends(get_org_id)):
     """Mark an API scan as completed with finding counts."""
     completed = _get_engine().complete_scan(org_id, scan_id, body.model_dump())
     if not completed:
@@ -204,7 +205,7 @@ def complete_scan(scan_id: str, body: ScanComplete, org_id: str = Query(default=
 
 @router.get("/scans", dependencies=[Depends(api_key_auth)])
 def list_scans(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
 ):
     """List API scans with optional status filter."""
@@ -216,7 +217,7 @@ def list_scans(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_api_stats(org_id: str = Query(default="default")):
+def get_api_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated API security statistics for the org."""
     return _get_engine().get_api_stats(org_id)
 

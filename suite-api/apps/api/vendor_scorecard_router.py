@@ -29,6 +29,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -111,7 +112,7 @@ class LinkSBOMRequest(BaseModel):
 
 @router.get("/high-risk", summary="High-risk vendors")
 async def get_high_risk_vendors(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return vendors in CRITICAL or HIGH risk tier."""
     vendors = _get_scorecard().get_high_risk_vendors(org_id=org_id)
@@ -123,7 +124,7 @@ async def get_high_risk_vendors(
 
 @router.get("/risk-changes", summary="Recent score changes")
 async def get_risk_changes(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(default=30, ge=1, le=365),
 ) -> Dict[str, Any]:
     """Return vendors whose risk score changed in the last N days."""
@@ -133,7 +134,7 @@ async def get_risk_changes(
 
 @router.get("/stats", summary="Vendor portfolio stats")
 async def get_vendor_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate statistics for the vendor portfolio."""
     return _get_scorecard().get_vendor_stats(org_id=org_id)

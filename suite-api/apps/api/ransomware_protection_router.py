@@ -25,6 +25,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -132,7 +133,7 @@ def register_detection(body: DetectionCreate) -> Dict[str, Any]:
 
 @router.get("/detections")
 def list_detections(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     return _get_engine().list_detections(org_id=org_id, status=status)
@@ -168,7 +169,7 @@ def register_backup(body: BackupCreate) -> Dict[str, Any]:
 
 @router.get("/backups")
 def list_backups(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     system_name: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     eng = _get_engine()
@@ -203,7 +204,7 @@ def validate_backup(backup_id: str, body: BackupValidate) -> Dict[str, Any]:
 
 
 @router.get("/unvalidated-backups")
-def get_unvalidated_backups(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def get_unvalidated_backups(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     return _get_engine().get_unvalidated_backups(org_id=org_id)
 
 
@@ -233,18 +234,18 @@ def execute_playbook(playbook_id: str, body: PlaybookExecute) -> Dict[str, Any]:
 
 
 @router.get("/status")
-def get_protection_status(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_protection_status(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().get_protection_status(org_id=org_id)
 
 
 @router.get("/summary")
-def get_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().get_summary(org_id=org_id)
 
 
 @router.get("/raas-groups")
 def list_raas_groups(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     active_only: bool = Query(default=True),
 ) -> List[Dict[str, Any]]:
     """List tracked RaaS / extortion groups for the org."""
@@ -271,7 +272,7 @@ def register_raas_group(body: RaaSGroupCreate) -> Dict[str, Any]:
 @router.post("/raas-groups/{group_id}/deactivate")
 def deactivate_raas_group(
     group_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Mark a RaaS group as no longer active."""
     try:

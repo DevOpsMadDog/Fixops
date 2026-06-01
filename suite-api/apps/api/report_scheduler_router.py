@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import Depends, APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 
 sys.path.insert(0, "suite-core")
 try:
@@ -123,7 +124,7 @@ def list_schedules(
 
 
 @router.delete("/schedules/{schedule_id}", summary="Delete a report delivery schedule")
-def delete_schedule(schedule_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def delete_schedule(schedule_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Delete a schedule by ID. Returns 404 if not found."""
     sched = _get_scheduler()
     deleted = sched.delete_schedule(schedule_id=schedule_id, org_id=org_id)
@@ -135,7 +136,7 @@ def delete_schedule(schedule_id: str, org_id: str = Query(default="default")) ->
 
 
 @router.post("/schedules/{schedule_id}/trigger", summary="Trigger immediate report delivery")
-def trigger_report(schedule_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def trigger_report(schedule_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Manually trigger delivery of a report for the given schedule.
 
     Returns {status, report_id, channels_notified}.
@@ -153,7 +154,7 @@ def trigger_report(schedule_id: str, org_id: str = Query(default="default")) -> 
 @router.get("/schedules/{schedule_id}/preview", summary="Preview report data")
 def get_preview(
     schedule_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return a preview of report data for the given schedule's report_type."""
     sched = _get_scheduler()

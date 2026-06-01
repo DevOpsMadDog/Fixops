@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -82,7 +83,7 @@ def list_threat_indicators(org_id: str = Query("default")):
 
 
 @router.post("/indicators", status_code=201)
-def add_indicator(body: IndicatorCreate, org_id: str = Query(default="default")):
+def add_indicator(body: IndicatorCreate, org_id: str = Depends(get_org_id)):
     """Add a new threat indicator (IOC) with confidence clamping."""
     try:
         return _get_engine().add_indicator(
@@ -102,7 +103,7 @@ def add_indicator(body: IndicatorCreate, org_id: str = Query(default="default"))
 
 @router.get("/indicators")
 def get_active_indicators(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     indicator_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
 ):
@@ -113,7 +114,7 @@ def get_active_indicators(
 
 
 @router.get("/indicators/{indicator_id}")
-def get_indicator(indicator_id: str, org_id: str = Query(default="default")):
+def get_indicator(indicator_id: str, org_id: str = Depends(get_org_id)):
     """Get a single indicator with its enrichments and sightings."""
     result = _get_engine().get_indicator(indicator_id, org_id)
     if result is None:
@@ -123,7 +124,7 @@ def get_indicator(indicator_id: str, org_id: str = Query(default="default")):
 
 @router.post("/indicators/{indicator_id}/enrich", status_code=201)
 def enrich_indicator(
-    indicator_id: str, body: EnrichmentAdd, org_id: str = Query(default="default")
+    indicator_id: str, body: EnrichmentAdd, org_id: str = Depends(get_org_id)
 ):
     """Add enrichment data for an indicator."""
     return _get_engine().enrich_indicator(
@@ -136,7 +137,7 @@ def enrich_indicator(
 
 @router.post("/indicators/{indicator_id}/sighting", status_code=201)
 def record_sighting(
-    indicator_id: str, body: SightingAdd, org_id: str = Query(default="default")
+    indicator_id: str, body: SightingAdd, org_id: str = Depends(get_org_id)
 ):
     """Record a sighting of an indicator (increments sighting_count)."""
     try:
@@ -152,7 +153,7 @@ def record_sighting(
 
 
 @router.post("/indicators/{indicator_id}/false-positive")
-def mark_false_positive(indicator_id: str, org_id: str = Query(default="default")):
+def mark_false_positive(indicator_id: str, org_id: str = Depends(get_org_id)):
     """Mark an indicator as false positive and deactivate it."""
     result = _get_engine().mark_false_positive(indicator_id, org_id)
     if result is None:
@@ -161,7 +162,7 @@ def mark_false_positive(indicator_id: str, org_id: str = Query(default="default"
 
 
 @router.post("/indicators/{indicator_id}/expire")
-def expire_indicator(indicator_id: str, org_id: str = Query(default="default")):
+def expire_indicator(indicator_id: str, org_id: str = Depends(get_org_id)):
     """Manually expire (deactivate) an indicator."""
     result = _get_engine().expire_indicator(indicator_id, org_id)
     if result is None:
@@ -174,18 +175,18 @@ def expire_indicator(indicator_id: str, org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/expired")
-def get_expired_indicators(org_id: str = Query(default="default")):
+def get_expired_indicators(org_id: str = Depends(get_org_id)):
     """Return active indicators that have passed their expiry_at timestamp."""
     return _get_engine().get_expired_indicators(org_id)
 
 
 @router.get("/search")
-def search_indicators(org_id: str = Query(default="default"), query: str = Query(...)):
+def search_indicators(org_id: str = Depends(get_org_id), query: str = Query(...)):
     """LIKE search on indicator_value."""
     return _get_engine().search_indicators(org_id, query)
 
 
 @router.get("/summary")
-def get_summary(org_id: str = Query(default="default")):
+def get_summary(org_id: str = Depends(get_org_id)):
     """Return aggregated IOC summary for an org."""
     return _get_engine().get_summary(org_id)

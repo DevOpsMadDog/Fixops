@@ -13,6 +13,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from core.user_analytics import Activity, ActivityType, UserAnalyticsEngine, UserSession
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -102,7 +103,7 @@ async def get_active_sessions(
 
 @router.get("/most-active", response_model=List[Dict[str, Any]])
 async def get_most_active_users(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(default=30, ge=1, le=365),
     limit: int = Query(default=10, ge=1, le=100),
 ) -> List[Dict[str, Any]]:
@@ -112,7 +113,7 @@ async def get_most_active_users(
 
 @router.get("/feature-usage", response_model=Dict[str, int])
 async def get_feature_usage(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(default=30, ge=1, le=365),
 ) -> Dict[str, int]:
     """Return feature usage counts over the specified period."""
@@ -121,7 +122,7 @@ async def get_feature_usage(
 
 @router.get("/endpoint-usage", response_model=List[Dict[str, Any]])
 async def get_endpoint_usage(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(default=30, ge=1, le=365),
 ) -> List[Dict[str, Any]]:
     """Return most-called API endpoints over the specified period."""
@@ -130,7 +131,7 @@ async def get_endpoint_usage(
 
 @router.get("/peak-hours", response_model=List[Dict[str, Any]])
 async def get_peak_hours(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(default=30, ge=1, le=365),
 ) -> List[Dict[str, Any]]:
     """Return activity distribution by hour of day (0-23)."""
@@ -139,7 +140,7 @@ async def get_peak_hours(
 
 @router.get("/dau", response_model=List[Dict[str, Any]])
 async def get_daily_active_users(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(default=30, ge=1, le=365),
 ) -> List[Dict[str, Any]]:
     """Return daily active user (DAU) counts over the specified period."""
@@ -148,7 +149,7 @@ async def get_daily_active_users(
 
 @router.get("/underutilized-features", response_model=List[str])
 async def get_underutilized_features(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[str]:
     """Return features with fewer than 5 total uses."""
     return _get_engine().get_underutilized_features(org_id=org_id)
@@ -156,7 +157,7 @@ async def get_underutilized_features(
 
 @router.get("/dashboard", response_model=Dict[str, Any])
 async def get_usage_dashboard(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return all analytics metrics combined for dashboard display."""
     return _get_engine().get_usage_dashboard(org_id=org_id)

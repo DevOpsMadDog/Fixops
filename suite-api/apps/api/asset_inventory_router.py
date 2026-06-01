@@ -563,7 +563,7 @@ def get_sync_history(
 
 
 @router.get("/", summary="Asset inventory index", tags=["asset-inventory"])
-def asset_index(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def asset_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return asset inventory summary stats and top assets for the org."""
     inv = _inv()
     try:

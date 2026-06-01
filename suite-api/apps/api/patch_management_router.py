@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -83,7 +84,7 @@ def list_patch_management(org_id: str = Query("default")) -> Dict[str, Any]:
 
 
 @router.post("/patches", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_patch(body: PatchCreate, org_id: str = Query(default="default")):
+def register_patch(body: PatchCreate, org_id: str = Depends(get_org_id)):
     """Register a new patch."""
     try:
         return _get_engine().register_patch(org_id, body.model_dump())
@@ -93,7 +94,7 @@ def register_patch(body: PatchCreate, org_id: str = Query(default="default")):
 
 @router.get("/patches", dependencies=[Depends(api_key_auth)])
 def list_patches(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     patch_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -105,7 +106,7 @@ def list_patches(
 
 
 @router.get("/patches/{patch_id}", dependencies=[Depends(api_key_auth)])
-def get_patch(patch_id: str, org_id: str = Query(default="default")):
+def get_patch(patch_id: str, org_id: str = Depends(get_org_id)):
     """Get a single patch by ID."""
     patch = _get_engine().get_patch(org_id, patch_id)
     if not patch:
@@ -114,7 +115,7 @@ def get_patch(patch_id: str, org_id: str = Query(default="default")):
 
 
 @router.patch("/patches/{patch_id}/status", dependencies=[Depends(api_key_auth)])
-def update_patch_status(patch_id: str, body: PatchStatusUpdate, org_id: str = Query(default="default")):
+def update_patch_status(patch_id: str, body: PatchStatusUpdate, org_id: str = Depends(get_org_id)):
     """Update patch lifecycle status."""
     try:
         return _get_engine().update_patch_status(
@@ -131,7 +132,7 @@ def update_patch_status(patch_id: str, body: PatchStatusUpdate, org_id: str = Qu
 # ---------------------------------------------------------------------------
 
 @router.post("/patches/{patch_id}/deployments", dependencies=[Depends(api_key_auth)], status_code=201)
-def record_deployment(patch_id: str, body: DeploymentCreate, org_id: str = Query(default="default")):
+def record_deployment(patch_id: str, body: DeploymentCreate, org_id: str = Depends(get_org_id)):
     """Record a per-asset patch deployment."""
     try:
         return _get_engine().record_deployment(org_id, patch_id, body.model_dump())
@@ -141,7 +142,7 @@ def record_deployment(patch_id: str, body: DeploymentCreate, org_id: str = Query
 
 @router.get("/deployments", dependencies=[Depends(api_key_auth)])
 def list_deployments(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     patch_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     os_type: Optional[str] = Query(None),
@@ -157,6 +158,6 @@ def list_deployments(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_patch_stats(org_id: str = Query(default="default")):
+def get_patch_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated patch management statistics."""
     return _get_engine().get_patch_stats(org_id)

@@ -20,6 +20,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -126,7 +127,7 @@ def analyze_ai_generated_endpoint(
 
 @router.get("/history", dependencies=[Depends(api_key_auth)])
 def snippet_history(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     language: Optional[str] = Query(default=None),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> Dict[str, Any]:
@@ -150,7 +151,7 @@ def snippet_history(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def snippet_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregated snippet scan statistics for the given org."""
     try:

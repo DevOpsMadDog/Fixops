@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -100,7 +101,7 @@ def list_hunting_playbooks(org_id: str = Query("default")) -> Dict[str, Any]:
 @router.post("/playbooks", dependencies=[Depends(api_key_auth)])
 def create_playbook(
     body: CreatePlaybookBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new threat hunting playbook."""
     try:
@@ -120,7 +121,7 @@ def create_playbook(
 
 @router.get("/playbooks", dependencies=[Depends(api_key_auth)])
 def list_playbooks(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     hunt_type: Optional[str] = Query(default=None),
     threat_category: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
@@ -134,7 +135,7 @@ def list_playbooks(
 
 
 @router.post("/import-sigma", dependencies=[Depends(api_key_auth)])
-def import_sigma_playbooks(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def import_sigma_playbooks(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Import detection rules from SigmaHQ master branch into sigmahq_rules.db.
 
     Downloads https://github.com/SigmaHQ/sigma/archive/refs/heads/master.tar.gz,
@@ -153,7 +154,7 @@ def import_sigma_playbooks(org_id: str = Query(default="default")) -> Dict[str, 
 @router.get("/playbooks/{playbook_id}", dependencies=[Depends(api_key_auth)])
 def get_playbook(
     playbook_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Fetch a single playbook with executions and hypotheses."""
     result = _get_engine().get_playbook(playbook_id, org_id)
@@ -166,7 +167,7 @@ def get_playbook(
 def add_hypothesis(
     playbook_id: str,
     body: AddHypothesisBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a hypothesis to a playbook."""
     try:
@@ -184,7 +185,7 @@ def add_hypothesis(
 def validate_hypothesis(
     hypothesis_id: str,
     body: ValidateHypothesisBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Validate a hypothesis with evidence."""
     try:
@@ -197,7 +198,7 @@ def validate_hypothesis(
 def start_execution(
     playbook_id: str,
     body: StartExecutionBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Start a hunt execution for a playbook."""
     try:
@@ -214,7 +215,7 @@ def start_execution(
 def complete_execution(
     execution_id: str,
     body: CompleteExecutionBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Complete a hunt execution and update playbook stats."""
     try:
@@ -232,7 +233,7 @@ def complete_execution(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_hunt_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate hunt statistics for the org."""
     return _get_engine().get_hunt_stats(org_id)

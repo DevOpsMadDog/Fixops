@@ -23,6 +23,7 @@ import logging
 from typing import List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -96,7 +97,7 @@ def list_intel_enrichment(org_id: str = Query("default")):
 
 
 @router.post("/requests", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_enrichment_request(body: EnrichmentRequestCreate, org_id: str = Query(default="default")):
+def create_enrichment_request(body: EnrichmentRequestCreate, org_id: str = Depends(get_org_id)):
     """Create a new enrichment request."""
     try:
         return _get_engine().create_enrichment_request(
@@ -111,7 +112,7 @@ def create_enrichment_request(body: EnrichmentRequestCreate, org_id: str = Query
 
 @router.get("/requests", dependencies=[Depends(api_key_auth)])
 def list_enrichment_requests(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
@@ -143,7 +144,7 @@ def list_enrichment_requests(
 
 
 @router.get("/requests/{request_id}", dependencies=[Depends(api_key_auth)])
-def get_enrichment(request_id: str, org_id: str = Query(default="default")):
+def get_enrichment(request_id: str, org_id: str = Depends(get_org_id)):
     """Get enrichment request with results."""
     result = _get_engine().get_enrichment(request_id, org_id)
     if not result:
@@ -155,7 +156,7 @@ def get_enrichment(request_id: str, org_id: str = Query(default="default")):
 def add_enrichment_result(
     request_id: str,
     body: EnrichmentResultCreate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Add an enrichment result to a request."""
     try:
@@ -180,7 +181,7 @@ def add_enrichment_result(
 # ---------------------------------------------------------------------------
 
 @router.get("/indicators/{indicator}/summary", dependencies=[Depends(api_key_auth)])
-def get_indicator_summary(indicator: str, org_id: str = Query(default="default")):
+def get_indicator_summary(indicator: str, org_id: str = Depends(get_org_id)):
     """Get aggregated enrichment summary for an indicator."""
     return _get_engine().get_indicator_summary(org_id, indicator)
 
@@ -190,7 +191,7 @@ def get_indicator_summary(indicator: str, org_id: str = Query(default="default")
 # ---------------------------------------------------------------------------
 
 @router.post("/sources", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_source(body: SourceCreate, org_id: str = Query(default="default")):
+def register_source(body: SourceCreate, org_id: str = Depends(get_org_id)):
     """Register a new enrichment source."""
     try:
         return _get_engine().register_source(
@@ -207,7 +208,7 @@ def register_source(body: SourceCreate, org_id: str = Query(default="default")):
 def update_source_stats(
     source_id: str,
     body: SourceStatsUpdate,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ):
     """Update request_count and success_rate for a source."""
     try:
@@ -218,7 +219,7 @@ def update_source_stats(
 
 @router.get("/sources", dependencies=[Depends(api_key_auth)])
 def list_sources(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     enabled: Optional[bool] = Query(None),
 ):
     """List registered enrichment sources."""
@@ -230,7 +231,7 @@ def list_sources(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_enrichment_stats(org_id: str = Query(default="default")):
+def get_enrichment_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated enrichment statistics."""
     return _get_engine().get_enrichment_stats(org_id)
 
@@ -240,7 +241,7 @@ def get_enrichment_stats(org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/bulk", dependencies=[Depends(api_key_auth)], status_code=201)
-def bulk_enrich(body: BulkEnrichRequest, org_id: str = Query(default="default")):
+def bulk_enrich(body: BulkEnrichRequest, org_id: str = Depends(get_org_id)):
     """Create enrichment requests for multiple indicators."""
     try:
         indicators = [item.model_dump() for item in body.indicators]

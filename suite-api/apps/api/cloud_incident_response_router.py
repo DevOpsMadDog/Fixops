@@ -24,6 +24,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -180,7 +181,7 @@ def list_incidents(
 
 
 @router.get("/incidents/{incident_id}", summary="Get a single incident with actions and playbooks")
-def get_incident(incident_id: str, org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_incident(incident_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().get_incident(incident_id=incident_id, org_id=org_id)
     except KeyError as exc:

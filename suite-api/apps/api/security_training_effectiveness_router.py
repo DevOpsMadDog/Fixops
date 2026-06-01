@@ -22,6 +22,7 @@ import logging
 from typing import Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -88,7 +89,7 @@ def list_training_effectiveness(org_id: str = Query("default")):
 
 
 @router.post("/programs", status_code=201)
-def create_program(body: ProgramCreate, org_id: str = Query(default="default")):
+def create_program(body: ProgramCreate, org_id: str = Depends(get_org_id)):
     """Create a new training program."""
     try:
         return _get_engine().create_program(
@@ -106,7 +107,7 @@ def create_program(body: ProgramCreate, org_id: str = Query(default="default")):
 
 @router.get("/programs")
 def list_programs(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     training_type: Optional[str] = Query(None),
 ):
     """List training programs, optionally filtered by training_type."""
@@ -114,7 +115,7 @@ def list_programs(
 
 
 @router.get("/programs/{program_id}/effectiveness")
-def get_effectiveness(program_id: str, org_id: str = Query(default="default")):
+def get_effectiveness(program_id: str, org_id: str = Depends(get_org_id)):
     """Return full effectiveness report for a program."""
     try:
         return _get_engine().get_effectiveness(program_id=program_id, org_id=org_id)
@@ -123,7 +124,7 @@ def get_effectiveness(program_id: str, org_id: str = Query(default="default")):
 
 
 @router.post("/programs/{program_id}/enroll", status_code=201)
-def enroll(program_id: str, body: EnrollRequest, org_id: str = Query(default="default")):
+def enroll(program_id: str, body: EnrollRequest, org_id: str = Depends(get_org_id)):
     """Enroll an employee in a training program."""
     try:
         return _get_engine().enroll(
@@ -137,7 +138,7 @@ def enroll(program_id: str, body: EnrollRequest, org_id: str = Query(default="de
 
 
 @router.post("/programs/{program_id}/complete")
-def record_completion(program_id: str, body: CompletionRequest, org_id: str = Query(default="default")):
+def record_completion(program_id: str, body: CompletionRequest, org_id: str = Depends(get_org_id)):
     """Record a training completion with pre/post scores."""
     try:
         return _get_engine().record_completion(
@@ -155,7 +156,7 @@ def record_completion(program_id: str, body: CompletionRequest, org_id: str = Qu
 
 
 @router.post("/programs/{program_id}/retention", status_code=201)
-def record_retention(program_id: str, body: RetentionRequest, org_id: str = Query(default="default")):
+def record_retention(program_id: str, body: RetentionRequest, org_id: str = Depends(get_org_id)):
     """Record a knowledge retention assessment."""
     return _get_engine().record_retention(
         program_id=program_id,
@@ -167,12 +168,12 @@ def record_retention(program_id: str, body: RetentionRequest, org_id: str = Quer
 
 
 @router.get("/department-compliance")
-def get_department_compliance(org_id: str = Query(default="default")):
+def get_department_compliance(org_id: str = Depends(get_org_id)):
     """Return completion rate and avg score by department."""
     return _get_engine().get_department_compliance(org_id=org_id)
 
 
 @router.get("/summary")
-def get_summary(org_id: str = Query(default="default")):
+def get_summary(org_id: str = Depends(get_org_id)):
     """Return aggregate summary across all programs."""
     return _get_engine().get_summary(org_id=org_id)

@@ -14,6 +14,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -131,7 +132,7 @@ def get_grade_trend(
 
 
 @router.get("", dependencies=[Depends(api_key_auth)])
-def get_root(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_root(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Root endpoint — returns current scorecard for dashboard health-checks."""
     return _get_engine().get_current_scorecard(org_id)
 

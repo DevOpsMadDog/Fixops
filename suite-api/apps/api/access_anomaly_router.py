@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -164,7 +165,7 @@ def resolve_anomaly(anomaly_id: str, body: ResolveRequest) -> Dict[str, Any]:
 
 @router.get("/anomalies")
 def list_anomalies(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     anomaly_type: Optional[str] = Query(None),
     username: Optional[str] = Query(None),
@@ -180,14 +181,14 @@ def list_anomalies(
 @router.get("/users/{username}/profile")
 def get_user_risk_profile(
     username: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     return _get_engine().get_user_risk_profile(org_id=org_id, username=username)
 
 
 @router.get("/high-risk-users")
 def get_high_risk_users(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     min_anomaly_count: int = Query(3),
 ) -> List[Dict[str, Any]]:
     return _get_engine().get_high_risk_users(
@@ -196,7 +197,7 @@ def get_high_risk_users(
 
 
 @router.get("/summary")
-def get_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().get_summary(org_id=org_id)
 
 
@@ -220,7 +221,7 @@ def record_scm_anomaly(body: ScmAnomalyCreate) -> Dict[str, Any]:
 
 @router.get("/scm-anomalies")
 def list_scm_anomalies(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     author_email: Optional[str] = Query(None),
     anomaly_type: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:

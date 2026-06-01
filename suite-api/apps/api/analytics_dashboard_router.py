@@ -21,6 +21,8 @@ from core.vulnerability_analytics import (
     VulnerabilityAnalytics,
 )
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
+from fastapi import Depends
 
 router = APIRouter(
     prefix="/api/v1/analytics",
@@ -184,7 +186,7 @@ async def get_executive_summary(
 
 
 @router.get("/", summary="Analytics dashboard index", tags=["analytics-dashboard"])
-async def analytics_index(org_id: str = Query(default="default")) -> Dict[str, Any]:
+async def analytics_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return analytics dashboard summary and severity distribution for the org."""
     try:
         summary = _analytics.generate_executive_summary(org_id=org_id)

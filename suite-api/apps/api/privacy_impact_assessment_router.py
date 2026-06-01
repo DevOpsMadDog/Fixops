@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -99,7 +100,7 @@ def list_privacy_impact(org_id: str = Query("default")) -> Dict[str, Any]:
 
 
 @router.post("/assessments", status_code=201)
-def create_assessment(body: AssessmentCreate, org_id: str = Query(default="default")):
+def create_assessment(body: AssessmentCreate, org_id: str = Depends(get_org_id)):
     """Create a new PIA/DPIA assessment."""
     try:
         return _get_engine().create_assessment(
@@ -120,7 +121,7 @@ def create_assessment(body: AssessmentCreate, org_id: str = Query(default="defau
 
 @router.get("/assessments")
 def list_assessments(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     assessment_type: Optional[str] = Query(None),
 ):
@@ -131,7 +132,7 @@ def list_assessments(
 
 
 @router.get("/assessments/{assessment_id}")
-def get_assessment(assessment_id: str, org_id: str = Query(default="default")):
+def get_assessment(assessment_id: str, org_id: str = Depends(get_org_id)):
     """Get a single assessment with its risks and consultations."""
     result = _get_engine().get_assessment(assessment_id, org_id)
     if result is None:
@@ -141,7 +142,7 @@ def get_assessment(assessment_id: str, org_id: str = Query(default="default")):
 
 @router.post("/assessments/{assessment_id}/approve")
 def approve_assessment(
-    assessment_id: str, body: AssessmentApprove, org_id: str = Query(default="default")
+    assessment_id: str, body: AssessmentApprove, org_id: str = Depends(get_org_id)
 ):
     """DPO approval — validates all required consultations are completed first."""
     try:
@@ -155,7 +156,7 @@ def approve_assessment(
 # ---------------------------------------------------------------------------
 
 @router.post("/assessments/{assessment_id}/risks", status_code=201)
-def add_risk(assessment_id: str, body: RiskAdd, org_id: str = Query(default="default")):
+def add_risk(assessment_id: str, body: RiskAdd, org_id: str = Depends(get_org_id)):
     """Add a risk to an assessment and recompute its risk_score/risk_level."""
     try:
         return _get_engine().add_risk(
@@ -173,7 +174,7 @@ def add_risk(assessment_id: str, body: RiskAdd, org_id: str = Query(default="def
 
 
 @router.patch("/risks/{risk_id}/status")
-def update_risk_status(risk_id: str, body: RiskStatusUpdate, org_id: str = Query(default="default")):
+def update_risk_status(risk_id: str, body: RiskStatusUpdate, org_id: str = Depends(get_org_id)):
     """Update risk status (open/mitigated/accepted/transferred)."""
     try:
         result = _get_engine().update_risk_status(risk_id, org_id, body.status)
@@ -190,7 +191,7 @@ def update_risk_status(risk_id: str, body: RiskStatusUpdate, org_id: str = Query
 
 @router.post("/assessments/{assessment_id}/consultations", status_code=201)
 def add_consultation(
-    assessment_id: str, body: ConsultationAdd, org_id: str = Query(default="default")
+    assessment_id: str, body: ConsultationAdd, org_id: str = Depends(get_org_id)
 ):
     """Add a consultation requirement to an assessment."""
     return _get_engine().add_consultation(
@@ -204,7 +205,7 @@ def add_consultation(
 
 @router.post("/consultations/{consultation_id}/complete")
 def complete_consultation(
-    consultation_id: str, body: ConsultationComplete, org_id: str = Query(default="default")
+    consultation_id: str, body: ConsultationComplete, org_id: str = Depends(get_org_id)
 ):
     """Mark a consultation as completed with outcome."""
     result = _get_engine().complete_consultation(consultation_id, org_id, body.outcome)
@@ -218,12 +219,12 @@ def complete_consultation(
 # ---------------------------------------------------------------------------
 
 @router.get("/high-risk")
-def get_high_risk_assessments(org_id: str = Query(default="default")):
+def get_high_risk_assessments(org_id: str = Depends(get_org_id)):
     """Return assessments with risk_level in (critical, high)."""
     return _get_engine().get_high_risk_assessments(org_id)
 
 
 @router.get("/summary")
-def get_summary(org_id: str = Query(default="default")):
+def get_summary(org_id: str = Depends(get_org_id)):
     """Return aggregated PIA summary for an org."""
     return _get_engine().get_summary(org_id)

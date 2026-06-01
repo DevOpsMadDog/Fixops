@@ -24,6 +24,7 @@ import logging
 from typing import Any, Dict
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -95,7 +96,7 @@ def list_threat_response(org_id: str = Query("default")) -> Dict[str, Any]:
 
 
 @router.post("/playbooks", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_playbook(body: PlaybookCreate, org_id: str = Query(default="default")):
+def create_playbook(body: PlaybookCreate, org_id: str = Depends(get_org_id)):
     """Create a new response playbook."""
     try:
         return _get_engine().create_playbook(
@@ -111,7 +112,7 @@ def create_playbook(body: PlaybookCreate, org_id: str = Query(default="default")
 
 
 @router.post("/playbooks/{playbook_id}/actions", dependencies=[Depends(api_key_auth)], status_code=201)
-def add_action(playbook_id: str, body: ActionCreate, org_id: str = Query(default="default")):
+def add_action(playbook_id: str, body: ActionCreate, org_id: str = Depends(get_org_id)):
     """Add an action step to a playbook."""
     try:
         return _get_engine().add_action(
@@ -130,7 +131,7 @@ def add_action(playbook_id: str, body: ActionCreate, org_id: str = Query(default
 
 
 @router.get("/playbooks/performance", dependencies=[Depends(api_key_auth)])
-def get_playbook_performance(org_id: str = Query(default="default")):
+def get_playbook_performance(org_id: str = Depends(get_org_id)):
     """Return playbook performance metrics."""
     return _get_engine().get_playbook_performance(org_id)
 
@@ -140,7 +141,7 @@ def get_playbook_performance(org_id: str = Query(default="default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/incidents", dependencies=[Depends(api_key_auth)], status_code=201)
-def trigger_incident(body: IncidentTrigger, org_id: str = Query(default="default")):
+def trigger_incident(body: IncidentTrigger, org_id: str = Depends(get_org_id)):
     """Trigger a new incident linked to a playbook."""
     try:
         return _get_engine().trigger_incident(
@@ -156,7 +157,7 @@ def trigger_incident(body: IncidentTrigger, org_id: str = Query(default="default
 
 
 @router.post("/incidents/{incident_id}/log-action", dependencies=[Depends(api_key_auth)], status_code=201)
-def log_action(incident_id: str, body: ActionLogCreate, org_id: str = Query(default="default")):
+def log_action(incident_id: str, body: ActionLogCreate, org_id: str = Depends(get_org_id)):
     """Log an action being executed on an incident."""
     try:
         return _get_engine().log_action(
@@ -171,7 +172,7 @@ def log_action(incident_id: str, body: ActionLogCreate, org_id: str = Query(defa
 
 
 @router.put("/incidents/{incident_id}/resolve", dependencies=[Depends(api_key_auth)])
-def resolve_incident(incident_id: str, org_id: str = Query(default="default")):
+def resolve_incident(incident_id: str, org_id: str = Depends(get_org_id)):
     """Resolve an incident and update playbook stats."""
     try:
         return _get_engine().resolve_incident(incident_id, org_id)
@@ -180,13 +181,13 @@ def resolve_incident(incident_id: str, org_id: str = Query(default="default")):
 
 
 @router.get("/incidents/active", dependencies=[Depends(api_key_auth)])
-def get_active_incidents(org_id: str = Query(default="default")):
+def get_active_incidents(org_id: str = Depends(get_org_id)):
     """Return all active incidents with their action logs."""
     return _get_engine().get_active_incidents(org_id)
 
 
 @router.get("/incidents/{incident_id}/timeline", dependencies=[Depends(api_key_auth)])
-def get_incident_timeline(incident_id: str, org_id: str = Query(default="default")):
+def get_incident_timeline(incident_id: str, org_id: str = Depends(get_org_id)):
     """Return incident timeline with ordered action log."""
     try:
         return _get_engine().get_incident_timeline(incident_id, org_id)
@@ -199,7 +200,7 @@ def get_incident_timeline(incident_id: str, org_id: str = Query(default="default
 # ---------------------------------------------------------------------------
 
 @router.put("/action-logs/{log_id}/complete", dependencies=[Depends(api_key_auth)])
-def complete_action(log_id: str, body: ActionComplete, org_id: str = Query(default="default")):
+def complete_action(log_id: str, body: ActionComplete, org_id: str = Depends(get_org_id)):
     """Mark an action log entry as completed or failed."""
     try:
         return _get_engine().complete_action(
@@ -219,6 +220,6 @@ def complete_action(log_id: str, body: ActionComplete, org_id: str = Query(defau
 # ---------------------------------------------------------------------------
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_response_summary(org_id: str = Query(default="default")):
+def get_response_summary(org_id: str = Depends(get_org_id)):
     """Return org-level threat response summary."""
     return _get_engine().get_response_summary(org_id)

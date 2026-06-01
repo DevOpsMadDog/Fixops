@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -171,7 +172,7 @@ def flag_license_risk(req: LicenseRiskRequest) -> Dict[str, Any]:
 
 
 @router.get("/summary", summary="Dependency risk summary")
-def get_dependency_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_dependency_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().get_dependency_summary(org_id=org_id)
     except Exception as exc:
@@ -181,7 +182,7 @@ def get_dependency_summary(org_id: str = Query(default="default")) -> Dict[str, 
 
 @router.get("/risky", summary="Dependencies above risk threshold")
 def get_risky_dependencies(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     min_risk: float = Query(default=5.0, ge=0.0, le=10.0),
 ) -> List[Dict[str, Any]]:
     try:
@@ -192,7 +193,7 @@ def get_risky_dependencies(
 
 
 @router.get("/license-conflicts", summary="Dependencies with license conflicts")
-def get_license_conflicts(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def get_license_conflicts(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     try:
         return _get_engine().get_license_conflicts(org_id=org_id)
     except Exception as exc:
@@ -202,7 +203,7 @@ def get_license_conflicts(org_id: str = Query(default="default")) -> List[Dict[s
 
 @router.get("/vulns", summary="List vulnerabilities (optionally filtered by patched status)")
 def get_vuln_list(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     patched: Optional[bool] = Query(default=None, description="Filter by patched status"),
 ) -> List[Dict[str, Any]]:
     try:
@@ -215,7 +216,7 @@ def get_vuln_list(
 @router.get("/graph/{package_name}", summary="Transitive dependency graph (1-level children)")
 def get_transitive_graph(
     package_name: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     try:
         return _get_engine().get_transitive_graph(org_id=org_id, package_name=package_name)

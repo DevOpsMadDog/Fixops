@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -109,7 +110,7 @@ def create_control(body: ControlCreate) -> Dict[str, Any]:
 
 @router.get("/controls", dependencies=[Depends(api_key_auth)])
 def list_controls(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     framework: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -120,7 +121,7 @@ def list_controls(
 @router.get("/controls/{control_id}", dependencies=[Depends(api_key_auth)])
 def get_control(
     control_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a control with its 10 most recent tests."""
     result = _get_engine().get_control(control_id=control_id, org_id=org_id)
@@ -175,18 +176,18 @@ def update_schedule_run(schedule_id: str, body: ScheduleRunUpdate) -> Dict[str, 
 
 
 @router.get("/due", dependencies=[Depends(api_key_auth)])
-def get_due_tests(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def get_due_tests(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Get controls that are due for testing."""
     return _get_engine().get_due_tests(org_id=org_id)
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_control_effectiveness_summary(org_id: str = Query(default="default")) -> Dict[str, Any]:
+def get_control_effectiveness_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get control effectiveness summary: avg score, status counts, framework breakdown."""
     return _get_engine().get_control_effectiveness_summary(org_id=org_id)
 
 
 @router.get("/failing", dependencies=[Depends(api_key_auth)])
-def get_failing_controls(org_id: str = Query(default="default")) -> List[Dict[str, Any]]:
+def get_failing_controls(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Get controls with status ineffective or failing."""
     return _get_engine().get_failing_controls(org_id=org_id)

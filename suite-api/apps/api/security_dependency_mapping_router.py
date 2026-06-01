@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -93,7 +94,7 @@ class BlastRadiusBody(BaseModel):
 @router.post("/services")
 def register_service(
     body: RegisterServiceBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Register a new service in the dependency map."""
     try:
@@ -112,7 +113,7 @@ def register_service(
 
 @router.get("/services")
 def list_services(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     service_type: Optional[str] = Query(default=None),
     criticality: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -123,7 +124,7 @@ def list_services(
 @router.get("/services/{service_id}")
 def get_service(
     service_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Fetch a service with its dependency edges."""
     result = _get_engine().get_service(service_id, org_id)
@@ -135,7 +136,7 @@ def get_service(
 @router.post("/dependencies")
 def add_dependency(
     body: AddDependencyBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a directed dependency between two services."""
     try:
@@ -156,7 +157,7 @@ def add_dependency(
 @router.delete("/dependencies/{dependency_id}")
 def remove_dependency(
     dependency_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Remove a dependency and update service counters."""
     try:
@@ -169,7 +170,7 @@ def remove_dependency(
 def compute_blast_radius(
     service_id: str,
     body: BlastRadiusBody,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Compute blast radius (BFS) from a source service."""
     try:
@@ -180,7 +181,7 @@ def compute_blast_radius(
 
 @router.get("/critical-paths")
 def get_critical_paths(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return critical services ordered by dependent_count (most critical first)."""
     return _get_engine().get_critical_paths(org_id)
@@ -188,7 +189,7 @@ def get_critical_paths(
 
 @router.get("/summary")
 def get_summary(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate dependency map summary for the org."""
     return _get_engine().get_summary(org_id)
@@ -197,7 +198,7 @@ def get_summary(
 @router.get("/source-trace")
 def source_trace(
     source_file: str = Query(..., description="Relative path to a source file, e.g. suite-core/core/siem_integration_engine.py"),
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Map a source file to deployed cloud assets via service name-matching.
 

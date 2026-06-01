@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -57,7 +58,7 @@ def list_network_forensics(org_id: str = Query("default")):
 @router.post("/captures")
 async def create_capture(
     body: CaptureCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     try:
@@ -70,7 +71,7 @@ async def create_capture(
 
 @router.get("/captures")
 async def list_captures(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
     limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
@@ -111,7 +112,7 @@ async def list_captures(
 @router.get("/captures/{capture_id}")
 async def get_capture(
     capture_id: str,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     result = _get_engine().get_capture(org_id=org_id, capture_id=capture_id)
@@ -124,7 +125,7 @@ async def get_capture(
 async def add_artifact(
     capture_id: str,
     body: ArtifactCreate,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     try:
@@ -139,7 +140,7 @@ async def add_artifact(
 async def analyze_capture(
     capture_id: str,
     body: AnalyzeRequest,
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     try:
@@ -154,7 +155,7 @@ async def analyze_capture(
 
 @router.get("/artifacts")
 async def list_artifacts(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     capture_id: Optional[str] = Query(default=None),
     auth=Depends(api_key_auth),
 ):
@@ -166,7 +167,7 @@ async def list_artifacts(
 
 @router.get("/stats")
 async def get_stats(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     auth=Depends(api_key_auth),
 ):
     try:

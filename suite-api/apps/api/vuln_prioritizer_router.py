@@ -17,6 +17,7 @@ import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id
 
 try:
     from apps.api.auth_deps import api_key_auth as _api_key_auth
@@ -176,7 +177,7 @@ def get_reachability(finding_id: str) -> Optional[ReachabilityResult]:
     ),
 )
 def get_sla_status(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     team: Optional[str] = Query(default=None, description="Filter by assigned_team"),
 ) -> SLAStatus:
     engine = _get_engine()
@@ -202,7 +203,7 @@ def get_sla_status(
     ),
 )
 def get_trends(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(default=30, ge=1, le=365, description="Lookback window in days"),
 ) -> VulnTrend:
     engine = _get_engine()
@@ -229,7 +230,7 @@ def get_trends(
     ),
 )
 def list_groups(
-    org_id: str = Query(default="default"),
+    org_id: str = Depends(get_org_id),
     rebuild: bool = Query(
         default=False,
         description="Rebuild groups from current findings before returning",

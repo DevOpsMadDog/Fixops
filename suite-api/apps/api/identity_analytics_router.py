@@ -10,7 +10,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from core.identity_analytics_engine import get_engine
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -79,7 +80,7 @@ def register_identity(
 
 @router.get("/identities")
 def list_identities(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     identity_type: Optional[str] = Query(None),
     privileged_only: bool = Query(False),
     risk_tier: Optional[str] = Query(None),
@@ -104,7 +105,7 @@ def list_identities(
 @router.post("/identities/{identity_id}/events")
 def ingest_login_event(
     identity_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     body: IngestLoginEventRequest = ...,
 ) -> Dict[str, Any]:
     """Ingest a login event for an identity. Auto-detects risks."""
@@ -119,7 +120,7 @@ def ingest_login_event(
 
 @router.get("/events")
 def list_login_events(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     identity_id: Optional[str] = Query(None),
     event_type: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=1000),
@@ -144,7 +145,7 @@ def list_login_events(
 @router.post("/identities/{identity_id}/risks")
 def flag_risk(
     identity_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     body: FlagRiskRequest = ...,
 ) -> Dict[str, Any]:
     """Manually flag a risk for an identity."""
@@ -157,7 +158,7 @@ def flag_risk(
 
 @router.get("/risks")
 def list_risks(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     risk_type: Optional[str] = Query(None),
     resolved: bool = Query(False),
     severity: Optional[str] = Query(None),
@@ -178,7 +179,7 @@ def list_risks(
 @router.post("/risks/{risk_id}/resolve")
 def resolve_risk(
     risk_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Resolve an identity risk."""
     try:
@@ -200,7 +201,7 @@ def resolve_risk(
 @router.post("/identities/{identity_id}/certifications")
 def create_certification(
     identity_id: str,
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     body: CreateCertificationRequest = ...,
 ) -> Dict[str, Any]:
     """Create an access certification record."""
@@ -213,7 +214,7 @@ def create_certification(
 
 @router.get("/certifications")
 def list_certifications(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     """List access certifications."""
@@ -230,7 +231,7 @@ def list_certifications(
 
 @router.get("/stats")
 def get_identity_stats(
-     org_id: str = Query(default="default"),
+     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get aggregate identity analytics stats for an org."""
     try:
