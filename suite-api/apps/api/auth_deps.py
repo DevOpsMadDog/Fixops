@@ -453,13 +453,34 @@ async def verify_api_key(
     expected_tokens: tuple[str, ...] = _load_api_tokens()
 
     if auth_strategy == "token":
-        # Path 1: X-API-Key / ?api_key=
+        # Path 1: X-API-Key / ?api_key= (static FIXOPS_API_TOKEN — fastest path)
         if api_key and api_key in expected_tokens:
             request.state.user_role = "admin"
             request.state.user_scopes = list(_ALL_SCOPES)
             if _clear_fail:
                 _clear_fail(client_ip)
             return
+        # Path 1b: Managed key minted via POST /auth/signup or /auth/keys (KeyManager DB).
+        # Without this, signup-issued customer keys (fixops_...) were rejected by every router
+        # mounted with verify_api_key (analytics/risk/compliance dashboards → "failed to load"),
+        # while api_key_auth-mounted routers (findings/billing) accepted them — inconsistent auth.
+        if api_key:
+            _managed = _validate_managed_key(api_key)
+            if _managed is not None:
+                _role = getattr(_managed, "role", "viewer") or "viewer"
+                _scopes = getattr(_managed, "scopes", None)
+                request.state.user_role = _role
+                if isinstance(_scopes, list) and _scopes:
+                    request.state.user_scopes = _scopes
+                elif _role in ("admin", "super_admin"):
+                    request.state.user_scopes = list(_ALL_SCOPES)
+                else:
+                    request.state.user_scopes = ["read:findings"]
+                if getattr(_managed, "user_id", None):
+                    request.state.user_id = _managed.user_id
+                if _clear_fail:
+                    _clear_fail(client_ip)
+                return
         # Path 2: JWT Bearer (dual auth)
         if auth_header.lower().startswith("bearer ") and _decode:
             jwt_token = auth_header[7:].strip()
