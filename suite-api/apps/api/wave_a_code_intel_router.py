@@ -203,6 +203,36 @@ class RuntimeMapToCodeRequest(BaseModel):
         return v
 
 
+# ---------------------------------------------------------------------------
+# Red-Team hardening: code-intel parses a caller-supplied LOCAL repo path.
+# Without a boundary an authenticated user could point it at arbitrary server
+# directories (e.g. /etc) and leak file-structure via parse results. We:
+#   1. ALWAYS reject null bytes / parent-traversal in the raw string.
+#   2. If FIXOPS_ALLOWED_REPO_ROOTS (os.pathsep-separated absolute roots) is set,
+#      require the resolved path to live within one — the SCIF lockdown control.
+# Returns the resolved Path when allowed, else None (callers degrade: defer to a
+# worker / 400 / treat as non-local). Default (env unset) = unchanged behaviour,
+# so self-scan / dogfooding is not broken; deployments opt into the allowlist.
+# ---------------------------------------------------------------------------
+def _safe_local_repo_path(raw: Optional[str]) -> Optional[Path]:
+    if not raw or "\x00" in raw or ".." in raw.replace("\\", "/").split("/"):
+        return None
+    try:
+        resolved = Path(raw).expanduser().resolve()
+    except (OSError, ValueError, RuntimeError):
+        return None
+    roots = [r for r in os.environ.get("FIXOPS_ALLOWED_REPO_ROOTS", "").split(os.pathsep) if r.strip()]
+    if roots:
+        for root in roots:
+            try:
+                resolved.relative_to(Path(root).expanduser().resolve())
+                return resolved
+            except ValueError:
+                continue
+        return None  # outside every configured allowlist root
+    return resolved
+
+
 # ===========================================================================
 # 1. POST /api/v1/graph/architecture-detect    (bbf6e567)
 # ===========================================================================
@@ -247,9 +277,9 @@ def graph_architecture_detect(
     except Exception as exc:  # noqa: BLE001
         logger.debug("wave_a: architecture review engine fallback: %s", exc)
 
-    # Deterministic layer/db/api scan via filesystem walk
-    repo_root = Path(repo_path)
-    if repo_root.is_dir():
+    # Deterministic layer/db/api scan via filesystem walk (allowlist-guarded path)
+    repo_root = _safe_local_repo_path(repo_path)
+    if repo_root and repo_root.is_dir():
         layer_markers = {
             "presentation": {"ui", "frontend", "views", "templates", "components", "pages"},
             "application":  {"app", "apps", "controllers", "handlers", "routers", "api"},
@@ -562,8 +592,8 @@ def dca_parse_repo(
     entity_counts: Dict[str, int] = {"functions": 0, "classes": 0, "modules": 0}
     detail: Dict[str, Any] = {}
 
-    repo_path = Path(body.repo)
-    is_local = repo_path.exists() and repo_path.is_dir()
+    repo_path = _safe_local_repo_path(body.repo)
+    is_local = repo_path is not None and repo_path.exists() and repo_path.is_dir()
 
     if is_local:
         try:
@@ -796,28 +826,33 @@ def reachability_callgraph(
                     status_code=422,
                     detail="repo_path is required for python callgraph builds",
                 )
-            if not Path(body.repo_path).is_dir():
+            _safe_rp = _safe_local_repo_path(body.repo_path)
+            if _safe_rp is None or not _safe_rp.is_dir():
+                # Not found, traversal, or outside FIXOPS_ALLOWED_REPO_ROOTS (when set).
                 raise HTTPException(status_code=404, detail=f"repo_path not found: {body.repo_path}")
+            _safe_rp_str = str(_safe_rp)
             # Real signature: parse_python_repo(org_id, repo_ref, root_path) -> int
             try:
                 res = engine.parse_python_repo(
-                    org_id=org_id, repo_ref=body.repo, root_path=body.repo_path,
+                    org_id=org_id, repo_ref=body.repo, root_path=_safe_rp_str,
                 )
             except TypeError:
-                res = engine.parse_python_repo(org_id, body.repo, body.repo_path)
+                res = engine.parse_python_repo(org_id, body.repo, _safe_rp_str)
         elif lang in {"typescript", "ts", "javascript", "js"}:
             if not hasattr(engine, "parse_typescript_repo"):
                 raise HTTPException(status_code=501,
                                     detail={"error": "typescript_parser_unavailable"})
+            _ts_rp = _safe_local_repo_path(body.repo_path)
             res = engine.parse_typescript_repo(
-                org_id=org_id, repo_ref=body.repo, repo_path=body.repo_path or "",
+                org_id=org_id, repo_ref=body.repo, repo_path=(str(_ts_rp) if _ts_rp else ""),
             )
         elif lang == "java":
             if not hasattr(engine, "parse_java_repo"):
                 raise HTTPException(status_code=501,
                                     detail={"error": "java_parser_unavailable"})
+            _java_rp = _safe_local_repo_path(body.repo_path)
             res = engine.parse_java_repo(
-                org_id=org_id, repo_ref=body.repo, repo_path=body.repo_path or "",
+                org_id=org_id, repo_ref=body.repo, repo_path=(str(_java_rp) if _java_rp else ""),
             )
         else:
             raise HTTPException(
