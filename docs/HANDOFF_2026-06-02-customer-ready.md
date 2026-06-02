@@ -597,3 +597,27 @@ recovered); engine slice = 5 real product bugs found + fixed; both corpora now t
 Frontier: UI clean (4 dims) + backend hardened/verified (6 attack classes) + router/engine T3
 triaged. Remaining buildable work is product-blocked (Brain hero, /billing, GCP KMS connector) or
 founder-blocked (push, deeper test-infra: shared-DB isolation harness / mock rewrites / checkov, FIPS, PIV, GPU, Stripe).
+
+---
+
+## Addendum 2026-06-03 (tick 13) — T3 data-transform sweep: REAL container-scan crash fixed (item C)
+
+Isolation-swept 40 parser/scoring/normalizer test files; 3 failed → 1 REAL product bug + 2 test-only:
+
+1. **REAL BUG — container_scanner.py duplicate-class shadow**: `ContainerFinding` was defined
+   TWICE in one module — a dataclass (line 84, used by `ContainerImageScanner`) and a later
+   Pydantic `ContainerFinding(BaseModel)` (line 930, used by `ContainerSecurityScanner`). The
+   Pydantic def SHADOWED the dataclass at module level, so `ContainerImageScanner.scan_dockerfile
+   /scan_image/scan_helm/scan_secrets` crashed with ValidationError on EVERY finding (live via
+   container_scanner_router `get_container_scanner` + the CLI). Fixed by renaming the dataclass +
+   its 21 refs to `ImageScanFinding` (un-shadow); the Pydantic path is untouched. Verified
+   scan_dockerfile now returns ContainerScanResult (was crashing); test 22/22; smoke 756/756.
+2. **risk_prioritizer** — stale test (router correct): called `/api/v1/risk/*` but router serves
+   `/api/v1/risk-scoring/*`; `/exposure/{asset_id}` now enforces tenant isolation (404 unless asset
+   in inventory). Fixed prefix + asset-inventory mock → 36/36.
+3. **digital_risk_protection** — batch timeout flake (23/23 on isolated rerun); no fix.
+
+Campaign T3 product-bug total (ticks 9-13): **6 real product bugs found + fixed** (engine: 3,
+data-transform: 1, [+routing/endpoint fixes earlier]); router slice 0. Frontier: UI clean (4 dims)
++ backend hardened/verified (6 attack classes) + router/engine/data-transform T3 slices triaged.
+Remaining: product-blocked (Brain hero, /billing, GCP KMS) + founder-blocked.
