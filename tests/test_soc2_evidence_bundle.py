@@ -209,6 +209,10 @@ def test_seal_bundle_signature_when_key_available(
 
     with patch.dict("sys.modules", {
         "core.crypto": MagicMock(
+            # Disable the hybrid (RSA+ML-DSA) path so the RSA-only fallback this
+            # test targets runs — otherwise the auto-mocked HybridSigner would
+            # "succeed" and return a MagicMock signature.
+            HybridSigner=MagicMock(side_effect=ImportError("dilithium_py not installed")),
             RSAKeyManager=MagicMock(return_value=fake_km),
             RSASigner=MagicMock(return_value=fake_signer),
         )
