@@ -126,7 +126,6 @@ const AuditLog = lazy(() => import("@/pages/AuditLog"));
 const AdminAuditLogPage = lazy(() => import("@/pages/AdminAuditLogPage"));
 const AdminUsersPage = lazy(() => import("@/pages/AdminUsersPage"));
 const AdminApiKeysPage = lazy(() => import("@/pages/AdminApiKeysPage"));
-const ThreatHuntingPage = lazy(() => import("@/pages/ThreatHunting"));
 const OffensiveValidationHub = lazy(() => import("@/pages/OffensiveValidationHub"));
 const CloudIAM = lazy(() => import("@/pages/CloudIAM"));
 const EmailThreatProtectionHub = lazy(() => import("@/pages/EmailThreatProtectionHub"));
