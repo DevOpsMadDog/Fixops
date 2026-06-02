@@ -413,3 +413,26 @@ founder-blocked. Build green; backend smoke 755/756 (known flake) from tick 2 ho
 **Frontier fully verified clean across 4 call-path dimensions** (page-header docs, apiFetch literals,
 typed-client lib defs, 503 semantics): 0 runtime-5xx, 0 hard-broken pages, correct status semantics.
 Remaining UI work product-blocked (Brain hero, /billing page) + founder-blocked. smoke 755/756 (flake).
+
+---
+
+## Addendum 2026-06-03 (tick 5) — red-team path-traversal hardening (item B)
+
+- **Typed-client coverage sweep** (401 lib paths) → fixed `GET /api/v1/sbom/export` false-503
+  → 200 empty-state (was Service-Unavailable for a no-data-yet state; trips health checks).
+- **Storage-root allowlist guard** (local_file_store_engine._store_dir, the chokepoint for
+  save/config/clear/lock): caller-supplied repo_path via /api/v1/local-store/* was unvalidated →
+  arbitrary JSON write + subtree DELETE (clear_store) to /etc, ~/.ssh, / etc. Now (1) always
+  rejects filesystem-root + system dirs (literal+symlink-resolved), (2) strict
+  FIXOPS_LOCAL_STORE_ALLOWED_ROOTS allowlist when set, (3) rejects empty. +6 regression tests;
+  clear() router maps ValueError→400.
+- **Airgap sneakernet/apply-update**: closed 4 unguarded operator paths (export payload_files READ
+  + output_path WRITE; import package_path READ + extract_dir WRITE/zip-slip; apply-update
+  package_path READ) — wrapped in the existing _guard_airgap_path() (null-byte/.. + allowlist).
+- Verified: traversal/null-byte/outside-allowlist all rejected→400. Beast smoke **756/756**.
+  create_app 8340. (2 TestWebhookDispatchBlocked batch failures are pre-existing test-pollution —
+  pass in isolation with edits present, verified via stash A/B — founder-blocked test-infra.)
+
+Item B (red-team hardenings: storage-root allowlists) — DONE for the two API-reachable
+write/delete path surfaces (local-store, airgap). UI frontier remains verified-clean (4 dims).
+Remaining: product-blocked (Brain hero, /billing) + founder-blocked (push, test-infra, FIPS, etc.).
