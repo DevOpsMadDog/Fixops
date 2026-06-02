@@ -260,6 +260,30 @@ class TestSessionLifecycle:
         sessions = engine.list_sessions(org_id="org_list")
         assert len(sessions) == 2
 
+    def test_list_sessions_skips_malformed_null_id_row(self, engine):
+        """Regression: a legacy NULL-id row (bad/seed insert) must not 500 the list.
+
+        Live-found 2026-06-03: GET /api/v1/hunting/sessions returned 500 because
+        _row_to_session raised pydantic ValidationError on rows with id=NULL.
+        list_sessions must skip malformed rows (like get_all_queries already does)
+        and still return the valid sessions.
+        """
+        good = engine.start_session(name="Valid", hunter_email="a@b.com", org_id="org_mix")
+        # Inject a malformed legacy row with NULL id directly (mimics old seed data).
+        with engine._get_conn() as conn:
+            conn.execute(
+                "INSERT INTO hunt_sessions "
+                "(id, name, hunter_email, status, queries_run, results_count, "
+                "started_at, completed_at, notes, org_id) "
+                "VALUES (NULL, 'Legacy Bad', 'x@y.com', 'created', '[]', 0, "
+                "'2026-01-01T00:00:00Z', NULL, '', 'org_mix')"
+            )
+            conn.commit()
+        sessions = engine.list_sessions(org_id="org_mix")  # must NOT raise
+        ids = [s.id for s in sessions]
+        assert good.id in ids
+        assert all(s.id for s in sessions)  # no None ids leaked through
+
     def test_list_sessions_filters_by_org(self, engine):
         engine.start_session(name="OrgA-1", hunter_email="a@b.com", org_id="org_a")
         engine.start_session(name="OrgB-1", hunter_email="b@b.com", org_id="org_b")

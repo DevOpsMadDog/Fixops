@@ -586,7 +586,18 @@ class ThreatHuntingEngine:
         query += " ORDER BY started_at DESC"
         with self._get_conn() as conn:
             rows = conn.execute(query, params).fetchall()
-        return [self._row_to_session(r) for r in rows]
+        sessions: List[HuntSession] = []
+        for row in rows:
+            # Resilient: a single malformed session row (e.g. legacy NULL id from a
+            # bad/seed insert) must not 500 the whole sessions list — skip + log it.
+            try:
+                sessions.append(self._row_to_session(row))
+            except (ValidationError, ValueError, TypeError, json.JSONDecodeError) as exc:
+                logger.warning(
+                    "list_sessions: skipping malformed hunt_session row id=%r: %s",
+                    (row["id"] if "id" in row.keys() else "?"), exc,
+                )
+        return sessions
 
     def _row_to_session(self, row: sqlite3.Row) -> HuntSession:
         return HuntSession(
