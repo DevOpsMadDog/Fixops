@@ -10,7 +10,8 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
 
 interface WorkflowRequest {
-  request_id: string;
+  id: string; // API (/api/v1/exception-workflow/requests) returns id, not request_id
+  request_id?: string;
   policy_name: string;
   exception_type: string;
   requestor: string;
@@ -147,7 +148,7 @@ export function ExceptionWorkflowPanel() {
         <div className="space-y-2">
           {filtered.map(req => (
             <div
-              key={req.request_id}
+              key={req.id ?? req.request_id}
               className="rounded-lg border border-border bg-muted/10 p-4 flex items-start justify-between gap-4"
             >
               <div className="flex-1 min-w-0">
