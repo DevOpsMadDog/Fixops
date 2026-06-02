@@ -63,7 +63,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': 'http://localhost:8000',
+      // Match only real API paths ("/api/v1/..."). A bare "/api" prefix also
+      // swallows SPA routes that merely start with "api" (e.g. "/api-security",
+      // "/api-discovery"), proxying them to the backend and breaking them in dev.
+      "^/api/": { target: "http://localhost:8000", changeOrigin: true },
     },
   },
 });
