@@ -418,7 +418,7 @@ function generateMockIocs(): IocItem[] {
   ];
 }
 
-function generateMockMitreCoverage() {
+function mitreAttackTaxonomy() {
   const tactics: MitreTactic[] = [
     { id: "TA0001", name: "Initial Access", short: "Init Access" },
     { id: "TA0002", name: "Execution", short: "Execution" },
@@ -457,11 +457,11 @@ function generateMockMitreCoverage() {
     { technique_id: "T1489", technique_name: "Service Stop", tactic: "TA0040", status: "none", findings: 0 },
   ];
 
-  const detected = techniques.filter(t => t.status === "detected").length;
-  const partial = techniques.filter(t => t.status === "partial").length;
-  const coverage_pct = Math.round(((detected + partial * 0.5) / techniques.length) * 100);
-
-  return { tactics, techniques, coverage_pct, detected, partial, none: techniques.filter(t => t.status === "none").length };
+  // NO MOCKS: real ATT&CK taxonomy (tactics + technique names are the public standard), but coverage
+  // is honest-zero (not-yet-assessed) until /api/v1/mitre/coverage is wired — never fabricated
+  // detected/findings counts.
+  const neutral = techniques.map(t => ({ ...t, status: "none" as const, findings: 0 }));
+  return { tactics, techniques: neutral, coverage_pct: 0, detected: 0, partial: 0, none: neutral.length };
 }
 
 const THREAT_ACTORS: ThreatActor[] = [
@@ -946,7 +946,7 @@ function EpssHeatmap({ cves }: { cves: CveItem[] }) {
 // ═══════════════════════════════════════════════════════════
 
 function MitreCoverage() {
-  const { tactics, techniques, coverage_pct, detected, partial, none } = generateMockMitreCoverage();
+  const { tactics, techniques, coverage_pct, detected, partial, none } = mitreAttackTaxonomy();
 
   const getCellStatus = (tacticId: string) => {
     return techniques.filter(t => t.tactic === tacticId);
@@ -1298,11 +1298,12 @@ export default function ThreatIntelDashboard() {
         fetch(`${API}/api/v1/cve/search?org_id=default&limit=20`).then(r => r.json()),
         fetch(`${API}/api/v1/threat-intel/actors?org_id=default`).then(r => r.json()),
       ]);
-      setCves(cveRes.status === "fulfilled" && Array.isArray(cveRes.value) ? cveRes.value : generateMockCves());
-      setIocs(iocRes.status === "fulfilled" && Array.isArray(iocRes.value) ? iocRes.value : generateMockIocs());
+      // NO MOCKS: real API arrays or honest empty (EmptyState) — never fabricated CVEs/IOCs.
+      setCves(cveRes.status === "fulfilled" && Array.isArray(cveRes.value) ? cveRes.value : []);
+      setIocs(iocRes.status === "fulfilled" && Array.isArray(iocRes.value) ? iocRes.value : []);
     } catch {
-      setCves(generateMockCves());
-      setIocs(generateMockIocs());
+      setCves([]);
+      setIocs([]);
     }
     setLastRefresh(new Date());
     setLoading(false);
