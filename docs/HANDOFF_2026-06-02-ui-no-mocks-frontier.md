@@ -50,3 +50,25 @@ verify first): attack_sim breach-impact, micro_pentest scan-data, security_telem
   ALWAYS `git status --porcelain` + inspect/revert before finishing. (Caught cspm/dedup this session.)
 - src/lib `git add <dir>` warns "ignored" (a subpath is ignored) but the actual .ts files ARE tracked —
   add by explicit file path; verify with `git show HEAD:<file>`.
+
+---
+## UPDATE 2 (PM, late) — missing-endpoint cluster built (real, engine-backed)
+Added REAL engine-backed endpoints for nearly the whole genuine-missing-404 cluster (no stubs;
+each: new engine list/aggregate method + router GET + browser/curl-verified 200 + Beast smoke 756):
+- sca: GET /vulns + /licenses (org-level aggregate over latest scan per project)
+- security-chaos: GET /observations (list_all_observations)
+- incident-timeline: GET /events (list_all_events, registered before /{id}) + /incident/stats repoint
+- soc-metrics: GET /queue (list_alerts) + GET /snapshots (list_snapshots) + guarded toFixed crash
+- feed-subscriptions: GET /logs (list_deliveries over feed_deliveries)
+- threat-intel: cves/recent + kev now honest empty-200 (air-gapped cache)
+- security-kpis -> /kpis/executive (5 missing -> 1 real); feeds/kev + ti-confidence/iocs repoints
+- removed dead unrouted ThreatHuntingPage (its /hunting/iocs+coverage never fired live)
+
+### Last remaining (truly needs new feature, not wiring)
+- awareness-score/orgs/{org}/risk-trend — needs a historical score-snapshot (time-series) table;
+  the engine only has current scores/stats. Page is resilient. Build it when score-history is in scope.
+- soc-metrics queue ack/resolve actions — engine has acknowledge_alert/resolve_alert but no routes
+  (button actions, not page-mount; add /queue/{id}/ack + /resolve when wiring the buttons).
+- Cosmetic React key warnings (~8 pages) — non-blocking.
+
+Session total: 149 commits. create_app 8319 routes; Beast smoke 756/756; rate limiter restored.
