@@ -45,13 +45,13 @@ def nuclei_app(tmp_path, monkeypatch):
     # api_key_auth dep is the only gate — patch to a no-op).
     from apps.api import auth_deps as _auth_deps
 
-    def _noop_auth(*_a, **_k):
-        return True
-
-    monkeypatch.setattr(_auth_deps, "api_key_auth", _noop_auth)
-
     app = FastAPI()
     app.include_router(router_module.router)
+    # monkeypatch.setattr on the module attr is a no-op — FastAPI binds Depends(api_key_auth)
+    # to the original function object at router-definition time. Use dependency_overrides,
+    # which FastAPI resolves at request time regardless of import order. The override MUST be
+    # zero-arg: a (*_a, **_k) signature makes FastAPI treat _a/_k as required query params (422).
+    app.dependency_overrides[_auth_deps.api_key_auth] = lambda: True
     client = TestClient(app)
     return client, isolated_engine, db_path
 

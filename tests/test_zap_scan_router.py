@@ -37,6 +37,10 @@ def zap_app(tmp_path, monkeypatch):
 
     app = FastAPI()
     app.include_router(router_module.router)
+    # Satisfy the router-level Depends(api_key_auth) for this isolated app (no token set).
+    from apps.api import auth_deps as _auth_deps
+    # zero-arg override: a (*_a, **_k) signature makes FastAPI treat _a/_k as query params (422).
+    app.dependency_overrides[_auth_deps.api_key_auth] = lambda: True
     client = TestClient(app)
     return client, isolated_engine, db_path
 
