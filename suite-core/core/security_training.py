@@ -1201,7 +1201,7 @@ class SecurityTrainingTracker:
                     user_ids + [CompletionStatus.OVERDUE.value],
                 ).fetchone()["cnt"]
                 top_performer = conn.execute(
-                    f"""SELECT u.display_name, u.points FROM user_profiles uWHERE u.user_id IN ({placeholders}) ORDER BY u.points DESC LIMIT 1""",  # nosec B608
+                    f"""SELECT u.display_name, u.points FROM user_profiles u WHERE u.user_id IN ({placeholders}) ORDER BY u.points DESC LIMIT 1""",  # nosec B608
                     user_ids,
                 ).fetchone()
 
