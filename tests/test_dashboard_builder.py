@@ -445,6 +445,9 @@ def api_client(tmp_db):
     from apps.api.dashboard_builder_router import router
     app = FastAPI()
     app.include_router(router)
+    # Router-level Depends(api_key_auth); isolated app sets no token → zero-arg override.
+    from apps.api.auth_deps import api_key_auth as _akauth
+    app.dependency_overrides[_akauth] = lambda: True
     return TestClient(app)
 
 
@@ -460,15 +463,22 @@ class TestAPIRouter:
         assert "id" in data
 
     def test_list_dashboards(self, api_client):
+        # org_id is resolved from auth context / X-Org-ID header / query param
+        # (NOT the request body — body org_id is intentionally ignored for
+        # tenant isolation). Pass the header on every call so create and list
+        # resolve to the same tenant.
+        hdr = {"X-Org-ID": "org_list"}
         api_client.post(
             "/api/v1/dashboards",
-            json={"name": "D1", "owner_email": "u@u.com", "org_id": "org_list"},
+            json={"name": "D1", "owner_email": "u@u.com"},
+            headers=hdr,
         )
         api_client.post(
             "/api/v1/dashboards",
-            json={"name": "D2", "owner_email": "u@u.com", "org_id": "org_list"},
+            json={"name": "D2", "owner_email": "u@u.com"},
+            headers=hdr,
         )
-        resp = api_client.get("/api/v1/dashboards", params={"org_id": "org_list"})
+        resp = api_client.get("/api/v1/dashboards", headers=hdr)
         assert resp.status_code == 200
         assert len(resp.json()) == 2
 
