@@ -72,3 +72,26 @@ each: new engine list/aggregate method + router GET + browser/curl-verified 200 
 - Cosmetic React key warnings (~8 pages) — non-blocking.
 
 Session total: 149 commits. create_app 8319 routes; Beast smoke 756/756; rate limiter restored.
+
+---
+## UPDATE 3 (PM, latest) — engine-backed 404 cluster COMPLETE
+Built real engine-backed endpoints for the ENTIRE remaining genuine-missing-404 cluster
+(each: new engine method + router endpoint + live 200 + browser 0-errors + Beast smoke 756):
+- soc-metrics: queue ack/resolve POST actions wired (full create->ack->resolve->list lifecycle verified)
+- awareness-score: GET /orgs/{org}/risk-trend (monthly avg overall_score from awareness_scores.calculated_at)
+
+### FUNCTIONAL UI customer-readiness frontier: COMPLETE
+Every page fires real /api/v1 calls on mount, ZERO crashes, ZERO mock data, real data or honest
+EmptyStates, the full missing-endpoint cluster is built engine-backed. Session: 154 commits.
+create_app 8319 routes; Beast smoke 756/756; rate limiter restored; working tree clean.
+
+### Sole remaining (cosmetic, non-blocking — NOT functional)
+~8 React "key" prop warnings (dev-console only, no user/functional impact): competitive-comparison,
+compliance-calendar, cross-domain-analytics, exception-workflow, firewall-policy, grc-assessment,
+risk-quantification, cyber-insurance. Fix by adding stable/unique key= to the flagged .map() in each
+(per-page; low priority). All other UI work is done.
+
+### Gotcha logged
+The app's global 404 exception handler rewrites per-route HTTPException(404) bodies into a generic
+"errors#routing" message — a real "not found" in curl looks like a routing-404. Verify with a REAL
+id before concluding a route is unregistered (cost time chasing soc-metrics ack/resolve this session).
