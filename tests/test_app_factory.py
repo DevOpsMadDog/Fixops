@@ -86,7 +86,8 @@ class TestAppFactory:
         assert len(app.routes) > 30
 
     def test_app_title_contains_branding(self, app):
-        assert "Enterprise API" in app.title
+        # App was rebranded to "ALDECI Security Intelligence Platform" (was "Enterprise API").
+        assert "ALDECI" in app.title
 
 
 # ---------------------------------------------------------------------------
@@ -124,11 +125,14 @@ class TestHealthEndpoints:
         assert "python_version" in data
 
     def test_metrics(self, client):
+        # /api/v1/metrics is now a token-gated Prometheus SCRAPE endpoint (was a JSON status
+        # blob). Without a valid scrape token it returns 401; with one it returns Prometheus
+        # text (content-type text/plain), not JSON. Assert the real contract — endpoint exists
+        # (not 404) and is either authorized (Prometheus text) or scrape-token-gated (401).
         resp = client.get("/api/v1/metrics")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert "timestamp" in data
-        assert data["service"] == "fixops-api"
+        assert resp.status_code in (200, 401), resp.status_code
+        if resp.status_code == 200:
+            assert "text/plain" in resp.headers.get("content-type", "")
 
 
 # ---------------------------------------------------------------------------
