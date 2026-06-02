@@ -454,3 +454,22 @@ Item B (red-team hardenings) status: storage-root allowlists (local-store + airg
 + rate-limits (auth/refresh gap, tick 6) — DONE for the identified high-value surfaces.
 Frontier: UI verified-clean (4 call-path dims); backend runtime+status+path+rate-limit hardened.
 Remaining: product-blocked (Brain hero, /billing) + founder-blocked (push, test-infra, FIPS, etc.).
+
+---
+
+## Addendum 2026-06-03 (tick 7) — dispatch-time SSRF (DNS-rebinding) hardening (item B cont'd)
+
+- **DNS-rebinding SSRF closed on BOTH outbound-webhook routers**: both validated the target
+  URL against private/reserved/metadata IPs ONLY at /subscribe, then POSTed the stored URL at
+  dispatch without re-resolving — a TOCTOU window (register a public host, later rebind it to
+  169.254.169.254 / 127.0.0.1, dispatch exfils the HMAC-signed payload internally). Fix: re-run
+  the existing SSRF validator immediately before the POST in each delivery loop
+  (outbound_webhooks_router.dispatch_outbound + webhook_subscriptions_router._deliver_webhook);
+  blocked → marked failed → existing failure-count auto-disable. +1 regression test (metadata-IP
+  sub → requests.post NOT called). Beast smoke 756/756; 49 webhook + 163 adjacent tests green.
+
+Item B (red-team hardenings) cumulative: storage-root allowlists (tick 5) + auth/refresh
+rate-limit (tick 6) + dispatch-time SSRF/DNS-rebinding (tick 7). The three classic
+server-side attack surfaces (path-traversal, rate-limit/brute-force, SSRF) are now hardened
+on the API-reachable write/delete/fetch paths. UI frontier remains verified-clean (4 dims).
+Remaining: product-blocked (Brain hero, /billing) + founder-blocked (push, test-infra, FIPS, etc.).
