@@ -547,6 +547,9 @@ def _make_app(engine_instance):
 
     app = FastAPI()
     app.include_router(bulk_mod.router)
+    # Router enforces Depends(api_key_auth); isolated app sets no token wall, so
+    # override the auth dependency (zero-arg) to authenticate the test client.
+    app.dependency_overrides[bulk_mod._verify_api_key] = lambda: True
     return TestClient(app)
 
 
