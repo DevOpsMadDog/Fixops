@@ -25,23 +25,28 @@ bugs. **Filter out 429** when triaging. The non-429 findings below are the real 
 
 ## REMAINING (next increments)
 
-### 422 missing-param (backend validation)
-- `/awareness-metrics/metrics/latest` + `/trend` (MetricsPanel passes org_id; backend wants something else — inspect awareness router signature)
-- `/orgs/{id}/children`, `/ancestors`, `/effective-policies` (org-hierarchy page)
-- `/posture-trends/velocity-summary`
-- `/program-maturity/summary` + `/domains`
+### 422 missing-param (backend validation) — RESOLVED / triaged
+- ✅ `/awareness-metrics/metrics/latest` + `/trend` — FIXED (metric_type made optional, router+engine; live 200)
+- ⚠️ `/orgs/{id}/children`, `/ancestors`, `/effective-policies` — returns **404** "org not found in tenant": the managed org has no row in the org-hierarchy table. Should return self/empty for a valid authed org rather than 404, but this touches **founder-flagged org-precedence/tenancy logic** — defer until org-precedence decided.
+- ✅ `/posture-trends/velocity-summary`, `/program-maturity/summary`, `/program-maturity/domains` — FALSE POSITIVES: all 200 now with real empty data (sweep transient/rate-limit adjacent). No action.
 
-### 404 missing endpoints (add real endpoint backed by engine, or repoint UI to existing) — verify each with `curl -H "X-API-Key:$K"`:
-- `/ai-advisor/advisories` (router has /recommendations,/sessions,/stats — alias or add)
-- `/api-threat-protection/threats` (router has /rules,/events,/stats — "threats"≈events?)
-- `/risk/brs/bu/default` (brs-executive; "default" likely a hardcoded BU id)
-- `/cloud/principals` (cloud-iam)
-- `/dast/scans`, `/data-pipeline/sources`, `/digital-identity/identities`
-- `/rules/dsl/rules` (dynamic-rule-dsl), `/event-timeline/timelines`+`/stats`
-- `/gap-analysis/analyses`+`/stats`, `/identity-analytics/profiles` (identity-analytics + identity-governance)
-- `/incident/incidents` (incident-timeline), `/ir/stats` (ir-playbook)
-- `/threat-hunting/sessions`+`/findings`+`/timeline`+`/queries` (the `/hunting` page — distinct from threat-hunting-dashboard which works)
-- `/patch-priority/` + `/plans` + `/stats` (patch-prioritizer)
+### 404 missing endpoints — all 15 confirmed real (clean curl). FIX-MAP (existing router endpoints surveyed):
+Prefer **repoint UI → existing endpoint** (no backend restart) unless a real new endpoint is warranted.
+- `/ai-advisor/advisories` → router has `/recommendations` — repoint UI (advisories→recommendations) or drop the extra call.
+- `/api-threat-protection/threats` → router has `/events` — repoint threats→events.
+- `/digital-identity/identities` → router has `/profiles` — repoint identities→profiles.
+- `/identity-analytics/profiles` → router has `/identities` — repoint profiles→identities (mirror of above; also /identity-governance uses same).
+- `/gap-analysis/analyses` → router has `/assessments`; `/gap-analysis/stats` → `/summary` — repoint.
+- `/rules/dsl/rules` → dynamic_rule_dsl router list is `""` (root) — repoint /rules→root.
+- `/dast/scans` → router has `/` + `/scans/{id}` but no list `/scans` — add GET `/scans` (list) backed by engine, or repoint to `/`.
+- `/data-pipeline/sources` → router has `/pipelines` only — repoint sources→pipelines OR add `/sources`.
+- `/patch-priority/` (root) → patch_prioritizer has `/plans`,`/stats`,`/score` but no index — repoint to `/stats` or add index.
+- `/event-timeline/timelines` → file security_event_timeline_router.py HAS `/timelines` — **PREFIX MISMATCH**: verify the router prefix (likely `/api/v1/security-event-timeline` not `/event-timeline`). Repoint UI prefix or reconcile.
+- `/threat-hunting/sessions`+`/queries` EXIST in threat_hunting_router; `/findings`+`/timeline` do NOT. The `/hunting` page calls all 4 — repoint findings→(sessions/{id}/results?) + drop /timeline, or add. (Re-curl: /sessions itself 404'd — recheck for prefix/rate-limit.)
+- `/cloud/principals` → cloud_access_security router (/apps,/events,/policies) has no /principals. IAM principals likely belong to a cloud-iam/cloud-identity router — locate correct router or add.
+- `/incident/incidents` → incident_lessons_router has /lessons, no /incidents — locate incident router or repoint.
+- `/ir/stats` → **no router with /ir prefix** — find the IR router (maybe /incident-response) and repoint, or add.
+- `/risk/brs/bu/default` → brs-executive; `default` is a hardcoded BU id in the UI — repoint to a real BU or add a default-BU rollup endpoint.
 
 ### Crashes / warnings
 - `/firmware-security` — HTML hydration: `<div>` nested in `<tbody>` (invalid table markup) — fix the table structure
