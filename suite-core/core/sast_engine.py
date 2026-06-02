@@ -593,7 +593,9 @@ SAST_RULES: List[Tuple[str, str, str, str, str, str, str, List[str]]] = [
         r"""dangerouslySetInnerHTML\s*=\s*\{\s*\{.*__html""",
         "React dangerouslySetInnerHTML — XSS if data is user-controlled",
         "Sanitize HTML with DOMPurify before passing to dangerouslySetInnerHTML",
-        ["javascript"],
+        # React is written in both JSX (.js/.jsx) and TSX (.ts/.tsx); apply to
+        # typescript too so dangerouslySetInnerHTML XSS is caught in TS React.
+        ["javascript", "typescript"],
     ),
     (
         "SAST-046",
