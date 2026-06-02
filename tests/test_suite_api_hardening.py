@@ -58,12 +58,18 @@ def test_auth_router_warns_on_missing_secret():
     )
 
 
-def test_auth_router_fallback_via_getenv():
-    """The dev fallback secret must be read via os.getenv, not hardcoded."""
+def test_auth_router_dev_secret_is_ephemeral_not_hardcoded():
+    """The dev JWT fallback must be a random per-process secret (not a static
+    constant, which would be forgeable), and the real persistent secret must be
+    read from FIXOPS_JWT_SECRET. This is stricter than an env-var fallback with
+    a known default."""
     src = _source("auth_router.py")
-    # After fix: os.getenv("_FIXOPS_DEV_JWT_FALLBACK", "...")
-    assert '_FIXOPS_DEV_JWT_FALLBACK' in src, (
-        "auth_router.py must use _FIXOPS_DEV_JWT_FALLBACK env-var for the dev fallback secret"
+    assert "_EPHEMERAL_DEV_JWT_SECRET" in src and "token_hex" in src, (
+        "auth_router must derive the dev JWT fallback from a random ephemeral "
+        "secret (secrets.token_hex), not a hardcoded/env-default constant"
+    )
+    assert 'os.getenv("FIXOPS_JWT_SECRET"' in src, (
+        "auth_router must read the persistent JWT secret from FIXOPS_JWT_SECRET"
     )
 
 
