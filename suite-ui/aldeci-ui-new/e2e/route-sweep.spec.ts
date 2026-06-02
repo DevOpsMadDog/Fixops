@@ -23,13 +23,22 @@ const ORG = process.env.FIXOPS_ORG_ID || "default";
 const REPORT = process.env.SWEEP_REPORT || "/tmp/route_sweep_report.json";
 
 function extractRoutes(): string[] {
-  const appPath = path.resolve(process.cwd(), "src/App.tsx");
-  const src = fs.readFileSync(appPath, "utf8");
+  const base = path.resolve(process.cwd(), "src");
   const set = new Set<string>();
-  // top-level single-segment routes: path="/foo" (skip params, redirects handled by app)
-  const re = /path="(\/[a-z0-9-]+)"/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(src)) !== null) set.add(m[1]);
+  const add = (src: string, re: RegExp) => {
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(src)) !== null) {
+      const p = m[1];
+      if (p.includes("{") || p.includes(":") || p.includes("*")) continue; // skip param/splat
+      set.add(p);
+    }
+  };
+  // App.tsx <Route path="/a/b/c"> — multi-segment static routes (skip params/splat)
+  add(fs.readFileSync(path.join(base, "App.tsx"), "utf8"), /<Route\s+path="(\/[a-zA-Z0-9\-/]+)"/g);
+  // config-generated routes (FindingsExplorerView + GenericDashboard): path: "/x"
+  for (const cfg of ["config/findingsExplorerRoutes.ts", "config/dashboardRoutes.ts"]) {
+    try { add(fs.readFileSync(path.join(base, cfg), "utf8"), /path:\s*"(\/[a-zA-Z0-9\-/]+)"/g); } catch { /* optional */ }
+  }
   return [...set].sort();
 }
 
