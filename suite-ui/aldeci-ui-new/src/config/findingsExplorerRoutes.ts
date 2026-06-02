@@ -507,7 +507,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Security tool investment tracking and ROI analysis",
       apiPath: "/api/v1/security-investment/investments",
       itemsKey: "investments",
-      statsPath: "/api/v1/security-investment/stats",
+      statsPath: "/api/v1/security-investment/portfolio",
       severityKey: null,
       filterOptions: [],
       columns: [

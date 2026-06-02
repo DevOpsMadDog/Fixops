@@ -29,7 +29,7 @@ export default function CloudCostOptimizationDashboard() {
     try {
       const [itemsRes, statsRes] = await Promise.allSettled([
         apiFetch<any>("/api/v1/cost-optimization/tools"),
-        apiFetch<any>("/api/v1/cost-optimization/stats"),
+        apiFetch<any>("/api/v1/cost-optimization/portfolio"),
       ]);
       if (itemsRes.status === "fulfilled") {
         const v = itemsRes.value as any;

@@ -29,7 +29,7 @@ export default function EventTimelineDashboard() {
     try {
       const [itemsRes, statsRes] = await Promise.allSettled([
         apiFetch<any>("/api/v1/event-timeline/summary"),
-        apiFetch<any>("/api/v1/event-timeline/stats"),
+        apiFetch<any>("/api/v1/event-timeline/summary"),
       ]);
       if (itemsRes.status === "fulfilled") {
         const v = itemsRes.value as any;

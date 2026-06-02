@@ -379,7 +379,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Security-aware resource rightsizing and cost reduction opportunities",
       apiPath: "/api/v1/cost-optimization/tools",
       itemsKey: "tools",
-      statsPath: "/api/v1/cost-optimization/stats",
+      statsPath: "/api/v1/cost-optimization/portfolio",
     },
   },
   // ── Cloud Identity ───────────────────────────────────────────────────────
@@ -577,7 +577,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Chronological security event correlation and investigation pivot",
       apiPath: "/api/v1/event-timeline/summary",
       itemsKey: "timelines",
-      statsPath: "/api/v1/event-timeline/stats",
+      statsPath: "/api/v1/event-timeline/summary",
     },
   },
   // ── Exception Workflow ───────────────────────────────────────────────────

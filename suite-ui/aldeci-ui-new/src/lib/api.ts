@@ -1242,7 +1242,7 @@ export const threatResponseApi = {
   playbooks: (orgId = "default", status?: string) =>
     api.get("/api/v1/threat-response/playbooks", { params: { org_id: orgId, status } }),
   stats: (orgId = "default") =>
-    api.get("/api/v1/threat-response/stats", { params: { org_id: orgId } }),
+    api.get("/api/v1/threat-response/summary", { params: { org_id: orgId } }),
 };
 
 // ── Risk Overview (suite-evidence-risk) ──

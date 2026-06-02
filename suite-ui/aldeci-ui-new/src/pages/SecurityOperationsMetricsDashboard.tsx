@@ -7,7 +7,7 @@
  * Route: /soc-metrics
  * API:   GET /api/v1/soc-metrics
  *        GET /api/v1/soc-metrics/snapshots
- *        GET /api/v1/soc-metrics/analysts
+ *        GET /api/v1/soc-metrics/analyst-performance
  *        GET /api/v1/soc-metrics/queue
  */
 
@@ -186,9 +186,9 @@ export default function SecurityOperationsMetricsDashboard() {
   useEffect(() => {
     setLoading(true);
     Promise.allSettled([
-      apiFetch("/api/v1/soc-metrics"),
+      apiFetch("/api/v1/soc-metrics/"),
       apiFetch("/api/v1/soc-metrics/snapshots"),
-      apiFetch("/api/v1/soc-metrics/analysts"),
+      apiFetch("/api/v1/soc-metrics/analyst-performance"),
       apiFetch("/api/v1/soc-metrics/queue"),
     ]).then(([statsRes, snapshotsRes, analystsRes, queueRes]) => {
       if (statsRes.status === "fulfilled")     setStats(statsRes.value?.stats ?? statsRes.value ?? EMPTY_STATS);
