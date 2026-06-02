@@ -265,7 +265,20 @@ class SOCAutomation:
             )
 
     def _load_rule(self, row: sqlite3.Row) -> AutomationRule:
-        return AutomationRule.model_validate_json(row["data"])
+        rule = AutomationRule.model_validate_json(row["data"])
+        # execution_count / last_triggered are mutated in place via column
+        # UPDATEs in _record_execution and are NOT re-serialised into `data`,
+        # so the columns are authoritative for these counters — overlay them.
+        rule.execution_count = int(row["execution_count"] or 0)
+        lt = row["last_triggered"]
+        if lt:
+            try:
+                rule.last_triggered = datetime.fromisoformat(
+                    str(lt).replace("Z", "+00:00")
+                )
+            except (ValueError, TypeError):
+                pass
+        return rule
 
     def _record_execution(
         self,

@@ -406,7 +406,11 @@ def test_mirror_skips_low_severity_findings(isolated_engines):
 # ---------------------------------------------------------------------------
 
 
-def test_generate_and_ingest_15_tenants(isolated_engines):
+def test_generate_and_ingest_15_tenants(isolated_engines, monkeypatch):
+    # generate_and_ingest() produces SYNTHETIC events and is guarded — it only
+    # runs when load-testing is explicitly opted into. This test IS that
+    # load-test, so opt in.
+    monkeypatch.setenv("FIXOPS_SIEM_LOAD_TEST", "1")
     siem, corr, findings = isolated_engines
     summary = siem_connector.generate_and_ingest(
         tenants=15, events_per_tenant=14, seed=1337,
