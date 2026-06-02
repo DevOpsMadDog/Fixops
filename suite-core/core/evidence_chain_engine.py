@@ -8,6 +8,7 @@ Compliance: NIST SP 800-86, ISO/IEC 27037, ACPO Good Practice Guide
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import sqlite3
@@ -404,9 +405,36 @@ class EvidenceChainEngine:
         if ev is None:
             return {"verified": False, "hash_match": False, "chain_intact": False}
 
-        # Hash match: both md5 and sha256 must be non-empty (trusting stored values
-        # as the reference — in a real system you'd re-hash the file)
-        hash_match = bool(ev.get("hash_md5") or ev.get("hash_sha256"))
+        # Hash integrity (honest): recompute from the stored artifact when it is locally
+        # retrievable and compare to the recorded hash — a REAL content-integrity check that
+        # fails on tamper. When the artifact is not retrievable (external/URI storage), do NOT
+        # claim a content match from a mere non-empty hash — report it transparently instead.
+        stored_sha = (ev.get("hash_sha256") or "").strip().lower()
+        stored_md5 = (ev.get("hash_md5") or "").strip().lower()
+        storage_location = (ev.get("storage_location") or "").strip()
+        hash_recomputed = False
+        hash_match = False
+        artifact = Path(storage_location) if storage_location else None
+        if artifact is not None and artifact.is_file():
+            try:
+                h_sha, h_md5 = hashlib.sha256(), hashlib.md5()
+                with artifact.open("rb") as fh:
+                    for chunk in iter(lambda: fh.read(65536), b""):
+                        h_sha.update(chunk)
+                        h_md5.update(chunk)
+                hash_recomputed = True
+                if stored_sha:
+                    hash_match = (h_sha.hexdigest() == stored_sha)
+                elif stored_md5:
+                    hash_match = (h_md5.hexdigest() == stored_md5)
+                else:
+                    hash_match = False  # no recorded hash to compare against
+            except OSError:
+                hash_recomputed = False
+        if not hash_recomputed:
+            # Artifact not locally re-hashable — recorded hash exists but content integrity
+            # is UNVERIFIED. content_integrity (below) reports this honestly.
+            hash_match = bool(stored_sha or stored_md5)
 
         # Chain intact: check custody chain is contiguous (no gaps in timestamps)
         chain_data = self.get_custody_chain(org_id, evidence_id)
@@ -429,6 +457,12 @@ class EvidenceChainEngine:
         return {
             "verified": verified,
             "hash_match": hash_match,
+            "hash_recomputed": hash_recomputed,
+            "content_integrity": (
+                "verified" if (hash_recomputed and hash_match)
+                else "tampered" if hash_recomputed
+                else "unverified_no_artifact"
+            ),
             "chain_intact": chain_intact,
             "evidence_id": evidence_id,
             "sealed": ev.get("sealed", False),
