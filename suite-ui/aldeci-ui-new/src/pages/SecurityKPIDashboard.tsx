@@ -196,13 +196,13 @@ export default function SecurityKPIDashboard() {
 
   const load = () => {
     setDataLoading(true);
+    // The KPI engine exposes a single consolidated scorecard at /kpis/executive
+    // (real data: overall_health + kpis[]). The categories/strengths/weaknesses/trends
+    // breakdowns have no backend endpoint yet, so those sections render honest EmptyStates
+    // rather than calling non-existent routes (which 404'd).
     Promise.allSettled([
-      apiFetch(`/api/v1/kpis/scorecard?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/kpis/categories?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/kpis/strengths?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/kpis/weaknesses?org_id=${ORG_ID}`),
-      apiFetch(`/api/v1/kpis/trends?org_id=${ORG_ID}`),
-    ]).then(([scRes, catRes, strRes, weakRes, trendRes]) => {
+      apiFetch(`/api/v1/kpis/executive?org_id=${ORG_ID}`),
+    ]).then(([scRes]) => {
       if (scRes.status === "fulfilled") {
         const s = scRes.value;
         setScorecard({
@@ -221,10 +221,6 @@ export default function SecurityKPIDashboard() {
           })) : [],
         });
       }
-      if (catRes.status === "fulfilled") setCategoryScores(catRes.value?.categories ?? catRes.value ?? []);
-      if (strRes.status === "fulfilled") setStrengths(strRes.value?.strengths ?? strRes.value ?? []);
-      if (weakRes.status === "fulfilled") setWeaknesses(weakRes.value?.weaknesses ?? weakRes.value ?? []);
-      if (trendRes.status === "fulfilled") setTrendData(trendRes.value?.trends ?? trendRes.value ?? {});
     }).finally(() => setDataLoading(false));
   };
 
