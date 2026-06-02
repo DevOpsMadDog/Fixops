@@ -772,7 +772,12 @@ export default function FindingsExplorer() {
           av = order[a.severity] ?? 0; bv = order[b.severity] ?? 0;
         }
         else { av = a.id; bv = b.id; }
-        const cmp = typeof av === "number" ? av - (bv as number) : (av as string).localeCompare(bv as string);
+        // Null-safe: a finding may lack the sort field (undefined). Require BOTH
+        // sides numeric for the numeric branch; otherwise stringify with a "" fallback
+        // so we never call .localeCompare on undefined (TypeError crashed the page).
+        const cmp = typeof av === "number" && typeof bv === "number"
+          ? av - bv
+          : String(av ?? "").localeCompare(String(bv ?? ""));
         return sortDir === "asc" ? cmp : -cmp;
       });
     }
