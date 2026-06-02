@@ -35,7 +35,18 @@ from core.autofix_engine import (
 
 
 @pytest.fixture
-def engine():
+def engine(monkeypatch):
+    # Isolate the SQLite-backed persistent store so each unit test starts from a
+    # clean engine. The real "autofix_fixes"/"autofix_history" PersistentDicts are
+    # shared and accumulate fixes from the running app (demo seed), which broke the
+    # _fixes == {} precondition (test_init). Swap in fresh in-memory dicts.
+    import core.persistent_store as _ps
+
+    class _MemDict(dict):
+        def __init__(self, *_a, **_k):
+            super().__init__()
+
+    monkeypatch.setattr(_ps, "PersistentDict", _MemDict)
     return AutoFixEngine()
 
 
