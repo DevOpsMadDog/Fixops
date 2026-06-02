@@ -37,7 +37,12 @@ ORG = "test-xdr-http-org"
 # ---------------------------------------------------------------------------
 
 def test_stats_empty_org_returns_200(client):
-    resp = client.get("/api/v1/xdr/stats", params={"org_id": ORG}, headers=AUTH)
+    # Use a unique org guaranteed to have no ingested signals — the shared ORG
+    # accumulates signals from the ingest tests in this module, so reusing it
+    # here would see that pollution rather than the genuine empty state.
+    import uuid
+    empty_org = f"test-xdr-empty-{uuid.uuid4().hex}"
+    resp = client.get("/api/v1/xdr/stats", params={"org_id": empty_org}, headers=AUTH)
     assert resp.status_code == 200, resp.text
     data = resp.json()
     assert data["total_signals"] == 0
