@@ -6,6 +6,22 @@
 import { useEffect, useState } from "react";
 import { Workflow, AlertCircle, BarChart2, TrendingUp } from "lucide-react";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+
+// Authenticated fetch against the real tenant — no hardcoded org, real auth header.
+async function authedJson<T>(path: string, fallback: T): Promise<T> {
+  const org = getStoredOrgId() ?? "default";
+  const sep = path.includes("?") ? "&" : "?";
+  try {
+    const res = await fetch(`${path}${sep}org_id=${encodeURIComponent(org)}`, {
+      headers: { "X-API-Key": getStoredAuthToken() ?? "", "X-Org-ID": org },
+    });
+    if (!res.ok) return fallback;
+    return (await res.json()) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 interface FindingSummary {
   total?: number;
@@ -80,9 +96,9 @@ export function UnifiedCNAPPPanel() {
     let cancelled = false;
     setLoading(true);
     Promise.all([
-      fetch("/api/v1/cloud-findings/summary?org_id=default").then(r => r.json()).catch(() => ({})),
-      fetch("/api/v1/cloud-findings/findings?org_id=default&limit=10").then(r => r.json()).catch(() => ({ items: [] })),
-      fetch("/api/v1/cloud-findings/top-resources?org_id=default&limit=5").then(r => r.json()).catch(() => []),
+      authedJson<FindingSummary>("/api/v1/cloud-findings/summary", {}),
+      authedJson<{ items?: CloudFinding[] }>("/api/v1/cloud-findings/findings?limit=10", { items: [] }),
+      authedJson<TopResource[]>("/api/v1/cloud-findings/top-resources?limit=5", []),
     ]).then(([sumData, findData, topData]) => {
       if (cancelled) return;
       setSummary(sumData as FindingSummary);
