@@ -182,10 +182,14 @@ export default function FirmwareSecurityDashboard() {
               </TableHeader>
               <TableBody>
                 {devices.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={6}>
+                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                        <p className="text-lg font-medium">No data available</p>
+                        <p className="text-sm">Data will appear here once available</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   devices.map((d: any, i: number) => (
                   <TableRow key={d.device_name ?? i} className="hover:bg-muted/30">
@@ -232,10 +236,14 @@ export default function FirmwareSecurityDashboard() {
               </TableHeader>
               <TableBody>
                 {vulns.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={5}>
+                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                        <p className="text-lg font-medium">No data available</p>
+                        <p className="text-sm">Data will appear here once available</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   vulns.map((v: any, i: number) => (
                   <TableRow key={v.cve_id ?? i} className="hover:bg-muted/30">
