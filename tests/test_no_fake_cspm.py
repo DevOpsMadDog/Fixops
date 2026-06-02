@@ -20,9 +20,18 @@ This test suite verifies:
 from __future__ import annotations
 
 import sys
+import uuid
 from pathlib import Path
 
 import pytest
+
+# A per-run unique org id guaranteed to have ZERO ingested findings, so the
+# not-configured / no-fabrication path is genuinely exercised. (CSPM is now
+# ingest-first: an org that HAS real ingested cloud findings correctly returns
+# 200 real data; only a truly-empty org raises CSPMNotConfiguredError. Shared
+# names like "default"/"test-org" accumulate real findings from other tests and
+# dogfood runs, which is real data — not fabrication.)
+_EMPTY_ORG = f"no-cspm-empty-{uuid.uuid4().hex}"
 
 # Make suite-core importable
 sys.path.insert(0, str(Path(__file__).parent.parent / "suite-core"))
@@ -45,31 +54,31 @@ class TestEngineNotConfigured:
 
     def test_get_posture_raises_not_configured(self):
         with pytest.raises(self.exc):
-            self.engine.get_posture("test-org")
+            self.engine.get_posture(_EMPTY_ORG)
 
     def test_run_scan_raises_not_configured(self):
         with pytest.raises(self.exc):
-            self.engine.run_scan("test-org")
+            self.engine.run_scan(_EMPTY_ORG)
 
     def test_list_findings_raises_not_configured(self):
         with pytest.raises(self.exc):
-            self.engine.list_findings("test-org")
+            self.engine.list_findings(_EMPTY_ORG)
 
     def test_list_resources_raises_not_configured(self):
         with pytest.raises(self.exc):
-            self.engine.list_resources("test-org")
+            self.engine.list_resources(_EMPTY_ORG)
 
     def test_get_benchmark_status_raises_not_configured(self):
         with pytest.raises(self.exc):
-            self.engine.get_benchmark_status("test-org")
+            self.engine.get_benchmark_status(_EMPTY_ORG)
 
     def test_list_drift_raises_not_configured(self):
         with pytest.raises(self.exc):
-            self.engine.list_drift("test-org")
+            self.engine.list_drift(_EMPTY_ORG)
 
     def test_save_baseline_raises_not_configured(self):
         with pytest.raises(self.exc):
-            self.engine.save_baseline("test-org")
+            self.engine.save_baseline(_EMPTY_ORG)
 
     def test_get_remediation_raises_not_configured(self):
         with pytest.raises(self.exc):
@@ -93,7 +102,7 @@ class TestEngineNotConfigured:
 
     def test_list_scans_raises_not_configured(self):
         with pytest.raises(self.exc):
-            self.engine.list_scans("test-org")
+            self.engine.list_scans(_EMPTY_ORG)
 
     def test_get_resource_raises_not_configured(self):
         with pytest.raises(self.exc):
@@ -107,7 +116,7 @@ class TestEngineNotConfigured:
         """The specific dangerous fabrication: overall_score=100.0 + total_findings=0
         must NEVER be returned from an unconfigured engine."""
         try:
-            result = self.engine.get_posture("empty-tenant")
+            result = self.engine.get_posture(_EMPTY_ORG)
             # If it didn't raise, it must not be a fabricated perfect posture
             assert not (
                 getattr(result, "overall_score", None) == 100.0
@@ -141,13 +150,13 @@ class TestRouterNotConfigured:
         self.client = TestClient(app, raise_server_exceptions=False)
 
     def test_posture_returns_503_not_200(self):
-        resp = self.client.get("/api/v1/cspm/posture")
+        resp = self.client.get(f"/api/v1/cspm/posture?org_id={_EMPTY_ORG}")
         assert resp.status_code == 503, (
             f"Expected 503 not_configured, got {resp.status_code}: {resp.text}"
         )
 
     def test_posture_body_not_fabricated(self):
-        resp = self.client.get("/api/v1/cspm/posture")
+        resp = self.client.get(f"/api/v1/cspm/posture?org_id={_EMPTY_ORG}")
         assert resp.status_code == 503
         body = resp.json()
         detail = body.get("detail", {})
@@ -158,41 +167,41 @@ class TestRouterNotConfigured:
         assert detail.get("total_findings") != 0 or "overall_score" not in detail
 
     def test_scan_returns_503_not_200(self):
-        resp = self.client.post("/api/v1/cspm/scan", json={"org_id": "test"})
+        resp = self.client.post("/api/v1/cspm/scan", json={"org_id": _EMPTY_ORG})
         assert resp.status_code == 503, (
             f"Expected 503 not_configured, got {resp.status_code}: {resp.text}"
         )
 
     def test_scan_body_not_fabricated(self):
-        resp = self.client.post("/api/v1/cspm/scan", json={"org_id": "test"})
+        resp = self.client.post("/api/v1/cspm/scan", json={"org_id": _EMPTY_ORG})
         assert resp.status_code == 503
         detail = resp.json().get("detail", {})
         assert detail.get("status") == "not_configured"
         assert detail.get("configured") is False
 
     def test_findings_returns_503(self):
-        resp = self.client.get("/api/v1/cspm/findings")
+        resp = self.client.get(f"/api/v1/cspm/findings?org_id={_EMPTY_ORG}")
         assert resp.status_code == 503
 
     def test_resources_returns_503(self):
-        resp = self.client.get("/api/v1/cspm/resources")
+        resp = self.client.get(f"/api/v1/cspm/resources?org_id={_EMPTY_ORG}")
         assert resp.status_code == 503
 
     def test_benchmarks_returns_503(self):
-        resp = self.client.get("/api/v1/cspm/benchmarks")
+        resp = self.client.get(f"/api/v1/cspm/benchmarks?org_id={_EMPTY_ORG}")
         assert resp.status_code == 503
 
     def test_drift_returns_503(self):
-        resp = self.client.get("/api/v1/cspm/drift")
+        resp = self.client.get(f"/api/v1/cspm/drift?org_id={_EMPTY_ORG}")
         assert resp.status_code == 503
 
     def test_compliance_map_returns_503(self):
-        resp = self.client.get("/api/v1/cspm/compliance-map")
+        resp = self.client.get(f"/api/v1/cspm/compliance-map?org_id={_EMPTY_ORG}")
         assert resp.status_code == 503
 
     def test_health_does_not_return_fabricated_healthy(self):
         """Health must not claim 'healthy' with fake resource counts."""
-        resp = self.client.get("/api/v1/cspm/health")
+        resp = self.client.get(f"/api/v1/cspm/health?org_id={_EMPTY_ORG}")
         assert resp.status_code == 200  # health always responds
         body = resp.json()
         # Must be not_configured or degraded — never 'healthy' with fake data
