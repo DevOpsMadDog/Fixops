@@ -102,6 +102,32 @@ def list_alert_queue(
     return {"alerts": items, "total": len(items)}
 
 
+@router.post("/queue/{alert_id}/ack", dependencies=[Depends(api_key_auth)])
+def acknowledge_alert(
+    alert_id: str,
+    org_id: str = Query("default"),
+    analyst: str = Query("ui"),
+) -> Dict[str, Any]:
+    """Acknowledge an alert in the SOC queue (real soc_alerts update)."""
+    result = _get_engine().acknowledge_alert(alert_id, org_id, analyst)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Alert '{alert_id}' not found")
+    return result
+
+
+@router.post("/queue/{alert_id}/resolve", dependencies=[Depends(api_key_auth)])
+def resolve_alert(
+    alert_id: str,
+    org_id: str = Query("default"),
+    false_positive: bool = Query(False),
+) -> Dict[str, Any]:
+    """Resolve an alert in the SOC queue (real soc_alerts update)."""
+    result = _get_engine().resolve_alert(alert_id, org_id, false_positive=false_positive)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Alert '{alert_id}' not found")
+    return result
+
+
 @router.get("/snapshots", dependencies=[Depends(api_key_auth)])
 def list_snapshots(
     org_id: str = Query("default"),
