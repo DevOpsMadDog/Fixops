@@ -44,7 +44,11 @@ def _now_iso() -> str:
 
 
 def _today_str() -> str:
-    return date.today().isoformat()
+    # Use UTC to stay consistent with _now_iso()/detected_at, which are UTC.
+    # date.today() returns the LOCAL date; when the local date differs from the
+    # UTC date the daily-snapshot "detected_at LIKE '<today>%'" filter would
+    # miss every UTC-dated alert and report total_alerts=0.
+    return datetime.now(timezone.utc).date().isoformat()
 
 
 class SecurityOperationsMetricsEngine:
