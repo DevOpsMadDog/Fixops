@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredOrgId } from "@/lib/api";
 const _API_BASE = "/api/v1/compliance-calendar";
 const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("aldeci.authToken") || "" });
 
@@ -132,12 +133,13 @@ const FRAMEWORKS: Framework[] = ["ALL", "SOC2", "ISO27001", "PCI-DSS", "HIPAA", 
 
 // ── Component ──────────────────────────────────────────────────
 
+const ORG_ID = (getStoredOrgId() ?? "default");
 export default function ComplianceCalendarDashboard() {
   const [calEvents, setCalEvents] = useState(EVENTS);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${_API_BASE}/upcoming?org_id=default`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/upcoming?org_id=${ORG_ID}`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setCalEvents(d); })
       .catch((e) => setError(e?.message || 'Failed to load data'));
@@ -145,7 +147,7 @@ export default function ComplianceCalendarDashboard() {
 
   const [activeFramework, setActiveFramework] = useState<Framework>("ALL");
   useEffect(() => {
-    fetch(`${_API_BASE}/overdue?org_id=default`, { headers: _getHeaders() })
+    fetch(`${_API_BASE}/overdue?org_id=${ORG_ID}`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
         // live data loaded — components read from API response

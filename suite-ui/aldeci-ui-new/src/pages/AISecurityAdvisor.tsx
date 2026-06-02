@@ -169,6 +169,7 @@ function ImpactDots({ score }: { score: number }) {
 
 // ── Component ──────────────────────────────────────────────────
 
+const ORG_ID = (getStoredOrgId() ?? "default");
 export default function AISecurityAdvisor() {
   const [refreshing, setRefreshing] = useState(false);
   const [question, setQuestion] = useState("");
@@ -183,9 +184,9 @@ export default function AISecurityAdvisor() {
   const fetchAll = () => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch("/api/v1/ai-advisor/stats?org_id=default"),
-      apiFetch("/api/v1/ai-advisor/recommendations?org_id=default"),
-      apiFetch("/api/v1/ai-advisor/sessions?org_id=default"),
+      apiFetch("/api/v1/ai-advisor/stats?org_id=" + ORG_ID),
+      apiFetch("/api/v1/ai-advisor/recommendations?org_id=" + ORG_ID),
+      apiFetch("/api/v1/ai-advisor/sessions?org_id=" + ORG_ID),
     ]).then(([statsRes, recsRes, sessionsRes]) => {
       if (statsRes.status === "fulfilled") setStats(statsRes.value);
       if (recsRes.status === "fulfilled") {
@@ -215,7 +216,7 @@ export default function AISecurityAdvisor() {
     setChatMessages((prev) => [...prev, userMsg]);
     setChatLoading(true);
     try {
-      const resp = await apiFetch("/api/v1/ai-advisor/ask?org_id=default", {
+      const resp = await apiFetch("/api/v1/ai-advisor/ask?org_id=" + ORG_ID, {
         method: "POST",
         body: JSON.stringify({ question: q }),
       });

@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import { Crosshair, RefreshCw, Flame, ShieldAlert, Activity, BarChart2 } from "lucide-react";
 
@@ -72,6 +73,7 @@ function exportCsv(vectors: Record<string, unknown>[]) {
 
 // ── Component ──────────────────────────────────────────────────
 
+const ORG_ID = (getStoredOrgId() ?? "default");
 export default function ThreatVectorDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -81,8 +83,8 @@ export default function ThreatVectorDashboard() {
   const fetchData = () => {
     setLoading(true);
     Promise.allSettled([
-      apiFetch("/api/v1/threat-vectors/vectors?org_id=default"),
-      apiFetch("/api/v1/threat-vectors/stats?org_id=default"),
+      apiFetch("/api/v1/threat-vectors/vectors?org_id=" + ORG_ID),
+      apiFetch("/api/v1/threat-vectors/stats?org_id=" + ORG_ID),
     ]).then(([vecRes, statsRes]) => {
       if (vecRes.status === "fulfilled") {
         const v = vecRes.value;

@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import { Target, RefreshCw, AlertTriangle, BarChart2, Activity } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -84,6 +85,7 @@ interface Asset {
   last_assessed?: string;
 }
 
+const ORG_ID = (getStoredOrgId() ?? "default");
 export default function ThreatExposureDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -96,9 +98,9 @@ export default function ThreatExposureDashboard() {
     setLoading(true);
     setError(null);
     Promise.allSettled([
-      apiFetch("/api/v1/threat-exposure/stats?org_id=default"),
-      apiFetch("/api/v1/threat-exposure/top-exposed?org_id=default"),
-      apiFetch("/api/v1/threat-exposure/assets?org_id=default"),
+      apiFetch("/api/v1/threat-exposure/stats?org_id=" + ORG_ID),
+      apiFetch("/api/v1/threat-exposure/top-exposed?org_id=" + ORG_ID),
+      apiFetch("/api/v1/threat-exposure/assets?org_id=" + ORG_ID),
     ]).then(([statsRes, topRes, assetsRes]) => {
       if (statsRes.status === "fulfilled") setStats(statsRes.value ?? {});
       else setError("Failed to load exposure data");

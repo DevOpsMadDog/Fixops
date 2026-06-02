@@ -82,6 +82,7 @@ function TrendArrow({ trend, meeting }: { trend: string; meeting: boolean }) {
 
 // ── Component ──────────────────────────────────────────────────
 
+const ORG_ID = (getStoredOrgId() ?? "default");
 export default function SecurityMetricsDashboard() {
   usePageTitle("Security Metrics");
   const [refreshing, setRefreshing] = useState(false);
@@ -94,9 +95,9 @@ export default function SecurityMetricsDashboard() {
   const fetchData = () => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch("/security-metrics/metrics?org_id=default"),
-      apiFetch("/security-metrics/stats?org_id=default"),
-      apiFetch("/security-metrics/alerts?org_id=default"),
+      apiFetch("/security-metrics/metrics?org_id=" + ORG_ID),
+      apiFetch("/security-metrics/stats?org_id=" + ORG_ID),
+      apiFetch("/security-metrics/alerts?org_id=" + ORG_ID),
     ]).then(([metricsResult, statsResult, alertsResult]) => {
       if (statsResult.status === "fulfilled") {
         setStatsData(statsResult.value as Record<string, unknown>);

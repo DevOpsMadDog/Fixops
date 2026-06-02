@@ -161,20 +161,21 @@ function normaliseAnomaly(a: Record<string, unknown>, i: number): Anomaly {
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
+const ORG_ID = (getStoredOrgId() ?? "default");
 export default function NetworkAnalysis() {
   const [search, setSearch] = useState("");
 
   // NDR stats — KPI row
   const { data: ndrStats } = useQuery({
     queryKey: ["ndr-stats"],
-    queryFn:  () => apiFetch("/api/v1/ndr/stats?org_id=default").catch(() => null),
+    queryFn:  () => apiFetch("/api/v1/ndr/stats?org_id=" + ORG_ID).catch(() => null),
   });
 
   // NDR alerts — anomaly feed
   const { data: ndrAlerts = [], isLoading: l2 } = useQuery({
     queryKey: ["ndr-alerts"],
     queryFn:  async () => {
-      const d = await apiFetch("/api/v1/ndr/alerts?org_id=default&limit=20");
+      const d = await apiFetch("/api/v1/ndr/alerts?org_id=" + ORG_ID + "&limit=20");
       const arr: unknown[] = Array.isArray(d) ? d : (d.items ?? d.alerts ?? []);
       return (arr as Record<string, unknown>[]).map((a, i) => normaliseAnomaly(a, i));
     },
@@ -184,7 +185,7 @@ export default function NetworkAnalysis() {
   const { data: talkers = [], isLoading: l1 } = useQuery({
     queryKey: ["network-monitoring-stats"],
     queryFn:  async () => {
-      const d = await apiFetch("/api/v1/network-monitoring/stats?org_id=default");
+      const d = await apiFetch("/api/v1/network-monitoring/stats?org_id=" + ORG_ID);
       // The endpoint returns aggregate stats; if it also carries a flows array, use it.
       const arr: unknown[] = Array.isArray(d)
         ? d

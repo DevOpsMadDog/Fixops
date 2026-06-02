@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import { ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2, LayoutGrid } from "lucide-react";
 
@@ -94,6 +95,7 @@ interface SspmStats {
   compliance_rate?: number;
 }
 
+const ORG_ID = (getStoredOrgId() ?? "default");
 export default function SaasSecurityPostureDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -105,8 +107,8 @@ export default function SaasSecurityPostureDashboard() {
     setLoading(true);
     setError(null);
     Promise.allSettled([
-      apiFetch("/api/v1/sspm/apps?org_id=default"),
-      apiFetch("/api/v1/sspm/stats?org_id=default"),
+      apiFetch("/api/v1/sspm/apps?org_id=" + ORG_ID),
+      apiFetch("/api/v1/sspm/stats?org_id=" + ORG_ID),
     ]).then(([appsRes, statsRes]) => {
       if (appsRes.status === "fulfilled") {
         const v = appsRes.value;

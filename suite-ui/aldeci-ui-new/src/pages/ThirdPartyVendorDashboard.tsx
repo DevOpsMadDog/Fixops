@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import { Building2, RefreshCw, AlertTriangle, HelpCircle, TrendingUp, BarChart2 } from "lucide-react";
 
@@ -95,6 +96,7 @@ interface VendorStats {
   avg_risk_score?: number;
 }
 
+const ORG_ID = (getStoredOrgId() ?? "default");
 export default function ThirdPartyVendorDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -106,8 +108,8 @@ export default function ThirdPartyVendorDashboard() {
     setLoading(true);
     setError(null);
     Promise.allSettled([
-      apiFetch("/api/v1/third-party-vendor/vendors?org_id=default"),
-      apiFetch("/api/v1/third-party-vendor/stats?org_id=default"),
+      apiFetch("/api/v1/third-party-vendor/vendors?org_id=" + ORG_ID),
+      apiFetch("/api/v1/third-party-vendor/stats?org_id=" + ORG_ID),
     ]).then(([venRes, statsRes]) => {
       if (venRes.status === "fulfilled") {
         const v = venRes.value;

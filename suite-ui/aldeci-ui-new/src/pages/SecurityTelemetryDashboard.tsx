@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import { Gauge, RefreshCw, Radio, Bell, Zap, BarChart2 } from "lucide-react";
 
@@ -81,6 +82,7 @@ function exportCsv(rows: TelemetryPoint[]) {
   URL.revokeObjectURL(url);
 }
 
+const ORG_ID = (getStoredOrgId() ?? "default");
 export default function SecurityTelemetryDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -92,8 +94,8 @@ export default function SecurityTelemetryDashboard() {
     setLoading(true);
     setError(null);
     Promise.allSettled([
-      apiFetch("/api/v1/security-telemetry/datapoints?org_id=default"),
-      apiFetch("/api/v1/security-telemetry/stats?org_id=default"),
+      apiFetch("/api/v1/security-telemetry/datapoints?org_id=" + ORG_ID),
+      apiFetch("/api/v1/security-telemetry/stats?org_id=" + ORG_ID),
     ]).then(([telRes, statsRes]) => {
       if (telRes.status === "fulfilled") {
         const val = telRes.value;

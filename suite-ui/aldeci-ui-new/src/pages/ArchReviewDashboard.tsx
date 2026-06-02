@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getStoredOrgId } from "@/lib/api";
 
 const API_BASE = "/api/v1/arch-review";
 const getHeaders = () => ({ "X-API-Key": localStorage.getItem("aldeci.authToken") || "" });
@@ -50,6 +51,7 @@ const implBadge = (s: string) => {
   return <span className={`${map[s] || "bg-gray-600"} text-white text-xs px-2 py-0.5 rounded`}>{s.replace("_", " ")}</span>;
 };
 
+const ORG_ID = (getStoredOrgId() ?? "default");
 export default function ArchReviewDashboard() {
   const [activeTab, setActiveTab] = useState<"reviews" | "findings" | "controls" | "gaps">("reviews");
   const [loading, setLoading] = useState(true);
@@ -63,11 +65,11 @@ export default function ArchReviewDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/reviews?org_id=default`, { headers: getHeaders() })
+    fetch(`${API_BASE}/reviews?org_id=${ORG_ID}`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setLiveReviews(d); })
       .catch((e) => setError(e?.message || 'Failed to load data'));
-    fetch(`${API_BASE}/control-gaps?org_id=default`, { headers: getHeaders() })
+    fetch(`${API_BASE}/control-gaps?org_id=${ORG_ID}`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { if (Array.isArray(d)) setLiveFindings(d); })
       .catch((e) => setError(e?.message || 'Failed to load data'));

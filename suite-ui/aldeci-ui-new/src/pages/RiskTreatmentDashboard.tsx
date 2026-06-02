@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import { ShieldOff, RefreshCw, Clock, AlertTriangle, TrendingUp, BarChart2 } from "lucide-react";
 
@@ -109,6 +110,7 @@ interface TreatmentStats {
   avg_progress_pct?: number;
 }
 
+const ORG_ID = (getStoredOrgId() ?? "default");
 export default function RiskTreatmentDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -120,8 +122,8 @@ export default function RiskTreatmentDashboard() {
     setLoading(true);
     setError(null);
     Promise.allSettled([
-      apiFetch("/api/v1/risk-treatment/treatments?org_id=default"),
-      apiFetch("/api/v1/risk-treatment/stats?org_id=default"),
+      apiFetch("/api/v1/risk-treatment/treatments?org_id=" + ORG_ID),
+      apiFetch("/api/v1/risk-treatment/stats?org_id=" + ORG_ID),
     ]).then(([treatRes, statsRes]) => {
       if (treatRes.status === "fulfilled") {
         const v = treatRes.value;

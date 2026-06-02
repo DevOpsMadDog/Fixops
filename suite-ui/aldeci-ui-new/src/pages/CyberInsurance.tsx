@@ -14,6 +14,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import { Shield, FileText, AlertTriangle, DollarSign, RefreshCw, BarChart3 } from "lucide-react";
 
@@ -118,6 +119,7 @@ function ClaimStatusBadge({ status }: { status: string }) {
 
 // ── Component ──────────────────────────────────────────────────
 
+const ORG_ID = (getStoredOrgId() ?? "default");
 export default function CyberInsurance() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -131,9 +133,9 @@ export default function CyberInsurance() {
     setLoading(true);
     setError(null);
     Promise.allSettled([
-      apiFetch("/api/v1/cyber-insurance/policies?org_id=default"),
-      apiFetch("/api/v1/cyber-insurance/claims?org_id=default"),
-      apiFetch("/api/v1/cyber-insurance/stats?org_id=default"),
+      apiFetch("/api/v1/cyber-insurance/policies?org_id=" + ORG_ID),
+      apiFetch("/api/v1/cyber-insurance/claims?org_id=" + ORG_ID),
+      apiFetch("/api/v1/cyber-insurance/stats?org_id=" + ORG_ID),
     ]).then(([polRes, clmRes, stsRes]) => {
       if (polRes.status === "fulfilled") {
         const d = polRes.value;

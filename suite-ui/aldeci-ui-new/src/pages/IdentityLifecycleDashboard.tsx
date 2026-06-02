@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getStoredOrgId } from "@/lib/api";
 const _API_BASE = "/api/v1/identity-lifecycle";
 const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("aldeci.authToken") || "" });
 
@@ -54,6 +55,7 @@ function daysSince(dateStr: string): number {
   return Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+const ORG_ID = (getStoredOrgId() ?? "default");
 export default function IdentityLifecycleDashboard() {
   const [activeTab, setActiveTab] = useState<"accounts" | "entitlements" | "orphans" | "events">("accounts");
   const [loading, setLoading] = useState(true);
@@ -61,7 +63,7 @@ export default function IdentityLifecycleDashboard() {
 
   const loadData = () => {
     setFetchError(null);
-    return fetch(`${_API_BASE}/accounts?org_id=default`, { headers: _getHeaders() })
+    return fetch(`${_API_BASE}/accounts?org_id=${ORG_ID}`, { headers: _getHeaders() })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
       .then(d => {
         void d;

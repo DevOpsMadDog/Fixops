@@ -16,6 +16,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import {
   BarChart3, AlertTriangle, Target, Activity, RefreshCw,
@@ -112,6 +113,7 @@ function normaliseMetric(m: Record<string, unknown>, idx: number): Metric {
 
 // ── Component ──────────────────────────────────────────────────
 
+const ORG_ID = (getStoredOrgId() ?? "default");
 export default function SecurityMetricsDashboard2() {
   const [selectedIdx, setSelectedIdx] = useState<number>(0);
   const [refreshing, setRefreshing]   = useState(false);
@@ -125,9 +127,9 @@ export default function SecurityMetricsDashboard2() {
   const fetchAll = () => {
     setLoading(true);
     Promise.allSettled([
-      apiFetch("/api/v1/security-metrics/metrics?org_id=default"),
-      apiFetch("/api/v1/security-metrics/alerts?org_id=default"),
-      apiFetch("/api/v1/security-metrics/stats?org_id=default"),
+      apiFetch("/api/v1/security-metrics/metrics?org_id=" + ORG_ID),
+      apiFetch("/api/v1/security-metrics/alerts?org_id=" + ORG_ID),
+      apiFetch("/api/v1/security-metrics/stats?org_id=" + ORG_ID),
     ]).then(([mRes, aRes, sRes]) => {
       if (mRes.status === "fulfilled") {
         const d = mRes.value as Record<string, unknown>;
