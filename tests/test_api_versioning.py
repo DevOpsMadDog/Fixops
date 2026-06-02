@@ -107,13 +107,19 @@ def router_client(tmp_db, monkeypatch):
     import core.api_versioning as _av
     _av._default_manager = None
 
-    from apps.api.versioning_router import router
+    from apps.api.versioning_router import router, _legacy_versions_router
     import core.api_versioning as _av2
     _av2._default_manager = None
 
     app = FastAPI()
     app.include_router(router)
-    return TestClient(app)
+    # The tests call the LEGACY /api/versions/* paths, which 308-redirect to /api/v1/versions/*
+    # (the real, auth-gated router). Mount the legacy router too, override the v1 router's
+    # api_key_auth, and follow redirects so the legacy→v1 hop resolves.
+    app.include_router(_legacy_versions_router)
+    from apps.api.auth_deps import api_key_auth as _akauth
+    app.dependency_overrides[_akauth] = lambda: True
+    return TestClient(app, follow_redirects=True)
 
 
 # ===========================================================================

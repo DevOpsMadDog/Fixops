@@ -25,7 +25,7 @@ from core.api_versioning import (
     get_version_manager,
 )
 from apps.api.auth_deps import api_key_auth
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -40,12 +40,15 @@ _legacy_versions_router = APIRouter(prefix="/api/versions", tags=["versioning-le
 
 @_legacy_versions_router.get("/{path:path}", include_in_schema=False)
 @_legacy_versions_router.post("/{path:path}", include_in_schema=False)
-async def _legacy_versions_redirect(path: str) -> Response:
-    """HTTP 308 permanent redirect from /api/versions/* to /api/v1/versions/*."""
-    return Response(
-        status_code=308,
-        headers={"Location": f"/api/v1/versions/{path}"},
-    )
+async def _legacy_versions_redirect(path: str, request: Request) -> Response:
+    """HTTP 308 permanent redirect from /api/versions/* to /api/v1/versions/*.
+
+    Preserves the query string — otherwise filters/params (e.g. ?version=v2) are silently
+    dropped on the redirect, changing the response (e.g. an invalid-version 422 becomes a 200).
+    """
+    qs = request.url.query
+    location = f"/api/v1/versions/{path}" + (f"?{qs}" if qs else "")
+    return Response(status_code=308, headers={"Location": location})
 
 # ---------------------------------------------------------------------------
 # Shared manager instance (uses env override for db path in tests)
