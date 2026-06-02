@@ -595,7 +595,7 @@ class AnomalyMLEngine:
         )
         self._persist_anomaly(anomaly)
         _emit_event("anomaly.zscore.detected", {
-            "anomaly_id": anomaly.anomaly_id,
+            "anomaly_id": anomaly.id,
             "entity_id": entity_id,
             "entity_type": entity_type,
             "metric_name": metric_name,
@@ -628,7 +628,7 @@ class AnomalyMLEngine:
         with self._lock:
             with self._conn() as conn:
                 rows = conn.execute(
-                    """SELECT metric_name, value, recorded_atFROM ts_events
+                    """SELECT metric_name, value, recorded_at FROM ts_events
                     WHERE org_id=? AND entity_id=? AND metric_name IN ({})
                       AND recorded_at >= ?
                     ORDER BY recorded_at DESC

@@ -562,7 +562,7 @@ class ThreatHuntingEngine:
                 conn = sqlite3.connect(anomaly_db)
                 conn.row_factory = sqlite3.Row
                 rows = conn.execute(
-                    """SELECT metric_name, severity, COUNT(*) as cntFROM anomalies
+                    """SELECT metric_name, severity, COUNT(*) as cnt FROM anomalies
                     WHERE severity IN ({})
                     GROUP BY metric_name, severity
                     HAVING cnt >= ?

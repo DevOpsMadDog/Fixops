@@ -565,7 +565,7 @@ class DeduplicationService:
             # Use placeholders for the IN clause
             placeholders = ",".join("?" * len(cluster_ids))
             cursor.execute(
-                f"""SELECT event_id, cluster_id, run_id, source, raw_finding, timestampFROM events
+                f"""SELECT event_id, cluster_id, run_id, source, raw_finding, timestamp FROM events
                 WHERE cluster_id IN ({placeholders})
                 ORDER BY cluster_id, timestamp DESC
                 """,  # nosec B608

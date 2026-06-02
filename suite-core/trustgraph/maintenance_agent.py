@@ -630,7 +630,7 @@ class TrustGraphMaintenanceAgent:
                 # Entities whose type is NOT in the expected set
                 placeholders = ",".join("?" * len(expected_types))
                 cursor.execute(
-                    f"""SELECT entity_id, entity_type, nameFROM entities
+                    f"""SELECT entity_id, entity_type, name FROM entities
                     WHERE core_id = ? AND deleted_at IS NULL
                     AND entity_type NOT IN ({placeholders})
                     AND entity_type NOT IN ('CoreAnchor')
