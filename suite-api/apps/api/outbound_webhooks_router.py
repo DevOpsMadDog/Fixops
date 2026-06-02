@@ -311,11 +311,25 @@ async def dispatch_outbound(topic: str, payload: Dict[str, Any], org_id: str) ->
                 "error": None,
             }
             try:
+                # SSRF re-validation AT DISPATCH (not just at /subscribe): closes the
+                # DNS-rebinding / TOCTOU window — a host that resolved to a public IP at
+                # subscription time can later rebind to 169.254.169.254 / 127.0.0.1 / a
+                # private range. Re-resolving here blocks exfil of the signed payload to
+                # internal targets. follow_redirects is already False (no redirect bypass).
+                _validate_ssrf(sub["url"])
                 resp = await client.post(sub["url"], content=body, headers=headers)
                 result["response_code"] = resp.status_code
                 result["status"] = "success" if 200 <= resp.status_code < 300 else "failed"
                 if result["status"] == "failed":
                     result["error"] = f"HTTP {resp.status_code}"
+            except HTTPException:
+                # SSRF guard tripped — URL now resolves to a private/reserved IP. Do NOT
+                # POST; record as failed so the failure-count auto-disable path kicks in.
+                result["error"] = "SSRF blocked at dispatch (private/reserved IP)"
+                logger.warning(
+                    "dispatch_outbound: SSRF blocked sub=%s url=%s",
+                    sub["id"], sub["url"],
+                )
             except httpx.TimeoutException:
                 result["error"] = "Timeout"
             except httpx.ConnectError:

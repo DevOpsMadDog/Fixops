@@ -219,11 +219,19 @@ def _deliver_webhook(sub: Dict[str, Any], event_type: str, payload: Dict[str, An
     }
     result: Dict[str, Any] = {"delivery_id": delivery_id, "status": "failed", "response_code": None, "error": None}
     try:
+        # SSRF re-validation AT DISPATCH (not just at /subscribe): closes the DNS-rebinding
+        # / TOCTOU window — a host that resolved to a public IP at subscription time can
+        # later rebind to a private/reserved IP (metadata, localhost). allow_redirects is
+        # already False (no redirect bypass).
+        _validate_webhook_url(sub["url"])
         resp = _req.post(sub["url"], data=body, headers=headers, timeout=_DELIVERY_TIMEOUT_S, allow_redirects=False)
         result["response_code"] = resp.status_code
         result["status"] = "success" if 200 <= resp.status_code < 300 else "failed"
         if result["status"] == "failed":
             result["error"] = f"HTTP {resp.status_code}"
+    except HTTPException:
+        # SSRF guard tripped — URL now resolves to a private/reserved IP. Do NOT POST.
+        result["error"] = "SSRF blocked at dispatch (private/reserved IP)"
     except _req.Timeout:
         result["error"] = "Timeout"
     except _req.ConnectionError:

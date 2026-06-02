@@ -263,6 +263,33 @@ class TestDatabase:
 
 
 # ---------------------------------------------------------------------------
+# Dispatch-time SSRF re-validation (DNS-rebinding / TOCTOU)
+# ---------------------------------------------------------------------------
+
+class TestDispatchTimeSSRF:
+    def test_deliver_webhook_reblocks_private_ip_at_dispatch(self):
+        """Regression (2026-06-03): _deliver_webhook must re-validate the URL at DISPATCH,
+        not only at /subscribe. A stored URL that now resolves to a private/reserved IP
+        (DNS rebinding) must NOT be POSTed — the signed payload would otherwise be exfil'd
+        to an internal target (e.g. cloud metadata)."""
+        from apps.api import webhook_subscriptions_router as wsr
+
+        sub = {"id": "s-ssrf", "url": "https://169.254.169.254/latest/meta-data", "secret": "k"}
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+            db_name = f.name
+        try:
+            with patch("apps.api.webhook_subscriptions_router._DB_PATH") as mock_path:
+                mock_path.__str__ = lambda s: db_name
+                with patch("requests.post") as mock_post:
+                    result = wsr._deliver_webhook(sub, "finding.created", {"k": "v"})
+                    mock_post.assert_not_called()  # the dispatch-time guard blocked the POST
+            assert result["status"] == "failed"
+            assert "SSRF" in (result["error"] or "")
+        finally:
+            os.unlink(db_name)
+
+
+# ---------------------------------------------------------------------------
 # Event Types Tests
 # ---------------------------------------------------------------------------
 
