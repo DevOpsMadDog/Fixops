@@ -92,23 +92,23 @@ export default function ThreatActorsHub() {
     : "actors";
   const [tab, setTab] = useState<TabKey>(initial);
 
-  // Single effect: sync tab state <-> URL param without object-identity churn.
-  // deps are primitive strings — no new object references each render.
+  // URL -> state: adopt a valid ?tab from the URL (deep-link, back/forward).
   useEffect(() => {
     const urlTab = params.get("tab");
-    if (urlTab !== tab) {
-      if (isTabKey(urlTab)) {
-        // URL changed externally (deep-link / back button) → update state
-        setTab(urlTab);
-      } else {
-        // State changed (user clicked tab) → push to URL once
-        const next = new URLSearchParams(params.toString());
-        next.set("tab", tab);
-        setParams(next, { replace: true });
-      }
+    if (isTabKey(urlTab) && urlTab !== tab) setTab(urlTab);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.toString()]);
+  // state -> URL: reflect the user's active tab in the URL. (The prior single
+  // effect reverted state back to the stale URL on every click, so tab clicks
+  // appeared dead — this splits the two concerns by their trigger dependency.)
+  useEffect(() => {
+    if (params.get("tab") !== tab) {
+      const next = new URLSearchParams(params.toString());
+      next.set("tab", tab);
+      setParams(next, { replace: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, params.toString()]);
+  }, [tab]);
 
   const activeMeta = useMemo(() => TABS.find(t => t.key === tab) ?? TABS[0], [tab]);
 

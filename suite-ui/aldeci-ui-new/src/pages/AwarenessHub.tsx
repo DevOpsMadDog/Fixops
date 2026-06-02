@@ -89,18 +89,22 @@ export default function AwarenessHub() {
   // Single effect: sync tab state <-> URL param without object-identity churn.
   // deps use params.toString() (primitive) — avoids infinite replaceState loop.
   useEffect(() => {
+    // URL -> state: adopt a valid ?tab from the URL (deep-link, back/forward).
     const urlTab = params.get("tab");
-    if (urlTab !== tab) {
-      if (isTabKey(urlTab)) {
-        setTab(urlTab);
-      } else {
-        const next = new URLSearchParams(params.toString());
-        next.set("tab", tab);
-        setParams(next, { replace: true });
-      }
+    if (isTabKey(urlTab) && urlTab !== tab) setTab(urlTab);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.toString()]);
+  // state -> URL: reflect the user's active tab in the URL. (The prior single
+  // effect reverted state back to the stale URL on every click, so tab clicks
+  // appeared dead — this splits the two concerns by their trigger dependency.)
+  useEffect(() => {
+    if (params.get("tab") !== tab) {
+      const next = new URLSearchParams(params.toString());
+      next.set("tab", tab);
+      setParams(next, { replace: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, params.toString()]);
+  }, [tab]);
 
   const activeMeta = useMemo(() => TABS.find(t => t.key === tab) ?? TABS[0], [tab]);
 
