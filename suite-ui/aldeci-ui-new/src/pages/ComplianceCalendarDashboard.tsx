@@ -357,7 +357,7 @@ export default function ComplianceCalendarDashboard() {
               {upcoming.map((ev) => {
                 const days = daysRemaining(ev.due_date);
 
-                if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
+                if (loading) return <div key={ev.id} className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
 
                 return (
                   <div key={ev.id} className="border-b border-gray-700/50 pb-3 last:border-0 last:pb-0">
