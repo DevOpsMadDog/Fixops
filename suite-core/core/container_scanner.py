@@ -81,7 +81,7 @@ class ContainerSeverity(str, Enum):
 
 
 @dataclass
-class ContainerFinding:
+class ImageScanFinding:
     finding_id: str
     title: str
     severity: ContainerSeverity
@@ -110,9 +110,11 @@ class ContainerFinding:
         }
 
 
-# Preserve reference to the dataclass before the Pydantic ContainerFinding
-# redefinition (line ~904) shadows the name at module level.
-_ContainerFindingDC = ContainerFinding
+# Back-compat alias for the image-scan dataclass. (Historically this dataclass was named
+# ContainerFinding and was SHADOWED at module level by the later Pydantic
+# ContainerFinding(BaseModel), silently breaking ContainerImageScanner's finding
+# construction at runtime. Fixed 2026-06-03 by renaming the dataclass to ImageScanFinding.)
+_ImageScanFindingDC = ImageScanFinding
 
 
 # ── Dockerfile Rules ───────────────────────────────────────────────
@@ -392,7 +394,7 @@ class ContainerScanResult:
     scan_id: str
     target: str
     total_findings: int
-    findings: List[ContainerFinding]
+    findings: List[ImageScanFinding]
     by_severity: Dict[str, int]
     by_category: Dict[str, int]
     trivy_available: bool = False
@@ -437,7 +439,7 @@ class ContainerImageScanner:
         import time
 
         t0 = time.time()
-        findings: List[ContainerFinding] = []
+        findings: List[ImageScanFinding] = []
         lines = content.split("\n")
         has_user = False
         has_healthcheck = False
@@ -458,7 +460,7 @@ class ContainerImageScanner:
                 for vuln_img, (sev, desc) in KNOWN_VULNERABLE_IMAGES.items():
                     if image.startswith(vuln_img):
                         findings.append(
-                            ContainerFinding(
+                            ImageScanFinding(
                                 finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
                                 title=f"Vulnerable Base Image: {image}",
                                 severity=ContainerSeverity(sev),
@@ -477,7 +479,7 @@ class ContainerImageScanner:
                 port = int(port_match.group(1))
                 if port < 1024:
                     findings.append(
-                        ContainerFinding(
+                        ImageScanFinding(
                             finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
                             title=f"Privileged Port {port}",
                             severity=ContainerSeverity.MEDIUM,
@@ -494,7 +496,7 @@ class ContainerImageScanner:
             for rid, title, sev, cwe, pat, desc, rec in _DOCKERFILE_RULES_COMPILED:
                 if pat.search(stripped):
                     findings.append(
-                        ContainerFinding(
+                        ImageScanFinding(
                             finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
                             title=title,
                             severity=ContainerSeverity(sev),
@@ -509,7 +511,7 @@ class ContainerImageScanner:
         # Meta-rules
         if not has_user:
             findings.append(
-                ContainerFinding(
+                ImageScanFinding(
                     finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
                     title="No USER Directive",
                     severity=ContainerSeverity.HIGH,
@@ -521,7 +523,7 @@ class ContainerImageScanner:
             )
         if not has_healthcheck:
             findings.append(
-                ContainerFinding(
+                ImageScanFinding(
                     finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
                     title="No HEALTHCHECK",
                     severity=ContainerSeverity.LOW,
@@ -583,7 +585,7 @@ class ContainerImageScanner:
         image_ref = self._validate_image_ref(image_ref)
 
         t0 = time.time()
-        findings: List[ContainerFinding] = []
+        findings: List[ImageScanFinding] = []
 
         if self._trivy:
             try:
@@ -605,7 +607,7 @@ class ContainerImageScanner:
                         if sev not in ("critical", "high", "medium", "low"):
                             sev = "info"
                         findings.append(
-                            ContainerFinding(
+                            ImageScanFinding(
                                 finding_id=f"CONT-{uuid.uuid4().hex[:8]}",
                                 title=f"{vuln.get('VulnerabilityID', 'UNKNOWN')}: {vuln.get('PkgName', '')}",
                                 severity=ContainerSeverity(sev),
@@ -654,7 +656,7 @@ class ContainerImageScanner:
                     if title in existing_ids:
                         continue
                     findings.append(
-                        ContainerFinding(
+                        ImageScanFinding(
                             finding_id=f"GRYPE-{uuid.uuid4().hex[:8]}",
                             title=title,
                             severity=ContainerSeverity(sev),
@@ -701,7 +703,7 @@ class ContainerImageScanner:
         import time
 
         t0 = time.time()
-        findings: List[ContainerFinding] = []
+        findings: List[ImageScanFinding] = []
         full_text = content
 
         # ── Parse Chart.yaml metadata if present ──
@@ -718,7 +720,7 @@ class ContainerImageScanner:
         api_version = chart_meta.get("apiVersion", "")
         if api_version == "v1":
             findings.append(
-                ContainerFinding(
+                ImageScanFinding(
                     finding_id=f"HELM-{uuid.uuid4().hex[:8]}",
                     title="Deprecated Helm Chart API Version",
                     severity=ContainerSeverity.LOW,
@@ -732,7 +734,7 @@ class ContainerImageScanner:
         # Check for missing appVersion
         if chart_meta and not chart_meta.get("appVersion"):
             findings.append(
-                ContainerFinding(
+                ImageScanFinding(
                     finding_id=f"HELM-{uuid.uuid4().hex[:8]}",
                     title="Missing appVersion in Chart.yaml",
                     severity=ContainerSeverity.INFO,
@@ -756,7 +758,7 @@ class ContainerImageScanner:
                         line_num = i
                         break
                 findings.append(
-                    ContainerFinding(
+                    ImageScanFinding(
                         finding_id=f"HELM-{uuid.uuid4().hex[:8]}",
                         title=rule["title"],
                         severity=ContainerSeverity(rule["severity"]),
@@ -794,7 +796,7 @@ class ContainerImageScanner:
         import time
 
         t0 = time.time()
-        findings: List[ContainerFinding] = []
+        findings: List[ImageScanFinding] = []
         lines = content.split("\n")
 
         for line_num, line in enumerate(lines, 1):
@@ -805,7 +807,7 @@ class ContainerImageScanner:
             for sp, sp_re in _LAYER_SECRET_COMPILED:
                 if sp_re.search(stripped):
                     findings.append(
-                        _ContainerFindingDC(
+                        _ImageScanFindingDC(
                             finding_id=f"SEC-{uuid.uuid4().hex[:8]}",
                             title=f"Secret Detected: {sp['name']}",
                             severity=ContainerSeverity(sp["severity"]),
@@ -861,7 +863,7 @@ def get_security_scanner():  # type: ignore[return]
 
 # =============================================================================
 # ContainerSecurityScanner — structured Pydantic-based Dockerfile analysis
-# Adds: Severity enum, CheckCategory enum, ContainerFinding (Pydantic),
+# Adds: Severity enum, CheckCategory enum, ImageScanFinding (Pydantic),
 #       DockerfileAnalysis, ContainerSecurityScanner with 20+ checks and
 #       SQLite-backed history/stats.
 # =============================================================================
@@ -927,7 +929,7 @@ class CheckCategory(str, Enum):
     RUNTIME = "runtime"
 
 
-class ContainerFinding(BaseModel):  # type: ignore[no-redef]  # shadows dataclass above intentionally
+class ContainerFinding(BaseModel):  # pydantic model for ContainerSecurityScanner
     """Pydantic finding model used by ContainerSecurityScanner."""
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))

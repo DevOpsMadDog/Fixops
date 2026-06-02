@@ -3,7 +3,7 @@ Unit tests for suite-core/core/container_scanner.py — Container Scanner [V3]
 
 Tests the container image scanning engine including:
 - ContainerImageScanner: initialization, Dockerfile analysis
-- ContainerFinding: finding data class
+- ImageScanFinding: finding data class
 - Dockerfile rule checking
 - Known vulnerable image detection
 
@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'suite-core'))
 
 from core.container_scanner import (
     ContainerImageScanner,
-    ContainerFinding,
+    ImageScanFinding,
     ContainerScanResult,
     ContainerSeverity,
     DOCKERFILE_RULES,
@@ -98,13 +98,13 @@ class TestContainerSeverity:
         assert hasattr(ContainerSeverity, 'LOW')
 
 
-# ─── ContainerFinding ─────────────────────────────────────────────
+# ─── ImageScanFinding ─────────────────────────────────────────────
 
-class TestContainerFinding:
-    """Tests for ContainerFinding data class."""
+class TestImageScanFinding:
+    """Tests for ImageScanFinding data class."""
 
     def test_finding_creation(self):
-        finding = ContainerFinding(
+        finding = ImageScanFinding(
             finding_id="CF-001",
             title="Running as root",
             severity=ContainerSeverity.HIGH,
@@ -117,7 +117,7 @@ class TestContainerFinding:
         assert finding.severity == ContainerSeverity.HIGH
 
     def test_finding_defaults(self):
-        finding = ContainerFinding(
+        finding = ImageScanFinding(
             finding_id="CF-002",
             title="Test",
             severity=ContainerSeverity.LOW,
@@ -149,7 +149,7 @@ class TestContainerScanResult:
         assert len(result.findings) == 0
 
     def test_result_with_findings(self):
-        finding = ContainerFinding(
+        finding = ImageScanFinding(
             finding_id="CF-003",
             title="Exposed secrets in ENV",
             severity=ContainerSeverity.CRITICAL,
