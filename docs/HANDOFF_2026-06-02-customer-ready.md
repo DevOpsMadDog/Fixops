@@ -243,3 +243,15 @@ Kick cron retired on this clean exit (backlog exhausted). Re-arm with a new obje
 + a compliance-evidence endpoint. Per CLAUDE.md this wiring MUST be browser-verified (dev server :5173 +
 backend :8000 + Playwright MCP). That's the next step — needs the running stack brought up (the 5-min
 cron will attempt it; or run it yourself). Until then those sections honestly show empty, never fake.
+
+## UPDATE (2026-06-02 ~10:20) — FOUNDER REPORT: tab clicks fixed across 49 hubs
+
+Founder: "all screens tabs are mostly not usable" (named Secrets Scanner Scanner/Rotation, Supply Chain, Cloud). VERIFIED REAL by browser dogfooding.
+
+**Root cause:** a copy-pasted URL↔tab `useEffect` in 49 hub pages reverted state to the stale URL on every click (`if (isTabKey(urlTab)) setTab(urlTab)` ran on the [tab,params] effect, so a fresh click snapped back to the first tab). Deep-links (`?tab=`) worked; clicks did not. The tab PANELS were already wired to real /api/v1 data — only the switch was broken (so "functions not working" was the unreachable-tab symptom).
+
+**Fix (commit 1ddb957f):** split the one effect into two trigger-keyed effects — URL→state on `[params.toString()]` (deep-link/back-forward) and state→URL on `[tab]` (clicks), with equality guards (no ping-pong). Applied to all 49 hubs (48 via exact-block script + ThreatActorsHub by hand). The 2 other tab hubs (AuditorEvidenceHub, DeveloperSecurityHub) already used the correct URL-derived pattern.
+
+**Browser-verified (real Playwright clicks, not synthetic):** DetectAndRespondHub ITDR→XDR→EDR and SupplyChainHub Security→Vendor Risk all switch active tab + panel content + URL with no revert. All 106 hub panels confirmed real-data-wired (0 stubs).
+
+**Also this session (all committed, build+tsc+smoke 756 green, browser-verified):** AdminUsersPage 401 (missing X-API-Key) → 200 [5710eade]; route-sweep API failures webhooks-out 404 + agentless-scan 404 [bc601386], attack-paths 422 + air-gap-bundles 404 [faf33b58], compliance-frameworks 404 [cb8469c9]; ComplianceDashboard keyless-rows/Unknown-data → rich /compliance/status [c08028f6] (cleared the shared React key warning behind 14 routes). Full route-sweep with real SCIF token: 0 API failures, 0 crashes, 0 console errors across all routes.
