@@ -89,12 +89,14 @@ test("tab-panel sweep — failed /api + console errors per non-default tab", asy
       const label = (await tab.textContent().catch(() => `tab${i}`))?.trim().slice(0, 40) || `tab${i}`;
       try {
         await tab.click({ timeout: 5000 });
-        await page.waitForTimeout(1200); // let the panel's mount fetches fire
+        await page.waitForTimeout(800); // let the panel's mount fetches fire
       } catch (e) {
         consoleErrors.push(`CLICK_ERROR ${String(e).slice(0, 120)}`);
       }
-      // Pace under the backend read rate-limit.
-      await page.waitForTimeout(Number(process.env.SWEEP_TAB_DELAY_MS || 1500));
+      // Pace under the backend read rate-limit. Default kept low enough that the
+      // full 52-hub sweep finishes inside Playwright's 600s globalTimeout; raise
+      // SWEEP_TAB_DELAY_MS (and pass --global-timeout) for a gentler run.
+      await page.waitForTimeout(Number(process.env.SWEEP_TAB_DELAY_MS || 700));
 
       page.off("console", onConsole);
       page.off("response", onResponse);
