@@ -890,8 +890,8 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
     props: {
       title: "Security Benchmarks",
       description: "CIS, NIST, and custom benchmark compliance scores",
-      apiPath: "/api/v1/security-benchmarks/results",
-      itemsKey: "results",
+      apiPath: "/api/v1/security-benchmarks/benchmarks",
+      itemsKey: "benchmarks",
       statsPath: "/api/v1/security-benchmarks/summary",
       severityKey: "severity",
       columns: [
