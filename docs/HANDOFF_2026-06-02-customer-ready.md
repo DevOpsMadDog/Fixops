@@ -3,6 +3,13 @@
 > Branch `chore/ui-prune-plan-2026-05-24` · all commits **LOCAL (unpushed)** · push blocked (VPN DNS + revoked PAT)
 > Session: `359b05e6 → HEAD` (~66 commits) · loop log `docs/ralph_progress.md`
 
+## ADDENDUM — UI test-suite + new-endpoint coverage (continued tick, 2026-06-02 late)
+Four more verified-local increments after the "exhausted" mark above:
+- **Backend regression coverage** for the 7 org-aggregate engine methods this session wired (SCA org vulns/licenses, chaos observations, incident events/MTTR, SOC alert-queue/snapshots, awareness risk-trend) — `tests/test_new_org_aggregate_methods.py`, 6 tests, real data via engine write-paths (no mocks), asserts honest-empty on unknown org. Previously **zero** coverage. No suite pollution (216 passed w/ smoke files; clean collection).
+- **ComplianceDashboard**: stale test asserted 7 hardcoded framework cards "from mock fallback data" on an EMPTY API (failing) → rewrote to real-API-in/honest-empty-out; fixed real empty-org bug (`overallScore = Math.round(sum/0) = NaN` on a fresh-customer KPI → guarded to 0).
+- **UI test suite restored 61 fails → 0** across 9 files (was masking whether NO-MOCKS held). 3 test-only classes: prune-orphan `describe.skip` for 11 confirmed-removed pages; stale mock-data → real-data/honest-empty; useQuery/localStorage mount-crash → stubs+waitFor. 5 sonnet agents, each independently verified (only test files touched, no component edits, no re-introduced mocks, no real bugs surfaced).
+- **Gates after**: vitest **135 passed / 0 failed / 53 skipped**; prod build 3.46s; create_app **8330 routes**; Beast smoke **756/756**.
+
 ## Autonomous backlog (kick items 1–4): EXHAUSTED
 | Item | Status | Evidence |
 |------|--------|----------|
