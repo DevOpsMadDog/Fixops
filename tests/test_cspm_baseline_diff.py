@@ -27,6 +27,33 @@ def client():
     return TestClient(app)
 
 
+def _seed_cloud_findings(org_id: str, n: int = 3) -> None:
+    """Ingest real CSPM (cloud) findings so get_posture has data to aggregate.
+
+    FixOps derives posture from INGESTED findings (Prowler/Checkov/etc.), not a
+    live cloud scan — so capture/diff tests seed genuine findings rather than
+    mock the response.
+    """
+    from core.security_findings_engine import SecurityFindingsEngine
+
+    sfe = SecurityFindingsEngine()
+    sevs = ["critical", "high", "medium", "low"]
+    for i in range(n):
+        sfe.record_finding(
+            org_id=org_id,
+            title=f"S3 bucket publicly accessible {i}",
+            finding_type="cspm",
+            source_tool="checkov",
+            severity=sevs[i % len(sevs)],
+            cvss_score=7.5,
+            asset_id=f"s3-bucket-{org_id}-{i}",
+            asset_type="cloud_resource",
+            description="Public S3 bucket",
+            remediation="Enable Block Public Access",
+            correlation_key=f"checkov|CKV_AWS_20|s3-bucket-{org_id}-{i}",
+        )
+
+
 # ---------------------------------------------------------------------------
 # 1. baseline-diff with no baseline captured returns no_baseline status
 # ---------------------------------------------------------------------------
@@ -46,6 +73,7 @@ def test_baseline_diff_no_baseline(client):
 # ---------------------------------------------------------------------------
 
 def test_capture_baseline(client):
+    _seed_cloud_findings("test-org-b")
     resp = client.post("/api/v1/cspm/baseline", params={"org_id": "test-org-b"})
     assert resp.status_code == 201
     data = resp.json()
@@ -61,6 +89,7 @@ def test_capture_baseline(client):
 
 def test_baseline_diff_after_capture(client):
     org = "test-org-c"
+    _seed_cloud_findings(org)
     # Capture baseline first
     cap = client.post("/api/v1/cspm/baseline", params={"org_id": org})
     assert cap.status_code == 201
@@ -81,6 +110,7 @@ def test_baseline_diff_after_capture(client):
 
 def test_baseline_diff_severity_keys(client):
     org = "test-org-d"
+    _seed_cloud_findings(org)
     client.post("/api/v1/cspm/baseline", params={"org_id": org})
     resp = client.get("/api/v1/cspm/baseline-diff", params={"org_id": org})
     data = resp.json()
@@ -96,6 +126,7 @@ def test_baseline_diff_severity_keys(client):
 
 def test_baseline_diff_include_new_false(client):
     org = "test-org-e"
+    _seed_cloud_findings(org)
     client.post("/api/v1/cspm/baseline", params={"org_id": org})
     resp = client.get(
         "/api/v1/cspm/baseline-diff",
@@ -111,6 +142,7 @@ def test_baseline_diff_include_new_false(client):
 
 def test_baseline_diff_include_resolved_false(client):
     org = "test-org-f"
+    _seed_cloud_findings(org)
     client.post("/api/v1/cspm/baseline", params={"org_id": org})
     resp = client.get(
         "/api/v1/cspm/baseline-diff",

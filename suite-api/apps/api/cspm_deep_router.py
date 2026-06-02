@@ -435,6 +435,21 @@ def list_rules(
     }
 
 
+def _cspm_not_configured_exc():
+    """Return the CSPMNotConfiguredError class (or a fallback) for honest
+    no-ingested-data handling."""
+    return getattr(_cspm_module, "CSPMNotConfiguredError", RuntimeError)
+
+
+def _safe_drift(engine, org_id: str):
+    """Drift events come from a live cloud connector; without one there are
+    simply none — return [] rather than 500 the caller."""
+    try:
+        return engine.list_drift(org_id=org_id)
+    except Exception:
+        return []
+
+
 @router.get("/baseline-diff", summary="CSPM posture baseline diff")
 def get_baseline_diff(
     org_id: str = Depends(get_org_id),
@@ -461,8 +476,26 @@ def get_baseline_diff(
     except Exception as exc:
         raise HTTPException(status_code=503, detail={"status": "not_configured", "error": str(exc)})
     try:
-        # Current posture
+        # Current posture — derived from ingested cloud findings.
         current = engine.get_posture(org_id=org_id)
+    except _cspm_not_configured_exc():
+        # No cloud posture has been ingested yet — honest empty state. We do NOT
+        # fabricate a score; current_score is null and there is no baseline.
+        return {
+            "org_id": org_id,
+            "status": "no_baseline",
+            "message": (
+                "No cloud posture data ingested. Ingest Prowler/Checkov/"
+                "ScoutSuite/Steampipe output (or configure a cloud connector)."
+            ),
+            "current_score": None,
+            "score_delta": None,
+            "severity_delta": {},
+            "new_findings": [],
+            "resolved_findings": [],
+            "drift_events": [],
+            "baseline_captured_at": None,
+        }
     except Exception as exc:
         raise HTTPException(status_code=503, detail={"status": "not_configured", "error": str(exc)})
     if hasattr(current, "__dict__"):
@@ -489,7 +522,7 @@ def get_baseline_diff(
             "severity_delta": {},
             "new_findings": [],
             "resolved_findings": [],
-            "drift_events": engine.list_drift(org_id=org_id),
+            "drift_events": _safe_drift(engine, org_id),
             "baseline_captured_at": None,
         }
 
@@ -523,7 +556,7 @@ def get_baseline_diff(
         "severity_delta": severity_delta,
         "new_findings": new_findings if include_new else [],
         "resolved_findings": resolved_findings if include_resolved else [],
-        "drift_events": engine.list_drift(org_id=org_id),
+        "drift_events": _safe_drift(engine, org_id),
         "baseline_captured_at": baseline.get("scanned_at"),
     }
 
@@ -555,7 +588,13 @@ def capture_baseline(
         engine._baseline_store = {}  # type: ignore[attr-defined]
     engine._baseline_store[org_id] = snapshot  # type: ignore[attr-defined]
 
-    engine.save_baseline(org_id=org_id)
+    # Best-effort live-cloud baseline persistence — requires a connector and
+    # raises CSPMNotConfiguredError without one. The in-memory store above is
+    # the authoritative baseline for diffs, so this is optional.
+    try:
+        engine.save_baseline(org_id=org_id)
+    except Exception:  # noqa: BLE001
+        pass
 
     _router_emit("cspm.baseline_captured", {"org_id": org_id, "score": snapshot.get("overall_score")})
 

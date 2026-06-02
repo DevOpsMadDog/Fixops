@@ -1781,8 +1781,67 @@ try:
         "Configure an AWS, Azure, or GCP connector and re-run the scan."
     )
 
+    _CLOUD_SOURCE_TOOLS = {
+        "prowler", "checkov", "cloudsploit", "scoutsuite", "scout_suite",
+        "steampipe", "kics", "tfsec", "terrascan", "cspm", "cloud_connector",
+        "appomni", "adaptive_shield", "wiz", "orca", "prismacloud",
+        "prisma_cloud", "aws_config", "gcp_scc", "azure_defender",
+    }
+
     def _cspm_get_posture(self, org_id: str = "default") -> OrgPosture:  # type: ignore[no-untyped-def]
-        raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
+        """Aggregate cloud posture from REAL ingested CSPM findings.
+
+        FixOps is an intelligence layer: cloud posture is derived from findings
+        ingested via OSS/commercial cloud scanners (Prowler, Checkov, Steampipe,
+        ScoutSuite, …) and the CSPM connectors — NOT from FixOps running its own
+        live cloud scan. A live cloud connector is one OPTIONAL enrichment
+        source, not a prerequisite. When NO cloud findings have been ingested we
+        raise CSPMNotConfiguredError rather than fabricate a perfect score (the
+        old score=100/total=0 behaviour silently deceived customers).
+        """
+        try:
+            from core.security_findings_engine import SecurityFindingsEngine
+        except Exception as exc:  # noqa: BLE001
+            raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG) from exc
+
+        rows = SecurityFindingsEngine().list_findings(org_id=org_id)
+        cloud = [
+            r
+            for r in rows
+            if str(r.get("source_tool", "")).lower() in _CLOUD_SOURCE_TOOLS
+            or str(r.get("asset_type", "")).lower()
+            in {"cloud_resource", "cloud", "cloud_account"}
+            or str(r.get("finding_type", "")).lower()
+            in {"cspm", "cloud_misconfiguration", "misconfiguration"}
+        ]
+        if not cloud:
+            # Honest: nothing ingested → no posture to report. Never fabricate.
+            raise CSPMNotConfiguredError(
+                "No cloud posture data ingested for this org. Ingest Prowler/"
+                "Checkov/ScoutSuite/Steampipe output (or configure a cloud "
+                "connector) to populate CSPM posture."
+            )
+
+        sev = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+        assets: set = set()
+        for r in cloud:
+            s = str(r.get("severity", "")).lower()
+            if s in sev:
+                sev[s] += 1
+            if r.get("asset_id"):
+                assets.add(r["asset_id"])
+        total = len(cloud)
+        resources = len(assets)
+        return OrgPosture(
+            org_id=org_id,
+            overall_score=self._compliance_score(total, max(resources, 1)),
+            total_resources=resources,
+            total_findings=total,
+            critical_findings=sev["critical"],
+            high_findings=sev["high"],
+            medium_findings=sev["medium"],
+            low_findings=sev["low"],
+        )
 
     def _cspm_list_findings(self, org_id="default", status=None, severity=None):  # type: ignore[no-untyped-def]
         raise CSPMNotConfiguredError(_NOT_CONFIGURED_MSG)
