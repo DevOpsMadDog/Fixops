@@ -10,6 +10,17 @@ import pytest
 from core.audit_log import AuditAction, AuditLogger
 
 
+@pytest.fixture(autouse=True)
+def _no_retention_daemon(monkeypatch):
+    """Disable the auto-start retention daemon. Otherwise AuditLogger.__init__ starts a
+    daemon that runs an IMMEDIATE purge_old() in a background thread, which races with /
+    pre-empts these explicit purge_old() tests (it deletes the seeded old row before the
+    test asserts). The product behaviour is correct — the daemon must just be off here."""
+    monkeypatch.setenv("FIXOPS_DISABLE_AUDIT_RETENTION", "1")
+    import core.audit_log as _al
+    monkeypatch.setattr(_al, "_RETENTION_DAEMON_STARTED", False, raising=False)
+
+
 @pytest.fixture
 def temp_db():
     """Create a temporary audit database for testing."""
