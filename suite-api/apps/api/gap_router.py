@@ -3958,14 +3958,21 @@ async def sbom_export(
         if latest is not None:
             return latest
 
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                f"No persisted {fmt} SBOM export found. "
-                "Generate one first: POST /api/v1/sbom/assets/{asset_id}/export/"
+        # No persisted export yet is an EMPTY STATE, not a service outage. Return 200 with
+        # an empty-but-valid payload (component_count=0, sbom=None) + a generate hint, so
+        # the UI renders a real EmptyState and health checks don't trip on a false 503.
+        return {
+            "format": fmt,
+            "spec_version": None,
+            "component_count": 0,
+            "generated_at": None,
+            "sbom": None,
+            "detail": (
+                f"No persisted {fmt} SBOM export found. Generate one first: "
+                "POST /api/v1/sbom/assets/{asset_id}/export/"
                 f"{fmt}?save=true"
             ),
-        )
+        }
     except HTTPException:
         raise
     except (OSError, ValueError, KeyError, RuntimeError) as exc:
