@@ -181,7 +181,7 @@ const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
   (getStoredAuthToken() ?? "");
-const ORG_ID = "default";
+const ORG_ID = (getStoredOrgId() ?? "default");
 
 // ═══════════════════════════════════════════════════════════
 // Helper components
