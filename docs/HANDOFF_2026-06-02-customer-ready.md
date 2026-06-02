@@ -393,3 +393,23 @@ UI customer-readiness frontier (this session, 3 ticks): NO-MOCKS clean + 0 runti
 pages + admin-routing dead-ends repointed + 4 wrong-path pages (org/capacity/container/mcp) wired to
 real backends — all browser/curl-verified. Remaining: product-blocked (brain hero, /billing page) +
 founder-blocked. Build green; backend smoke 755/756 (known flake) from tick 2 holds (tick 3 UI-only).
+
+---
+
+## Addendum 2026-06-03 (tick 4) — typed-client coverage sweep + 503-semantics audit
+
+- **Typed-client coverage sweep (the gap)**: prior sweeps covered page-header docs + apiFetch
+  string literals; this swept the 401 /api/v1 paths DEFINED in src/lib/api*.ts typed clients
+  (apiKeysApi/sbomApi/etc.) that pages call indirectly. 184 ok(2xx/422), **1 real 5xx**.
+- **sbom/export false-503 → 200 empty-state** (gap_router.py): GET /api/v1/sbom/export raised
+  503 Service Unavailable when no SBOM was persisted yet — wrong semantic (trips health
+  checks/LB alarms/retries, misleads external consumers). Now returns 200 + empty payload
+  (component_count=0, sbom=null, generate hint). Live-verified. (0 UI callers today, but a real
+  ops/correctness bug.)
+- **503-semantics audit**: scanned all 302 router 503-raises — the other 301 are CORRECT
+  (engine/module/registry "not available" = genuine dependency-down, + the connector honest-stub
+  "NO MOCKS → 503 when env unset" pattern). No systematic false-503 class; sbom/export was unique.
+
+**Frontier fully verified clean across 4 call-path dimensions** (page-header docs, apiFetch literals,
+typed-client lib defs, 503 semantics): 0 runtime-5xx, 0 hard-broken pages, correct status semantics.
+Remaining UI work product-blocked (Brain hero, /billing page) + founder-blocked. smoke 755/756 (flake).
