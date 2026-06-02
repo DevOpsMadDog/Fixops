@@ -342,3 +342,32 @@ stale stub-assertions) are in docs/router_test_triage_2026-06-02.md.
 - **SQL-concat class confirmed FULLY swept**: VALUES/JOIN/ORDER BY/LIMIT/INSERT adjacency scan clean (FTS5 `table(cols)` is valid syntax, not a bug).
 - **Three static-findable backend bug classes all swept clean**: Depends-in-Pydantic (95), SQL-concat (12), bare-lazy-import (2). ~110 real runtime-500s total this campaign.
 - **Terminal state**: UI no-mocks-clean; all statically-findable real-bug classes swept; remaining work is founder-blocked test-infra (auth fixtures) proven to hide zero product bugs. Gates green (create_app 8339, smoke 756, build 3.76s). Push blocked — all committed locally.
+
+---
+
+## Addendum 2026-06-03 (tick 2) — live endpoint-health sweep + routing dead-ends
+
+Method: live-curled 183 UI-documented GET endpoints + Playwright browser nav (real /api/v1
+on mount, no self-reports). Found + fixed (all build-green 3.6s, smoke 755/756 known-flake,
+browser/curl-verified):
+
+- **hunting/sessions 500** — NULL-id legacy rows → pydantic ValidationError; list_sessions now
+  skips malformed rows (+regression test). Live 200. (6b3cf2be)
+- **GET /api/v1/local-store/status** — was 404 → page ErrorState; added real disk-scan endpoint;
+  page renders real status. (97cbc02e)
+- **5 shadowed pages un-shadowed** (App.tsx duplicate-route bug: a never-built "/admin?tab= hero"
+  redirect declared before the real same-path page → page unreachable, dead-ended at audit-log):
+  /capacity-planning /ai/mcp-registry /skills /system-health /organizations. (40924ea0)
+- **3 wrong-endpoint pages repointed**: CapacityPlanning /plans+/stats→/teams+/summary;
+  ContainerSecurity /summary→/stats; OrgHierarchyExplorer /organizations→/orgs (+array normalize,
+  browser-verified 273 real rows). (40924ea0)
+- **14 dead-end /admin?tab= redirects repointed** to real pages (airgap→AirGapHub browser-confirmed,
+  fips-status→/fips-compliance, tokens→/admin/api-keys, integrations→/integrations, etc.). (86a468e9)
+
+**PRODUCT-BLOCKED follow-ups (documented, not fixed — need founder direction):**
+- **/brain?tab= dead-end class (23 routes)**: /ai/brain, /ai/consensus, /verification, /brain/mpte,
+  /brain/fail, /mitre, /attack-chains, /ai-governance, /code-intel, etc. ALL land on /brain/neural
+  (BrainVisualization, 0 tabs) — the tabbed Brain hero was never built and no standalone pages exist
+  for pipeline/consensus/lab/ml/predictions/mpte/fail. Needs a Brain-hero build or content relocation.
+- **/billing**: no internal billing page exists (only public PricingPage) — real product gap.
+- Some **/compliance?tab=** redirects may share the pattern (ComplianceDashboard tab-read unconfirmed).
