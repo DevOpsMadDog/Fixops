@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture(scope="module")
 def client():
     from apps.api.app import create_app
-    return TestClient(create_app(), headers={"X-API-Key": "test-key"})
+    return TestClient(create_app(), headers={"X-API-Key": __import__("os").environ.get("FIXOPS_API_TOKEN", "test-key")})
 
 
 def test_confidence_levels_returns_200(client):

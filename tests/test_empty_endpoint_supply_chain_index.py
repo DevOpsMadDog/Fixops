@@ -17,7 +17,7 @@ def _get_test_client():
     from fastapi.testclient import TestClient
     from apps.api.app import create_app
     app = create_app()
-    return TestClient(app, headers={"X-API-Key": "test-key"})
+    return TestClient(app, headers={"X-API-Key": __import__("os").environ.get("FIXOPS_API_TOKEN", "test-key")})
 
 
 def _get_supply_chain_intel():

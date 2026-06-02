@@ -424,14 +424,19 @@ async def list_fix_types():
 
 @router.get("/confidence-levels", summary="Confidence level definitions")
 async def confidence_levels():
-    """Get confidence level definitions and thresholds."""
+    """Confidence level thresholds + live per-level fix counts from the engine."""
+    engine = _get_engine()
+    stats = engine.get_stats()
+    by_conf = stats.get("by_confidence", {}) or {}
     return {
         "status": "ok",
         "levels": {
-            "high": {"min_score": 0.85, "description": "Safe to auto-apply"},
-            "medium": {"min_score": 0.60, "description": "Needs human review"},
-            "low": {"min_score": 0.0, "description": "Manual review required"},
+            "high": {"min_score": 0.85, "description": "Safe to auto-apply", "count": int(by_conf.get("high", 0))},
+            "medium": {"min_score": 0.60, "description": "Needs human review", "count": int(by_conf.get("medium", 0))},
+            "low": {"min_score": 0.0, "description": "Manual review required", "count": int(by_conf.get("low", 0))},
         },
+        "total_fixes": int(stats.get("total_fixes_stored", 0)),
+        "avg_confidence_score": float(stats.get("avg_confidence_score", 0.0)),
     }
 
 
