@@ -3,6 +3,25 @@
 > Branch `chore/ui-prune-plan-2026-05-24` · all commits **LOCAL (unpushed)** · push blocked (VPN DNS + revoked PAT)
 > Session: `359b05e6 → HEAD` (~66 commits) · loop log `docs/ralph_progress.md`
 
+## ADDENDUM 8 — config-repoint subset EXHAUSTED + session stop state (2026-06-02 late night)
+Completed the clean config-repoint subset: **22 config api-paths** now fire real data
+(20 statsPath /X/stats->/X/summary, security-benchmarks /results->/benchmarks, evidence-vault
+/items->/search) — each live-verified (200 + 0 console errors). Remaining deferred-endpoint
+backlog is now exclusively: (a) dead-config (path shadowed by an App.tsx redirect — repoint is
+a no-op), (b) semantic/shape mismatch (no clean existing endpoint — not forced), (c) genuinely
+missing engine — FOUNDER-BLOCKED on real data importers (no fabrication).
+
+**Session stop state — UI no-mocks-clean, clean buildable work exhausted:**
+- Primary customer pages: real /api/v1 on mount, 0 crashes, no fixtures.
+- 0 page crashes across the full 613-route space (enhanced sweep).
+- Every real crash/404/422 the sweeps surfaced: FIXED + browser-verified (broken nav, hook
+  crashes, fragment keys, BRS, findings, AgeBadge, /hunting x6, /org-hierarchy x3, + 22 repoints).
+- Gates green: create_app 8335 · Beast smoke 756/756 · tsc 0 · vitest 135/53 · build ~3.6s.
+- Remaining (recorded, not clean one-tick work): deferred-endpoint backend program
+  (docs/deferred_empty_endpoints_2026-06-02.md, ~46, partly founder-blocked), cosmetic dev-only
+  React key warnings (stripped in prod), and the standing founder-blocked list (push, Postgres,
+  org-precedence, FIPS, PIV, GPU, Stripe, test-infra fixture).
+
 ## ADDENDUM 7 — deferred-endpoint clean-subset repointed to real data (continued tick, 2026-06-02 late night)
 Worked the 66-endpoint deferred backlog (addendum 6), extracting only the clean,
 non-fabrication, verifiable subset (NOT stubbing — no-fake-data rule):
