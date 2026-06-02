@@ -1444,6 +1444,7 @@ export interface GrcStats {
 
 export interface GrcFramework {
   id?: string;
+  framework_id?: string; // API (/api/v1/grc/frameworks) returns framework_id, not id
   name: string;
   version?: string;
   total_controls?: number;
@@ -1454,6 +1455,7 @@ export interface GrcFramework {
 
 export interface GrcControl {
   id?: string;
+  control_id?: string; // API (/api/v1/grc/controls) returns control_id, not id
   framework_id?: string;
   control_ref?: string;
   title?: string;
@@ -1466,6 +1468,7 @@ export interface GrcControl {
 
 export interface GrcRisk {
   id?: string;
+  risk_id?: string; // API (/api/v1/grc/risks) returns risk_id, not id
   title: string;
   category?: string;
   likelihood?: number;

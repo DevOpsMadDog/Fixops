@@ -11,7 +11,8 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
 
 interface PipelineModel {
-  model_id: string;
+  id?: string; // API (/api/v1/threat-modeling-pipeline/models) returns id
+  model_id?: string;
   model_name: string;
   system_description?: string;
   methodology: string;
@@ -159,7 +160,7 @@ export function ModelingPipelinePanel() {
       ) : (
         <div className="space-y-2">
           {filteredModels.map(m => (
-            <div key={m.model_id} className="rounded-lg border border-border bg-muted/10 p-4">
+            <div key={m.id ?? m.model_id} className="rounded-lg border border-border bg-muted/10 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">

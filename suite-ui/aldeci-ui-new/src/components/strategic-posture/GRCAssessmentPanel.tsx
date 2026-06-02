@@ -150,7 +150,7 @@ export function GRCAssessmentPanel() {
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {frameworks.map((fw) => (
               <div
-                key={fw.id ?? fw.name}
+                key={fw.framework_id ?? fw.id ?? fw.name}
                 className="rounded-xl border border-border/60 bg-card px-4 py-3 flex flex-col gap-2"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -207,7 +207,7 @@ export function GRCAssessmentPanel() {
                     const StatusIcon = CONTROL_STATUS_ICON[ctrl.status] ?? MinusCircle;
                     const statusCls = CONTROL_STATUS_BADGE[ctrl.status] ?? "text-slate-400 bg-slate-400/10";
                     return (
-                      <tr key={ctrl.id ?? ctrl.control_ref} className="bg-card hover:bg-muted/20 transition-colors">
+                      <tr key={ctrl.control_id ?? ctrl.id ?? ctrl.control_ref} className="bg-card hover:bg-muted/20 transition-colors">
                         <td className="px-3 py-2 font-mono text-muted-foreground">{ctrl.control_ref || "—"}</td>
                         <td className="max-w-[200px] truncate px-3 py-2 text-foreground" title={ctrl.title}>{ctrl.title || "—"}</td>
                         <td className="px-3 py-2 text-muted-foreground capitalize">{ctrl.category || "—"}</td>
@@ -248,7 +248,7 @@ export function GRCAssessmentPanel() {
                   {risks.map((risk) => {
                     const treatCls = RISK_TREATMENT_COLOR[risk.treatment?.toLowerCase() ?? ""] ?? "text-muted-foreground";
                     return (
-                      <tr key={risk.id ?? risk.title} className="bg-card hover:bg-muted/20 transition-colors">
+                      <tr key={risk.risk_id ?? risk.id ?? risk.title} className="bg-card hover:bg-muted/20 transition-colors">
                         <td className="max-w-[200px] truncate px-3 py-2 font-medium text-foreground" title={risk.title}>{risk.title}</td>
                         <td className="px-3 py-2 text-muted-foreground capitalize">{risk.category || "—"}</td>
                         <td className="px-3 py-2 tabular-nums text-center text-muted-foreground">{risk.likelihood ?? "—"}/5</td>
