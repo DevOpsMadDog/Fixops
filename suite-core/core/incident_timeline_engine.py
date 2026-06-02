@@ -190,7 +190,8 @@ class IncidentTimelineEngine:
 
         timeline_id = str(uuid.uuid4())
         now = self._now()
-        started_at = data.get("started_at", now)
+        # Coalesce explicit null (body may send started_at: null) -> now; column is NOT NULL.
+        started_at = data.get("started_at") or now
 
         record = {
             "timeline_id": timeline_id,
@@ -326,7 +327,7 @@ class IncidentTimelineEngine:
 
         event_id = str(uuid.uuid4())
         now = self._now()
-        event_time = data.get("event_time", now)
+        event_time = data.get("event_time") or now  # coalesce explicit null; column is NOT NULL
 
         record = {
             "event_id": event_id,
@@ -523,6 +524,33 @@ class IncidentTimelineEngine:
     # ------------------------------------------------------------------
     # Stats
     # ------------------------------------------------------------------
+
+    def get_mttr_analytics(self, org_id: str) -> Dict[str, Any]:
+        """Org-level MTTR analytics: avg (resolved_at - started_at) over resolved timelines.
+
+        Real data from the timelines table. avg fields are None when no resolved
+        timelines exist (empty/unresolved org) — endpoint never crashes.
+        """
+        with self._lock:
+            with self._conn() as conn:
+                total_row = conn.execute(
+                    "SELECT COUNT(*) FROM timelines WHERE org_id=?", (org_id,)
+                ).fetchone()
+                total = total_row[0] if total_row else 0
+                avg_row = conn.execute(
+                    """SELECT AVG((julianday(resolved_at) - julianday(started_at)) * 1440.0) AS avg_min
+                       FROM timelines
+                       WHERE org_id=? AND resolved_at IS NOT NULL AND started_at IS NOT NULL""",
+                    (org_id,),
+                ).fetchone()
+        avg_min = avg_row["avg_min"] if avg_row else None
+        avg_minutes = round(avg_min, 2) if avg_min is not None else None
+        return {
+            "org_id": org_id,
+            "avg_mttr_minutes": avg_minutes,
+            "avg_mttr_hours": round(avg_minutes / 60.0, 2) if avg_minutes is not None else None,
+            "total_timelines": total,
+        }
 
     def get_timeline_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregate timeline statistics for an org."""

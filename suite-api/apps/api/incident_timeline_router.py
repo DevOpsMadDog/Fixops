@@ -8,7 +8,7 @@ Auth: api_key_auth dependency
 from __future__ import annotations
 
 import logging
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from apps.api.dependencies import get_org_id
@@ -108,6 +108,12 @@ def list_all_events(
 ):
     """List recent timeline events across all incidents for the org (real data, newest first)."""
     return _get_engine().list_all_events(org_id, limit=limit)
+
+
+@router.get("/analytics/mttr", dependencies=[Depends(api_key_auth)])
+def mttr_analytics(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
+    """Org-level MTTR analytics (avg resolution time over resolved timelines)."""
+    return _get_engine().get_mttr_analytics(org_id)
 
 
 @router.get("/{timeline_id}", dependencies=[Depends(api_key_auth)])
