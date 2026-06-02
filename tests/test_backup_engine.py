@@ -35,6 +35,18 @@ from core.backup_engine import (
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(autouse=True)
+def _backup_key(monkeypatch):
+    """Backup encryption requires FIXOPS_BACKUP_KEY (fail-closed secure default).
+    The key is PBKDF2-derived, so any passphrase works for tests."""
+    monkeypatch.setenv("FIXOPS_BACKUP_KEY", "test-backup-passphrase-do-not-use-in-prod")
+    # PBKDF2 salt (hex, 32 bytes) — also required; engine refuses to derive without it.
+    monkeypatch.setenv(
+        "FIXOPS_BACKUP_SALT",
+        "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+    )
+
+
 @pytest.fixture
 def engine(tmp_path):
     """BackupEngine with isolated temp directories."""
@@ -202,29 +214,30 @@ def test_create_backup_encrypted(engine, sample_sqlite_db):
     assert record.status == BackupStatus.COMPLETED
     # File should start with encryption header
     raw = Path(record.file_path).read_bytes()
-    assert raw.startswith(b"ALDECI_ENC_V1:")
+    # V2 = Fernet (AES-128-CBC + HMAC). V1 is the legacy XOR header (decrypt-only).
+    assert raw.startswith(b"ALDECI_ENC_V2:")
 
 
 def test_encrypt_decrypt_roundtrip(engine):
+    # _encrypt_data/_decrypt_data take only `data` now — the key comes from
+    # FIXOPS_BACKUP_KEY (PBKDF2→Fernet), not a positional arg (was the old XOR API).
     data = b"Hello ALDECI backup data 12345"
-    key = b"test-key"
-    encrypted = engine._encrypt_data(data, key)
+    encrypted = engine._encrypt_data(data)
     assert encrypted != data
-    decrypted = engine._decrypt_data(encrypted, key)
+    decrypted = engine._decrypt_data(encrypted)
     assert decrypted == data
 
 
 def test_encrypt_adds_header(engine):
     data = b"some bytes"
-    encrypted = engine._encrypt_data(data, b"key")
-    assert encrypted.startswith(b"ALDECI_ENC_V1:")
+    encrypted = engine._encrypt_data(data)
+    assert encrypted.startswith(b"ALDECI_ENC_V2:")
 
 
 def test_decrypt_without_header(engine):
-    # _decrypt_data should handle data that has no header (pass-through XOR)
+    # _decrypt_data handles data with no recognised header (defensive pass-through).
     data = b"raw"
-    key = b"k"
-    result = engine._decrypt_data(data, key)
+    result = engine._decrypt_data(data)
     assert isinstance(result, bytes)
 
 
