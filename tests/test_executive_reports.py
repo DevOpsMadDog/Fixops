@@ -255,6 +255,10 @@ class TestComplianceStatusReport:
         report = engine.generate_report(type=ReportType.COMPLIANCE_STATUS, period_start=start, period_end=end)
         scores_section = next(s for s in report.sections if s.title == "Per-Framework Compliance Scores")
         for fw, score in scores_section.data["frameworks"].items():
+            # The engine returns an honest null (no fabricated score) for
+            # frameworks with no scans run — only real scores are range-checked.
+            if score is None:
+                continue
             assert 0 <= score <= 100, f"{fw} score {score} out of range"
 
     def test_has_gaps_section(self, engine, period):

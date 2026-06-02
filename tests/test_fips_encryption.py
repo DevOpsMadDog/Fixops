@@ -325,8 +325,19 @@ class TestFileEncryptDecrypt:
 class TestFIPSMode:
     """verify_fips_mode, set_mode, and get_encryption_status."""
 
-    def test_verify_fips_mode_returns_true(self, fips):
-        assert fips.verify_fips_mode() is True
+    def test_verify_fips_mode_reflects_runtime(self, fips):
+        # verify_fips_mode() must honestly report whether the *runtime* OpenSSL
+        # / kernel is in FIPS mode — it must NOT fabricate True. Compute the
+        # expected value from the same signals the method uses and assert it
+        # matches (True only on a real FIPS-validated OS; False otherwise).
+        import ssl
+        from pathlib import Path
+
+        expected = "fips" in ssl.OPENSSL_VERSION.lower()
+        if not expected:
+            p = Path("/proc/sys/crypto/fips_enabled")
+            expected = p.exists() and p.read_text().strip() == "1"
+        assert fips.verify_fips_mode() is bool(expected)
 
     def test_default_mode_is_standard(self, fips):
         status = fips.get_encryption_status()
