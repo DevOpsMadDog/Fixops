@@ -900,3 +900,15 @@ All green: create_app 8345, Beast smoke 756/756 (lone ingest timing flake passes
  - github_issues_real::test_gh_auth_status now skips when gh unauthenticated (founder-blocked credential, air-gapped) like its siblings; still asserts real login when authed. 38 passed/19 skipped.
  - fixd_tier_and_sso "2 errors" + tip_index/semantic_analyzer "2 errors" were all --timeout=20 create_app-boot artifacts; pass clean at 90s (no fix).
 All green: create_app 8345 routes, Beast smoke 755 + the documented ingest timing flake, 187 crypto+evidence tests. Swept ranges add: e-h COMPLETE. i-r sweep in flight.
+
+## Session addendum 2026-06-03 (ralph tick57–61) — Red-Team + i-r T3 sweep
+**Item B Red-Team hardening:** SPEC-005 central socket-level egress guard (core/egress_guard.py) — closes the pending "can outbound slip past enforced?" debate line. Under FIXOPS_AIRGAP_MODE=enforced, blocks public-internet sockets (loopback/RFC1918/link-local/CGNAT/ULA allowed); airgap status now reports the ACTUAL guard state. OFF by default. Verified normal+enforced boot 8345, 20/20 tests.
+**i-r T3 sweep (241 files, 21 failing) — FIXED 6:**
+ - markov_chain (REAL): calculate_risk_trajectory matrix_power on row-stochastic matrix hit a spurious BLAS "divide by zero" FPE that envs escalate to error → wrapped in np.errstate; removed dead .copy().
+ - security_operations_metrics_engine (REAL): _today_str() local-vs-UTC mismatch zeroed SOC daily-snapshot alert counts → UTC.
+ - council_enhanced (REAL guardrail): bare asyncio.run in worker thread → prescribed loop-detection guard (no-unsafe-asyncio lockdown green).
+ - no_fake_cspm (test-isolation): used shared orgs polluted w/ real findings → per-run uuid empty org (no-fabrication invariant verified intact).
+ - mitre_airgap (env-dep): live-integration suite w/ stale key + public-/health gate → prefers FIXOPS_API_TOKEN + authed /mitre/health gate → skips honestly.
+ - llm_providers_unit (test-rot): deterministic reasoning now honestly annotated "[no model available]" → assert startswith.
+**i-r REMAINING (next tick — untriaged):** llm_council_perf(1,perf), llm_council_real_2member(2,likely needs OpenRouter key=founder-blocked), marketplace(20 errors,likely fixture), material_change(4), mcp_gateway(6), mitre_compliance_analyzer(1 err), openapi_spec(2f+10err), openclaw_self_scan(12,honest-stub=founder-blocked), patch_manager(9), perf_alert_triage_stats(1,perf), perf_dast_engine_regex(2,perf), policies_cli(1), policy_kevs(1err), policy_opa(1err,likely OPA-binary env-dep), processing_layer_fallbacks(2). Plus r-tail not yet enumerated.
+All gates green this session: create_app 8345 routes, Beast smoke 755 + documented ingest-timing flake.
