@@ -459,3 +459,44 @@ async def autofix_summary():
         "by_type": stats.get("by_fix_type", {}),
         "by_confidence": stats.get("by_confidence", {}),
     }
+
+
+@router.get("/fixes", summary="List generated fixes")
+def list_fixes(
+    finding_id: Optional[str] = Query(None, description="Filter by finding id"),
+    limit: int = Query(200, ge=1, le=500),
+    _org_id: str = Depends(get_org_id),
+):
+    """List generated auto-fixes (real engine data; honest-empty when none).
+
+    Normalised to the shape the Developer "Fix Helpers" tab consumes
+    ({fixes:[{id,title,file,repo,fix_snippet,rule_id,...}]}) — the panel was
+    pointing at /api/v1/sast/auto-fix which never existed. No mocks: rows come
+    from AutoFixEngine.list_fixes() (in-memory store; empty until fixes are
+    generated for the org).
+    """
+    engine = _get_engine()
+    try:
+        raw = engine.list_fixes(finding_id=finding_id, limit=limit)
+    except Exception as exc:  # pragma: no cover
+        logger.exception("list_fixes failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    fixes: List[Dict[str, Any]] = []
+    for s in raw:
+        d = engine.to_dict(s)
+        patches = d.get("code_patches") or []
+        first = patches[0] if patches and isinstance(patches[0], dict) else {}
+        fixes.append(
+            {
+                "id": d.get("fix_id", ""),
+                "title": d.get("title") or d.get("finding_title") or "",
+                "file": first.get("file_path", ""),
+                "repo": d.get("repo", ""),
+                "fix_snippet": first.get("patched_content") or first.get("diff") or "",
+                "rule_id": d.get("rule_id") or d.get("cwe_id") or "",
+                "finding_id": d.get("finding_id", ""),
+                "fix_type": d.get("fix_type", ""),
+                "status": d.get("status", ""),
+            }
+        )
+    return {"fixes": fixes, "items": fixes, "total": len(fixes)}

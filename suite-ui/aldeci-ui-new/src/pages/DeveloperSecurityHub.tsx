@@ -418,7 +418,7 @@ function HelpersTab() {
   useEffect(() => {
     setLoading(true);
     Promise.allSettled([
-      apiFetch<{ fixes?: FixHelper[]; items?: FixHelper[] }>("/api/v1/sast/auto-fix?org_id=default"),
+      apiFetch<{ fixes?: FixHelper[]; items?: FixHelper[] }>("/api/v1/autofix/fixes?org_id=default"),
       apiFetch<{ findings?: (FixHelper & { suggested_fix?: string })[]; items?: (FixHelper & { suggested_fix?: string })[] }>("/api/v1/sast/findings?org_id=default"),
     ]).then(([autoFixR, findingsR]) => {
       if (autoFixR.status === "fulfilled") {
