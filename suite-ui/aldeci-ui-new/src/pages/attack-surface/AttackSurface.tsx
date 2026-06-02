@@ -9,6 +9,7 @@
  */
 
 import { useState, useMemo, useEffect } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Globe,
@@ -317,7 +318,13 @@ export default function AttackSurface() {
       try {
         setLoading(true);
         setError(null);
-        const resp = await fetch("/api/v1/asm/assets?org_id=default");
+        // Authenticated fetch (X-API-Key + stored org) so real assets load — raw unauthed
+        // fetch always 401'd and showed empty.
+        const token = getStoredAuthToken() ?? "";
+        const org = getStoredOrgId() ?? "default";
+        const resp = await fetch(`/api/v1/asm/assets?org_id=${encodeURIComponent(org)}`, {
+          headers: token ? { "X-API-Key": token } : {},
+        });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
         const rawList: Record<string, unknown>[] = Array.isArray(data) ? data : (data.assets ?? []);
