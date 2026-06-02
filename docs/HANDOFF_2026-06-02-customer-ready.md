@@ -644,3 +644,27 @@ container-scan crash), + the red-team hardenings (3). Statically-findable + test
 across all swept slices (router/engine/data-transform; lazy-import/Depends/SQL-concat/dup-class/
 SUM-None) is exhausted. Frontier: UI clean (4 dims) + backend hardened/verified + T3 triaged.
 Remaining: product-blocked (Brain hero, /billing, GCP KMS) + founder-blocked.
+
+---
+
+## Addendum 2026-06-03 (tick 15) — T3 pipeline/compliance sweep (item C)
+
+Isolation-swept 45 pipeline/compliance/intel test files; 6 failed → 0 product bugs (engines correct):
+- **FIXED 3 stale/isolation tests**: brain_pipeline_wiring (method renamed ingest_source_feed→
+  ingest_from_source, perf refactor — test stale); compliance_engine_unit (compliance_percentage
+  denominator deliberately excludes not_assessed → 66.7 not 60.0; aligned test + FLAGGED the
+  product-semantics choice at compliance_engine.py:166-168); brain_pipeline empty-findings (shared
+  org_id="org" polluted by other tests → switched to a unique org; verified a fresh org scores 0).
+- **Classified (not product bugs)**: code_intel (503 — code-intel/graphrag service down in test env);
+  compliance_gap_analysis (15 — aspirational test for an UNBUILT unified /compliance-automation API;
+  the functionality exists scattered across /gap-analysis, /compliance-evidence, /audit/compliance,
+  and remediation-tasks doesn't exist — product/test-rewrite decision); e2e_intelligence_pipeline
+  (3 — stale assertions for an EVOLVED product: GraphRAG now available, CycloneDX upgraded 1.4→1.6,
+  supply-chain returns a bare list).
+
+Campaign T3 product-bug total (ticks 9-15): **6 real product bugs** (engine 3, data-transform 1
+[container-scan crash], + routing/endpoint); router & pipeline/compliance slices = 0 product bugs
+(all fixture-rot / stale / env / aspirational). 4 test corpora now triaged. Frontier: UI clean +
+backend hardened/verified + systematic bug-classes swept. Remaining: product-blocked (Brain hero,
+/billing, GCP KMS, unified compliance-automation API) + founder-blocked (push, env-tools like
+graphrag/checkov/code-intel, deeper test-infra, FIPS, PIV, GPU, Stripe).
