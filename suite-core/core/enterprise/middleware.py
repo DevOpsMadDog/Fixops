@@ -62,8 +62,11 @@ class PerformanceMiddleware(BaseHTTPMiddleware):  # pragma: no cover
             process_time_us = duration * 1_000_000
 
         if response is None:
-            # Re-raise the original exception if we reach this point without a response
-            raise
+            # Defensive: the except clauses above already re-raise, so this is only
+            # reachable if call_next returned None with no active exception. A bare
+            # `raise` here would throw "No active exception to re-raise"; fail loudly
+            # with an explicit error instead.
+            raise RuntimeError("Request middleware produced no response")
 
         # Add performance headers
         response.headers["X-Process-Time"] = f"{duration:.6f}"

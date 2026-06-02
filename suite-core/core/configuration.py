@@ -1523,7 +1523,9 @@ def load_overlay(
     )  # remove duplicates while preserving order
 
     # Validate data directories are within the allowlist at load time.
-    config.data_directories
+    # (Property getter runs _ensure_within_allowlist as a side-effect; assign to _
+    # to make the intentional access explicit.)
+    _ = config.data_directories
 
     return config
 

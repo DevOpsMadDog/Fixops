@@ -553,14 +553,11 @@ async def get_report_stats(
         )
 
     # Normalize to naive UTC for comparison with stored (naive) datetimes
+    # (already-naive values need no change — no-op else branches removed).
     if start_dt.tzinfo is not None:
         start_dt = start_dt.astimezone(timezone.utc).replace(tzinfo=None)
-    else:
-        start_dt = start_dt
     if end_dt.tzinfo is not None:
         end_dt = end_dt.astimezone(timezone.utc).replace(tzinfo=None)
-    else:
-        end_dt = end_dt
 
     reports = db.list_reports(limit=10000, offset=0, org_id=org_id)
     filtered_reports = [r for r in reports if start_dt <= r.created_at <= end_dt]

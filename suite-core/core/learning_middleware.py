@@ -134,8 +134,6 @@ class LearningMiddleware(BaseHTTPMiddleware):
                         },
                     )
 
-                # Mark anomaly flag for DB storage
-                anomaly.is_anomaly
             except (OSError, ValueError, RuntimeError):  # narrowed from bare Exception
                 pass
 
