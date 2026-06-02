@@ -15,13 +15,17 @@ import { motion } from "framer-motion";
 import { Database, Search, Shield, AlertTriangle, RefreshCw, BarChart3, Globe, Activity } from "lucide-react";
 
 // ── API helpers ────────────────────────────────────────────────
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const API_KEY  = import.meta.env.VITE_API_KEY || "dev-key";
-const ORG_ID   = "aldeci-demo";
+// NO MOCKS: real authenticated token + the caller's real org (was a hardcoded "aldeci-demo"
+// demo org + "dev-key" build-time key that always 401'd).
+const ORG_ID = getStoredOrgId() ?? "default";
 
 async function apiFetch(path: string) {
+  const token = getStoredAuthToken() ?? "";
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "X-API-Key": API_KEY },
+    headers: token ? { "X-API-Key": token } : {},
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
