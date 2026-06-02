@@ -544,7 +544,7 @@ export default function RiskAcceptance() {
 
   // Merge API records with local overrides
   const records: RiskAcceptanceRecord[] = useMemo(() => {
-    const base = (apiRecords ?? []).map((r) => {
+    const base = (arr(apiRecords ?? [])).map((r) => {
       const override = localOverrides.get(r.id);
       return override ? { ...r, ...override } : r;
     });

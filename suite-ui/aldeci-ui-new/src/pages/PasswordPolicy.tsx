@@ -59,6 +59,7 @@ function SeverityBadge({ sev }: { sev: string }) {
 
 // ── Component ──────────────────────────────────────────────────
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function PasswordPolicy() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
@@ -138,7 +139,7 @@ export default function PasswordPolicy() {
             <div className="lg:col-span-3">
               <EmptyState icon={Key} title="No policies yet" description="Password policies will appear here once configured." />
             </div>
-          ) : (liveData?.policies?.policies ?? liveData?.policies ?? []).map((policy: any) => (
+          ) : (arr(liveData?.policies?.policies ?? liveData?.policies ?? [])).map((policy: any) => (
             <Card key={policy.name}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
@@ -148,7 +149,7 @@ export default function PasswordPolicy() {
                 <CardDescription className="text-[10px]">{(policy.users ?? policy.user_count ?? 0).toLocaleString()} users in scope</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {(policy.requirements ?? []).map((req: any) => (
+                {(arr(policy.requirements ?? [])).map((req: any) => (
                   <div key={req.label} className="flex items-center gap-2 text-xs">
                     {req.met
                       ? <CheckCircle className="h-3.5 w-3.5 text-green-400 shrink-0" />
@@ -216,7 +217,7 @@ export default function PasswordPolicy() {
               <TableBody>
                 {(liveData?.violations?.violations ?? []).length === 0 ? (
                   <TableRow><TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">No violations yet</TableCell></TableRow>
-                ) : (liveData?.violations?.violations ?? []).map((v: any, i: number) => (
+                ) : (arr(liveData?.violations?.violations ?? [])).map((v: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5 text-muted-foreground">{v.userId}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[140px] truncate">{v.policy}</TableCell>
@@ -271,7 +272,7 @@ export default function PasswordPolicy() {
               <TableBody>
                 {(liveData?.audits?.audits ?? []).length === 0 ? (
                   <TableRow><TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">No audit history yet</TableCell></TableRow>
-                ) : (liveData?.audits?.audits ?? []).map((a: any, i: number) => (
+                ) : (arr(liveData?.audits?.audits ?? [])).map((a: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs tabular-nums py-2.5 text-muted-foreground">{a.date}</TableCell>
                     <TableCell className="text-xs tabular-nums py-2.5 text-right">{(a.checked ?? 0).toLocaleString()}</TableCell>
@@ -296,7 +297,7 @@ export default function PasswordPolicy() {
           <CardContent className="space-y-3">
             {(liveData?.stats?.strength_distribution ?? []).length === 0 ? (
               <EmptyState icon={BarChart3} title="No strength data yet" description="Password strength distribution will appear once an audit has run." />
-            ) : (liveData?.stats?.strength_distribution ?? []).map((s: any) => (
+            ) : (arr(liveData?.stats?.strength_distribution ?? [])).map((s: any) => (
               <div key={s.label} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium">{s.label}</span>

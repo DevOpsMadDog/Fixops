@@ -64,6 +64,7 @@ GROUP BY severity
 ORDER BY n DESC
 LIMIT 10;`;
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function SecurityQueryLanguageDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -157,13 +158,13 @@ export default function SecurityQueryLanguageDashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      {(result.columns ?? []).map(c => (
+                      {(arr(result.columns ?? [])).map(c => (
                         <TableHead key={c} className="text-[11px] h-8">{c}</TableHead>
                       ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(result.rows ?? []).map((row, i) => (
+                    {(arr(result.rows ?? [])).map((row, i) => (
                       <TableRow key={i} className="hover:bg-muted/30">
                         {row.map((cell, j) => (
                           <TableCell key={j} className="py-2 text-[11px] font-mono">{String(cell ?? "—")}</TableCell>
@@ -202,7 +203,7 @@ export default function SecurityQueryLanguageDashboard() {
                         <Badge className="text-[10px] border border-border">{t.row_count ?? 0}</Badge>
                       </summary>
                       <div className="mt-2 flex flex-wrap gap-1">
-                        {(t.columns ?? []).map(c => (
+                        {(arr(t.columns ?? [])).map(c => (
                           <span key={c} className="text-[10px] font-mono rounded bg-muted px-1.5 py-0.5">{c}</span>
                         ))}
                       </div>

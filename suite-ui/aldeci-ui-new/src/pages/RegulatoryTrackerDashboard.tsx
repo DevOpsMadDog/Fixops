@@ -141,6 +141,7 @@ function ComplianceBar({ pct }: { pct: number }) {
 
 // ── Component ───────────────────────────────────────────────────
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function RegulatoryTrackerDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
@@ -220,14 +221,14 @@ export default function RegulatoryTrackerDashboard() {
               <TableBody>
                 {(liveData?.upcoming ?? []).length === 0 ? (
                   <TableRow><TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">No upcoming regulatory changes yet</TableCell></TableRow>
-                ) : (liveData?.upcoming ?? []).map((row: any, idx: number) => (
+                ) : (arr(liveData?.upcoming ?? [])).map((row: any, idx: number) => (
                   <TableRow key={row.id ?? idx} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{row.reg ?? row.regulation_name ?? row.name}</TableCell>
                     <TableCell className="py-2.5"><ChangeTypeBadge type={row.changeType ?? row.change_type ?? "amendment"} /></TableCell>
                     <TableCell className="py-2.5"><ImpactBadge impact={row.impact ?? row.impact_level ?? "medium"} /></TableCell>
                     <TableCell className="py-2.5">
                       <div className="flex flex-wrap gap-1">
-                        {(row.domains ?? row.affected_domains ?? []).map((d: string) => (
+                        {(arr(row.domains ?? row.affected_domains ?? [])).map((d: string) => (
                           <span key={d} className="text-[10px] rounded bg-muted/50 px-1.5 py-0.5 text-muted-foreground">{d}</span>
                         ))}
                       </div>
@@ -272,7 +273,7 @@ export default function RegulatoryTrackerDashboard() {
               <TableBody>
                 {(liveData?.stats?.obligations ?? []).length === 0 ? (
                   <TableRow><TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">No obligations yet</TableCell></TableRow>
-                ) : (liveData?.stats?.obligations ?? []).map((row: any, i: number) => (
+                ) : (arr(liveData?.stats?.obligations ?? [])).map((row: any, i: number) => (
                   <TableRow key={i} className={cn("hover:bg-muted/30", row.status === "overdue" && "bg-red-500/5")}>
                     <TableCell className="text-xs py-2.5 max-w-[220px] truncate font-medium">{row.title}</TableCell>
                     <TableCell className="text-xs py-2.5 text-muted-foreground">{row.reg ?? row.regulation}</TableCell>
@@ -302,7 +303,7 @@ export default function RegulatoryTrackerDashboard() {
           <CardContent className="space-y-3">
             {(liveData?.stats?.assessments ?? []).length === 0 ? (
               <EmptyState icon={BarChart3} title="No assessments yet" description="Compliance assessments will appear here once completed." />
-            ) : (liveData?.stats?.assessments ?? []).map((a: any, i: number) => (
+            ) : (arr(liveData?.stats?.assessments ?? [])).map((a: any, i: number) => (
               <div key={i} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
@@ -347,7 +348,7 @@ export default function RegulatoryTrackerDashboard() {
               <TableBody>
                 {(liveData?.active ?? []).length === 0 ? (
                   <TableRow><TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">No regulations tracked yet</TableCell></TableRow>
-                ) : (liveData?.active ?? []).map((reg: any, i: number) => (
+                ) : (arr(liveData?.active ?? [])).map((reg: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2">{reg.name ?? reg.regulation_name}</TableCell>
                     <TableCell className="py-2"><JurisdictionBadge j={reg.jurisdiction ?? reg.jurisdiction_code ?? "—"} /></TableCell>

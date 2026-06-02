@@ -88,6 +88,7 @@ function SevDot({ sev }: { sev: string }) {
 
 // ── Component ──────────────────────────────────────────────────
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function ThreatHuntingDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
@@ -168,7 +169,7 @@ export default function ThreatHuntingDashboard() {
               <TableBody>
                 {(liveData?.sessions?.items ?? liveData?.sessions ?? []).length === 0 ? (
                   <TableRow><TableCell colSpan={8}><EmptyState icon={Crosshair} title="No campaigns yet" description="Hunt campaigns will appear here once created." /></TableCell></TableRow>
-                ) : (liveData?.sessions?.items ?? liveData?.sessions ?? []).map((row: any) => (
+                ) : (arr(liveData?.sessions?.items ?? liveData?.sessions ?? [])).map((row: any) => (
                   <TableRow key={row.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{row.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[180px] truncate font-medium">{row.name}</TableCell>
@@ -200,7 +201,7 @@ export default function ThreatHuntingDashboard() {
         <CardContent className="space-y-3">
           {(liveData?.queries?.items ?? liveData?.queries ?? []).length === 0 ? (
             <EmptyState icon={Search} title="No queries yet" description="Saved hunt queries will appear here once created." />
-          ) : (liveData?.queries?.items ?? liveData?.queries ?? []).map((q: any) => (
+          ) : (arr(liveData?.queries?.items ?? liveData?.queries ?? [])).map((q: any) => (
             <div key={q.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 p-3">
               <QueryTypeBadge type={q.query_type} />
               <div className="flex-1 min-w-0">
@@ -260,7 +261,7 @@ export default function ThreatHuntingDashboard() {
                 <TableBody>
                   {(liveData?.findings?.items ?? liveData?.findings ?? []).length === 0 ? (
                     <TableRow><TableCell colSpan={6}><EmptyState icon={AlertTriangle} title="No findings yet" description="Hunt findings will appear here once campaigns produce results." /></TableCell></TableRow>
-                  ) : (liveData?.findings?.items ?? liveData?.findings ?? []).map((row: any) => (
+                  ) : (arr(liveData?.findings?.items ?? liveData?.findings ?? [])).map((row: any) => (
                     <TableRow key={row.id} className="hover:bg-muted/30">
                       <TableCell className="py-2.5 pl-4"><SevDot sev={row.sev} /></TableCell>
                       <TableCell className="text-xs py-2.5 max-w-[200px] truncate font-medium">{row.title}</TableCell>
@@ -294,7 +295,7 @@ export default function ThreatHuntingDashboard() {
           <CardContent className="space-y-3">
             {(liveData?.playbooks?.items ?? liveData?.playbooks ?? []).length === 0 ? (
               <EmptyState icon={BookOpen} title="No playbooks yet" description="Hunt playbooks will appear here once configured." />
-            ) : (liveData?.playbooks?.items ?? liveData?.playbooks ?? []).map((pb: any) => (
+            ) : (arr(liveData?.playbooks?.items ?? liveData?.playbooks ?? [])).map((pb: any) => (
               <div key={pb.id} className="rounded-lg border border-border/50 bg-muted/20 p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-xs font-medium leading-tight">{pb.title}</span>
@@ -302,7 +303,7 @@ export default function ThreatHuntingDashboard() {
                 </div>
                 <HuntTypeBadge type={pb.hunt_type} />
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {(pb.techniques ?? []).map((t: string) => (
+                  {(arr(pb.techniques ?? [])).map((t: string) => (
                     <span key={t} className="text-[9px] font-mono bg-muted/40 rounded px-1.5 py-0.5 text-muted-foreground">{t}</span>
                   ))}
                 </div>

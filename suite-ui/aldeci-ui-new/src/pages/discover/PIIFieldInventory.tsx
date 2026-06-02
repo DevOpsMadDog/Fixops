@@ -66,7 +66,7 @@ const sevColor: Record<string, string> = {
 };
 
 function isPii(f: PIIFinding): boolean {
-  const labels = (f.labels ?? []).map((l) => l.toLowerCase());
+  const labels = (arr(f.labels ?? [])).map((l) => l.toLowerCase());
   if (labels.includes("pii")) return true;
   if ((f.pii_type ?? "").length > 0) return true;
   if ((f.data_class ?? "").toLowerCase().includes("pii")) return true;
@@ -74,6 +74,7 @@ function isPii(f: PIIFinding): boolean {
   return /ssn|social.security|credit[\s_-]?card|email|phone|passport|dob|date.of.birth|address|pii/.test(hay);
 }
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function PIIFieldInventory() {
   const [findings, setFindings] = useState<PIIFinding[]>([]);
   const [comingSoon, setComingSoon] = useState(false);

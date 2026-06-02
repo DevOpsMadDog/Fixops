@@ -62,6 +62,7 @@ function scoreColor(s?: number) {
   return "text-green-400";
 }
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function BRSExecutiveDashboard() {
   const [buId, setBuId] = useState("default");
   const [data, setData] = useState<BRSResponse | null>(null);
@@ -155,7 +156,7 @@ export default function BRSExecutiveDashboard() {
                 </div>
                 <Progress value={score ?? 0} className="h-2" />
                 <div className="space-y-2">
-                  {(data.components ?? []).map((c, i) => (
+                  {(arr(data.components ?? [])).map((c, i) => (
                     <div key={c.name + i} className="flex items-center justify-between gap-3">
                       <span className="text-xs text-muted-foreground">{c.name}</span>
                       <div className="flex items-center gap-2">

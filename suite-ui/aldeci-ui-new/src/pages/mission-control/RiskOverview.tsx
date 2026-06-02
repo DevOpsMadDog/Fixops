@@ -428,6 +428,7 @@ function CustomAreaTooltip({ active, payload, label }: {
 
 // ─── Main Component ──────────────────────────────────────────
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function RiskOverview() {
   const [trendPeriod, setTrendPeriod] = useState("30d");
   const [sortField, setSortField] = useState<keyof AppRiskRow>("riskScore");
@@ -490,7 +491,7 @@ export default function RiskOverview() {
   ].filter((d) => d.value > 0);
 
   // Trend chart
-  const riskTrend = (trendData.risk_trend ?? trendData.series ?? []).map((d: Record<string, unknown>) => ({
+  const riskTrend = (arr(trendData.risk_trend ?? trendData.series ?? [])).map((d: Record<string, unknown>) => ({
     date: String(d.date ?? d.period ?? ""),
     score: Number(d.risk_score ?? d.score ?? d.total ?? 0),
     critical: Number(d.critical ?? 0),

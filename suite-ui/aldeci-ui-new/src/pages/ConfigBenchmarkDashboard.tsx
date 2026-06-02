@@ -108,6 +108,7 @@ function StatusIcon({ status }: { status: string }) {
 
 // ── Component ──────────────────────────────────────────────────
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function ConfigBenchmarkDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [expandedCheck, setExpandedCheck] = useState<string | null>(null);
@@ -190,7 +191,7 @@ export default function ConfigBenchmarkDashboard() {
               <TableBody>
                 {(liveData?.profiles ?? []).length === 0 ? (
                   <TableRow><TableCell colSpan={7}><EmptyState icon={ClipboardCheck} title="No profiles yet" description="Assessment profiles will appear here once configured." /></TableCell></TableRow>
-                ) : (liveData?.profiles ?? []).map((p: any) => (
+                ) : (arr(liveData?.profiles ?? [])).map((p: any) => (
                   <TableRow key={p.name ?? p.profile_id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5 max-w-[180px] truncate">{p.name}</TableCell>
                     <TableCell className="py-2.5">
@@ -248,7 +249,7 @@ export default function ConfigBenchmarkDashboard() {
                 <TableBody>
                   {(liveData?.assessments?.items ?? liveData?.assessments ?? liveData?.check_results ?? []).length === 0 ? (
                     <TableRow><TableCell colSpan={7}><EmptyState icon={Shield} title="No assessment results yet" description="Check results will appear here once an assessment runs." /></TableCell></TableRow>
-                  ) : (liveData?.assessments?.items ?? liveData?.assessments ?? liveData?.check_results ?? []).map((c: any) => (
+                  ) : (arr(liveData?.assessments?.items ?? liveData?.assessments ?? liveData?.check_results ?? [])).map((c: any) => (
                     <TableRow key={c.ref ?? c.id} className="hover:bg-muted/30">
                       <TableCell className="py-2.5 w-8"><StatusIcon status={c.status} /></TableCell>
                       <TableCell className="text-[10px] font-mono py-2.5 text-muted-foreground whitespace-nowrap">{c.ref}</TableCell>
@@ -279,7 +280,7 @@ export default function ConfigBenchmarkDashboard() {
           <CardContent className="space-y-4 pt-2">
             {(liveData?.stats?.score_by_standard ?? liveData?.score_by_standard ?? []).length === 0 ? (
               <EmptyState icon={BarChart3} title="No score data yet" description="Scores by standard will appear here once assessments run." />
-            ) : (liveData?.stats?.score_by_standard ?? liveData?.score_by_standard ?? []).map((s: any) => (
+            ) : (arr(liveData?.stats?.score_by_standard ?? liveData?.score_by_standard ?? [])).map((s: any) => (
               <div key={s.standard} className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{s.standard}</span>
@@ -316,7 +317,7 @@ export default function ConfigBenchmarkDashboard() {
         <CardContent className="space-y-2">
           {(liveData?.failed_checks?.items ?? liveData?.failed_checks ?? []).length === 0 ? (
             <EmptyState icon={XCircle} title="No failed checks" description="Failed checks with remediation guidance will appear here once assessments run." />
-          ) : (liveData?.failed_checks?.items ?? liveData?.failed_checks ?? []).map((fc: any) => {
+          ) : (arr(liveData?.failed_checks?.items ?? liveData?.failed_checks ?? [])).map((fc: any) => {
             const isOpen = expandedCheck === fc.ref;
             return (
               <div key={fc.ref ?? fc.id} className="rounded-md border border-border/60 overflow-hidden">

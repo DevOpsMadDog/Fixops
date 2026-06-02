@@ -117,6 +117,7 @@ function PassRateBar({ rate }: { rate: number }) {
 
 // ── Component ───────────────────────────────────────────────────
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function CCMDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
@@ -192,7 +193,7 @@ export default function CCMDashboard() {
             <TableBody>
               {(liveData?.frameworks?.items ?? liveData?.frameworks ?? []).length === 0 ? (
                 <TableRow><TableCell colSpan={6}><EmptyState icon={BarChart3} title="No framework data yet" description="Control coverage by framework will appear here once controls are configured." /></TableCell></TableRow>
-              ) : (liveData?.frameworks?.items ?? liveData?.frameworks ?? []).map((fw: any) => (
+              ) : (arr(liveData?.frameworks?.items ?? liveData?.frameworks ?? [])).map((fw: any) => (
                 <TableRow key={fw.name} className="hover:bg-muted/30">
                   <TableCell className="text-xs font-medium py-2.5">{fw.name}</TableCell>
                   <TableCell className="text-xs py-2.5 text-right tabular-nums text-muted-foreground">{fw.total}</TableCell>
@@ -237,7 +238,7 @@ export default function CCMDashboard() {
               <TableBody>
                 {(liveData?.controls?.items ?? liveData?.controls ?? []).length === 0 ? (
                   <TableRow><TableCell colSpan={8}><EmptyState icon={ShieldCheck} title="No controls yet" description="Control test results will appear here once controls are configured." /></TableCell></TableRow>
-                ) : (liveData?.controls?.items ?? liveData?.controls ?? []).map((row: any, i: number) => (
+                ) : (arr(liveData?.controls?.items ?? liveData?.controls ?? [])).map((row: any, i: number) => (
                   <TableRow key={i} className={cn("hover:bg-muted/30", row.status === "fail" && "bg-red-500/5")}>
                     <TableCell className="text-xs font-mono py-2.5">{row.ref}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[200px] truncate">{row.name}</TableCell>
@@ -276,7 +277,7 @@ export default function CCMDashboard() {
           <CardContent className="space-y-2">
             {(liveData?.failures?.items ?? liveData?.failures ?? []).length === 0 ? (
               <EmptyState icon={XCircle} title="No open failures" description="Control failures will appear here when tests detect issues." />
-            ) : (liveData?.failures?.items ?? liveData?.failures ?? []).map((f: any, i: number) => (
+            ) : (arr(liveData?.failures?.items ?? liveData?.failures ?? [])).map((f: any, i: number) => (
               <div key={i} className="flex items-start gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5">
                 <SeverityDot severity={f.severity} />
                 <div className="flex-1 min-w-0">
@@ -306,7 +307,7 @@ export default function CCMDashboard() {
           <CardContent className="space-y-2">
             {(liveData?.test_history?.items ?? liveData?.test_history ?? []).length === 0 ? (
               <EmptyState icon={Clock} title="No test runs yet" description="Automated control test run history will appear here once tests execute." />
-            ) : (liveData?.test_history?.items ?? liveData?.test_history ?? []).map((run: any, i: number) => {
+            ) : (arr(liveData?.test_history?.items ?? liveData?.test_history ?? [])).map((run: any, i: number) => {
               const passRate = run.total > 0 ? Math.round((run.passed / run.total) * 100) : 0;
               return (
                 <div key={i} className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5">

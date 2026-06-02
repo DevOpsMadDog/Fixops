@@ -255,7 +255,7 @@ function TreeRow({ node, depth, selectedPath, onSelect, expanded, onToggle }: Tr
           </span>
         )}
       </button>
-      {!isFile && isOpen && (node.children ?? []).map((child) => (
+      {!isFile && isOpen && (arr(node.children ?? [])).map((child) => (
         <TreeRow
           key={child.path || child.name}
           node={child}
@@ -272,6 +272,7 @@ function TreeRow({ node, depth, selectedPath, onSelect, expanded, onToggle }: Tr
 
 // ───────────────────────── page ───────────────────────────
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function IDEBackendDashboard() {
   const [orgId, setOrgId] = useState<string>(DEFAULT_ORG);
   const [repoRef, setRepoRef] = useState<string>(DEFAULT_REPO);

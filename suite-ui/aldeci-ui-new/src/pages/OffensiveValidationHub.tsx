@@ -244,7 +244,7 @@ function PentestPanel() {
                 </tr>
               </thead>
               <tbody>
-                {(engagements.data ?? []).map(eng => (
+                {(arr(engagements.data ?? [])).map(eng => (
                   <tr key={eng.id} className="border-t border-border hover:bg-muted/20 transition-colors">
                     <td className="px-3 py-2 font-medium text-foreground">{eng.name}</td>
                     <td className="px-3 py-2 text-muted-foreground capitalize">{eng.engagement_type ?? "—"}</td>
@@ -449,7 +449,7 @@ function RedTeamPanel() {
                 </tr>
               </thead>
               <tbody>
-                {(simulations.data ?? []).map((sim, idx) => (
+                {(arr(simulations.data ?? [])).map((sim, idx) => (
                   <tr key={sim.simulation_id ?? sim.id ?? idx} className="border-t border-border hover:bg-muted/20 transition-colors">
                     <td className="px-3 py-2 font-medium text-foreground">{sim.name}</td>
                     <td className="px-3 py-2"><StatusBadge value={sim.status ?? ""} /></td>
@@ -569,7 +569,7 @@ function SocialEngPanel() {
                 </tr>
               </thead>
               <tbody>
-                {(campaigns.data ?? []).map(c => (
+                {(arr(campaigns.data ?? [])).map(c => (
                   <tr key={c.id} className="border-t border-border hover:bg-muted/20 transition-colors">
                     <td className="px-3 py-2 font-medium text-foreground">{c.name}</td>
                     <td className="px-3 py-2"><StatusBadge value={c.status ?? ""} /></td>
@@ -630,6 +630,7 @@ function isTabKey(v: string | null): v is TabKey {
   return !!v && VALID_TABS.has(v as TabKey);
 }
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function OffensiveValidationHub() {
   const [params, setParams] = useSearchParams();
   const initial: TabKey = isTabKey(params.get("tab"))

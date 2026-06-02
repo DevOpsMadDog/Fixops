@@ -133,6 +133,7 @@ function UrgencyBadge({ hoursLeft }: { hoursLeft: number }) {
   return <Badge className="text-[10px] border border-border text-muted-foreground">Normal</Badge>;
 }
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function SLADashboard() {
   const navigate = useNavigate();
   const [teamFilter, setTeamFilter] = useState("all");
@@ -231,7 +232,7 @@ export default function SLADashboard() {
     .slice(0, 15);
 
   // SLA trend chart data
-  const slaTrend = (ov.sla_trend ?? ov.sla_history ?? []).map((d: Record<string, unknown>) => ({
+  const slaTrend = (arr(ov.sla_trend ?? ov.sla_history ?? [])).map((d: Record<string, unknown>) => ({
     date: String(d.date ?? d.period ?? ""),
     compliance: Number(d.compliance ?? d.sla_pct ?? d.value ?? 0),
     target: 95,

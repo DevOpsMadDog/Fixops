@@ -48,6 +48,7 @@ async function apiFetch<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function LLMContextTierBadge() {
   const [key, setKey] = useState("");
   const [resp, setResp] = useState<CtxResp | null>(null);
@@ -106,13 +107,13 @@ export default function LLMContextTierBadge() {
               {(resp.required_context ?? []).length > 0 && (
                 <div>
                   <div className="text-muted-foreground mb-1">Required context</div>
-                  <div className="flex flex-wrap gap-1">{(resp.required_context ?? []).map(c => <Badge key={c} className="text-[10px]">{c}</Badge>)}</div>
+                  <div className="flex flex-wrap gap-1">{(arr(resp.required_context ?? [])).map(c => <Badge key={c} className="text-[10px]">{c}</Badge>)}</div>
                 </div>
               )}
               {(resp.optional_context ?? []).length > 0 && (
                 <div>
                   <div className="text-muted-foreground mb-1">Optional context</div>
-                  <div className="flex flex-wrap gap-1">{(resp.optional_context ?? []).map(c => <Badge key={c} variant="secondary" className="text-[10px]">{c}</Badge>)}</div>
+                  <div className="flex flex-wrap gap-1">{(arr(resp.optional_context ?? [])).map(c => <Badge key={c} variant="secondary" className="text-[10px]">{c}</Badge>)}</div>
                 </div>
               )}
             </div>

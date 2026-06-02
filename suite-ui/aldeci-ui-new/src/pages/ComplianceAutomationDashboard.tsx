@@ -70,6 +70,7 @@ function formatTs(ts: string | null) {
 
 // ── Component ──────────────────────────────────────────────────
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function ComplianceAutomationDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -83,7 +84,7 @@ export default function ComplianceAutomationDashboard() {
     ]).then(([statusRes]) => {
       if (statusRes.status === "fulfilled") {
         const d = statusRes.value;
-        const fwJobs = (d?.frameworks ?? []).map((fw: any, i: number) => ({
+        const fwJobs = (arr(d?.frameworks ?? [])).map((fw: any, i: number) => ({
           id: `fw-${i}`,
           framework: fw.name ?? fw.id,
           automation_type: "evidence_collection",

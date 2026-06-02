@@ -127,6 +127,7 @@ function RankBadge({ rank }: { rank: number }) {
 
 // ── Component ──────────────────────────────────────────────────
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function SecurityChampionsDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
@@ -271,7 +272,7 @@ export default function SecurityChampionsDashboard() {
                 <TableBody>
                   {(liveData?.activities?.items ?? liveData?.activities ?? []).length === 0 ? (
                     <TableRow><TableCell colSpan={4}><EmptyState icon={BookOpen} title="No activity yet" description="Champion activities will appear here once logged." /></TableCell></TableRow>
-                  ) : (liveData?.activities?.items ?? liveData?.activities ?? []).map((a: any, i: number) => (
+                  ) : (arr(liveData?.activities?.items ?? liveData?.activities ?? [])).map((a: any, i: number) => (
                     <TableRow key={i} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-medium py-2">{a.champion}</TableCell>
                       <TableCell className="py-2"><ActivityTypeBadge type={a.type} /></TableCell>
@@ -309,7 +310,7 @@ export default function SecurityChampionsDashboard() {
                 <TableBody>
                   {(liveData?.certifications?.items ?? liveData?.certifications ?? []).length === 0 ? (
                     <TableRow><TableCell colSpan={5}><EmptyState icon={CheckCircle} title="No certifications yet" description="Champion certifications will appear here once recorded." /></TableCell></TableRow>
-                  ) : (liveData?.certifications?.items ?? liveData?.certifications ?? []).map((cert: any, i: number) => (
+                  ) : (arr(liveData?.certifications?.items ?? liveData?.certifications ?? [])).map((cert: any, i: number) => (
                     <TableRow key={i} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-medium py-2">{cert.champion}</TableCell>
                       <TableCell className="text-xs py-2 font-semibold">{cert.cert}</TableCell>
@@ -334,7 +335,7 @@ export default function SecurityChampionsDashboard() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {(liveData?.campaigns?.items ?? liveData?.campaigns ?? []).length === 0 ? (
             <div className="col-span-full"><EmptyState icon={Shield} title="No active campaigns" description="Security awareness campaigns will appear here once launched." /></div>
-          ) : (liveData?.campaigns?.items ?? liveData?.campaigns ?? []).map((c: any) => {
+          ) : (arr(liveData?.campaigns?.items ?? liveData?.campaigns ?? [])).map((c: any) => {
             const pct = Math.round((c.participants / c.total) * 100);
             return (
               <Card key={c.title} className="border-blue-500/20">
@@ -379,7 +380,7 @@ export default function SecurityChampionsDashboard() {
             <EmptyState icon={Star} title="No level data yet" description="Champion level distribution will appear here once champions are enrolled." />
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {(liveData?.stats?.level_distribution ?? liveData?.level_distribution ?? []).map((l: any) => (
+              {(arr(liveData?.stats?.level_distribution ?? liveData?.level_distribution ?? [])).map((l: any) => (
                 <div key={l.level} className="flex flex-col items-center gap-2 p-4 rounded-lg bg-muted/20 border border-border/40">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center bg-muted/30 border-2 border-border">
                     <Trophy className="h-5 w-5 text-muted-foreground" />

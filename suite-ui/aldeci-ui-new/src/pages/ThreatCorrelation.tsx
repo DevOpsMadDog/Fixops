@@ -76,6 +76,7 @@ function SeverityDot({ sev }: { sev: string }) {
 
 // ── Component ──────────────────────────────────────────────────
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function ThreatCorrelation() {
   const [refreshing, setRefreshing] = useState(false);
   const [liveData, setLiveData] = useState<any>(null);
@@ -166,12 +167,12 @@ export default function ThreatCorrelation() {
               <TableBody>
                 {(liveData?.rules?.rules ?? []).length === 0 ? (
                   <TableRow><TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">No correlation rules yet</TableCell></TableRow>
-                ) : (liveData?.rules?.rules ?? []).map((rule: any) => (
+                ) : (arr(liveData?.rules?.rules ?? [])).map((rule: any) => (
                   <TableRow key={rule.name} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{rule.name}</TableCell>
                     <TableCell className="py-2.5 max-w-[220px]">
                       <div className="flex flex-wrap gap-1">
-                        {(rule.event_types ?? rule.events ?? []).map((e: string) => (
+                        {(arr(rule.event_types ?? rule.events ?? [])).map((e: string) => (
                           <Badge key={e} className="text-[9px] border border-border bg-muted/30 text-muted-foreground px-1 py-0">{e}</Badge>
                         ))}
                       </div>
@@ -226,7 +227,7 @@ export default function ThreatCorrelation() {
               <TableBody>
                 {(liveData?.incidents?.incidents ?? []).length === 0 ? (
                   <TableRow><TableCell colSpan={7} className="py-8 text-center text-sm text-muted-foreground">No correlated alerts yet</TableCell></TableRow>
-                ) : (liveData?.incidents?.incidents ?? []).map((alert: any) => (
+                ) : (arr(liveData?.incidents?.incidents ?? [])).map((alert: any) => (
                   <TableRow key={alert.id} className="hover:bg-muted/30">
                     <TableCell className="text-xs font-mono py-2.5">{alert.id}</TableCell>
                     <TableCell className="text-xs py-2.5 max-w-[160px] truncate">{alert.rule ?? alert.rule_name ?? alert.correlation_rule_id}</TableCell>
@@ -262,7 +263,7 @@ export default function ThreatCorrelation() {
             <div className="divide-y divide-border/40">
               {(liveData?.signals?.signals ?? []).length === 0 ? (
                 <EmptyState icon={Radio} title="No events yet" description="Live security events will stream here once ingestion is active." />
-              ) : (liveData?.signals?.signals ?? []).map((ev: any, i: number) => (
+              ) : (arr(liveData?.signals?.signals ?? [])).map((ev: any, i: number) => (
                 <div key={i} className="flex items-center gap-2 px-4 py-2 hover:bg-muted/20 transition-colors">
                   <SeverityDot sev={ev.severity ?? "low"} />
                   <Badge className="text-[9px] border border-border bg-muted/30 text-muted-foreground px-1 py-0 shrink-0 max-w-[100px] truncate">

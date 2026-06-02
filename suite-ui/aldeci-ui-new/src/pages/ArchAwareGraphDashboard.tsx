@@ -78,6 +78,7 @@ function riskColor(r?: string) {
   return "text-green-400";
 }
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function ArchAwareGraphDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -161,7 +162,7 @@ export default function ArchAwareGraphDashboard() {
                 </Badge>
               </div>
               <div className="space-y-1 text-[11px]">
-                {(flow.hops ?? []).map((h, i) => (
+                {(arr(flow.hops ?? [])).map((h, i) => (
                   <div key={i} className="flex items-center justify-between rounded bg-muted/30 px-2 py-1">
                     <div className="flex items-center gap-2 font-mono">
                       <span>{h.from}</span>

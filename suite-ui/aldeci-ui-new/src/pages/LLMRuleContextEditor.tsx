@@ -58,6 +58,7 @@ async function apiPut<T>(path: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function LLMRuleContextEditor() {
   const [key, setKey] = useState("");
   const [rule, setRule] = useState<RuleResp | null>(null);
@@ -150,7 +151,7 @@ export default function LLMRuleContextEditor() {
               </div>
               <div>
                 <div className="text-[11px] text-muted-foreground mb-1">Variables</div>
-                <div className="flex flex-wrap gap-1">{(rule.variables ?? []).map(v => <Badge key={v} className="text-[10px]">{v}</Badge>)}</div>
+                <div className="flex flex-wrap gap-1">{(arr(rule.variables ?? [])).map(v => <Badge key={v} className="text-[10px]">{v}</Badge>)}</div>
               </div>
               <div className="flex items-center gap-3">
                 <Button onClick={save} disabled={saving} size="sm"><Save className="h-4 w-4 mr-2" /> {saving ? "Saving…" : "Save"}</Button>

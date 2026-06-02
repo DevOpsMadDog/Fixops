@@ -94,6 +94,7 @@ function formatTs(ts?: string) {
   catch { return ts; }
 }
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export default function DynamicRuleDSLDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -252,7 +253,7 @@ export default function DynamicRuleDSLDashboard() {
                 <EmptyState icon={BookOpen} title="No schema" description="Schema not yet available." />
               ) : (
                 <div className="max-h-64 overflow-y-auto space-y-2">
-                  {(schema.fields ?? []).map((f, i) => (
+                  {(arr(schema.fields ?? [])).map((f, i) => (
                     <div key={i} className="rounded border border-border/50 bg-muted/20 p-2 text-[11px]">
                       <div className="flex items-center justify-between">
                         <span className="font-mono font-semibold">{f.name}</span>
@@ -265,7 +266,7 @@ export default function DynamicRuleDSLDashboard() {
                     <div className="pt-2">
                       <div className="text-[10px] font-semibold uppercase text-muted-foreground mb-1">Operators</div>
                       <div className="flex flex-wrap gap-1">
-                        {(schema.operators ?? []).map(o => (
+                        {(arr(schema.operators ?? [])).map(o => (
                           <span key={o} className="text-[10px] font-mono rounded bg-muted px-1.5 py-0.5">{o}</span>
                         ))}
                       </div>

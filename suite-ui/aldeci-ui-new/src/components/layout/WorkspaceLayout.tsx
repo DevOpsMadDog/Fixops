@@ -882,6 +882,7 @@ function Breadcrumbs({ navGroups: groups, pathname }: { navGroups: NavGroup[]; p
 
 // ── Main layout ────────────────────────────────────────────────────────────
 
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
 export function WorkspaceLayout() {
   const { preferences, toggleSidebar, toggleCopilot, toggleTheme } = useAppStore();
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
@@ -1024,7 +1025,7 @@ export function WorkspaceLayout() {
                 </span>
               </div>
             )}
-            {(currentSectionData?.groups ?? []).map((group) => (
+            {(arr(currentSectionData?.groups ?? [])).map((group) => (
               <NavGroupItem
                 key={group.label}
                 group={group}
