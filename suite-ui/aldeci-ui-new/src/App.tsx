@@ -600,6 +600,10 @@ export default function App() {
 
             {/* Space 5: Comply */}
             {/* /comply, /comply/evidence, /comply/bundles → consolidated into /compliance hero */}
+            {/* The /compliance hero — ComplianceDashboard. ~43 Navigate redirects target
+                this path (e.g. /compliance?tab=waivers); it was imported but never routed,
+                so the whole Comply section + those redirects 404'd. */}
+            <Route path="/compliance" element={<ComplianceDashboard />} />
             <Route path="/comply/soc2" element={<SOC2Evidence />} />
             <Route path="/comply/slsa" element={<SLSAProvenance />} />
             {/* /comply/audit → consolidated into /compliance hero */}
