@@ -384,3 +384,46 @@ def test_get_vendor_risk_summary(engine):
 
 def test_get_vendor_risk_summary_empty(engine):
     assert engine.get_vendor_risk_summary(ORG) == []
+
+
+# ---------------------------------------------------------------------------
+# list_questionnaires / list_questions (added for the dashboard real-wiring)
+# ---------------------------------------------------------------------------
+
+def test_list_questionnaires_returns_created(engine):
+    _make_questionnaire(engine, name="SIG Core", framework="SIG")
+    _make_questionnaire(engine, name="CAIQ", framework="CAIQ")
+    rows = engine.list_questionnaires(ORG)
+    assert len(rows) == 2
+    assert {r["questionnaire_name"] for r in rows} == {"SIG Core", "CAIQ"}
+
+
+def test_list_questionnaires_empty(engine):
+    assert engine.list_questionnaires("org-with-nothing") == []
+
+
+def test_list_questionnaires_tenant_isolation(engine):
+    _make_questionnaire(engine, org=ORG, name="Mine")
+    _make_questionnaire(engine, org=ORG2, name="Theirs")
+    mine = engine.list_questionnaires(ORG)
+    theirs = engine.list_questionnaires(ORG2)
+    assert [r["questionnaire_name"] for r in mine] == ["Mine"]
+    assert [r["questionnaire_name"] for r in theirs] == ["Theirs"]
+
+
+def test_list_questions_for_questionnaire(engine):
+    q = _make_questionnaire(engine)
+    qid = q["id"]
+    _make_question(engine, qid, text="Q1?")
+    _make_question(engine, qid, text="Q2?")
+    rows = engine.list_questions(qid, ORG)
+    assert len(rows) == 2
+    assert {r["question_text"] for r in rows} == {"Q1?", "Q2?"}
+
+
+def test_list_questions_tenant_isolation(engine):
+    q = _make_questionnaire(engine, org=ORG)
+    qid = q["id"]
+    _make_question(engine, qid, org=ORG, text="Mine?")
+    # Another org cannot read this questionnaire's questions.
+    assert engine.list_questions(qid, ORG2) == []
