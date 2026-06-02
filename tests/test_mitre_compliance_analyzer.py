@@ -2,6 +2,17 @@
 
 from __future__ import annotations
 
+import pytest
+
+# The core.services.enterprise.mitre_compliance_analyzer module (and its
+# MITREComplianceAnalyzer class) was removed; no current module provides it.
+# Skip cleanly instead of erroring at collection. (Current MITRE mapping lives
+# in core.mitre_mapper with a different API — a rewrite would be a separate task.)
+pytest.importorskip(
+    "core.services.enterprise.mitre_compliance_analyzer",
+    reason="legacy module removed; current MITRE mapping is core.mitre_mapper (different API)",
+)
+
 from core.services.enterprise.mitre_compliance_analyzer import MITREComplianceAnalyzer
 
 

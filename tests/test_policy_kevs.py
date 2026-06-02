@@ -31,6 +31,18 @@ pydantic_settings.BaseSettings = _BaseSettings
 pydantic_settings.SettingsConfigDict = dict
 sys.modules["pydantic_settings"] = pydantic_settings
 
+import pytest
+
+# The legacy api.v1.policy module (GateRequest/GateResponse/WaiverCreate/
+# create_waiver/settings/get_opa_engine) was removed; the current gate is
+# apps.api.pr_gate_router, which exposes only a subset (evaluate_gate). These
+# OPA/waiver tests need a rewrite against the current gate — skip cleanly until
+# then instead of erroring at collection.
+pytest.importorskip(
+    "api.v1.policy",
+    reason="legacy api.v1.policy removed; current gate is apps.api.pr_gate_router (partial API)",
+)
+
 from api.v1.policy import GateRequest, WaiverCreate, create_waiver, evaluate_gate
 from core.models.enterprise import (  # noqa: F401  # Ensure metadata is populated
     security_sqlite,
