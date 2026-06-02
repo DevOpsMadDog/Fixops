@@ -227,7 +227,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Vulnerable and license-risk dependencies across all repositories",
       apiPath: "/api/v1/dependency-risk/summary",
       itemsKey: "dependencies",
-      statsPath: "/api/v1/dependency-risk/stats",
+      statsPath: "/api/v1/dependency-risk/summary",
       severityKey: "severity",
       columns: [
         { key: "package",     label: "Package",   className: "max-w-[200px] font-mono" },
@@ -311,7 +311,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Active threat actors, emerging threats, and attack campaign tracking",
       apiPath: "/api/v1/threat-landscape/actors",
       itemsKey: "actors",
-      statsPath: "/api/v1/threat-landscape/stats",
+      statsPath: "/api/v1/threat-landscape/summary",
       severityKey: "severity",
       filterOptions: ["critical", "high", "medium", "low"],
       columns: [
@@ -444,7 +444,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Periodic access reviews and entitlement certification campaigns",
       apiPath: "/api/v1/access-reviews/reviews",
       itemsKey: "reviews",
-      statsPath: "/api/v1/access-reviews/stats",
+      statsPath: "/api/v1/access-reviews/summary",
       severityKey: "severity",
       columns: [
         { key: "user",        label: "User",       className: "max-w-[180px]" },
@@ -656,7 +656,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Cyber threat models and unmitigated threat tracking",
       apiPath: "/api/v1/cyber-threat-models/unmitigated",
       itemsKey: "threats",
-      statsPath: "/api/v1/cyber-threat-models/stats",
+      statsPath: "/api/v1/cyber-threat-models/summary",
       severityKey: "severity",
       columns: [
         { key: "threat_name",  label: "Threat",     className: "max-w-[240px]" },
@@ -871,7 +871,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Finding lifecycle — open → triage → fix → verify state tracking",
       apiPath: "/api/v1/findings/lifecycle/summary",
       itemsKey: "states",
-      statsPath: "/api/v1/findings/lifecycle/stats",
+      statsPath: "/api/v1/findings/lifecycle/summary",
       severityKey: null,
       filterOptions: [],
       columns: [
@@ -892,7 +892,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "CIS, NIST, and custom benchmark compliance scores",
       apiPath: "/api/v1/security-benchmarks/results",
       itemsKey: "results",
-      statsPath: "/api/v1/security-benchmarks/stats",
+      statsPath: "/api/v1/security-benchmarks/summary",
       severityKey: "severity",
       columns: [
         { key: "benchmark",    label: "Benchmark",  className: "max-w-[200px]" },

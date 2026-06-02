@@ -54,7 +54,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Privacy impact assessments and data subject risk",
       apiPath: "/api/v1/privacy-impact/assessments",
       itemsKey: "assessments",
-      statsPath: "/api/v1/privacy-impact/stats",
+      statsPath: "/api/v1/privacy-impact/summary",
     },
   },
   // ── Upgrade Path ─────────────────────────────────────────────────────────
@@ -87,7 +87,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "IOC feed — IPs, domains, hashes correlated against assets",
       apiPath: "/api/v1/threat-indicators/indicators",
       itemsKey: "indicators",
-      statsPath: "/api/v1/threat-indicators/stats",
+      statsPath: "/api/v1/threat-indicators/summary",
     },
   },
   // ── Zero Trust Policies ──────────────────────────────────────────────────
@@ -131,7 +131,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Security training completion, quiz scores, and phishing simulation results",
       apiPath: "/api/v1/training-effectiveness/programs",
       itemsKey: "programs",
-      statsPath: "/api/v1/training-effectiveness/stats",
+      statsPath: "/api/v1/training-effectiveness/summary",
     },
   },
   // ── SIEM Output ──────────────────────────────────────────────────────────
@@ -192,7 +192,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Workflow definitions, task status, and overdue compliance actions",
       apiPath: "/api/v1/compliance-workflows/workflows",
       itemsKey: "workflows",
-      statsPath: "/api/v1/compliance-workflows/stats",
+      statsPath: "/api/v1/compliance-workflows/summary",
     },
   },
   // ── Access Request Management ────────────────────────────────────────────
@@ -280,7 +280,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Full security awareness program overview and enrollment",
       apiPath: "/api/v1/awareness-program/programs",
       itemsKey: "programs",
-      statsPath: "/api/v1/awareness-program/stats",
+      statsPath: "/api/v1/awareness-program/summary",
     },
   },
   // ── Behavioral Analytics ─────────────────────────────────────────────────
@@ -302,7 +302,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Infrastructure capacity forecasts and resource utilization",
       apiPath: "/api/v1/capacity-planning/plans",
       itemsKey: "plans",
-      statsPath: "/api/v1/capacity-planning/stats",
+      statsPath: "/api/v1/capacity-planning/summary",
     },
   },
   // ── Certificates ─────────────────────────────────────────────────────────
@@ -423,7 +423,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Misconfigurations, exposure risks, and cloud-native threat detections",
       apiPath: "/api/v1/cloud-findings/findings",
       itemsKey: "findings",
-      statsPath: "/api/v1/cloud-findings/stats",
+      statsPath: "/api/v1/cloud-findings/summary",
     },
   },
   // ── Compliance ───────────────────────────────────────────────────────────
@@ -489,7 +489,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Threat model library, STRIDE analysis, and DFD-based risk scoring",
       apiPath: "/api/v1/cyber-threat-models/models",
       itemsKey: "models",
-      statsPath: "/api/v1/cyber-threat-models/stats",
+      statsPath: "/api/v1/cyber-threat-models/summary",
     },
   },
   // ── DAST ─────────────────────────────────────────────────────────────────
@@ -588,7 +588,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Security exception requests, approvals, and expiry tracking",
       apiPath: "/api/v1/exception-workflow/exceptions",
       itemsKey: "exceptions",
-      statsPath: "/api/v1/exception-workflow/stats",
+      statsPath: "/api/v1/exception-workflow/summary",
     },
   },
   // ── Gap Analysis ─────────────────────────────────────────────────────────
@@ -654,7 +654,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Post-incident review outcomes and remediation action tracking",
       apiPath: "/api/v1/incident-lessons/lessons",
       itemsKey: "lessons",
-      statsPath: "/api/v1/incident-lessons/stats",
+      statsPath: "/api/v1/incident-lessons/summary",
     },
   },
   // ── IP Reputation ────────────────────────────────────────────────────────
@@ -687,7 +687,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Contextual enrichment pipeline for SIEM and EDR alerts",
       apiPath: "/api/v1/alert-enrichment/alerts",
       itemsKey: "alerts",
-      statsPath: "/api/v1/alert-enrichment/stats",
+      statsPath: "/api/v1/alert-enrichment/summary",
     },
   },
   // ── Application Risk ─────────────────────────────────────────────────────
@@ -742,7 +742,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Immutable evidence store with cryptographic integrity verification",
       apiPath: "/api/v1/evidence-vault/items",
       itemsKey: "items",
-      statsPath: "/api/v1/evidence-vault/stats",
+      statsPath: "/api/v1/evidence-vault/summary",
     },
   },
   // ── Ransomware Protection ────────────────────────────────────────────────
@@ -753,7 +753,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Ransomware pattern detection, backup health, and recovery readiness",
       apiPath: "/api/v1/ransomware-protection/patterns",
       itemsKey: "patterns",
-      statsPath: "/api/v1/ransomware-protection/stats",
+      statsPath: "/api/v1/ransomware-protection/summary",
     },
   },
   // ── Access Anomaly ───────────────────────────────────────────────────────
@@ -764,7 +764,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Unusual access patterns, time-of-day anomalies, and impossible travel",
       apiPath: "/api/v1/access-anomaly/anomalies",
       itemsKey: "anomalies",
-      statsPath: "/api/v1/access-anomaly/stats",
+      statsPath: "/api/v1/access-anomaly/summary",
     },
   },
   // ── Actor Tracking ───────────────────────────────────────────────────────
@@ -775,7 +775,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Known threat actor profiles, TTPs, and campaign attribution",
       apiPath: "/api/v1/actor-tracking/actors",
       itemsKey: "actors",
-      statsPath: "/api/v1/actor-tracking/stats",
+      statsPath: "/api/v1/actor-tracking/summary",
     },
   },
   // ── API Inventory ────────────────────────────────────────────────────────
