@@ -67,8 +67,11 @@ export function HealthCardWidget() {
         setHealth(data);
         setError(null);
       } catch (err) {
+        // Already surfaced in the UI via setError; this widget is global, so a transient
+        // backend-unreachable blip shouldn't spam console.error on every dashboard page.
+        // warn-level keeps the console clean while staying diagnosable.
         setError("Error loading health status");
-        console.error(err);
+        console.warn("HealthCardWidget: health fetch failed:", (err as Error)?.message ?? err);
       } finally {
         setLoading(false);
       }
