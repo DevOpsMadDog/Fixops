@@ -434,7 +434,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Framework coverage, control pass rates, and remediation backlogs",
       apiPath: "/api/v1/compliance/frameworks",
       itemsKey: "frameworks",
-      statsPath: "/api/v1/compliance/stats",
+      statsPath: "/api/v1/compliance/status",
     },
   },
   // ── Container Posture ────────────────────────────────────────────────────
