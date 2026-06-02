@@ -103,3 +103,30 @@ value repeats) — need browser React-DevTools to pinpoint which key collides pe
 marketing page (competitive-comparison). Zero customer/functional impact (dev-only, stripped in prod).
 Recommended approach next session: open each page with React DevTools, read the "two children with
 same key" stack to the exact component, add index to that one key. Low priority.
+
+---
+## UPDATE 5 — backend regression triage + stop assessment (latest)
+- Fixed REAL pre-existing bugs found via T3 slice: incident_timeline create_timeline/add_event
+  null-coalesce (started_at/event_time `.get(k,default)` returned None on explicit null -> NOT NULL)
+  + built real GET /analytics/mttr (engine get_mttr_analytics). 41/41 incident-timeline tests pass.
+- T3 chunk (compliance/risk/sbom/vuln/cspm, 2560 passed / 32 failed) FULLY TRIAGED — 0 real
+  session regressions / customer bugs:
+    * compliance_gap_analysis x15 = stale legacy test for REMOVED /compliance-automation/gap-analysis
+      contract; real router is /compliance/* and the UI (/compliance-automation page) uses /compliance/gaps
+      + /compliance/status (browser-verified 0 errors). No customer gap.
+    * config_benchmark x5 + compliance_scanner x9 = checkov broken in env (cyclonedx-python-lib no longer
+      exports `Tool`); FixOps product does NOT import cyclonedx (generate_cyclonedx builds JSON manually)
+      -> product unaffected; founder action: pin cyclonedx-python-lib<4 or upgrade checkov.
+    * compliance_engine_unit x1 = stale (engine refined compliance% to exclude not_assessed, 66.7 vs 60.0).
+    * cspm x2 = flaky/order-dependent (pass isolated).
+
+## STOP ASSESSMENT
+UI is functionally no-mocks-clean (every page real /api/v1 on mount, real data/honest EmptyState,
+zero crashes, zero mocks; full engine-backed endpoint coverage). Backend regression-triaged.
+Remaining work is all low-value or blocked:
+- Cosmetic React key warnings (~6, dev-only, stripped in prod) — need runtime React-DevTools element stack.
+- Legacy compliance test rewrites (real code works; pure test-maintenance).
+- checkov/cyclonedx env dependency conflict — founder dependency call (could destabilise if wrong).
+- SSRF webhook allowlists — counterproductive in air-gapped SCIF without a configurable internal allowlist (design needed).
+- Founder-blocked: push, Postgres, org-precedence, FIPS, PIV, GPU, Stripe, test-infra fixture.
+Session total this branch: 165+ commits, all LOCAL. create_app 8319 routes; Beast smoke 756/756.
