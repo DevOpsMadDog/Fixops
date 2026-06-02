@@ -1264,7 +1264,7 @@ class SecurityTrainingTracker:
                 placeholders = ",".join("?" * len(user_ids))
                 with self._conn() as conn:
                     completed = conn.execute(
-                        f"""SELECT COUNT(*) as cnt FROM completionsWHERE user_id IN ({placeholders}) AND module_id = ? AND status = ?""",  # nosec B608
+                        f"""SELECT COUNT(*) as cnt FROM completions WHERE user_id IN ({placeholders}) AND module_id = ? AND status = ?""",  # nosec B608
                         user_ids + [item["module_id"], CompletionStatus.COMPLETED.value],
                     ).fetchone()["cnt"]
                 pct = (completed / len(user_ids) * 100) if user_ids else 0.0

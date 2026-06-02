@@ -339,7 +339,7 @@ class SecurityRegistryEngine:
                     ", artifact_status = 'active'" if review_outcome == "approved" else ""
                 )
                 conn.execute(
-                    f"""UPDATE registry_artifactsSET reviewer = ?, review_date = ?, next_review_date = ?,
+                    f"""UPDATE registry_artifacts SET reviewer = ?, review_date = ?, next_review_date = ?,
                             updated_at = ?{new_status_sql}
                         WHERE org_id = ? AND id = ?""",  # nosec B608
                     (reviewer, review_date, next_review_date, now, org_id, artifact_id),

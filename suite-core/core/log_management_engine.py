@@ -317,7 +317,7 @@ class LogManagementEngine:
         placeholders = ",".join("?" * len(source_ids))
         with self._lock, self._connect() as conn:
             result = conn.execute(
-                f"""DELETE FROM log_entriesWHERE org_id=? AND source_id IN ({placeholders}) AND timestamp < ?""",  # nosec B608
+                f"""DELETE FROM log_entries WHERE org_id=? AND source_id IN ({placeholders}) AND timestamp < ?""",  # nosec B608
                 [org_id, *source_ids, cutoff],
             )
             deleted = result.rowcount

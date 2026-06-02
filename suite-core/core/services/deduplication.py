@@ -1058,7 +1058,7 @@ class DeduplicationService:
                 cluster_ids = [c["cluster_id"] for c in clusters]
                 placeholders = ",".join("?" * len(cluster_ids))
                 cursor.execute(
-                    f"""SELECT * FROM correlation_linksWHERE source_cluster_id IN ({placeholders})
+                    f"""SELECT * FROM correlation_links WHERE source_cluster_id IN ({placeholders})
                     AND target_cluster_id IN ({placeholders})
                 """,  # nosec B608
                     cluster_ids + cluster_ids,
@@ -1076,7 +1076,7 @@ class DeduplicationService:
                 if cluster_ids:
                     placeholders = ",".join("?" * len(cluster_ids))
                     cursor.execute(
-                        f"""SELECT * FROM correlation_linksWHERE source_cluster_id IN ({placeholders})
+                        f"""SELECT * FROM correlation_links WHERE source_cluster_id IN ({placeholders})
                         OR target_cluster_id IN ({placeholders})
                     """,  # nosec B608
                         cluster_ids + cluster_ids,

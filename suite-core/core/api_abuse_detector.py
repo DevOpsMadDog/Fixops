@@ -441,7 +441,7 @@ class APIAbuseDetector:
         with self._lock:
             with self._conn() as conn:
                 rows = conn.execute(
-                    f"""SELECT * FROM abuse_eventsWHERE {where}
+                    f"""SELECT * FROM abuse_events WHERE {where}
                     ORDER BY detected_at DESC
                     LIMIT ?
                     """,  # nosec B608
