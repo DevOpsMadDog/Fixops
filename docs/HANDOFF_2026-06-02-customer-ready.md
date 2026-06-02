@@ -841,3 +841,12 @@ All green: create_app 8342, Beast smoke 756/756 (known ingest timing flake passe
 - **Tests aligned to secure reality:** auth-router JWT (ephemeral per-process secret, not weaker env-default); signing dev-key fallback.
 - **Deferred:** `test_run_registry` (obsolete API). Remaining q-s fails (scim/snyk/security_training/siem/sso/soc/soc2/router_index/sast_rules/security_connectors) for next tick; Stripe founder-blocked.
 All green: create_app 8343, Beast smoke 756/756.
+
+### 2026-06-03 (cont.) — q-s sweep: real bugs + test restorations
+- **REAL BUG — SOC automation execution tracking dead:** `_record_execution` bumped the `execution_count`/`last_triggered` COLUMNS but `_load_rule` rebuilt rules from the stale `data` JSON blob → counters always read 0/None. Fixed `_load_rule` to overlay the columns. (`4c54f845`)
+- **REAL BUG — security_training SQL crash:** department-stats query `FROM user_profiles uWHERE` (missing space) → `sqlite3 near "u"` crash on every call. (`...security-training-sql`)
+- **Real coverage:** SAST-045 (React dangerouslySetInnerHTML) now also tags `typescript` (was JS-only → missed .tsx).
+- **Real endpoints:** `GET /api/v1/autofix/` + `/api/v1/ml/` index routes added (live engine/store stats, no mocks) — 8345 routes.
+- **Test restorations (product correct):** SCIM server (32→0: router api_key_auth override + reload-resets-`_DB_PATH` isolation); SecurityFindingsEngine `_DEFAULT_DB` now call-time resolved (test isolation); siem synthetic-gen opt-in; soc2 RSA-fallback signing mock; signing/auth-router hardening contracts.
+- **Env-dep/founder-blocked (recorded):** security_connectors_unit (AWS creds), sso_provider (DNS/SSRF guard working), snyk (20, connector test-rot — next tick), stripe.
+All green: create_app 8345, Beast smoke 756/756.
