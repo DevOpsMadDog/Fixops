@@ -405,6 +405,18 @@ def client(tmp_path):
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
+    import apps.api.evidence_chain_router as _ecr
+    if not hasattr(_ecr, "_chain"):
+        # The HMAC EvidenceChain is no longer exposed via evidence_chain_router — that router
+        # is now the chain-of-custody EvidenceChainEngine (`_engine`). The HMAC chain is
+        # internal-only (used by closed-loop signed evidence). These TestRouter* classes test
+        # the removed HMAC HTTP surface; the HMAC chain itself is still covered by the
+        # core.evidence_chain tests above. Skip honestly rather than error on a missing attr.
+        pytest.skip(
+            "evidence_chain_router no longer exposes the HMAC EvidenceChain over HTTP "
+            "(now chain-of-custody EvidenceChainEngine); HMAC chain is internal-only"
+        )
+
     # Patch EvidenceChain to use a temp DB
     with patch("apps.api.evidence_chain_router._chain", EvidenceChain(db_path=str(tmp_path / "router.db"))):
         from apps.api.evidence_chain_router import router
