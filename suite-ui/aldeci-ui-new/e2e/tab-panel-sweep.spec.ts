@@ -56,7 +56,14 @@ test("tab-panel sweep — failed /api + console errors per non-default tab", asy
   const report: Record<string, { tab: string; failedApi: string[]; consoleErrors: string[] }[]> = {};
   let totalTabs = 0;
 
+  // A tab whose click triggers a native confirm()/alert() would block the page
+  // indefinitely (no dialog handler => Playwright hangs the whole sweep). Auto-dismiss.
+  page.on("dialog", (d) => { d.dismiss().catch(() => {}); });
+
+  let hubIdx = 0;
   for (const route of routes) {
+    hubIdx++;
+    console.log(`[tab-sweep] (${hubIdx}/${routes.length}) ${route}`);
     try {
       await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 12000 });
       await page.waitForTimeout(1000);
