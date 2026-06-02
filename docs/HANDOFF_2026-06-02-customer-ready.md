@@ -49,3 +49,19 @@
 
 ## Loop state
 Kick cron retired on this clean exit (backlog exhausted). Re-arm with a new objective (e.g. item 9/11) to resume.
+
+## UPDATE (later 2026-06-02) — UI NO-MOCKS frontier COMPLETE (build-verified)
+- Fixed every page serving fabricated data: ComplianceDashboard, AttackSurface, ThreatIntelDashboard,
+  api-hooks (MOCK_->EMPTY_). ~700 lines of fabricated UI data deleted. `npm run build` green; full
+  `src/` scan CLEAN (no MOCK_/generateMock/sampleData outside tests + generated graphify cache).
+- v2/S* (30) pages are composition shells (no hardcoded data); only ApiReference + Pricing are legit-static.
+- Backend hardenings verified already-correct: SPEC-018 risk POST org-scoped (no body spoof);
+  /convene economic-DoS covered by OrgTierRateLimitMiddleware; evidence verify_integrity real re-hash + storage-root allowlist.
+- ~80 local commits now (still unpushed).
+
+### Remaining for FULL UI real-data (founder go-ahead or running-stack needed)
+3 honest-empty UI sections can be upgraded to REAL data — endpoints EXIST:
+`/api/v1/mitre/coverage` (ThreatIntel MITRE), `/api/v1/audit/compliance/controls` (Compliance controls),
++ a compliance-evidence endpoint. Per CLAUDE.md this wiring MUST be browser-verified (dev server :5173 +
+backend :8000 + Playwright MCP). That's the next step — needs the running stack brought up (the 5-min
+cron will attempt it; or run it yourself). Until then those sections honestly show empty, never fake.
