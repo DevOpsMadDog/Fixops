@@ -148,7 +148,7 @@ export function ContainerImagePanel() {
             <tbody>
               {history.slice(0, 50).map(s => (
                 <tr key={s.scan_id} className="border-b border-border/50 hover:bg-muted/10 transition-colors">
-                  <td className="px-4 py-2 font-mono text-xs max-w-[160px] truncate">{s.image_name ?? s.scan_id.slice(0, 12)}</td>
+                  <td className="px-4 py-2 font-mono text-xs max-w-[160px] truncate">{s.image_name ?? (s.scan_id ? s.scan_id.slice(0, 12) : "—")}</td>
                   <td className="px-4 py-2 text-xs">{s.score != null ? `${s.score}%` : "—"}</td>
                   <td className="px-4 py-2 text-xs text-red-400">{s.critical ?? 0}</td>
                   <td className="px-4 py-2 text-xs text-orange-400">{s.high ?? 0}</td>

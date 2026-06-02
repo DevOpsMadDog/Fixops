@@ -117,7 +117,7 @@ export function FAILStatsPanel() {
   }
 
   const maxGradeCount = Math.max(
-    ...GRADE_ORDER.map((g) => stats.grade_distribution[g] ?? 0),
+    ...GRADE_ORDER.map((g) => (stats.grade_distribution ?? {})[g] ?? 0),
     1,
   );
 
@@ -162,7 +162,7 @@ export function FAILStatsPanel() {
         </p>
         <div className="flex items-end gap-3">
           {GRADE_ORDER.map((grade) => {
-            const count = stats.grade_distribution[grade] ?? 0;
+            const count = (stats.grade_distribution ?? {})[grade] ?? 0;
             const pct = Math.round((count / maxGradeCount) * 100);
             return (
               <div

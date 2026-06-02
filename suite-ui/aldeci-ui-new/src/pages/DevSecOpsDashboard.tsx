@@ -123,9 +123,10 @@ export default function DevSecOpsDashboard() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  const pipelines: any[] = liveData?.pipelines?.items ?? liveData?.pipelines ?? [];
-  const builds: any[]    = liveData?.stats?.recent_builds ?? liveData?.pipelines?.recent_builds ?? [];
-  const findings: any[]  = liveData?.findings?.items ?? liveData?.findings ?? [];
+  const _arr = (v: any): any[] => (Array.isArray(v) ? v : []);
+  const pipelines: any[] = _arr(liveData?.pipelines?.items ?? liveData?.pipelines);
+  const builds: any[]    = _arr(liveData?.stats?.recent_builds ?? liveData?.pipelines?.recent_builds);
+  const findings: any[]  = _arr(liveData?.findings?.items ?? liveData?.findings);
 
   return (
     <motion.div
