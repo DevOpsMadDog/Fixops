@@ -802,6 +802,19 @@ class _ChainedCatalogAdapter:
             if offline_versions:
                 result = _versions_to_rows(offline_versions)
 
+        # Return versions in deterministic ASCENDING semver order. Live registries return
+        # them in registry/insertion order (not sorted), which breaks any consumer that
+        # assumes ordering. Resilient: fall back to original order if a pair is
+        # non-comparable (odd / non-semver tags) so this can never raise.
+        try:
+            import functools
+            result = sorted(
+                result,
+                key=functools.cmp_to_key(lambda x, y: compare_versions(x[0], y[0])),
+            )
+        except Exception:  # noqa: BLE001 — ordering is best-effort, never fatal
+            pass
+
         _cache_put(key, result)
         return result
 

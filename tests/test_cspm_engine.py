@@ -67,7 +67,9 @@ class TestCloudProvider:
 
     def test_all_members(self):
         members = {p.value for p in CloudProvider}
-        assert members == {"aws", "azure", "gcp", "multi"}
+        # CSPM supports the major hyperscalers + Alibaba/IBM/OCI + a 'multi' aggregate.
+        # (Updated 2026-06-03: engine added alibaba/ibm/oci; the old 4-member set was stale.)
+        assert members == {"aws", "azure", "gcp", "alibaba", "ibm", "oci", "multi"}
 
 
 class TestCspmSeverity:

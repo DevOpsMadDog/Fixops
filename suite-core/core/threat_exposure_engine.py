@@ -430,7 +430,9 @@ class ThreatExposureEngine:
             "total_assets": agg_row["total_assets"],
             "by_level": by_level,
             "avg_exposure_score": avg_exposure_score,
-            "critical_assets": agg_row["critical_assets"],
+            # SUM(...) returns NULL (not 0) over zero rows — coalesce so empty-state count
+            # fields are 0, not None (a None count breaks UI rendering/arithmetic).
+            "critical_assets": agg_row["critical_assets"] or 0,
             "total_correlations": total_correlations,
-            "assessed_today": agg_row["assessed_today"],
+            "assessed_today": agg_row["assessed_today"] or 0,
         }
