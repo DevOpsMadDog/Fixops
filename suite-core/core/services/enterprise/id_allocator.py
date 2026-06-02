@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
+import json
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, MutableMapping
 
 _COUNTER: int = 0
 
@@ -28,13 +30,48 @@ def _next_app_id() -> str:
     return f"APP-{10000 + _COUNTER}"
 
 
-def ensure_ids(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Ensure the payload has ``app_id`` and ``run_id`` fields.
+def _mint_component_id(name: str) -> str:
+    """Mint a deterministic ``C-<stem>`` component id from a component name.
 
-    If they are missing or empty, deterministic IDs are allocated based on
-    ``app_name`` or a UUID fallback.
+    ``login-ui`` -> ``C-login``, ``claims-core`` -> ``C-claims``. The stem is
+    the first alphanumeric token of the slugified name.
     """
-    result = dict(payload)
+    cleaned = "".join(ch.lower() if ch.isalnum() else "-" for ch in name)
+    token = cleaned.strip("-") or "component"
+    stem = token.split("-")[0] or "component"
+    return f"C-{stem}"
+
+
+def _deterministic_run_id(result: Dict[str, Any]) -> str:
+    """Derive a reproducible run id from the document's stable identity.
+
+    Hashing app_id + the ordered component ids means an identical design
+    document always yields the same run_id (honours this module's documented
+    deterministic contract), while distinct documents diverge.
+    """
+    components = result.get("components")
+    component_ids = (
+        [c.get("component_id") for c in components if isinstance(c, MutableMapping)]
+        if isinstance(components, list)
+        else []
+    )
+    seed = json.dumps(
+        {"app_id": result.get("app_id"), "components": component_ids},
+        sort_keys=True,
+        default=str,
+    )
+    return hashlib.md5(seed.encode("utf-8"), usedforsecurity=False).hexdigest()[:12]
+
+
+def ensure_ids(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Return a copy of *payload* with guaranteed deterministic identifiers.
+
+    Mints, when missing: ``app_id`` (from ``app_name``), a ``component_id`` for
+    each entry in ``components`` (``C-<stem>``), and a content-derived
+    ``run_id``. The input is never mutated and identical documents always
+    produce identical output.
+    """
+    result = copy.deepcopy(dict(payload))
 
     if not result.get("app_id"):
         app_name = result.get("app_name", "")
@@ -45,8 +82,18 @@ def ensure_ids(payload: Dict[str, Any]) -> Dict[str, Any]:
         else:
             result["app_id"] = _next_app_id()
 
+    components = result.get("components")
+    if isinstance(components, list):
+        for component in components:
+            if isinstance(component, MutableMapping) and not component.get(
+                "component_id"
+            ):
+                component["component_id"] = _mint_component_id(
+                    str(component.get("name") or "component")
+                )
+
     if not result.get("run_id"):
-        result["run_id"] = uuid.uuid4().hex[:12]
+        result["run_id"] = _deterministic_run_id(result)
 
     return result
 
