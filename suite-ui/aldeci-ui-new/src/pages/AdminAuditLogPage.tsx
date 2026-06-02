@@ -146,8 +146,8 @@ export default function AdminAuditLogPage() {
       // Primary: /api/v1/audit/recent   Fallback: /api/v1/audit/logs?limit=200
       let raw: unknown;
       try {
-        const res = await (auditApi as unknown as { recent?: (n: number) => Promise<{ data: unknown }> })
-          .recent?.(200) ?? auditApi.recentLogs(200);
+        const recentFn = (auditApi as unknown as { recent?: (n: number) => Promise<{ data: unknown }> }).recent;
+        const res = await (recentFn ? recentFn(200) : auditApi.recentLogs(200));
         raw = res.data;
       } catch {
         const res = await auditApi.recentLogs(200);

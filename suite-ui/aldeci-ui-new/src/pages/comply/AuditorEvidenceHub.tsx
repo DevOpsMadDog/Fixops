@@ -212,20 +212,20 @@ function FrameworksTab() {
   useEffect(() => {
     setLoading(true);
     auditApi
-      .auditFrameworks()
-      .then((res) => {
-        const raw = res.data;
+      .complianceFrameworks()
+      .then((res: { data: unknown }) => {
+        const raw = res.data as Record<string, unknown> | unknown[];
         const items: FrameworkCard[] = Array.isArray(raw)
-          ? raw
-          : Array.isArray(raw?.frameworks)
-          ? raw.frameworks
-          : Array.isArray(raw?.items)
-          ? raw.items
+          ? (raw as FrameworkCard[])
+          : Array.isArray((raw as Record<string, unknown>)?.frameworks)
+          ? ((raw as Record<string, unknown>).frameworks as FrameworkCard[])
+          : Array.isArray((raw as Record<string, unknown>)?.items)
+          ? ((raw as Record<string, unknown>).items as FrameworkCard[])
           : [];
         // Only show frameworks the API actually returned — no placeholder synthesis
         setCards(items);
       })
-      .catch((e) => setError(e?.message ?? "Failed to load frameworks"))
+      .catch((e: Error) => setError(e?.message ?? "Failed to load frameworks"))
       .finally(() => setLoading(false));
   }, []);
 

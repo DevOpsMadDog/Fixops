@@ -166,7 +166,7 @@ export default function SecurityQueryLanguageDashboard() {
                   <TableBody>
                     {(arr(result.rows ?? [])).map((row, i) => (
                       <TableRow key={i} className="hover:bg-muted/30">
-                        {row.map((cell, j) => (
+                        {row.map((cell: unknown, j: number) => (
                           <TableCell key={j} className="py-2 text-[11px] font-mono">{String(cell ?? "—")}</TableCell>
                         ))}
                       </TableRow>

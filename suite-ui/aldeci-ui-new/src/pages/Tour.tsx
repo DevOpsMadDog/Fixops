@@ -186,7 +186,7 @@ function CouncilDetail({ events }: { events: StageEvent[] }) {
         <span style={{ color: "#7dd3fc", fontSize: 11 }}>Chairman: </span>
         <span style={{ color: "#e2e8f0", fontWeight: 700 }}>{completed.verdict_action as string}</span>
         <span style={{ color: "#64748b" }}> @ {(completed.verdict_confidence as number)?.toFixed(2)}</span>
-        {completed.verdict_reasoning && (
+        {!!completed.verdict_reasoning && (
           <div style={{ marginTop: 4, color: "#94a3b8", fontSize: 11, lineHeight: 1.5 }}>
             {(completed.verdict_reasoning as string).slice(0, 280)}
             {(completed.verdict_reasoning as string).length > 280 ? "…" : ""}
@@ -204,7 +204,7 @@ function TrustGraphDetail({ events }: { events: StageEvent[] }) {
     <div style={{ marginTop: 8, fontSize: 13, color: "#94a3b8" }}>
       <span style={{ color: "#e2e8f0" }}>{completed.nodes_emitted as number} nodes</span>
       {" "}emitted to TrustGraph event bus
-      {completed.finding_node && (
+      {!!completed.finding_node && (
         <pre style={{
           marginTop: 6, padding: 8, background: "#0f172a",
           borderRadius: 6, fontSize: 11, color: "#7dd3fc", overflowX: "auto",
@@ -408,7 +408,7 @@ export default function Tour() {
               setSummary(event as unknown as Record<string, unknown>);
               setRunning(false);
               if (timerRef.current) clearInterval(timerRef.current);
-            } else if (event.status === "failed") {
+            } else if (event.status === "error") {
               setError((event.message as string) ?? "Tour failed");
               setRunning(false);
               if (timerRef.current) clearInterval(timerRef.current);

@@ -129,7 +129,7 @@ function ThreatModelsTab() {
     refetch: refetchModels,
   } = useQuery({
     queryKey: ["threat-modeling", "models"],
-    queryFn: () => threatModelingApi.listModels(),
+    queryFn: () => threatModelingApi.models(),
     retry: 1,
   });
 
@@ -138,7 +138,7 @@ function ThreatModelsTab() {
     isLoading: loadingStride,
   } = useQuery({
     queryKey: ["threat-modeling", "stride-categories"],
-    queryFn: () => threatModelingApi.getStrideCategories(),
+    queryFn: () => threatModelingApi.strideCategories().then((r) => r.data),
     retry: 1,
   });
 
@@ -195,7 +195,7 @@ function ThreatModelsTab() {
             <EmptyState
               title="No threat models"
               description="Create a threat model to start STRIDE analysis."
-              icon={<Layers className="w-8 h-8 text-slate-500" />}
+              icon={Layers}
             />
           ) : (
             <ScrollArea className="h-64">
@@ -342,7 +342,7 @@ function CodeToRuntimeTab() {
             <EmptyState
               title="No runtime events"
               description="Ingest runtime events to see code-to-runtime mappings."
-              icon={<Code2 className="w-8 h-8 text-slate-500" />}
+              icon={Code2}
             />
           ) : (
             <ScrollArea className="h-72">
@@ -389,7 +389,7 @@ function ApiDepsTab() {
     refetch,
   } = useQuery<TopoStats>({
     queryKey: ["network-topology", "stats"],
-    queryFn: () => networkTopologyApi.stats(),
+    queryFn: () => networkTopologyApi.stats().then((r) => r.data as TopoStats),
     retry: 1,
   });
 
@@ -399,7 +399,7 @@ function ApiDepsTab() {
     isError: errNodes,
   } = useQuery({
     queryKey: ["network-topology", "nodes"],
-    queryFn: () => networkTopologyApi.listNodes(),
+    queryFn: () => networkTopologyApi.nodes(),
     retry: 1,
   });
 
@@ -408,7 +408,7 @@ function ApiDepsTab() {
     isLoading: loadingExposure,
   } = useQuery<ExposureResult>({
     queryKey: ["network-topology", "exposure"],
-    queryFn: () => networkTopologyApi.detectExposure(),
+    queryFn: () => networkTopologyApi.exposure().then((r) => r.data as ExposureResult),
     retry: 1,
   });
 
@@ -483,7 +483,7 @@ function ApiDepsTab() {
             <EmptyState
               title="No nodes discovered"
               description="Connect network topology sources to populate the dependency map."
-              icon={<Network className="w-8 h-8 text-slate-500" />}
+              icon={Network}
             />
           ) : (
             <ScrollArea className="h-64">
@@ -606,7 +606,7 @@ function ArchGraphTab() {
             <EmptyState
               title="Graph not populated"
               description="Run Brain Pipeline ingestion to build the architecture knowledge graph."
-              icon={<Network className="w-8 h-8 text-slate-500" />}
+              icon={Network}
             />
           ) : (
             <ScrollArea className="h-80">

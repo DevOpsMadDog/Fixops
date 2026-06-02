@@ -232,7 +232,7 @@ function PentestPanel() {
         {engagements.status === "error" ? (
           <ErrorState message={engagements.error} onRetry={load} />
         ) : (engagements.data?.length ?? 0) === 0 ? (
-          <EmptyState message="No pentest engagements found." />
+          <EmptyState description="No pentest engagements found." />
         ) : (
           <div className="rounded-lg border border-border overflow-hidden">
             <table className="w-full text-xs">
@@ -283,7 +283,7 @@ function PentestPanel() {
         {findings.status === "error" ? (
           <ErrorState message={findings.error} onRetry={load} />
         ) : filteredFindings.length === 0 ? (
-          <EmptyState message="No findings match the selected filter." />
+          <EmptyState description="No findings match the selected filter." />
         ) : (
           <div className="rounded-lg border border-border overflow-hidden">
             <table className="w-full text-xs">
@@ -437,7 +437,7 @@ function RedTeamPanel() {
         {simulations.status === "error" ? (
           <ErrorState message={simulations.error} onRetry={load} />
         ) : (simulations.data?.length ?? 0) === 0 ? (
-          <EmptyState message="No red team simulations found." />
+          <EmptyState description="No red team simulations found." />
         ) : (
           <div className="rounded-lg border border-border overflow-hidden">
             <table className="w-full text-xs">
@@ -557,7 +557,7 @@ function SocialEngPanel() {
         {campaigns.status === "error" ? (
           <ErrorState message={campaigns.error} onRetry={load} />
         ) : (campaigns.data?.length ?? 0) === 0 ? (
-          <EmptyState message="No phishing campaigns found." />
+          <EmptyState description="No phishing campaigns found." />
         ) : (
           <div className="rounded-lg border border-border overflow-hidden">
             <table className="w-full text-xs">

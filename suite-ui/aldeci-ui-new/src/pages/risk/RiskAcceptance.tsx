@@ -40,6 +40,12 @@ import api, { buildApiUrl, getStoredAuthToken, getStoredAuthStrategy, getStoredO
 import { cn } from "@/lib/utils";
 
 // ═══════════════════════════════════════════════════════════
+// Shared array guard (mirrors the helper used across codebase)
+// ═══════════════════════════════════════════════════════════
+
+const arr = (v: any): any[] => (Array.isArray(v) ? v : []);
+
+// ═══════════════════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════════════════
 
@@ -544,7 +550,7 @@ export default function RiskAcceptance() {
 
   // Merge API records with local overrides
   const records: RiskAcceptanceRecord[] = useMemo(() => {
-    const base = (arr(apiRecords ?? [])).map((r) => {
+    const base = (arr(apiRecords ?? []) as RiskAcceptanceRecord[]).map((r) => {
       const override = localOverrides.get(r.id);
       return override ? { ...r, ...override } : r;
     });

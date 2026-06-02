@@ -3,6 +3,16 @@ import { Card } from "@/components/ui/card";
 import { AlertCircle, Zap } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+// SwaggerUIBundle is injected at runtime via CDN <script> tag below.
+declare global {
+  interface Window {
+    SwaggerUIBundle: ((config: Record<string, unknown>) => void) & {
+      presets: { apis: unknown };
+      SwaggerUIStandalonePreset: unknown;
+    };
+  }
+}
+
 export default function ApiReferencePage() {
   const [swaggerLoaded, setSwaggerLoaded] = useState(false);
   const [useIframe, setUseIframe] = useState(false);
