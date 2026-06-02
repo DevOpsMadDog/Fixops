@@ -3,7 +3,7 @@
  *
  * Catalog of MCP tools (and AI agents) available in this deployment.
  * Route: /ai/mcp-registry
- * API: primary GET /api/v1/mcp-protocol/tools, fallback GET /api/v1/agents
+ * API: primary GET /api/v1/mcp-protocol/tools, fallback GET /api/v1/copilot/agents
  * Multica id: 55bf9576-53a6-4a6e-94b1-05cf0842ba40
  */
 
@@ -72,8 +72,8 @@ export default function MCPToolRegistry() {
       // Try primary endpoint first
       const { data, status } = await apiFetch<MCPResponse>("/api/v1/mcp-protocol/tools");
       if (status === 501 || status === 404 || data.comingSoon) {
-        // Fallback to /api/v1/agents
-        const { data: a } = await apiFetch<MCPResponse>("/api/v1/agents");
+        // Fallback to the real agents registry (/api/v1/agents doesn't exist → 404)
+        const { data: a } = await apiFetch<MCPResponse>("/api/v1/copilot/agents");
         if (a.comingSoon) {
           setComingSoon(true);
           setTools([]);
