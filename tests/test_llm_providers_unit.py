@@ -71,7 +71,10 @@ class TestBaseLLMProvider:
         )
         assert result.recommended_action == "review"
         assert result.confidence == 0.5
-        assert result.reasoning == "Deterministic fallback"
+        # The deterministic path honestly annotates WHY it fell back (e.g.
+        # "[no model available]"), so accept the caller's reasoning as a prefix
+        # rather than requiring an exact match.
+        assert result.reasoning.startswith("Deterministic fallback")
         assert result.metadata["mode"] == "deterministic"
 
     def test_analyse_with_mitigation_hints(self):

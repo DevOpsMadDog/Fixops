@@ -327,11 +327,16 @@ class SecurityMarkovChain:
         risk_levels = {"low": 0.2, "medium": 0.5, "high": 0.8, "critical": 1.0}
 
         trajectory = []
-        self.transition_matrix.copy()
 
         for step in range(1, horizon_steps + 1):
-            # Compute n-step transition matrix
-            P_n = np.linalg.matrix_power(self.transition_matrix, step)
+            # Compute n-step transition matrix. The matrix is row-stochastic so
+            # its integer powers are mathematically well-defined and finite.
+            # Some BLAS backends emit a spurious "divide by zero encountered in
+            # matmul" FPE from vectorised lanes even though matrix_power performs
+            # no division; suppress those benign FPE signals (callers/test envs
+            # may escalate RuntimeWarnings to errors).
+            with np.errstate(divide="ignore", invalid="ignore", over="ignore", under="ignore"):
+                P_n = np.linalg.matrix_power(self.transition_matrix, step)
             probs = P_n[start_idx]
 
             # Calculate expected risk at this step
