@@ -72,6 +72,13 @@ test("route sweep — console errors + failed /api/v1 calls per route", async ({
       consoleErrors.push(`NAV_ERROR: ${String(e).slice(0, 200)}`);
     }
 
+    // Throttle: keep total request rate under the backend's READ rate limit
+    // (~200/min) AND avoid overwhelming a single-instance backend. Do NOT disable
+    // the rate limiter for this sweep — RL-off lets the flood DoS the backend into
+    // 500s/connection-failures (false positives); RL-on without this delay just
+    // 429-masks. SWEEP_ROUTE_DELAY_MS tunes inter-route pacing (default 2500ms).
+    await page.waitForTimeout(Number(process.env.SWEEP_ROUTE_DELAY_MS || 2500));
+
     page.off("console", onConsole);
     page.off("response", onResponse);
 
