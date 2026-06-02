@@ -97,8 +97,8 @@ def _make_client():
     app.include_router(wave_b_router)
 
     # Patch auth + org_id
-    from apps.api.auth import api_key_auth
-    from apps.api.shared_deps import get_org_id
+    from apps.api.auth_deps import api_key_auth
+    from apps.api.dependencies import get_org_id
     app.dependency_overrides[api_key_auth] = lambda: None
     app.dependency_overrides[get_org_id] = lambda: "test-org"
 

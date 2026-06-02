@@ -198,9 +198,13 @@ class ChokePointRequest(BaseModel):
 
 
 class ToxicComboRule(BaseModel):
-    """POST /api/v1/toxic-combo-rules body."""
+    """POST /api/v1/toxic-combo-rules body.
 
-    combo_id: str = Field(..., min_length=1, max_length=120)
+    ``combo_id`` is optional — when omitted the store mints a UUID. (The store
+    keys rules by ``id``; the handler maps ``combo_id`` onto it.)
+    """
+
+    combo_id: Optional[str] = Field(default=None, max_length=120)
     name: str = Field(..., min_length=1, max_length=240)
     description: str = Field(default="", max_length=2000)
     severity: str = Field(default="high", pattern=r"^(critical|high|medium|low|info)$")
@@ -635,7 +639,12 @@ def create_toxic_combo_rule(
     from core.toxic_combo_rules import get_store
 
     try:
-        return get_store().put(org_id, body.model_dump())
+        data = body.model_dump()
+        # Store keys rules by ``id`` — map the optional client-supplied combo_id.
+        combo_id = data.pop("combo_id", None)
+        if combo_id:
+            data["id"] = combo_id
+        return get_store().put(org_id, data)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
