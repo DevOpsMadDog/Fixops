@@ -604,6 +604,18 @@ export default function App() {
                 this path (e.g. /compliance?tab=waivers); it was imported but never routed,
                 so the whole Comply section + those redirects 404'd. */}
             <Route path="/compliance" element={<ComplianceDashboard />} />
+            {/* Bare consolidated-hub paths that ~many Navigate redirects target but were
+                never given a route (the tabbed hubs were planned, not built) — they hard
+                404'd. Until/unless the tabbed hubs are built (design decision), redirect each
+                bare path to its canonical existing real page so navigation works (the ?tab=
+                hint is dropped; user still lands on the relevant area, not a 404). */}
+            <Route path="/assets" element={<Navigate to="/discover/assets/inventory" replace />} />
+            <Route path="/brain" element={<Navigate to="/brain/neural" replace />} />
+            <Route path="/validate" element={<Navigate to="/validate/offensive" replace />} />
+            <Route path="/issues" element={<Navigate to="/findings" replace />} />
+            <Route path="/remediate" element={<Navigate to="/remediate/cases" replace />} />
+            <Route path="/admin" element={<Navigate to="/admin/audit-log" replace />} />
+            <Route path="/asset-graph" element={<Navigate to="/arch-graph" replace />} />
             <Route path="/comply/soc2" element={<SOC2Evidence />} />
             <Route path="/comply/slsa" element={<SLSAProvenance />} />
             {/* /comply/audit → consolidated into /compliance hero */}
