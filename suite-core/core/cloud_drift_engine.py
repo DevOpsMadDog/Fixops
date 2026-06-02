@@ -5,11 +5,11 @@ STATUS: PARTIALLY REAL — CRUD operations (register_baseline, record_drift,
 acknowledge_drift, remediate_drift, list_baselines, list_drifts,
 get_drift_stats) are fully production-ready and backed by SQLite WAL.
 
-NOT PRODUCTION READY: run_drift_scan() uses random.random() to simulate
-drift detection instead of calling real cloud provider APIs (AWS Config,
-Azure Policy, GCP Asset Inventory). To make fully real: wire a CSPM
-connector via /api/v1/connectors/cspm-{aws,azure,gcp}/configure and
-replace run_drift_scan() with real provider API calls.
+run_drift_scan() does NOT fabricate results: when no CSPM connector is configured
+(CSPM_CONNECTOR_URL unset) it raises NotImplementedError, which the router maps to an
+honest HTTP 503 (not_configured) — never simulated drift. Real cloud drift is ingested
+via record_drift() from an external CSPM tool (AWS Config, Azure Policy, GCP Asset
+Inventory), or by wiring a connector via /api/v1/connectors/cspm-{aws,azure,gcp}/configure.
 
 Detects configuration drift in cloud infrastructure by comparing IaC-defined
 baselines (Terraform / CloudFormation / manual) against actual resource state.
@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import json
 import logging
-import random
 import sqlite3
 import threading
 import uuid
