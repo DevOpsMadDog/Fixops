@@ -230,8 +230,9 @@ def test_toxic_issues(client):
 # 11. afe86faf — POST /api/v1/toxic-combo-rules
 # ===========================================================================
 
-def test_create_toxic_combo_rule_returns_501(client):
-    """The engine intentionally returns 501 (capability not implemented)."""
+def test_create_toxic_combo_rule_returns_201(client):
+    """The toxic-combo-rule endpoint is implemented now (was a 501 stub): it
+    persists a real rule and returns 201 with the created record."""
     resp = client.post(
         "/api/v1/toxic-combo-rules",
         json={
@@ -243,9 +244,11 @@ def test_create_toxic_combo_rule_returns_501(client):
             ],
         },
     )
-    assert resp.status_code == 501, resp.text
+    assert resp.status_code == 201, resp.text
     body = resp.json()
-    assert body["detail"]["error"] == "not_implemented"
+    assert body["name"] == "internet+CVE+admin"
+    assert body.get("id")
+    assert len(body["predicates"]) == 2
 
 
 def test_create_toxic_combo_rule_bad_predicates_returns_422(client):
