@@ -25,7 +25,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "suite-core"))
 from fastapi.testclient import TestClient  # noqa: E402
 
 VALID_STATES = {"healthy", "degraded", "empty", "error", "unknown"}
-HEADERS = {"X-API-Key": "test-api-key-for-pytest"}
+# Use the ACTIVE token: conftest sets FIXOPS_API_TOKEN before this module's
+# setdefault runs, so setdefault is a no-op and a hardcoded header would 401.
+HEADERS = {"X-API-Key": os.environ["FIXOPS_API_TOKEN"]}
 
 
 @pytest.fixture(scope="module")

@@ -14,8 +14,12 @@ import apps.api.webhook_router as wr
 
 def _make_client(tmp_db: str) -> TestClient:
     """Return a TestClient with the webhook router using tmp_db."""
+    from apps.api.auth_deps import api_key_auth
     app = FastAPI()
     app.include_router(wr.router)
+    # Bypass auth for this focused router test (the index wiring is under test,
+    # not the auth layer); without this every request 401s.
+    app.dependency_overrides[api_key_auth] = lambda: None
     return TestClient(app)
 
 
