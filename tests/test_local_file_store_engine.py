@@ -115,3 +115,41 @@ class TestHistoryLimit:
         if hasattr(eng, "list_history"):
             hist = eng.list_history(tmp_repo)
             assert isinstance(hist, list)
+
+
+class TestStorageRootGuard:
+    """Storage-root allowlist / path-traversal guard (red-team hardening 2026-06-03).
+
+    Every store op funnels through _store_dir(repo_path); repo_path is caller-supplied
+    (incl. via /api/v1/local-store/*), so an unguarded path allowed arbitrary JSON
+    write + subtree DELETE (clear_store) anywhere the process could reach.
+    """
+
+    @pytest.mark.parametrize("bad", ["/", "/etc", "/var", "/usr", "/root", "/System", "/Library"])
+    def test_system_roots_rejected(self, bad):
+        eng = _engine()
+        with pytest.raises(ValueError):
+            eng._store_dir(bad)
+
+    def test_empty_repo_path_rejected(self):
+        eng = _engine()
+        with pytest.raises(ValueError):
+            eng._store_dir("")
+
+    def test_legit_tmp_repo_allowed(self, tmp_repo):
+        eng = _engine()
+        sd = eng._store_dir(tmp_repo)
+        assert sd.name == ".fixops"
+        assert str(sd).startswith(str(tmp_repo.resolve()))
+
+    def test_allowlist_blocks_outside_path(self, tmp_repo, monkeypatch):
+        monkeypatch.setenv("FIXOPS_LOCAL_STORE_ALLOWED_ROOTS", str(tmp_repo))
+        eng = _engine()
+        # inside the allowlisted root: OK
+        inside = tmp_repo / "proj"
+        inside.mkdir()
+        assert eng._store_dir(inside).name == ".fixops"
+        # outside the allowlist: rejected
+        other = Path(tempfile.mkdtemp(prefix="lfs_outside_"))
+        with pytest.raises(ValueError):
+            eng._store_dir(other)

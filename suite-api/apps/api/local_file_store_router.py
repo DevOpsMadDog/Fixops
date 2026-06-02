@@ -269,6 +269,9 @@ def clear(
     try:
         removed = _get_engine().clear_store(repo_path)
         return {"repo_path": repo_path, "removed_files": removed}
+    except ValueError as exc:
+        # rejected by the storage-root guard (protected/disallowed path) — client error
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # pragma: no cover — defensive
         _logger.exception("clear failed")
         raise HTTPException(status_code=500, detail="clear failed") from exc

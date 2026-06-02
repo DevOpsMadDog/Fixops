@@ -108,6 +108,51 @@ _DEFAULT_HISTORY_LIMIT = 50
 _MAX_HISTORY_LIMIT = 1000
 _LOCK_STALE_SECS = 3600  # 1 hour — a lock older than this is considered stale
 
+# --- Storage-root safety (path-traversal / arbitrary write+delete guard) ----------
+# Every store operation funnels through _store_dir(repo_path); repo_path is caller-
+# supplied (incl. via the /api/v1/local-store/* API), so an unguarded path lets a
+# caller write JSON and DELETE subtrees (clear_store) anywhere the process can reach.
+# Defence in depth:
+#   (1) ALWAYS reject the filesystem root and top-level system dirs (never a repo root).
+#   (2) If FIXOPS_LOCAL_STORE_ALLOWED_ROOTS (os.pathsep-separated) is set, enforce that
+#       the resolved repo_path is one of / under one of those roots (strict allowlist).
+def _resolved_denied_roots() -> "frozenset[Path]":
+    """System dirs that must never be a store root — literal AND symlink-resolved
+    (e.g. macOS /var -> /private/var) so the guard can't be bypassed via a symlink."""
+    literals = (
+        "/", "/etc", "/bin", "/sbin", "/usr", "/lib", "/lib64", "/var", "/sys",
+        "/proc", "/boot", "/dev", "/root", "/opt", "/run", "/srv",
+        "/System", "/Library", "/private/etc", "/private/var", "/private/tmp",
+    )
+    out: set = set()
+    for p in literals:
+        pp = Path(p)
+        out.add(pp)
+        try:
+            out.add(pp.resolve())
+        except (OSError, RuntimeError):  # pragma: no cover - defensive
+            pass
+    return frozenset(out)
+
+
+_DENIED_STORE_ROOTS = _resolved_denied_roots()
+
+
+def _allowed_store_roots() -> List[Path]:
+    """Parse FIXOPS_LOCAL_STORE_ALLOWED_ROOTS into resolved Paths (empty = no allowlist)."""
+    raw = os.environ.get("FIXOPS_LOCAL_STORE_ALLOWED_ROOTS", "").strip()
+    if not raw:
+        return []
+    roots: List[Path] = []
+    for part in raw.split(os.pathsep):
+        part = part.strip()
+        if part:
+            try:
+                roots.append(Path(part).expanduser().resolve())
+            except (OSError, RuntimeError):  # pragma: no cover - defensive
+                continue
+    return roots
+
 
 def _now_iso() -> str:
     """Current UTC time as ISO-8601 string."""
@@ -154,7 +199,19 @@ class LocalFileStoreEngine:
 
     @staticmethod
     def _store_dir(repo_path: Any) -> Path:
+        if repo_path is None or str(repo_path).strip() == "":
+            raise ValueError("repo_path must be a non-empty path")
         root = Path(repo_path).expanduser().resolve()
+        # (1) never a system dir / filesystem root
+        if root in _DENIED_STORE_ROOTS or root == Path(root.anchor):
+            raise ValueError(f"refusing to use protected system path as store root: {root}")
+        # (2) strict allowlist when configured
+        allowed = _allowed_store_roots()
+        if allowed and not any(root == a or a in root.parents for a in allowed):
+            raise ValueError(
+                f"repo_path {root} is outside the configured "
+                "FIXOPS_LOCAL_STORE_ALLOWED_ROOTS allowlist"
+            )
         return root / _STORE_DIRNAME
 
     def _ensure_store(self, repo_path: Any) -> Path:
