@@ -371,3 +371,25 @@ browser/curl-verified):
   for pipeline/consensus/lab/ml/predictions/mpte/fail. Needs a Brain-hero build or content relocation.
 - **/billing**: no internal billing page exists (only public PricingPage) — real product gap.
 - Some **/compliance?tab=** redirects may share the pattern (ComplianceDashboard tab-read unconfirmed).
+
+---
+
+## Addendum 2026-06-03 (tick 3) — high-fidelity real-call sweep + ContainerSecurity panels
+
+- **High-fidelity real-call endpoint sweep**: extracted 390 ACTUAL apiFetch/api.get string-literal
+  GET paths from page source (vs tick-2's header-doc paths) + curled all vs live backend.
+  **0 5xx** (backend runtime-500 frontier fully clean — hunting was the last), **0 hard-broken-on-mount
+  pages** (OrgHierarchyExplorer-class exhausted). 23 404s all triaged: POST action endpoints,
+  graceful allSettled degraders, or param-needing template literals.
+- **MCPToolRegistry** dead fallback fixed: /api/v1/agents (404) → /api/v1/copilot/agents (200).
+- **ContainerSecurity** 3 dead panels wired to real backends (page called non-existent
+  /container-security/{k8s-posture,policy-violations,registries}; real data lives under
+  /container-posture/clusters+findings and /container-registry-security/allowlist). Browser-verified:
+  posture cards show real scores (100%/86% from 22 clusters), violations populated, 0 console errors.
+- **brain?tab= dead-end class (23)** verified as legacy bookmark aliases NOT in the live nav (low
+  customer impact) + core tabs product-blocked (no destination hero). Documented, not mass-touched.
+
+UI customer-readiness frontier (this session, 3 ticks): NO-MOCKS clean + 0 runtime-5xx + 0 hard-broken
+pages + admin-routing dead-ends repointed + 4 wrong-path pages (org/capacity/container/mcp) wired to
+real backends — all browser/curl-verified. Remaining: product-blocked (brain hero, /billing page) +
+founder-blocked. Build green; backend smoke 755/756 (known flake) from tick 2 holds (tick 3 UI-only).
