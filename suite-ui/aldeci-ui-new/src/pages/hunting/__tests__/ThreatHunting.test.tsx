@@ -1,14 +1,28 @@
 /**
  * Threat Hunting — component tests (P04 Persona)
  *
- * ThreatHunting uses only local mock data (no API hooks).
- * All renders are synchronous after framer-motion stubs.
+ * ThreatHunting reads localStorage at module scope (API_KEY constant) then
+ * fires fetch() calls inside a useEffect. We must:
+ *   1. Stub localStorage BEFORE the dynamic import so the module-level read
+ *      doesn't throw in jsdom.
+ *   2. Stub global fetch so the useEffect resolves cleanly (empty arrays).
+ *   3. Restore both stubs in afterEach so we don't pollute sibling test files.
+ *
+ * All data asserted below is STATIC — MITRE tactic labels, KPI card titles,
+ * tab labels, and the search placeholder are baked into the component source
+ * and do not depend on API responses.
  */
-import { describe, it, expect, vi } from "vitest";
-import { screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+import { screen, waitFor } from "@testing-library/react";
 import { renderPage } from "@/__tests__/test-utils";
 
-// ── Stub framer-motion ──
+// ── 1. localStorage stub — must be installed BEFORE any vi.mock that imports
+//       the component, so it is present when the module-level `API_KEY`
+//       constant is evaluated.
+const _ls = { getItem: () => null, setItem: () => {}, removeItem: () => {}, clear: () => {} };
+Object.defineProperty(window, "localStorage", { value: _ls, writable: true });
+
+// ── 2. Stub framer-motion ──
 vi.mock("framer-motion", async () => {
   const React = await import("react");
   const motionProxy = new Proxy({}, {
@@ -28,7 +42,7 @@ vi.mock("framer-motion", async () => {
   };
 });
 
-// ── Stub recharts ──
+// ── 3. Stub recharts ──
 vi.mock("recharts", () => {
   const React = require("react");
   const S = ({ children, ...p }: any) => React.createElement("div", { "data-testid": "chart", ...p }, children);
@@ -43,6 +57,20 @@ vi.mock("recharts", () => {
 });
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+
+// ── 4. Stub global fetch — returns empty arrays for every endpoint ──
+beforeAll(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [] }),
+  );
+});
+
+// ── 5. Cleanup — restore fetch stub after each test so we don't bleed into
+//       other test files in the full-suite run.
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 async function loadThreatHunting() {
   return (await import("@/pages/hunting/ThreatHunting")).default;
@@ -62,7 +90,9 @@ describe("ThreatHunting", () => {
   it("shows the Threat Hunting heading", async () => {
     const Page = await loadThreatHunting();
     renderPage(<Page />);
-    expect(screen.getByText("Threat Hunting")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText("Threat Hunting")).toBeInTheDocument(),
+    );
   });
 
   it("shows the P04 persona badge", async () => {

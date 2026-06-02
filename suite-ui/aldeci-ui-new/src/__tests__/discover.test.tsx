@@ -1,9 +1,23 @@
 /**
  * Discover screens — smoke tests.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
+import { screen, waitFor } from "@testing-library/react";
 import { renderPage, mockQueryResult, mockQueryLoading, mockMutationResult } from "./test-utils";
+
+// ContainerSecurity.tsx reads window.localStorage.getItem at module-load time (line 41).
+// Stub it globally before any dynamic import of that module.
+beforeAll(() => {
+  Object.defineProperty(window, "localStorage", {
+    value: {
+      getItem: vi.fn().mockReturnValue(null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+    },
+    writable: true,
+  });
+});
 
 const mocks: Record<string, any> = {
   useFindings: vi.fn(),
@@ -36,6 +50,9 @@ vi.mock("@/lib/api", () => ({
   getStoredAuthStrategy: vi.fn().mockReturnValue("token"),
   getStoredAuthToken: vi.fn().mockReturnValue("test"),
   getStoredOrgId: vi.fn().mockReturnValue(""),
+  // buildApiUrl is used by CloudPosture's fetchCloudPostureFindings / fetchComplianceFrameworks.
+  // Must return a valid URL string so fetch() is called (not thrown) and our fetch stub takes over.
+  buildApiUrl: (path: string) => `http://localhost${path}`,
 }));
 vi.mock("framer-motion", async () => {
   const React = await import("react");
@@ -68,6 +85,14 @@ const complianceData = { overall_score: 0, frameworks: [] };
 const integrationsData = { integrations: [] };
 
 beforeEach(() => {
+  // Stub global fetch for components that call fetch() directly (CloudPosture, ContainerSecurity).
+  // Returns a successful empty-array response, which is enough to pass isLoading/isError guards.
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => [],
+  }));
+
   mocks.useFindings.mockReturnValue(mockQueryResult(findingsData));
   mocks.useScannerParsers.mockReturnValue(mockQueryResult(parsersData));
   mocks.useApps.mockReturnValue(mockQueryResult(appsData));
@@ -133,7 +158,8 @@ describe("CloudPosture", () => {
   it("renders heading", async () => {
     const P = await loadPage("CloudPosture");
     renderPage(<P />);
-    expect(screen.getByText("Cloud Posture")).toBeInTheDocument();
+    // findingsQ uses useQuery+fetch directly; wait for isLoading to clear so PageHeader renders.
+    await waitFor(() => expect(screen.getByText("Cloud Posture")).toBeInTheDocument());
   });
 });
 

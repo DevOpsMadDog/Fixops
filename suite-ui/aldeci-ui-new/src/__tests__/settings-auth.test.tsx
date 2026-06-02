@@ -2,7 +2,7 @@
  * Settings, Auth & Onboarding screens — smoke tests.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { renderPage, mockQueryResult, mockMutationResult } from "./test-utils";
 
 const mocks: Record<string, any> = {
@@ -14,6 +14,9 @@ const mocks: Record<string, any> = {
   usePolicies: vi.fn(),
   useAuditLog: vi.fn(),
   useApps: vi.fn(),
+  useTestIntegration: vi.fn(),
+  useSyncIntegration: vi.fn(),
+  useConfigureIntegration: vi.fn(),
 };
 
 // Stub for removed pages — keeps describe blocks compilable
@@ -32,7 +35,16 @@ vi.mock("@/lib/api", () => ({
   setStoredAuthToken: vi.fn(),
   setStoredOrgId: vi.fn(),
   streamApi: { connect: vi.fn() },
+  webhookEventsApi: { list: vi.fn().mockResolvedValue({ data: { items: [] } }) },
+  buildApiUrl: vi.fn((p: string) => `http://localhost:8000${p}`),
 }));
+vi.mock("@tanstack/react-query", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-query")>();
+  return {
+    ...actual,
+    useQuery: vi.fn().mockReturnValue({ data: undefined, isLoading: false, error: null }),
+  };
+});
 vi.mock("framer-motion", async () => {
   const React = await import("react");
   const motionProxy = new Proxy({}, {
@@ -61,20 +73,25 @@ beforeEach(() => {
   mocks.usePolicies.mockReturnValue(mockQueryResult({ policies: [] }));
   mocks.useAuditLog.mockReturnValue(mockQueryResult({ entries: [] }));
   mocks.useApps.mockReturnValue(mockQueryResult({ apps: [] }));
+  mocks.useTestIntegration.mockReturnValue(mockMutationResult());
+  mocks.useSyncIntegration.mockReturnValue(mockMutationResult());
+  mocks.useConfigureIntegration.mockReturnValue(mockMutationResult());
 });
 
 // ═══════════════════════════════════════
 // Settings
 // ═══════════════════════════════════════
 
-describe("SettingsHub", () => {
+// pruned in ui-prune branch (chore/ui-prune-plan-2026-05-24) — page removed
+describe.skip("SettingsHub", () => {
   it("renders heading", async () => {
     renderPage(<P />);
     expect(screen.getByRole("heading", { name: /Settings/i, level: 1 })).toBeInTheDocument();
   });
 });
 
-describe("Users", () => {
+// pruned in ui-prune branch (chore/ui-prune-plan-2026-05-24) — page removed
+describe.skip("Users", () => {
   it("renders heading", async () => {
     renderPage(<P />);
     expect(screen.getByText("Users")).toBeInTheDocument();
@@ -85,7 +102,8 @@ describe("Users", () => {
   });
 });
 
-describe("Teams", () => {
+// pruned in ui-prune branch (chore/ui-prune-plan-2026-05-24) — page removed
+describe.skip("Teams", () => {
   it("renders heading", async () => {
     renderPage(<P />);
     expect(screen.getByRole("heading", { name: /Teams/i })).toBeInTheDocument();
@@ -108,14 +126,16 @@ describe("Marketplace", () => {
   });
 });
 
-describe("Policies", () => {
+// pruned in ui-prune branch (chore/ui-prune-plan-2026-05-24) — page removed
+describe.skip("Policies", () => {
   it("renders heading", async () => {
     renderPage(<P />);
     expect(screen.getByText("Policies")).toBeInTheDocument();
   });
 });
 
-describe("SystemHealth", () => {
+// pruned in ui-prune branch (chore/ui-prune-plan-2026-05-24) — page removed
+describe.skip("SystemHealth", () => {
   it("renders heading", async () => {
     renderPage(<P />);
     expect(screen.getByText("System Health")).toBeInTheDocument();
@@ -143,17 +163,20 @@ describe("LoginPage", () => {
   it("renders email and password inputs", async () => {
     const P = (await import("@/pages/auth/LoginPage")).default;
     renderPage(<P />);
-    expect(screen.getByLabelText("Email")).toBeInTheDocument();
+    // Label text is "Work Email" (not "Email") per the component's label copy
+    await waitFor(() => expect(screen.getByLabelText("Work Email")).toBeInTheDocument());
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
   });
   it("has submit button", async () => {
     const P = (await import("@/pages/auth/LoginPage")).default;
     renderPage(<P />);
-    expect(screen.getByRole("button", { name: /sign in/i })).toBeInTheDocument();
+    // Multiple sign-in buttons render (form submit + hero CTA); assert at least one exists
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /sign in/i }).length).toBeGreaterThan(0));
   });
 });
 
-describe("AccessDenied", () => {
+// pruned in ui-prune branch (chore/ui-prune-plan-2026-05-24) — page removed
+describe.skip("AccessDenied", () => {
   it("renders access denied message", async () => {
     renderPage(<P />);
     expect(screen.getByText("Access Denied")).toBeInTheDocument();
@@ -172,7 +195,8 @@ describe("NotFound", () => {
   it("renders 404", async () => {
     const P = (await import("@/pages/NotFound")).default;
     renderPage(<P />);
-    expect(screen.getByText("404")).toBeInTheDocument();
+    // Multiple elements contain "404" (glitch text + footer); assert at least one exists
+    expect(screen.getAllByText("404").length).toBeGreaterThan(0);
   });
 });
 

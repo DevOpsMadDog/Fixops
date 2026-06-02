@@ -58,35 +58,40 @@ describe("CopilotDashboard", () => {
   });
 });
 
-describe("BrainPipeline", () => {
+// pruned in ui-prune branch (chore/ui-prune-plan-2026-05-24) — page removed
+describe.skip("BrainPipeline", () => {
   it("renders heading", async () => {
     renderPage(<P />);
     await waitFor(() => expect(screen.getByText("Brain Pipeline")).toBeInTheDocument());
   });
 });
 
-describe("MultiLLM", () => {
+// pruned in ui-prune branch (chore/ui-prune-plan-2026-05-24) — page removed
+describe.skip("MultiLLM", () => {
   it("renders heading", async () => {
     renderPage(<P />);
     await waitFor(() => expect(screen.getByRole("heading", { name: /Multi-LLM/i })).toBeInTheDocument());
   });
 });
 
-describe("AlgorithmicLab", () => {
+// pruned in ui-prune branch (chore/ui-prune-plan-2026-05-24) — page removed
+describe.skip("AlgorithmicLab", () => {
   it("renders heading", async () => {
     renderPage(<P />);
     await waitFor(() => expect(screen.getByText("Algorithmic Lab")).toBeInTheDocument());
   });
 });
 
-describe("MLDashboard", () => {
+// pruned in ui-prune branch (chore/ui-prune-plan-2026-05-24) — page removed
+describe.skip("MLDashboard", () => {
   it("renders heading", async () => {
     renderPage(<P />);
     await waitFor(() => expect(screen.getByText("ML Dashboard")).toBeInTheDocument());
   });
 });
 
-describe("Predictions", () => {
+// pruned in ui-prune branch (chore/ui-prune-plan-2026-05-24) — page removed
+describe.skip("Predictions", () => {
   it("renders heading", async () => {
     renderPage(<P />);
     await waitFor(() => expect(screen.getByRole("heading", { name: /Predictions/i })).toBeInTheDocument());

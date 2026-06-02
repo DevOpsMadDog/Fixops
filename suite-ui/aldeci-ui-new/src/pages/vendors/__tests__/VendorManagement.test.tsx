@@ -1,12 +1,18 @@
 /**
  * Vendor Management — component tests (TPRM badge)
  *
- * VendorManagement uses only local mock data (no API hooks).
- * All renders are synchronous after framer-motion stubs.
+ * VendorManagement fetches from /api/v1/vendors via raw fetch() in a useEffect.
+ * Tests stub global.fetch to control API responses.
  */
-import { describe, it, expect, vi } from "vitest";
-import { screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
 import { renderPage } from "@/__tests__/test-utils";
+
+// PATTERN-A: localStorage stub — component calls localStorage.getItem in API_HEADERS()
+Object.defineProperty(window, "localStorage", {
+  value: { getItem: () => null, setItem: () => {}, removeItem: () => {}, clear: () => {} },
+  writable: true,
+});
 
 // ── Stub framer-motion ──
 vi.mock("framer-motion", async () => {
@@ -107,10 +113,37 @@ describe("VendorManagement", () => {
     expect(screen.getByText("Open CVEs")).toBeInTheDocument();
   });
 
-  it("renders a known vendor — HashiCorp — in the table", async () => {
+  // PATTERN-B: honest-empty — component now fetches real API; no hardcoded vendors exist.
+  it("does not render hardcoded vendor names (honest-empty when API is empty)", async () => {
     const Page = await loadVendorManagement();
     renderPage(<Page />);
-    expect(screen.getByText("HashiCorp")).toBeInTheDocument();
+    expect(screen.queryByText("HashiCorp")).not.toBeInTheDocument();
+  });
+
+  // PATTERN-B: real-data — seed a vendor through fetch stub, verify it renders.
+  it("renders a vendor returned by the API", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        vendors: [
+          {
+            id: "VND-TEST-001",
+            name: "Acme Security",
+            description: "acmesecurity.io",
+            tier: "high",
+            current_score: 82,
+            service_category: "Infrastructure",
+            updated_at: new Date().toISOString(),
+            contract_end: new Date(Date.now() + 90 * 86400000).toISOString(),
+          },
+        ],
+      }),
+    } as unknown as Response);
+
+    const Page = await loadVendorManagement();
+    renderPage(<Page />);
+    await waitFor(() => expect(screen.getByText("Acme Security")).toBeInTheDocument());
+    fetchSpy.mockRestore();
   });
 
   it("renders the vendor search input", async () => {
@@ -135,11 +168,43 @@ describe("VendorManagement", () => {
     expect(selects.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("filters vendors when search text matches HashiCorp", async () => {
+  // PATTERN-B: real-data filter — seed a vendor then confirm search filters correctly.
+  it("filters vendors when search text matches a real vendor name", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        vendors: [
+          {
+            id: "VND-TEST-002",
+            name: "CloudGuard Inc",
+            description: "cloudguard.io",
+            tier: "critical",
+            current_score: 55,
+            service_category: "Cloud Security",
+            updated_at: new Date().toISOString(),
+          },
+          {
+            id: "VND-TEST-003",
+            name: "SecureBase",
+            description: "securebase.com",
+            tier: "medium",
+            current_score: 75,
+            service_category: "Compliance",
+            updated_at: new Date().toISOString(),
+          },
+        ],
+      }),
+    } as unknown as Response);
+
     const Page = await loadVendorManagement();
     renderPage(<Page />);
+    await waitFor(() => expect(screen.getByText("CloudGuard Inc")).toBeInTheDocument());
+
     const search = screen.getByPlaceholderText("Search vendors...");
-    fireEvent.change(search, { target: { value: "HashiCorp" } });
-    expect(screen.getByText("HashiCorp")).toBeInTheDocument();
+    fireEvent.change(search, { target: { value: "CloudGuard" } });
+    expect(screen.getByText("CloudGuard Inc")).toBeInTheDocument();
+    expect(screen.queryByText("SecureBase")).not.toBeInTheDocument();
+
+    fetchSpy.mockRestore();
   });
 });

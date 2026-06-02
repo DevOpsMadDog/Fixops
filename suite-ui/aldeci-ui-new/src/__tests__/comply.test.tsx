@@ -2,8 +2,25 @@
  * Comply screens — smoke tests.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { renderPage, mockQueryResult, mockMutationResult } from "./test-utils";
+
+// Mock @/lib/api so that:
+//   - named helpers (buildApiUrl, getStoredAuth*, getStoredOrgId) return safe values
+//   - the default axios instance has .get() that resolves successfully
+//     so useQuery-based fetches (e.g. Analytics summaryQuery) don't stay pending
+vi.mock("@/lib/api", () => ({
+  default: {
+    get: vi.fn().mockResolvedValue({ data: {} }),
+    post: vi.fn().mockResolvedValue({ data: {} }),
+    put: vi.fn().mockResolvedValue({ data: {} }),
+    delete: vi.fn().mockResolvedValue({ data: {} }),
+  },
+  buildApiUrl: (path: string) => `http://localhost${path}`,
+  getStoredAuthToken: vi.fn().mockReturnValue("test-token"),
+  getStoredAuthStrategy: vi.fn().mockReturnValue("token"),
+  getStoredOrgId: vi.fn().mockReturnValue("test-org"),
+}));
 
 const mocks: Record<string, any> = {
   useComplianceStatus: vi.fn(),
@@ -123,6 +140,8 @@ describe("Analytics", () => {
   it("renders heading", async () => {
     const P = await loadPage("Analytics");
     renderPage(<P />);
-    expect(screen.getByText("Analytics")).toBeInTheDocument();
+    // summaryQuery uses useQuery + api.get (axios), not a use-api hook.
+    // Wait for isLoading to clear so PageHeader renders.
+    await waitFor(() => expect(screen.getByText("Analytics")).toBeInTheDocument());
   });
 });
