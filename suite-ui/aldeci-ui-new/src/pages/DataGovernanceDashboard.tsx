@@ -23,7 +23,9 @@ const API_KEY =
 const ORG_ID = (getStoredOrgId() ?? "default");
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  // NOTE: callers already include ?org_id=<real org> in `path`; do NOT append ?org_id=default
+  // here (that produced malformed double-query URLs -> 422 and overrode the real org).
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { "X-API-Key": API_KEY },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -37,50 +39,6 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
-
-// ── Mock data ──────────────────────────────────────────────────
-
-const ASSETS = [
-  { name: "customer_records_db", type: "Database", classification: "restricted", categories: "PII, Financial", encrypted: true, owner: "DataOps" },
-  { name: "marketing_analytics", type: "Data Warehouse", classification: "internal", categories: "Behavioral", encrypted: true, owner: "Marketing" },
-  { name: "public_api_docs", type: "Object Store", classification: "public", categories: "Documentation", encrypted: false, owner: "DevRel" },
-  { name: "hr_employee_data", type: "Database", classification: "secret", categories: "PII, HR", encrypted: true, owner: "HR Ops" },
-  { name: "audit_logs_archive", type: "Data Lake", classification: "confidential", categories: "Compliance", encrypted: true, owner: "SecOps" },
-  { name: "product_telemetry", type: "Stream", classification: "internal", categories: "Usage Analytics", encrypted: true, owner: "Platform" },
-  { name: "partner_api_exports", type: "Object Store", classification: "confidential", categories: "B2B, Contracts", encrypted: true, owner: "Partnerships" },
-  { name: "cdn_static_assets", type: "CDN", classification: "public", categories: "Media, UI", encrypted: false, owner: "Frontend" },
-  { name: "payment_processor_db", type: "Database", classification: "secret", categories: "PCI, Financial", encrypted: true, owner: "Payments" },
-  { name: "dev_test_snapshots", type: "Object Store", classification: "internal", categories: "Dev Data", encrypted: false, owner: "Engineering" },
-];
-
-const POLICIES = [
-  { name: "PCI-DSS Data Handling", type: "Regulatory", enforcement: "blocking", status: "active" },
-  { name: "GDPR Personal Data Policy", type: "Regulatory", enforcement: "blocking", status: "active" },
-  { name: "Cross-Border Transfer Policy", type: "Geographic", enforcement: "alerting", status: "active" },
-  { name: "Data Retention Policy", type: "Lifecycle", enforcement: "automated", status: "active" },
-  { name: "Encryption at Rest Policy", type: "Technical", enforcement: "blocking", status: "active" },
-  { name: "Data Minimization Policy", type: "Privacy", enforcement: "alerting", status: "review" },
-  { name: "Third-Party Data Sharing", type: "Contractual", enforcement: "manual", status: "active" },
-  { name: "Dev Data Masking Policy", type: "Technical", enforcement: "automated", status: "draft" },
-];
-
-const VIOLATIONS = [
-  { id: "DGV-001", asset: "dev_test_snapshots", policy: "Encryption at Rest Policy", severity: "high", daysOpen: 4 },
-  { id: "DGV-002", asset: "cdn_static_assets", policy: "Data Classification Policy", severity: "medium", daysOpen: 7 },
-  { id: "DGV-003", asset: "partner_api_exports", policy: "Cross-Border Transfer Policy", severity: "high", daysOpen: 2 },
-  { id: "DGV-004", asset: "product_telemetry", policy: "Data Minimization Policy", severity: "low", daysOpen: 14 },
-  { id: "DGV-005", asset: "marketing_analytics", policy: "GDPR Personal Data Policy", severity: "critical", daysOpen: 1 },
-];
-
-const FLOWS = [
-  { source: "customer_records_db", destination: "payment_processor_db", type: "internal", encrypted: true, approved: true },
-  { source: "hr_employee_data", destination: "EU HR Portal", type: "cross-border", encrypted: true, approved: true },
-  { source: "audit_logs_archive", destination: "SIEM Platform", type: "internal", encrypted: true, approved: true },
-  { source: "product_telemetry", destination: "US Analytics SaaS", type: "cross-border", encrypted: true, approved: false },
-  { source: "partner_api_exports", destination: "Partner Portal", type: "external", encrypted: true, approved: true },
-  { source: "dev_test_snapshots", destination: "CI/CD Pipeline", type: "internal", encrypted: false, approved: false },
-];
-
 // ── Helpers ────────────────────────────────────────────────────
 
 function ClassificationBadge({ cls }: { cls: string }) {
@@ -224,7 +182,7 @@ export default function DataGovernanceDashboard() {
                 <TableBody>
                   {(liveData?.assets ?? []).length === 0 ? (
                     <TableRow><TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">No data assets yet</TableCell></TableRow>
-                  ) : (liveData?.assets ?? []).map((row: any) => (
+                  ) : (Array.isArray(liveData?.assets) ? liveData.assets : []).map((row: any) => (
                     <TableRow key={row.name} className="hover:bg-muted/30">
                       <TableCell className="text-xs font-mono py-2.5 max-w-[160px] truncate">{row.name}</TableCell>
                       <TableCell className="py-2.5">
@@ -265,7 +223,7 @@ export default function DataGovernanceDashboard() {
           <CardContent className="space-y-3">
             {(liveData?.violations ?? []).length === 0 ? (
               <EmptyState icon={AlertTriangle} title="No open violations" description="Policy violations will appear here when detected." />
-            ) : (liveData?.violations ?? []).map((v: any) => (
+            ) : (Array.isArray(liveData?.violations) ? liveData.violations : []).map((v: any) => (
               <div key={v.id} className="flex items-start gap-3 rounded-lg border border-border p-2.5 bg-muted/20">
                 <SeverityDot sev={v.severity} />
                 <div className="flex-1 min-w-0">
@@ -304,7 +262,7 @@ export default function DataGovernanceDashboard() {
                 <TableBody>
                   {(liveData?.policies ?? []).length === 0 ? (
                     <TableRow><TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">No data policies yet</TableCell></TableRow>
-                  ) : (liveData?.policies ?? []).map((p: any) => (
+                  ) : (Array.isArray(liveData?.policies) ? liveData.policies : []).map((p: any) => (
                     <TableRow key={p.name} className="hover:bg-muted/30">
                       <TableCell className="text-xs py-2.5 max-w-[180px] truncate font-medium">{p.name}</TableCell>
                       <TableCell className="py-2.5">
@@ -336,7 +294,7 @@ export default function DataGovernanceDashboard() {
           <CardContent className="space-y-3">
             {(liveData?.stats?.data_flows ?? liveData?.stats?.flows ?? []).length === 0 ? (
               <EmptyState icon={Globe} title="No data flows yet" description="Active data flows will appear here once assets are classified and mapped." />
-            ) : (liveData?.stats?.data_flows ?? liveData?.stats?.flows ?? []).map((flow: any, i: number) => (
+            ) : (Array.isArray(liveData?.stats?.data_flows) ? liveData.stats.data_flows : Array.isArray(liveData?.stats?.flows) ? liveData.stats.flows : []).map((flow: any, i: number) => (
               <div key={i} className="flex items-center gap-3 rounded-lg border border-border p-2.5 bg-muted/20">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 text-xs font-mono">

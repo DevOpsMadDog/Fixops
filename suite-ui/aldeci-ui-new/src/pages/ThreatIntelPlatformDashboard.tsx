@@ -27,7 +27,7 @@ const API_KEY =
 const ORG_ID = (getStoredOrgId() ?? "default");
 
 async function apiFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...opts,
     headers: { "X-API-Key": API_KEY, "Content-Type": "application/json", ...(opts?.headers ?? {}) },
   });

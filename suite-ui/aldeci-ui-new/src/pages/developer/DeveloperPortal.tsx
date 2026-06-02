@@ -38,7 +38,7 @@ const API_KEY_VAL =
 const ORG_ID = (getStoredOrgId() ?? "default");
 
 async function apiFetch(path: string) {
-  const res = await fetch(`${API_BASE}${path}?org_id=default`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { "X-API-Key": API_KEY_VAL },
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
