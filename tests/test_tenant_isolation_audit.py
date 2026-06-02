@@ -84,24 +84,23 @@ class TestRedisQueueIsolation:
 
     def test_enqueued_task_preserves_org_id_in_payload(self):
         """org_id in task payload survives the round-trip through the queue."""
-        q = RedisQueue()
+        q = RedisQueue(org_id=ORG_A)
         q.enqueue({"org_id": ORG_A, "action": "vuln_scan"}, priority=3)
         task = q.dequeue()
         assert task is not None
         assert task["org_id"] == ORG_A
 
-    def test_shared_queue_is_global_namespace_known_gap(self):
+    def test_queue_is_org_scoped(self):
         """
-        KNOWN GAP: without org-scoped queue keys, dequeue() returns tasks from
-        all orgs. This test documents the current behaviour so regressions are
-        caught if the gap is later fixed.
+        Queue keys are now org-scoped: enqueue routes by the task's org_id and
+        dequeue() only serves the queue's own org. A worker scoped to ORG_B does
+        NOT receive an ORG_A task (the prior shared-namespace gap is closed).
         """
-        q = RedisQueue()
+        q = RedisQueue(org_id=ORG_B)
+        # Task tagged ORG_A is routed to the ORG_A partition, not ORG_B's.
         q.enqueue({"org_id": ORG_A, "secret": "alpha-data"}, priority=1)
-        task = q.dequeue()
-        assert task is not None
-        # A worker that only wants ORG_B tasks still receives ORG_A's task
-        assert task["org_id"] == ORG_A
+        task = q.dequeue()  # pops the ORG_B partition
+        assert task is None  # ORG_B worker never sees ORG_A's task — isolation enforced
 
     def test_separate_prefix_instances_isolate_orgs(self):
         """Using separate RedisQueue instances with per-org prefixes isolates tenants."""
@@ -313,31 +312,36 @@ class TestAttackPathEngineIsolation:
         assert stats["total_nodes"] == 0
         assert stats["total_edges"] == 0
 
-    def test_get_node_gap_no_org_filter(self, attack_engine):
+    def test_get_node_enforces_org_isolation(self, attack_engine):
         """
-        KNOWN GAP: get_node() queries by node_id only — no org_id filter.
-        Any caller who knows the node_id can read it, regardless of their org.
+        get_node() now requires org_id — a caller scoped to another org (or the
+        default org) cannot read org_A's node by id. Owner can; others get None.
         """
         attack_engine.add_node(
             "shared-id", "server", "Org A Server", org_id=ORG_A
         )
-        node = attack_engine.get_node("shared-id")
+        # Cross-tenant read blocked (default/other org -> None).
+        assert attack_engine.get_node("shared-id", org_id=ORG_B) is None
+        assert attack_engine.get_node("shared-id") is None  # defaults to "default" org
+        # Owner can still read it with the correct org_id.
+        node = attack_engine.get_node("shared-id", org_id=ORG_A)
         assert node is not None
-        # Gap confirmed: org_A's node returned without requiring org_id=ORG_A
         assert node["org_id"] == ORG_A
 
-    def test_remove_node_gap_no_org_filter(self, attack_engine):
+    def test_remove_node_enforces_org_isolation(self, attack_engine):
         """
-        KNOWN GAP: remove_node() deletes by node_id only — no org_id guard.
-        Any caller who knows the node_id can destroy it, regardless of their org.
+        remove_node() now guards by org_id — a cross-tenant delete is refused
+        (returns False, node survives); the owning org can delete it.
         """
         attack_engine.add_node(
             "victim-node", "workstation", "Org A Workstation", org_id=ORG_A
         )
-        removed = attack_engine.remove_node("victim-node")
-        assert removed is True
-        # Node is gone — destructive cross-tenant operation succeeded
-        assert attack_engine.get_node("victim-node") is None
+        # Cross-tenant destructive op refused.
+        assert attack_engine.remove_node("victim-node", org_id=ORG_B) is False
+        assert attack_engine.get_node("victim-node", org_id=ORG_A) is not None
+        # Owner can delete.
+        assert attack_engine.remove_node("victim-node", org_id=ORG_A) is True
+        assert attack_engine.get_node("victim-node", org_id=ORG_A) is None
 
 
 # ============================================================================
