@@ -40,11 +40,12 @@ def dwm_engine(tmp_path):
 
 @pytest.fixture
 def api_key(monkeypatch):
-    """Patch auth_deps at module level — env vars are read at import, too late in fixtures."""
+    """Inject a test token. auth_deps no longer caches _EXPECTED_TOKENS/
+    _HAS_TOKEN_AUTH at module level — it calls _load_api_tokens() per request
+    reading FIXOPS_API_TOKEN, so set the env var (the supported mechanism)."""
     key = "test-key-xyz"
     from apps.api import auth_deps
-    monkeypatch.setattr(auth_deps, "_EXPECTED_TOKENS", (key,))
-    monkeypatch.setattr(auth_deps, "_HAS_TOKEN_AUTH", True)
+    monkeypatch.setenv("FIXOPS_API_TOKEN", key)
     monkeypatch.setattr(auth_deps, "_DEV_MODE", False)
     return key
 
