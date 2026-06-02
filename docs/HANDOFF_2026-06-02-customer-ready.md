@@ -871,3 +871,10 @@ Founder confirmed FixOps is an **intelligence/correlation layer**, not an indepe
 - **Audit:** ASPM = the Brain Pipeline (ingest-first by design, no separate engine). The other ~N `*NotConfiguredError` engines are **vendor integrations** (akamai/auth0/amazon_inspector/…) that correctly report "not configured" until you connect that tool — honest, not a bug.
 - Memory: `feedback_intelligence_layer_ingest_first` (the reusable principle + no-fabrication invariant).
 All green: create_app 8345, Beast smoke 756/756.
+
+### 2026-06-03 (cont.) — a-c sweep harvest
+**Real bugs fixed:** crypto generate_key_pair dropped caller key_id at hybrid level (`56692f14`); **audit_db** create_audit_log crashed on EVERY write — org_id migration column missing from positional INSERT (broken SCIF audit trail) (`audit-db-orgid`). **Arch:** CSPM ingest-first (`9178fd29`, see founder-direction section).
+**Test restorations (product correct):** cspm rule CIS- ids; code_intel symbols 404 contract (+ /cspm/score now real 200 from ingested findings); bulk_operations auth-rot (12→0); ai_consensus structlog capture; aldeci_self_scan accounting built.
+**Deferred (legacy-outdated wholesale redesigns — full rewrites):** analytics_cli, api_dependencies, compliance_gap_analysis (phantom /compliance-automation/*; real = /api/v1/compliance/*), beast_mode_integration (zero_trust dataclass→dict+policy), snyk, run_registry; council_adapter (founder/arch: consensus semantics + cost_usd=0.02-on-0-providers flag).
+**Founder-blocked/env-dep:** agent_memory_bridge (order-dependent test-infra pollution; product verified), abuseipdb/security_connectors_unit/sso_provider (vendor creds/DNS), autonomous_cycle, Stripe.
+All green: create_app 8345, Beast smoke 756/756 (ingest timing flake only).
