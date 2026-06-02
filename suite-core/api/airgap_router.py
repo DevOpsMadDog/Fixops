@@ -747,7 +747,8 @@ async def apply_update_package(
     """
     try:
         engine = _get_engine()
-        result = engine.apply_update_package(req.package_path)
+        # Red-Team: guard the operator-supplied package read path (traversal/allowlist).
+        result = engine.apply_update_package(_guard_airgap_path(req.package_path))
         return _with_banner({"status": "ok", **result})
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=type(exc).__name__)
@@ -1317,13 +1318,17 @@ async def export_update_package(
     try:
         from core.airgap_deployment import SneakernetManager
         mgr = SneakernetManager()
+        # Red-Team: guard every operator-supplied path (read payloads + write target)
+        # against null-byte/.. traversal + the FIXOPS_ALLOWED_AIRGAP_ROOTS allowlist,
+        # consistent with the other airgap export endpoints in this router.
+        safe_payloads = [_guard_airgap_path(p) for p in req.payload_files]
         out_path = mgr.export_package(
-            payload_files=req.payload_files,
+            payload_files=safe_payloads,
             package_type=req.package_type,
             version=req.version,
             key=key,
             classification=req.classification,
-            output_path=req.output_path,
+            output_path=_guard_airgap_path(req.output_path) if req.output_path else None,
         )
         return _with_banner({
             "status": "ok",
@@ -1378,10 +1383,12 @@ async def import_update_package(
     try:
         from core.airgap_deployment import SneakernetManager
         mgr = SneakernetManager()
+        # Red-Team: guard the read (package) + write (extract dir) paths — prevents
+        # arbitrary read and zip-slip-style extraction outside allowlisted roots.
         manifest, extracted = mgr.import_package(
-            package_path=req.package_path,
+            package_path=_guard_airgap_path(req.package_path),
             key=key,
-            extract_dir=req.extract_dir,
+            extract_dir=_guard_airgap_path(req.extract_dir) if req.extract_dir else None,
         )
         return _with_banner({
             "status": "ok",
