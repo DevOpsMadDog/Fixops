@@ -668,3 +668,30 @@ Campaign T3 product-bug total (ticks 9-15): **6 real product bugs** (engine 3, d
 backend hardened/verified + systematic bug-classes swept. Remaining: product-blocked (Brain hero,
 /billing, GCP KMS, unified compliance-automation API) + founder-blocked (push, env-tools like
 graphrag/checkov/code-intel, deeper test-infra, FIPS, PIV, GPU, Stripe).
+
+---
+
+## Addendum 2026-06-03 (tick 16) — T3 security/attack/feeds sweep (item C)
+
+Isolation-swept 40 security/attack/feeds test files; 3 failed → 0 product bugs:
+- **iot_security (9)** — `TestIoTRouter` was wholly mismatched: it injected
+  `core.iot_security.IoTSecurityEngine` (IoTDevice API) into a router that uses
+  `core.iot_security_engine.IoTSecurityEngine` (dict API), posted IoTDevice-shaped bodies
+  (name/device_type) against the router's DeviceCreate model (device_name/device_category), and
+  tested scan/comms/compliance endpoints this router doesn't expose. **PRODUCT VERIFIED WORKING
+  live** (devices CRUD + stats + capability → 201/200/404). Rewrote TestIoTRouter to the real
+  surface → 85/85. FLAGGED: (a) two-`IoTSecurityEngine`-classes naming smell (iot_security.py
+  IoTDevice-based vs iot_security_engine.py dict-based) that caused the mixup; (b) scan/comms/
+  compliance functionality exists in core.iot_security but is NOT router-exposed (surface gap).
+- **empty_endpoint_fail_index + empty_ep17_attack_paths (3)** — auth-fixture rot (router-level
+  Depends(api_key_auth), no token) → zero-arg dependency_overrides. 4/4.
+
+Near-miss note: unmasking iot's stale prefix surfaced a TypeError that LOOKED like a live crash;
+verifying against the running router proved the product works and the fault was a test-engine
+mixup — exactly why the rule is "verify against the running app, not self-reports."
+
+Campaign T3 totals (ticks 9-16): 6 real product bugs fixed; router/pipeline/security slices = 0
+product bugs (fixture-rot/stale/aspirational/env). 5 test corpora triaged. Frontier: UI clean +
+backend hardened/verified + systematic classes swept. Remaining: product-blocked (Brain hero,
+/billing, GCP KMS, unified compliance-automation API, IoT scan/comms/compliance router exposure,
+two-engine consolidation) + founder-blocked (push, env-tools, Postgres, FIPS, PIV, GPU, Stripe).
