@@ -1223,6 +1223,53 @@ _FALLBACK_CONTROLS: Dict[str, Dict[str, Dict[str, Any]]] = {
     "HIPAA": _HIPAA_CONTROL_MAPPING,
 }
 
+
+def _norm_ctrl_id(ctrl_id: str) -> str:
+    """Normalise a control id for cross-source matching (strip §, spaces, case)."""
+    return str(ctrl_id).replace("§", "").replace(" ", "").strip().lower()
+
+
+# Pre-built {framework: {normalised_control_id: category}} index plus a coarse
+# {framework: {prefix_before_paren: category}} index.  Dynamically-derived
+# control ids (which may carry a "§" prefix or slightly different suffix
+# punctuation) resolve to the real framework category taxonomy — e.g. HIPAA
+# Administrative / Physical / Technical safeguards — instead of collapsing to a
+# bare numeric prefix like "164".
+_CONTROL_CATEGORY_INDEX: Dict[str, Dict[str, str]] = {}
+_CONTROL_CATEGORY_COARSE: Dict[str, Dict[str, str]] = {}
+for _fw, _mapping in _FALLBACK_CONTROLS.items():
+    _exact: Dict[str, str] = {}
+    _coarse: Dict[str, str] = {}
+    for _cid, _cdef in _mapping.items():
+        _cat = _cdef.get("category")
+        if not _cat:
+            continue
+        _n = _norm_ctrl_id(_cid)
+        _exact[_n] = _cat
+        _coarse.setdefault(_n.split("(")[0], _cat)
+    _CONTROL_CATEGORY_INDEX[_fw] = _exact
+    _CONTROL_CATEGORY_COARSE[_fw] = _coarse
+
+
+def _resolve_control_category(framework: str, ctrl_id: str) -> str:
+    """Resolve a control id to its real framework category.
+
+    Tries the framework's static control catalog (exact normalised match, then
+    a coarse prefix-before-paren match) so HIPAA controls report their real
+    Administrative / Physical / Technical safeguard categories.  Falls back to
+    the leading dotted segment of the control id when the catalog has no entry.
+    """
+    n = _norm_ctrl_id(ctrl_id)
+    exact = _CONTROL_CATEGORY_INDEX.get(framework, {})
+    if n in exact:
+        return exact[n]
+    coarse = _CONTROL_CATEGORY_COARSE.get(framework, {})
+    base = n.split("(")[0]
+    if base in coarse:
+        return coarse[base]
+    raw = str(ctrl_id)
+    return raw.split(".")[0] if "." in raw else raw
+
 # ---------------------------------------------------------------------------
 # P1: Real-World Compliance — Dynamic control derivation from ingested findings
 # ---------------------------------------------------------------------------
@@ -1362,7 +1409,7 @@ def _derive_controls_from_findings(
         ctrl_entry: Dict[str, Any] = {
             "control_id": ctrl_id,
             "title": data["title"],
-            "category": ctrl_id.split(".")[0] if "." in ctrl_id else ctrl_id,
+            "category": _resolve_control_category(framework, ctrl_id),
             "status": status,
             "score": score,
             "finding_count": len(sevs),

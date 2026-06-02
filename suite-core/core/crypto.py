@@ -452,9 +452,9 @@ class RSAKeyManager:
 
     # Class-level cache survives across instances within the same process so
     # that a single RSA-4096 keygen (~2.1s) doesn't repeat on every BrainPipeline
-    # run. Keyed by (resolved_private_path, resolved_public_path, key_size).
+    # run. Keyed by (resolved_private_path, resolved_public_path, key_size, key_id).
     _KEY_CACHE: Dict[
-        Tuple[str, str, int],
+        Tuple[str, str, int, str],
         Tuple[RSAPrivateKey, RSAPublicKey, "KeyMetadata"],
     ] = {}
     _CACHE_LOCK: threading.Lock = threading.Lock()
@@ -574,9 +574,20 @@ class RSAKeyManager:
     # Key lifecycle
     # ------------------------------------------------------------------
 
-    def _cache_key(self) -> Tuple[str, str, int]:
-        """Return the class-cache key for this manager's path/size combination."""
-        return (str(self.private_key_path), str(self.public_key_path), self.key_size)
+    def _cache_key(self) -> Tuple[str, str, int, str]:
+        """Return the class-cache key for this manager's path/size/id combination.
+
+        ``key_id`` is part of the cache identity: two managers that point at the
+        same path+size but request *different* key identifiers must NOT share
+        cached metadata, otherwise an explicitly-requested ``key_id`` would be
+        silently overwritten by whichever manager populated the cache first.
+        """
+        return (
+            str(self.private_key_path),
+            str(self.public_key_path),
+            self.key_size,
+            self.key_id,
+        )
 
     def _populate_class_cache(self) -> None:
         """Store the current keypair + metadata in the class-level cache."""
