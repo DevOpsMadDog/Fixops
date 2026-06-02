@@ -373,6 +373,25 @@ class ReasoningBank:
     # Periodic: judgment + distillation
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _fetch_content_by_key(bridge: "AgentDBBridge", key: str) -> Optional[str]:
+        """Return the stored ``content`` for a trajectory by its primary key.
+
+        Trajectories are persisted via ``dual_write(namespace, key, ...)`` into
+        ``memory_entries`` (UNIQUE(namespace, key)). This is an O(1) direct
+        lookup — no semantic-search cosine pass — used by :meth:`judge`.
+        Returns ``None`` if not found or the store is unavailable.
+        """
+        try:
+            conn = bridge._get_conn()
+            row = conn.execute(
+                "SELECT content FROM memory_entries WHERE namespace = ? AND key = ?",
+                (TRAJECTORIES_NAMESPACE, key),
+            ).fetchone()
+            return row[0] if row else None
+        except Exception:  # noqa: BLE001 — lookup must never raise into judge()
+            return None
+
     def judge(
         self,
         trajectory_id: str,
@@ -757,12 +776,15 @@ class ReasoningBank:
         bridge = self._get_bridge()
         if bridge is None:
             return []
-        # Use a generic prompt that matches everything in the namespace.
+        # Walk the ENTIRE namespace: min_similarity=-1.0 so trajectories whose
+        # embedding has a negative cosine against the generic prompt are still
+        # returned. A 0.0 floor silently dropped ~half the rows (cosine can be
+        # negative), starving distillation of support.
         hits = bridge.semantic_search(
             "trajectory finding verdict outcome",
             namespace=TRAJECTORIES_NAMESPACE,
             k=limit,
-            min_similarity=0.0,
+            min_similarity=-1.0,
         )
         out: List[Trajectory] = []
         seen_ids: set = set()
