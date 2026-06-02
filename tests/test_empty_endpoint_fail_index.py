@@ -30,6 +30,9 @@ def client():
 
     app = FastAPI()
     app.include_router(fail_gap)
+    # Router-level Depends(api_key_auth); isolated app sets no token → zero-arg override.
+    from apps.api.auth_deps import api_key_auth as _akauth
+    app.dependency_overrides[_akauth] = lambda: True
     return TestClient(app, raise_server_exceptions=False)
 
 
