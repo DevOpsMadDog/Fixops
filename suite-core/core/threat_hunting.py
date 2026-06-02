@@ -23,7 +23,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -445,18 +445,26 @@ class ThreatHuntingEngine:
                 "SELECT * FROM hunt_queries WHERE built_in = 0"
             ).fetchall()
         for row in rows:
-            queries.append(
-                HuntQuery(
-                    id=row["id"],
-                    name=row["name"],
-                    description=row["description"],
-                    category=HuntCategory(row["category"]),
-                    mitre_tactic=row["mitre_tactic"],
-                    query_logic=json.loads(row["query_logic"]),
-                    severity=row["severity"],
-                    built_in=False,
+            # Resilient: a single malformed custom-query row (e.g. NULL id/name from a
+            # bad insert) must not 500 the whole queries list — skip + log it.
+            try:
+                queries.append(
+                    HuntQuery(
+                        id=row["id"],
+                        name=row["name"],
+                        description=row["description"],
+                        category=HuntCategory(row["category"]),
+                        mitre_tactic=row["mitre_tactic"],
+                        query_logic=json.loads(row["query_logic"]),
+                        severity=row["severity"],
+                        built_in=False,
+                    )
                 )
-            )
+            except (ValidationError, ValueError, TypeError, json.JSONDecodeError) as exc:
+                logger.warning(
+                    "get_all_queries: skipping malformed hunt_query row id=%r: %s",
+                    (row["id"] if "id" in row.keys() else "?"), exc,
+                )
         return queries
 
     def create_custom_query(

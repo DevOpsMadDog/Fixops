@@ -465,3 +465,67 @@ async def alias_list_hunts(
     engine = _get_hunt_engine()
     hunts = engine.list_hunts(org_id=org_id)
     return [h if isinstance(h, dict) else h.model_dump() for h in hunts[:limit]]
+
+
+def _alias_dump(obj: Any) -> Dict[str, Any]:
+    return obj if isinstance(obj, dict) else obj.model_dump()
+
+
+@threat_hunting_alias.get("/sessions")
+async def alias_list_sessions(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
+    """Alias: GET /api/v1/threat-hunting/sessions — real hunt sessions for the org
+    (consumed by the /hunting ThreatHunting page; delegates to ThreatHuntingEngine)."""
+    engine = _get_engine()
+    return [_alias_dump(s) for s in engine.list_sessions(org_id=org_id)]
+
+
+@threat_hunting_alias.get("/queries")
+async def alias_list_queries(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
+    """Alias: GET /api/v1/threat-hunting/queries — predefined + custom hunt queries."""
+    engine = _get_engine()
+    return [_alias_dump(q) for q in engine.get_all_queries()]
+
+
+@threat_hunting_alias.get("/findings")
+async def alias_list_findings(
+    org_id: str = Depends(get_org_id),
+    limit: int = Query(200, ge=1, le=1000),
+) -> List[Dict[str, Any]]:
+    """Alias: GET /api/v1/threat-hunting/findings — hunt results aggregated across the
+    org's sessions. Real data only; honest-empty when no hunt has produced results."""
+    engine = _get_engine()
+    out: List[Dict[str, Any]] = []
+    for s in engine.list_sessions(org_id=org_id):
+        sd = _alias_dump(s)
+        sid = sd.get("id")
+        if not sid:
+            continue
+        for r in engine.get_results(sid):
+            out.append(_alias_dump(r))
+            if len(out) >= limit:
+                return out
+    return out
+
+
+@threat_hunting_alias.get("/timeline")
+async def alias_hunt_timeline(
+    org_id: str = Depends(get_org_id),
+    limit: int = Query(50, ge=1, le=200),
+) -> List[Dict[str, Any]]:
+    """Alias: GET /api/v1/threat-hunting/timeline — session activity timeline derived
+    from real hunt sessions (newest first). Honest-empty when no sessions exist."""
+    engine = _get_engine()
+    events: List[Dict[str, Any]] = []
+    for s in engine.list_sessions(org_id=org_id):
+        d = _alias_dump(s)
+        events.append({
+            "id": d.get("id"),
+            "name": d.get("name") or "Hunt session",
+            "hunter": d.get("hunter_email"),
+            "status": "completed" if d.get("completed_at") else "active",
+            "timestamp": d.get("started_at"),
+            "completed_at": d.get("completed_at"),
+            "results_count": d.get("results_count", 0),
+        })
+    events.sort(key=lambda e: e.get("timestamp") or "", reverse=True)
+    return events[:limit]

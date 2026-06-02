@@ -198,7 +198,14 @@ function SeverityBadge({ severity, className }: { severity: Severity; className?
 }
 
 function TacticBadge({ tactic, className }: { tactic: MitreTactic; className?: string }) {
-  const cfg = MITRE_TACTICS[tactic];
+  // Real query data may carry a tactic that isn't in the hardcoded MITRE map
+  // (or "unknown"); fall back to a neutral badge instead of crashing on cfg.bgColor.
+  const cfg = MITRE_TACTICS[tactic] ?? {
+    bgColor: "bg-muted/40 border-border",
+    color: "text-muted-foreground",
+    icon: Target,
+    label: String(tactic || "Unknown"),
+  };
   return (
     <span className={cn("inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-[11px] font-medium", cfg.bgColor, cfg.color, className)}>
       <cfg.icon className="h-2.5 w-2.5" />
@@ -770,7 +777,21 @@ export default function ThreatHunting() {
       }
       if (querRes.status === "fulfilled") {
         const d = querRes.value;
-        setPredefinedQueries(Array.isArray(d) ? d : (d?.queries ?? []));
+        const rawQ = Array.isArray(d) ? d : (d?.queries ?? []);
+        // Normalize the backend HuntQuery shape to the card's PredefinedQuery shape
+        // with honest fallbacks (the real query has no tags/techniqueId/queriesCount).
+        // Without this, PredefinedQueryCard did query.tags.map(...) on undefined and crashed.
+        setPredefinedQueries(rawQ.map((q: any) => ({
+          id: q.id,
+          name: q.name ?? "Untitled query",
+          description: q.description ?? "",
+          severity: q.severity ?? "medium",
+          tactic: q.tactic ?? q.mitre_tactic ?? "unknown",
+          techniqueId: q.techniqueId ?? q.technique_id ?? q.mitre_technique ?? "",
+          tags: Array.isArray(q.tags) ? q.tags : [],
+          queriesCount: q.queriesCount ?? (Array.isArray(q.query_logic?.conditions) ? q.query_logic.conditions.length : 0),
+          lastRun: q.lastRun ?? q.last_run ?? null,
+        })));
       }
     });
   }, []);
