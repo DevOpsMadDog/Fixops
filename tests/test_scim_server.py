@@ -43,16 +43,17 @@ def scim_app(tmp_path, monkeypatch):
     # Point the router's DB at a temp file
     monkeypatch.setenv("SCIM_BEARER_TOKEN", "")  # auth disabled by default
     import apps.api.scim_router as scim_module
-    monkeypatch.setattr(
-        scim_module,
-        "_DB_PATH",
-        str(tmp_path / "scim.db"),
-    )
     app = FastAPI()
-    # Re-import to get a fresh router bound to the monkeypatched path
+    # Reload FIRST, then patch _DB_PATH — reload re-executes the module and would
+    # otherwise reset _DB_PATH back to the real default (handlers read it at call
+    # time via _get_conn, so post-reload patching takes effect → per-test DB).
     from importlib import reload
     reload(scim_module)
+    monkeypatch.setattr(scim_module, "_DB_PATH", str(tmp_path / "scim.db"))
     app.include_router(scim_module.router)
+    # The router enforces the platform api_key_auth at the router level; these
+    # tests exercise SCIM's own bearer auth, so bypass the platform gate.
+    app.dependency_overrides[scim_module.api_key_auth] = lambda: True
     return TestClient(app, raise_server_exceptions=True)
 
 
@@ -61,15 +62,15 @@ def authed_app(tmp_path, monkeypatch):
     """TestClient with SCIM_BEARER_TOKEN=secret-token set."""
     monkeypatch.setenv("SCIM_BEARER_TOKEN", "secret-token")
     import apps.api.scim_router as scim_module
-    monkeypatch.setattr(
-        scim_module,
-        "_DB_PATH",
-        str(tmp_path / "scim_authed.db"),
-    )
+    # Reload FIRST, then patch _DB_PATH (reload resets module globals).
     from importlib import reload
     reload(scim_module)
+    monkeypatch.setattr(scim_module, "_DB_PATH", str(tmp_path / "scim_authed.db"))
     app = FastAPI()
     app.include_router(scim_module.router)
+    # Bypass the platform api_key_auth gate so the SCIM bearer-token path is
+    # what's exercised (this fixture sets SCIM_BEARER_TOKEN=secret-token).
+    app.dependency_overrides[scim_module.api_key_auth] = lambda: True
     client = TestClient(app, raise_server_exceptions=True)
     return client
 
