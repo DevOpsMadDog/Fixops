@@ -1,16 +1,19 @@
 /**
  * api-config.ts — Environment-based API configuration.
  *
- * Reads VITE_API_URL from the environment, falling back to
- * http://localhost:8000 when not set.  All API client instances
- * should import `API_BASE_URL` from here rather than reading
- * import.meta.env directly.
+ * Reads VITE_API_URL from the environment, falling back to the page's own
+ * origin (same-origin) when not set — NOT a hardcoded localhost. A hardcoded
+ * http://localhost:8000 fallback broke every deployed instance (fly/prod): the
+ * browser POSTed to localhost:8000, which is CSP-blocked / unreachable. Same-origin
+ * matches buildApiUrl() in api.ts and works in dev (Vite proxies /api -> :8000)
+ * and in prod (UI + API served from one origin). All API clients import
+ * `API_BASE_URL` from here rather than reading import.meta.env directly.
  */
 
 /** Base URL of the ALDECI backend API. */
 export const API_BASE_URL: string =
   (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
-  "http://localhost:8000";
+  (typeof window !== "undefined" ? window.location.origin : "");
 
 /** Optional static API key (for non-JWT / token-based auth). */
 export const API_KEY: string =
