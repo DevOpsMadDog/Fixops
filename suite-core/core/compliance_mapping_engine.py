@@ -10,6 +10,7 @@ Compliance: NIST CSF ID.GV-4, ISO/IEC 27001 A.18.2, SOC 2 CC9.1
 from __future__ import annotations
 
 import logging
+import os
 import sqlite3
 import threading
 import uuid
@@ -58,7 +59,8 @@ except Exception:  # noqa: BLE001
 _logger = logging.getLogger(__name__)
 
 _DEFAULT_DB = str(
-    Path(__file__).resolve().parents[2] / ".fixops_data" / "compliance_mapping.db"
+    Path(os.environ.get("FIXOPS_DATA_DIR") or (Path(__file__).resolve().parents[2] / ".fixops_data"))
+    / "compliance_mapping.db"
 )
 
 _VALID_FRAMEWORKS = {
