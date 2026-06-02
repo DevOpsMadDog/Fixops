@@ -769,3 +769,27 @@ Campaign real-bug total: **8** (engine 3, data-transform 1, versioning query-dro
 corpora triaged. Remaining: product/architecture-blocked (Brain hero, /billing, GCP KMS, unified
 compliance API, IoT scan exposure, bulk-export dedup, two-engine consolidations) + founder-blocked
 (push, env-tools, Postgres, FIPS, PIV, GPU, Stripe, batch auth-rot test rewrite).
+
+---
+
+## Addendum 2026-06-03 (tick 20) — MAJOR: whole-app duplicate-route audit
+
+Generalised bug #8 (dup /bulk/export) into a full-app route scan. `create_app()` registers
+**740 duplicate (method,path) pairs**: 609 same-handler (main-app + sub-app overlap → route bloat),
+**131 DIFFERENT-handler SHADOW collisions** (dead code, mount-order landmine — duplicate FEATURE
+routers: orgs, mdm, nac, policies, playbooks, workflows[×3], vendors, sql, bulk-export, …), 26
+import-path dups (api.X vs apps.api.X — sitecustomize dual sys.path; sub-apps `from api.X`, main
+`from apps.api.X`). Documented in `docs/duplicate_route_audit_2026-06-03.md` (full machine-readable
+list) + memory `project_duplicate_routes_2026-06-03.md`.
+
+This is a **major architecture/customer-readiness finding** (route-count inflation + 131
+dead-shadowed endpoints + mount-order fragility) — NOT incrementally fixable: each shadow needs a
+per-pair canonical decision (semantics differ, cf. bulk/export async-job vs sync-file). Founder/
+architecture consolidation epic. No UI consumer of /bulk/export (dedup not UI-blocking).
+
+**ACTIONABLE for future ticks:** when auditing/fixing ANY router, first check the dup-audit — the
+handler you edit may be the dead-shadowed one (verify which wins via create_app route enumeration,
+not source). Campaign real-bug total: 8 fixed + this 740-dup architecture finding documented.
+Remaining: product/architecture-blocked (dup-route consolidation, Brain hero, /billing, GCP KMS,
+unified compliance API, IoT scan exposure, two-engine consolidations) + founder-blocked (push,
+env-tools, Postgres, FIPS, PIV, GPU, Stripe, batch auth-rot tests).
