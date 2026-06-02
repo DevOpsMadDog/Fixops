@@ -180,3 +180,13 @@ def get_due(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
 @router.get("/stats", summary="Ingestion statistics")
 def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().get_ingestion_stats(org_id)
+
+
+@router.get("/logs", summary="Recent feed delivery log")
+def list_delivery_logs(
+    org_id: str = Depends(get_org_id),
+    limit: int = Query(default=50, ge=1, le=500),
+) -> Dict[str, Any]:
+    """Recent feed delivery records for the org (real data, newest first; honest empty)."""
+    items = _get_engine().list_deliveries(org_id, limit=limit)
+    return {"logs": items, "total": len(items)}

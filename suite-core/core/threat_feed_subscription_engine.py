@@ -342,6 +342,17 @@ class ThreatFeedSubscriptionEngine:
                 ).fetchone()
         return self._row(row)
 
+    def list_deliveries(self, org_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """List recent feed delivery log records for the org (newest first). Real data."""
+        self._ensure_db(org_id)
+        with self._conn(org_id) as conn:
+            rows = conn.execute(
+                "SELECT * FROM feed_deliveries WHERE org_id = ? "
+                "ORDER BY COALESCE(last_delivered, created_at) DESC LIMIT ?",
+                (org_id, limit),
+            ).fetchall()
+        return [self._row(r) for r in rows]
+
     def get_subscription(self, subscription_id: str, org_id: str) -> Optional[Dict[str, Any]]:
         """Get a subscription with the last 10 ingestion log entries."""
         self._ensure_db(org_id)
