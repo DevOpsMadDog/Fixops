@@ -25,6 +25,12 @@ os.environ["FIXOPS_WS_HEARTBEAT"] = "1"       # snappy heartbeat for the test
 os.environ.pop("FIXOPS_TEST_MODE", None)      # do NOT disable the bus
 os.environ["TRUSTGRAPH_EVENT_BUS_ENABLED"] = "1"
 os.environ.pop("FIXOPS_API_TOKEN", None)      # ensure no token wall
+# conftest sets FIXOPS_JWT_SECRET session-wide, which sets auth_deps._HAS_JWT_AUTH.
+# The WS dev pass-through requires (_DEV_MODE and no api tokens and not
+# _HAS_JWT_AUTH) — so a configured JWT secret correctly keeps auth enforced and
+# this test's intended anonymous dev connection would be 4403'd. Pop it so the
+# dev-pass-through scenario this file exercises is internally consistent.
+os.environ.pop("FIXOPS_JWT_SECRET", None)
 
 import asyncio
 import sys
