@@ -172,10 +172,10 @@ export function CertificatesPanel() {
               </tr>
             </thead>
             <tbody>
-              {certs.slice(0, 50).map((c) => (
-                <tr key={c.cert_id} className="border-b border-border/50 hover:bg-muted/10 transition-colors">
+              {certs.slice(0, 50).map((c, idx) => (
+                <tr key={c.cert_id ?? idx} className="border-b border-border/50 hover:bg-muted/10 transition-colors">
                   <td className="px-4 py-2 text-xs font-mono max-w-[200px] truncate" title={c.subject}>
-                    {c.subject ?? c.cert_id.slice(0, 16) + "…"}
+                    {c.subject ?? (c.cert_id ? c.cert_id.slice(0, 16) + "…" : "—")}
                   </td>
                   <td className="px-4 py-2 text-xs">{c.cert_type ?? "—"}</td>
                   <td className="px-4 py-2 text-xs">{c.algorithm ?? "—"}{c.key_size ? ` ${c.key_size}b` : ""}</td>
