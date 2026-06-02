@@ -8,11 +8,15 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
 from core.insider_threat_engine import InsiderThreatEngine, THREAT_INDICATORS
+
+# Use a date safely INSIDE analyze_user_risk's rolling 30-day window. Hardcoded past
+# dates (was 2026-04-10) age out of the window as real time advances → false failures.
+_RECENT_DAY = (datetime.now(timezone.utc) - timedelta(days=2)).strftime("%Y-%m-%d")
 
 
 # ---------------------------------------------------------------------------
@@ -159,7 +163,7 @@ def test_analyze_detects_after_hours_access(engine, org):
         event_type="login",
         resource="/app",
         details={},
-        timestamp="2026-04-10T23:30:00+00:00",
+        timestamp=f"{_RECENT_DAY}T23:30:00+00:00",
         org_id=org,
     )
     result = engine.analyze_user_risk("night_user", org_id=org)
@@ -180,7 +184,7 @@ def test_analyze_risk_level_caps_at_100(engine, org):
             event_type="download",
             resource=f"/secret/credential_{i}.key",
             details={},
-            timestamp=f"2026-04-10T10:{i % 60:02d}:00+00:00",
+            timestamp=f"{_RECENT_DAY}T10:{i % 60:02d}:00+00:00",
             org_id=org,
         )
     result = engine.analyze_user_risk("maxrisk", org_id=org)
@@ -205,7 +209,7 @@ def test_get_high_risk_users_returns_above_threshold(engine, org):
             event_type="download",
             resource=f"/f/{i}",
             details={},
-            timestamp=f"2026-04-10T10:{i % 60:02d}:00+00:00",
+            timestamp=f"{_RECENT_DAY}T10:{i % 60:02d}:00+00:00",
             org_id=org,
         )
     result = engine.get_high_risk_users(org_id=org, min_risk_score=30.0)
@@ -227,7 +231,7 @@ def test_get_high_risk_users_org_isolation(engine, org, org2):
             event_type="download",
             resource=f"/f/{i}",
             details={},
-            timestamp=f"2026-04-10T10:{i % 60:02d}:00+00:00",
+            timestamp=f"{_RECENT_DAY}T10:{i % 60:02d}:00+00:00",
             org_id=org,
         )
     result = engine.get_high_risk_users(org_id=org2, min_risk_score=30.0)
@@ -242,7 +246,7 @@ def test_get_high_risk_users_sorted_descending(engine, org):
             event_type="download",
             resource=f"/a/{i}",
             details={},
-            timestamp=f"2026-04-10T10:{i % 60:02d}:00+00:00",
+            timestamp=f"{_RECENT_DAY}T10:{i % 60:02d}:00+00:00",
             org_id=org,
         )
     engine.record_user_event(
@@ -250,7 +254,7 @@ def test_get_high_risk_users_sorted_descending(engine, org):
         event_type="login",
         resource="/app",
         details={},
-        timestamp="2026-04-10T23:30:00+00:00",
+        timestamp=f"{_RECENT_DAY}T23:30:00+00:00",
         org_id=org,
     )
     result = engine.get_high_risk_users(org_id=org, min_risk_score=10.0)
