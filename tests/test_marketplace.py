@@ -519,20 +519,21 @@ class TestRegisterCustomApp:
 
 
 @pytest.fixture
-def api_client(tmpdb):
+def api_client(tmpdb, monkeypatch):
     """FastAPI TestClient with auth headers and marketplace singleton patched."""
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-    import apps.api.auth_deps as auth_deps_mod
+
+    # auth_deps no longer caches a module-level _EXPECTED_TOKENS/_HAS_TOKEN_AUTH;
+    # it calls _load_api_tokens() per-request reading FIXOPS_API_TOKEN. The
+    # supported way for a fixture to inject a token is the env var.
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "test-token-marketplace")
+    monkeypatch.setenv("FIXOPS_MODE", "enterprise")
 
     app = FastAPI()
     mkt = Marketplace(db_path=tmpdb)
 
-    with (
-        patch("apps.api.integration_marketplace_router._marketplace", mkt),
-        patch.object(auth_deps_mod, "_EXPECTED_TOKENS", ("test-token-marketplace",)),
-        patch.object(auth_deps_mod, "_HAS_TOKEN_AUTH", True),
-    ):
+    with patch("apps.api.integration_marketplace_router._marketplace", mkt):
         from apps.api.integration_marketplace_router import router
         app.include_router(router)
         client = TestClient(app, raise_server_exceptions=True)
