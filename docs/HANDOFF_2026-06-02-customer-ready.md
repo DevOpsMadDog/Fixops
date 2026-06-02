@@ -473,3 +473,26 @@ rate-limit (tick 6) + dispatch-time SSRF/DNS-rebinding (tick 7). The three class
 server-side attack surfaces (path-traversal, rate-limit/brute-force, SSRF) are now hardened
 on the API-reachable write/delete/fetch paths. UI frontier remains verified-clean (4 dims).
 Remaining: product-blocked (Brain hero, /billing) + founder-blocked (push, test-infra, FIPS, etc.).
+
+---
+
+## Addendum 2026-06-03 (tick 8) — red-team audit complete (item B closed)
+
+Completed a 6-class server-side attack-surface audit (artifact: `docs/red_team_audit_2026-06-03.md`):
+- **VERIFIED CLEAN** (no real vuln — only the scanner's own detection-patterns/templates matched):
+  insecure deserialization (real code uses `yaml.safe_load`; `joblib.load` loads only server-internal
+  model artifacts, not user paths), XXE, command-injection (no real `shell=True`; scanners invoked
+  via arg lists).
+- **INTENTIONAL non-fix**: connector `base_url` SSRF is deliberately NOT blocked — on-prem/air-gapped
+  connectors legitimately target internal RFC-1918 infra (self-hosted Jira/ES), unlike outbound
+  webhooks which are exfil channels (correctly blocked). Admin/auth-gated; documented design choice.
+
+Item B (red-team hardenings) is now **closed**: 3 classes fixed (path-traversal tick 5, rate-limit
+tick 6, SSRF/DNS-rebinding tick 7) + 3 verified-clean (this tick) + 1 documented by-design. No new
+code vuln remains on the API-reachable surface.
+
+**Session-wide frontier status:** UI verified-clean (4 call-path dims, NO-MOCKS, 0 runtime-5xx,
+0 hard-broken pages); backend hardened+verified across runtime, status-semantics, path-traversal,
+rate-limits, SSRF, deserialization, XXE, command-injection. Beast smoke 756/756. All committed
+locally. Remaining work is product-blocked (Brain hero, /billing) or founder-blocked (push,
+test-infra fixtures, Postgres, FIPS, PIV, GPU, Stripe) — nothing buildable-and-unblocked remains.
