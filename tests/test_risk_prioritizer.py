@@ -385,7 +385,7 @@ def test_ingest_resolved_finding_excluded(tmp_scorer):
 
 def test_api_score_finding(api_client):
     resp = api_client.post(
-        "/api/v1/risk/score",
+        "/api/v1/risk-scoring/score",
         json={"finding": {"id": "api-f1", "severity": "high", "environment": "production"}},
     )
     assert resp.status_code == 200
@@ -398,7 +398,7 @@ def test_api_score_finding(api_client):
 
 def test_api_rank_findings(api_client):
     resp = api_client.post(
-        "/api/v1/risk/rank",
+        "/api/v1/risk-scoring/rank",
         json={
             "findings": [
                 {"id": "r1", "severity": "low", "environment": "dev"},
@@ -415,7 +415,7 @@ def test_api_rank_findings(api_client):
 
 
 def test_api_org_exposure(api_client):
-    resp = api_client.get("/api/v1/risk/exposure/org")
+    resp = api_client.get("/api/v1/risk-scoring/exposure/org")
     assert resp.status_code == 200
     data = resp.json()
     assert "exposure_score" in data
@@ -423,7 +423,14 @@ def test_api_org_exposure(api_client):
 
 
 def test_api_asset_exposure(api_client):
-    resp = api_client.get("/api/v1/risk/exposure/my-server")
+    # The handler enforces tenant isolation: the asset must exist in inventory for the
+    # caller's org (else 404 — a deliberate cross-tenant-leak guard). Seed it via the
+    # inventory so the happy-path exposure score is exercised.
+    fake_asset = MagicMock(org_id="default")
+    fake_inv = MagicMock()
+    fake_inv.get_asset.return_value = fake_asset
+    with patch("core.asset_inventory.get_asset_inventory", return_value=fake_inv):
+        resp = api_client.get("/api/v1/risk-scoring/exposure/my-server")
     assert resp.status_code == 200
     data = resp.json()
     assert data["asset_id"] == "my-server"
@@ -431,7 +438,7 @@ def test_api_asset_exposure(api_client):
 
 
 def test_api_exposure_trend(api_client):
-    resp = api_client.get("/api/v1/risk/exposure/trend?days=7")
+    resp = api_client.get("/api/v1/risk-scoring/exposure/trend?days=7")
     assert resp.status_code == 200
     data = resp.json()
     assert "trend" in data
@@ -440,5 +447,5 @@ def test_api_exposure_trend(api_client):
 
 def test_api_rank_requires_findings(api_client):
     """Empty findings list should return 422 validation error."""
-    resp = api_client.post("/api/v1/risk/rank", json={"findings": []})
+    resp = api_client.post("/api/v1/risk-scoring/rank", json={"findings": []})
     assert resp.status_code == 422
