@@ -313,6 +313,12 @@ export default function TicketIntegration() {
   const [configOpen, setConfigOpen]         = useState(false);
 
   const refetch = useCallback(() => integrationsQuery.refetch(), [integrationsQuery]);
+  // All hooks must run unconditionally BEFORE any early return (Rules of Hooks);
+  // these mutation hooks were previously below the isLoading/isError returns, which
+  // changed the hook count between renders and crashed the page into the error boundary.
+  const syncMutation      = useSyncIntegration();
+  const testMutation      = useTestIntegration();
+  const configureMutation = useConfigureIntegration();
 
   if (integrationsQuery.isLoading) return <PageSkeleton />;
   if (integrationsQuery.isError)
@@ -352,10 +358,6 @@ export default function TicketIntegration() {
       status:    i.status,
     }))
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-  const syncMutation      = useSyncIntegration();
-  const testMutation      = useTestIntegration();
-  const configureMutation = useConfigureIntegration();
 
   const handleSync = (id: string) => {
     syncMutation.mutate(id);
