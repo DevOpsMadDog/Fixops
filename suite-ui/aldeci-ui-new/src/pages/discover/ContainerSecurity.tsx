@@ -13,9 +13,9 @@
  * API: GET /api/v1/container-security/summary
  *          /api/v1/container-security/images
  *          /api/v1/container-security/runtime-threats
- *          /api/v1/container-security/k8s-posture
- *          /api/v1/container-security/policy-violations
- *          /api/v1/container-security/registries
+ *          /api/v1/container-posture/clusters          (k8s posture)
+ *          /api/v1/container-posture/findings           (policy violations)
+ *          /api/v1/container-registry-security/allowlist (registries)
  */
 
 import { useState, useEffect } from "react";
@@ -96,14 +96,19 @@ export default function ContainerSecurity() {
       apiFetch("/api/v1/container-security/stats"),
       apiFetch("/api/v1/container-security/images"),
       apiFetch("/api/v1/container-security/runtime-threats"),
-      apiFetch("/api/v1/container-security/k8s-posture"),
-      apiFetch("/api/v1/container-security/policy-violations"),
-      apiFetch("/api/v1/container-security/registries"),
+      // Real backends live under container-posture/* and container-registry-security/*
+      // (container-security/{k8s-posture,policy-violations,registries} never existed → 404).
+      apiFetch("/api/v1/container-posture/clusters"),
+      apiFetch("/api/v1/container-posture/findings"),
+      apiFetch("/api/v1/container-registry-security/allowlist"),
     ]).then(([summaryR, imagesR, threatsR, postureR, violationsR, registriesR]) => {
       const summary    = summaryR.status    === "fulfilled" ? summaryR.value    : null;
       const images     = imagesR.status     === "fulfilled" ? imagesR.value     : null;
       const threats    = threatsR.status    === "fulfilled" ? threatsR.value    : null;
-      const posture    = postureR.status    === "fulfilled" ? postureR.value    : null;
+      // posture cards read {score,label}; clusters expose {posture_score,name} — map them.
+      const postureRaw = postureR.status    === "fulfilled" ? postureR.value    : null;
+      const postureList = Array.isArray(postureRaw) ? postureRaw : (postureRaw?.items ?? []);
+      const posture    = postureList.map((c: any) => ({ ...c, score: c.score ?? c.posture_score ?? 0, label: c.label ?? c.name }));
       const violations = violationsR.status === "fulfilled" ? violationsR.value : null;
       const registries = registriesR.status === "fulfilled" ? registriesR.value : null;
       if (summary || images || threats || posture || violations || registries) {
@@ -289,7 +294,7 @@ export default function ContainerSecurity() {
             <CardContent className="p-6 space-y-4">
               {postureArr.length === 0
                 ? <EmptyState icon={Shield} title="No posture data yet" description="Kubernetes security scores will appear once the K8s scanner has run." />
-                : postureArr.map((item: any) => {
+                : postureArr.map((item: any, i: number) => {
                     const score = item.score ?? 0;
                     const label = item.label ?? item.name ?? "—";
                     // Map label to icon
@@ -297,7 +302,7 @@ export default function ContainerSecurity() {
                       : label.toLowerCase().includes("network") ? Server
                       : Shield;
                     return (
-                      <div key={label} className={cn("p-4 rounded-lg border-2", k8sBorder(score))}>
+                      <div key={item.id ?? `${label}-${i}`} className={cn("p-4 rounded-lg border-2", k8sBorder(score))}>
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <Icon className={cn("w-4 h-4", k8sColor(score))} />
