@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { Fragment, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -607,9 +607,8 @@ export default function CodeScanning() {
                       const id = finding.id || finding.finding_id || String(idx);
                       const isExpanded = expandedRow === id;
                       return (
-                        <>
+                        <Fragment key={id}>
                           <TableRow
-                            key={id}
                             className="cursor-pointer hover:bg-muted/40"
                             onClick={() => setExpandedRow(isExpanded ? null : id)}
                           >
@@ -698,7 +697,7 @@ export default function CodeScanning() {
                               </TableCell>
                             </TableRow>
                           )}
-                        </>
+                        </Fragment>
                       );
                     })
                   )}

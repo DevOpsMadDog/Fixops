@@ -8,7 +8,7 @@
  * Distinct from SLSAProvenancePanel (which shows aggregate stats + summary rows).
  */
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Network, RefreshCw, Search, ChevronDown, ChevronUp, CheckCircle, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -170,9 +170,8 @@ export function AttestationGraphPanel() {
                 </thead>
                 <tbody>
                   {attestations.map((att) => (
-                    <>
+                    <Fragment key={att.id}>
                       <tr
-                        key={att.id}
                         className="border-b border-border/30 hover:bg-muted/20 transition-colors cursor-pointer"
                         onClick={() => toggleRow(att.id)}
                       >
@@ -231,7 +230,7 @@ export function AttestationGraphPanel() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
