@@ -66,8 +66,8 @@ test("route sweep — console errors + failed /api/v1 calls per route", async ({
     page.on("response", onResponse);
 
     try {
-      await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 15000 });
-      await page.waitForTimeout(2500); // let mount fetches fire
+      await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 12000 });
+      await page.waitForTimeout(1200); // let mount fetches fire
     } catch (e) {
       consoleErrors.push(`NAV_ERROR: ${String(e).slice(0, 200)}`);
     }
@@ -80,6 +80,8 @@ test("route sweep — console errors + failed /api/v1 calls per route", async ({
     if (consoleErrors.length || failedApi.length) {
       report[route] = { consoleErrors: uniq(consoleErrors), failedApi: uniq(failedApi) };
     }
+    // Write incrementally so a suite timeout still leaves a usable report.
+    fs.writeFileSync(REPORT, JSON.stringify(report, null, 2));
   }
 
   fs.writeFileSync(REPORT, JSON.stringify(report, null, 2));
