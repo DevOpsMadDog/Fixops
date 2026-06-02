@@ -28,8 +28,15 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { threatModelingApi, networkTopologyApi } from "@/lib/api";
+import { threatModelingApi, networkTopologyApi, getStoredOrgId } from "@/lib/api";
+import { getApiKey } from "@/lib/api-config";
 import { toArray } from "@/lib/api-utils";
+
+// These tab panels use bare fetch() (not the api client); without auth headers
+// the backend returns 401 (code-to-runtime + knowledge-graph require api_key_auth).
+function _authHeaders(): Record<string, string> {
+  return { "X-API-Key": getApiKey(), "X-Org-ID": getStoredOrgId() || "default" };
+}
 
 // ── types ──────────────────────────────────────────────────────────────────
 
@@ -275,7 +282,7 @@ function CodeToRuntimeTab() {
   } = useQuery<RuntimeStats>({
     queryKey: ["code-to-runtime", "stats"],
     queryFn: () =>
-      fetch("/api/v1/code-to-runtime/stats")
+      fetch("/api/v1/code-to-runtime/stats", { headers: _authHeaders() })
         .then((r) => (r.ok ? r.json() : Promise.reject(r)))
         .catch(() => null),
     retry: 1,
@@ -287,7 +294,7 @@ function CodeToRuntimeTab() {
   } = useQuery({
     queryKey: ["code-to-runtime", "events"],
     queryFn: () =>
-      fetch("/api/v1/code-to-runtime/events?limit=50")
+      fetch("/api/v1/code-to-runtime/events?limit=50", { headers: _authHeaders() })
         .then((r) => (r.ok ? r.json() : Promise.reject(r)))
         .catch(() => null),
     retry: 1,
@@ -551,7 +558,7 @@ function ArchGraphTab() {
     queryKey: ["knowledge-graph"],
     queryFn: () =>
       // GET /knowledge-graph/ (root) is 404; /export returns {graph:{nodes,edges}}.
-      fetch("/api/v1/knowledge-graph/export")
+      fetch("/api/v1/knowledge-graph/export", { headers: _authHeaders() })
         .then((r) => (r.ok ? r.json() : Promise.reject(r)))
         .catch(() => null),
     retry: 1,
