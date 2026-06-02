@@ -709,8 +709,15 @@ class TestRegistrySecurityScanner:
         assert report.stale_image_count >= 1
 
     def test_scan_no_stale_images(self):
+        from datetime import datetime, timedelta, timezone
+
         scanner = RegistrySecurityScanner()
-        images = [{"ref": "myapp:recent", "pushed_at": "2025-12-01T00:00:00Z"}]
+        # Use a RELATIVE recent date — a hardcoded date ages past the 180-day
+        # staleness threshold over time (the scanner compares against now()).
+        recent = (datetime.now(timezone.utc) - timedelta(days=10)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+        images = [{"ref": "myapp:recent", "pushed_at": recent}]
         report = scanner.scan("myregistry.io", {}, images)
         assert report.stale_image_count == 0
 
