@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, TrendingUp, TrendingDown, Minus, Target, Activity } from "lucide-react";
-import api from "@/lib/api";
+import api, { getStoredOrgId } from "@/lib/api";
 
 interface VelocitySummary {
   avg_velocity_by_category?: Record<string, number>;
@@ -78,10 +78,11 @@ export function PostureTrendsPanel() {
     setLoading(true);
     setError(null);
 
+    const org_id = getStoredOrgId();
     Promise.all([
-      api.get<VelocitySummary>("/api/v1/posture-trends/velocity-summary").catch(() => null),
-      api.get<TrendEntry[]>("/api/v1/posture-trends/trends").catch(() => null),
-      api.get<TrendTarget[]>("/api/v1/posture-trends/targets").catch(() => null),
+      api.get<VelocitySummary>("/api/v1/posture-trends/velocity-summary", { params: { org_id } }).catch(() => null),
+      api.get<TrendEntry[]>("/api/v1/posture-trends/trends", { params: { org_id } }).catch(() => null),
+      api.get<TrendTarget[]>("/api/v1/posture-trends/targets", { params: { org_id } }).catch(() => null),
     ])
       .then(([summaryRes, trendsRes, targetsRes]) => {
         if (cancelled) return;

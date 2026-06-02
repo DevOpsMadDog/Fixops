@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, Layers, CheckCircle2, Clock, TrendingUp } from "lucide-react";
-import api from "@/lib/api";
+import api, { getStoredOrgId } from "@/lib/api";
 
 interface ProgramSummary {
   total_domains?: number;
@@ -90,9 +90,10 @@ export function ProgramMaturityPanel() {
     setLoading(true);
     setError(null);
 
+    const org_id = getStoredOrgId();
     Promise.all([
-      api.get<ProgramSummary>("/api/v1/program-maturity/summary").catch(() => null),
-      api.get<DomainsResponse>("/api/v1/program-maturity/domains").catch(() => null),
+      api.get<ProgramSummary>("/api/v1/program-maturity/summary", { params: { org_id } }).catch(() => null),
+      api.get<DomainsResponse>("/api/v1/program-maturity/domains", { params: { org_id } }).catch(() => null),
     ])
       .then(([summaryRes, domainsRes]) => {
         if (cancelled) return;
