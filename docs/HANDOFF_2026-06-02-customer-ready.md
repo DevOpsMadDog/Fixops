@@ -3,6 +3,31 @@
 > Branch `chore/ui-prune-plan-2026-05-24` · all commits **LOCAL (unpushed)** · push blocked (VPN DNS + revoked PAT)
 > Session: `359b05e6 → HEAD` (~66 commits) · loop log `docs/ralph_progress.md`
 
+## ADDENDUM 3 — live-browser NO-MOCKS gate caught broken navigation (continued tick, 2026-06-02 evening)
+Ran the canonical NO-MOCKS browser gate (Playwright MCP vs the running dev server + backend,
+real SCIF auth). Static/test checks had all passed, but the **browser** surfaced a class of
+real customer-facing routing bugs (component tests pass because they render components directly,
+bypassing the router). 3 verified-local increments:
+- **/compliance was 404** — ComplianceDashboard was imported but never given a `<Route>`, and
+  ~43 `Navigate to="/compliance"` redirects (the whole Comply nav + mission-control) landed on
+  the 404. Wired the route. Live-verified: renders 'Compliance & Governance' (P07), fires real
+  /api/v1/compliance-engine/{status,frameworks,gaps} (200).
+- **7 more bare consolidated-hub paths 404'd** (/assets /brain /validate /issues /remediate
+  /admin /asset-graph) — planned tabbed hubs that were never built; many redirects + direct nav
+  hit 404 (/remediate browser-confirmed; 14 redirects). Redirected each to its canonical existing
+  real page (no new hubs, no loops). Live-verified /remediate→Exposure Cases, /asset-graph→arch-graph.
+- **AttackSimulation** (real 621-LOC BAS page) was imported but never routed = unreachable lost
+  feature → wired at /validate/attack-simulation (live: fires /api/v1/mpte/requests?type=attack_
+  simulation 200). Removed 3 genuinely-consolidated dead imports (RiskRegister, SLADashboard,
+  SecurityChampionsDashboard). Re-audit: 0 broken Navigate targets, 0 imported-but-unrouted.
+- **NO-MOCKS spot-check (live, real /api/v1 on mount, 0 mock signatures)**: /executive (20+ calls,
+  0 console errors), /compliance, /vendors (no HashiCorp mock), /discover/cloud, /remediate/cases,
+  /validate/attack-simulation — all real-data.
+- **Gates after**: create_app 8331; Beast smoke 756/756; tsc 0; vitest 135/0/53; build 3.52s.
+- Residual (low value): 2 dev-only React missing-key warnings in ComplianceDashboard render
+  (cosmetic, stripped in prod; all .map keyed, exact list not pinpointed). Full tabbed-hub
+  consolidation for the 7 bare paths remains a design decision.
+
 ## ADDENDUM 2 — backend hidden-gate bug sweep (continued tick, 2026-06-02 later)
 Found via the same "hidden-red-gate" approach that surfaced the tsc bugs: `ruff check`
 was red with genuine runtime bugs that import/boot cleanly but `NameError`/crash on the
