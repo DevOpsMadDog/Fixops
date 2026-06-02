@@ -3,6 +3,24 @@
 > Branch `chore/ui-prune-plan-2026-05-24` · all commits **LOCAL (unpushed)** · push blocked (VPN DNS + revoked PAT)
 > Session: `359b05e6 → HEAD` (~66 commits) · loop log `docs/ralph_progress.md`
 
+## ADDENDUM 6 — deep-route sweep (613) + precise deferred-endpoint backlog (continued tick, 2026-06-02 late night)
+Extended the route-sweep harness to multi-segment + config-generated routes (613 vs ~100).
+Deep-route sweep: **0 page crashes** — every customer-facing page (incl. all config-driven
+FindingsExplorerView/GenericDashboard screens) degrades missing endpoints to a branded
+EmptyState, so they are NOT broken, just empty on secondary screens.
+- Directly audited all **214 config-driven api-paths** against the live backend WITH the
+  `?org_id=` query the real FindingsExplorerView apiFetch sends (corrected a header-vs-query
+  methodology false-positive: 97 -> true **66 broken**): 64× 404 (missing/renamed endpoints),
+  1× 422 (attack-paths/choke-points needs sources+sinks), 1 honest-503 (cspm/findings — correct).
+- Wrote **`docs/deferred_empty_endpoints_2026-06-02.md`** — the precise, route-mapped backlog
+  (replaces CLAUDE.md's vague "~12-15 deferred empty-endpoints"). Each needs a per-endpoint
+  decision: repoint to an existing endpoint (many engines expose `/summary` not `/stats`), build
+  a real stats/list route on an engine that has the data, or **FOUNDER-BLOCKED** on a real data
+  source/importer. NOT stubbed (no-fake-data rule); declined a risky batch-repoint that would
+  trade honest-empty 404s for 200-but-shape-mismatched data.
+- **This is a sustained backend program, partly founder-blocked — recorded + deferred.** Pages
+  work (honest-empty), so it is not a customer blocker. Harness improvement committed (75709f0c).
+
 ## ADDENDUM 5 — full automated route-sweep + every real failed-API/crash fixed (continued tick, 2026-06-02 late night)
 Enhanced the e2e/route-sweep harness (now captures error-boundary + SPA-404 DOM, not just
 console/network) and ran it across all top-level routes vs the live app + backend (real auth).
