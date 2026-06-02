@@ -2908,7 +2908,12 @@ def generate_key_pair(
     mldsa_km = MLDSAKeyManager()
     _ = mldsa_km.public_key_bytes  # trigger generation
 
-    hybrid_km = HybridKeyManager(rsa_key_manager=rsa_km, mldsa_key_manager=mldsa_km)
+    # Forward the caller's key_id so the hybrid metadata honors the requested
+    # stable identifier (was dropped → hybrid auto-generated a timestamped id,
+    # losing the caller's key identity for audit/rotation).
+    hybrid_km = HybridKeyManager(
+        rsa_key_manager=rsa_km, mldsa_key_manager=mldsa_km, key_id=key_id
+    )
     return hybrid_km.get_metadata()
 
 
