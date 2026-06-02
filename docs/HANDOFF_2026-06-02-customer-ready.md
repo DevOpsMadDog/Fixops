@@ -436,3 +436,21 @@ Remaining UI work product-blocked (Brain hero, /billing page) + founder-blocked.
 Item B (red-team hardenings: storage-root allowlists) — DONE for the two API-reachable
 write/delete path surfaces (local-store, airgap). UI frontier remains verified-clean (4 dims).
 Remaining: product-blocked (Brain hero, /billing) + founder-blocked (push, test-infra, FIPS, etc.).
+
+---
+
+## Addendum 2026-06-03 (tick 6) — red-team rate-limits (item B cont'd)
+
+- **Auth rate-limit coverage audit + gap fix**: /api/v1/auth/* is exempt from the global
+  RateLimitMiddleware (auth carries its own purpose-built limiters via _rl_enforce). Audited
+  every auth POST: login(10/min)+per-email lockout, signup(5), forgot-password(5),
+  reset-password(10), dev-token(10) all guarded — but **/refresh had NONE**. Since /refresh
+  mints access tokens from a refresh token (runs jwt.decode on caller input), it was an
+  unbounded grind/DoS surface. Added `_rl_enforce(auth:refresh, 30/min)` before any crypto.
+  +1 regression test (45 rapid calls → ≥1 429, re-enabling the conftest-disabled limiter).
+  keys/disposable-token/sso are Depends(api_key_auth)-gated (acceptable). Beast smoke 756/756.
+
+Item B (red-team hardenings) status: storage-root allowlists (local-store + airgap, tick 5)
++ rate-limits (auth/refresh gap, tick 6) — DONE for the identified high-value surfaces.
+Frontier: UI verified-clean (4 call-path dims); backend runtime+status+path+rate-limit hardened.
+Remaining: product-blocked (Brain hero, /billing) + founder-blocked (push, test-infra, FIPS, etc.).
