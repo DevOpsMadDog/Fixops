@@ -817,3 +817,6 @@ dashboard_builder (org from header not body), graphql_schema (X-API-Key auth, 84
 
 ### Status
 Beast smoke **756/756** green throughout. test_end_to_end **4/4**. Pre-existing (NOT mine, verified by stash): `test_tenancy_lint` 2 fails = empty `specs/tenancy_allowlist.txt` (regen: `python scripts/tenancy_lint.py --generate-allowlist`). Founder-blocked unchanged: push, FIPS-CMVP cert, cloud creds (CSPM live scan), Postgres.
+
+### 2026-06-03 (cont.) — UI NO-MOCKS pass
+Full `suite-ui/aldeci-ui-new/src` scan: no MOCK_/fixtures imports, no src/data|fixtures dirs, zero truly-static pages. ONE real violation found+fixed: **SecurityQuestionnaireDashboard** rendered hardcoded data with a decorative result-discarding fetch. Wired real: engine `list_questionnaires`/`list_questions`, router `GET /questionnaires` + `/questionnaires/{id}/questions`, UI real apiGet + loading/error/branded EmptyStates. Live-verified create→add_question→list→questions; +5 engine tests (incl tenant isolation). Commits `50edc9e9`, `06f72a37`. All other pages real (GenericDashboard `apiPath`, `@/lib/api`, or legit config/marketing constants). **UI is no-mocks clean.** Build pass; create_app 8342; Beast smoke 756/756.
