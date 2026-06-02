@@ -57,25 +57,34 @@ class TestRouter:
         r = importlib.import_module("apps.api.material_change_router")
         assert hasattr(r, "router")
 
-    def test_router_has_material_change_prefix(self):
-        r = importlib.import_module("apps.api.material_change_router")
-        assert "material-change" in r.router.prefix or "material_change" in r.router.prefix
-
-    def test_router_has_compute_endpoint(self):
+    def test_router_serves_material_change(self):
+        # The router was refactored to prefix "/api/v1/changes" with
+        # material-change exposed as a sub-resource (/changes/material-change/*).
         r = importlib.import_module("apps.api.material_change_router")
         paths = {route.path for route in r.router.routes}
-        assert any("compute" in p for p in paths), f"expected compute endpoint; got {paths}"
+        assert "changes" in r.router.prefix, f"unexpected prefix: {r.router.prefix}"
+        assert any("material-change" in p for p in paths), \
+            f"expected material-change endpoints; got {paths}"
 
-    def test_router_has_events_endpoint(self):
+    def test_router_has_analyze_endpoint(self):
+        # "compute" was renamed to "analyze" in the refactor.
         r = importlib.import_module("apps.api.material_change_router")
         paths = {route.path for route in r.router.routes}
-        assert any("events" in p for p in paths), f"expected events endpoint; got {paths}"
+        assert any("analyze" in p for p in paths), f"expected analyze endpoint; got {paths}"
 
-    def test_router_has_pr_webhook_endpoint(self):
+    def test_router_has_recent_endpoint(self):
+        # recent material changes (the former "events" listing).
         r = importlib.import_module("apps.api.material_change_router")
         paths = {route.path for route in r.router.routes}
-        assert any("pr-webhook" in p or "pr_webhook" in p for p in paths), \
-            f"expected PR webhook endpoint; got {paths}"
+        assert any("recent" in p or "events" in p for p in paths), \
+            f"expected recent/events endpoint; got {paths}"
+
+    def test_router_has_webhook_endpoint(self):
+        # PR/webhook ingestion (analyze-pr + webhook routes).
+        r = importlib.import_module("apps.api.material_change_router")
+        paths = {route.path for route in r.router.routes}
+        assert any("webhook" in p or "analyze-pr" in p for p in paths), \
+            f"expected webhook/PR endpoint; got {paths}"
 
 
 class TestWiring:
