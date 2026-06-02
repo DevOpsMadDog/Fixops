@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
+from fastapi.responses import PlainTextResponse
 
 router = APIRouter(prefix="/api/v1", tags=["health"])
 
@@ -144,7 +145,13 @@ def version_info() -> Dict[str, Any]:
     }
 
 
-@router.get("/metrics", response_class=None, summary="Prometheus metrics", dependencies=[Depends(_scrape_auth)])
+@router.get(
+    "/metrics",
+    response_class=PlainTextResponse,
+    summary="Prometheus metrics",
+    dependencies=[Depends(_scrape_auth)],
+    include_in_schema=False,  # Prometheus scrape endpoint — not part of the JSON API schema
+)
 async def prometheus_metrics() -> Any:
     """
     Prometheus text exposition format (version 0.0.4).
