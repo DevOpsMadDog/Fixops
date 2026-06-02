@@ -571,3 +571,29 @@ shared-DB order-dependent isolation class (correlation "no such table: security_
 owned by security_findings_engine, created at app startup; not product bugs). Frontier: UI clean
 (4 dims) + backend hardened/verified + router & engine T3 slices triaged (5 real product bugs found
 + fixed across ticks 9-11). Remaining: product-blocked (Brain hero, /billing, GCP KMS) + founder-blocked.
+
+---
+
+## Addendum 2026-06-03 (tick 12) — engine-test mid-count triage classified (item C)
+
+Triaged the remaining mid-count engine-test failures (after tick 11's 3 real-bug fixes). **0
+new product bugs** — all classified:
+- **STALE TEST (engine correct)**: backup_engine — moved XOR `_encrypt_data(data,key)`/V1 →
+  Fernet `_encrypt_data(data)`/V2 (key PBKDF2-derived from FIXOPS_BACKUP_KEY+SALT, fail-closed
+  when unset). FIXED: autouse key/salt fixture + 1-arg/V2 asserts, 48/48. analytics &
+  behavioral_analytics also stale (mock points / tuned scoring) — deferred (complex mock
+  rewrites, risk of vacuous tests).
+- **EXTERNAL-TOOL (env-dependent, not product)**: config_benchmark + kubernetes_security need
+  `checkov` (produces no output / traceback in this env).
+- **SHARED-DB ISOLATION (not product)**: correlation/agentless — "no such table:
+  security_findings" (table created by a sibling engine at app startup; order-dependent test).
+
+**Engine-slice real-bug frontier exhausted**: 3 real bugs fixed (tick 11: threat_exposure /
+upgrade_path / rbac), 0 remaining — the rest is stale-test rot, external-tool deps, and shared-DB
+isolation. Beast smoke 756/756, product code untouched this tick.
+
+**Campaign T3 totals (ticks 9-12):** router slice = 0 product bugs (all fixture rot, ~360 tests
+recovered); engine slice = 5 real product bugs found + fixed; both corpora now triaged + classified.
+Frontier: UI clean (4 dims) + backend hardened/verified (6 attack classes) + router/engine T3
+triaged. Remaining buildable work is product-blocked (Brain hero, /billing, GCP KMS connector) or
+founder-blocked (push, deeper test-infra: shared-DB isolation harness / mock rewrites / checkov, FIPS, PIV, GPU, Stripe).
