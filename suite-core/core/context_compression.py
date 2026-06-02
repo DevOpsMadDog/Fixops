@@ -92,15 +92,10 @@ def compress_prompt(
     if original_len <= max_chars:
         return text
 
-    if method == "headroom" or (method == "auto" and _HAS_HEADROOM):
-        try:
-            result = compress(text, target_tokens=max_tokens)
-            compressed = result if isinstance(result, str) else str(result)
-            saved = original_len - len(compressed)
-            _stats["tokens_saved_estimate"] += saved // 4
-            return compressed
-        except (OSError, ValueError, RuntimeError, TypeError) as exc:
-            logger.warning("headroom compression failed: %s — using heuristic", type(exc).__name__)
+    # headroom RETIRED 2026-05-03 (see _HAS_HEADROOM above) — the optional native
+    # compressor is gone, so every method degrades to the heuristic below. The old
+    # `if method == "headroom"` branch referenced an undefined `compress()` and would
+    # raise NameError when a caller explicitly passed method="headroom"; removed.
 
     # Fallback
     _stats["fallback_count"] += 1

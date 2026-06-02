@@ -237,7 +237,7 @@ def update_remediation_status(
 # ---------------------------------------------------------------------------
 
 @router.get("/observations", dependencies=[Depends(api_key_auth)])
-def list_observations(org_id: str = Depends(get_org_id)):
+def list_all_observations(org_id: str = Depends(get_org_id)):
     """List all chaos observations for the org (across experiments), newest first.
 
     Real data from the chaos_observations store; honest empty when none recorded.

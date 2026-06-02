@@ -7,6 +7,7 @@ vulnerability-to-asset correlation, and asset risk scoring.
 """
 from __future__ import annotations
 
+import logging
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -19,6 +20,7 @@ from core.persistent_store import get_persistent_store
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/inventory", tags=["inventory"])
 db = InventoryDB()
 

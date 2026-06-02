@@ -70,6 +70,9 @@ if _SUITE_FEEDS not in sys.path:
 # Default DB path overrides — tests inject these to point at fixture DBs.
 DEFAULT_KEV_DB = str(_PROJECT_ROOT / "data" / "cisa_kev.db")
 
+# Thread-local storage for per-thread correlation state.
+_tls = threading.local()
+
 
 # ---------------------------------------------------------------------------
 # TTL cache

@@ -10,6 +10,7 @@ Security hardening (2026-03-03):
 import ipaddress
 import logging
 import os
+import socket
 import threading
 from datetime import datetime, timezone
 from typing import Dict, List, Optional

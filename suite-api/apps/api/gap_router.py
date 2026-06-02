@@ -37,6 +37,7 @@ except ImportError:
     _AUTH_DEP = []
 
 logger = logging.getLogger(__name__)
+_logger = logger
 
 # ─────────────────────────────────────────────────
 # Sub-routers for each missing prefix

@@ -76,6 +76,16 @@ logger = logging.getLogger(__name__)
 # canonical. Flag remains as ``False`` so the existing branches (`if _HAS_LLM_GUARD`)
 # continue to short-circuit to the regex implementation that already shipped.
 # ---------------------------------------------------------------------------
+try:  # optional dependency; referenced only in the disabled _HAS_LLM_GUARD branches
+    from llm_guard.input_scanners import PromptInjection, Secrets, InvisibleText, TokenLimit
+    from llm_guard.input_scanners import Toxicity as InputToxicity
+    from llm_guard.output_scanners import Sensitive, Bias
+    from llm_guard.output_scanners import Toxicity as OutputToxicity
+    from llm_guard import scan_prompt as _lg_scan_prompt, scan_output as _lg_scan_output
+except Exception:  # air-gapped / retired — names exist so dead branches resolve; flag stays False
+    PromptInjection = Secrets = InvisibleText = TokenLimit = InputToxicity = None  # type: ignore[assignment,misc]
+    Sensitive = Bias = OutputToxicity = _lg_scan_prompt = _lg_scan_output = None  # type: ignore[assignment,misc]
+
 _HAS_LLM_GUARD = False
 
 

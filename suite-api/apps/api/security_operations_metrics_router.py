@@ -103,7 +103,7 @@ def list_alert_queue(
 
 
 @router.post("/queue/{alert_id}/ack", dependencies=[Depends(api_key_auth)])
-def acknowledge_alert(
+def acknowledge_alert_queue(
     alert_id: str,
     org_id: str = Query("default"),
     analyst: str = Query("ui"),
@@ -116,7 +116,7 @@ def acknowledge_alert(
 
 
 @router.post("/queue/{alert_id}/resolve", dependencies=[Depends(api_key_auth)])
-def resolve_alert(
+def resolve_alert_queue(
     alert_id: str,
     org_id: str = Query("default"),
     false_positive: bool = Query(False),

@@ -10,7 +10,10 @@ Endpoints:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+if TYPE_CHECKING:
+    from core.cspm_engine import CspmScanResult
 
 from fastapi import APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id

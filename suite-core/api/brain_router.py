@@ -8,6 +8,7 @@ Every security entity, relationship, and event is accessible here.
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
