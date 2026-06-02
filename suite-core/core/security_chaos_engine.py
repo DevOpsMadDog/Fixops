@@ -351,6 +351,19 @@ class SecurityChaosEngine:
             ).fetchall()
         return [self._row(r) for r in rows]
 
+    def list_all_observations(
+        self, org_id: str, limit: int = 200
+    ) -> List[Dict[str, Any]]:
+        """List all chaos observations for the org (across experiments), newest first."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                """SELECT * FROM chaos_observations
+                   WHERE org_id=?
+                   ORDER BY observed_at DESC LIMIT ?""",
+                (org_id, limit),
+            ).fetchall()
+        return [self._row(r) for r in rows]
+
     # ------------------------------------------------------------------
     # Remediations
     # ------------------------------------------------------------------

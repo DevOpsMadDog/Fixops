@@ -123,7 +123,7 @@ export default function SecurityChaosDashboard() {
 
   const stats        = liveData.stats        ?? { total_experiments: 0, active_experiments: 0, avg_resilience_score: 0, open_findings: 0 };
   const experiments  = Array.isArray(liveData.experiments) ? liveData.experiments : [];
-  const observations = liveData.observations ?? [];
+  const observations = Array.isArray(liveData.observations) ? liveData.observations : [];
 
   if (loading) return (
     <div className="space-y-4 p-6">

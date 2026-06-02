@@ -236,6 +236,16 @@ def update_remediation_status(
 # Stats
 # ---------------------------------------------------------------------------
 
+@router.get("/observations", dependencies=[Depends(api_key_auth)])
+def list_observations(org_id: str = Depends(get_org_id)):
+    """List all chaos observations for the org (across experiments), newest first.
+
+    Real data from the chaos_observations store; honest empty when none recorded.
+    """
+    # Bare list to match /experiments shape (the dashboard stores the response as an array).
+    return _get_engine().list_all_observations(org_id)
+
+
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated chaos engineering statistics."""
