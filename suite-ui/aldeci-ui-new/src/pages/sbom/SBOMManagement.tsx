@@ -56,6 +56,7 @@ import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import {
   PieChart,
   Pie,
@@ -597,8 +598,12 @@ function ImportSBOMModal({ onClose }: { onClose: () => void }) {
 
 const SBOM_API_HEADERS = () => ({
   "Content-Type": "application/json",
-  "X-API-Key": localStorage.getItem("apiKey") || "",
+  "X-API-Key": getStoredAuthToken() ?? "",
+  "X-Org-ID": getStoredOrgId() ?? "default",
 });
+
+// Real tenant org for SBOM query params (no hardcoded org).
+const sbomOrg = () => encodeURIComponent(getStoredOrgId() ?? "default");
 
 /** Map a backend project row into the SBOMEntry shape. */
 function apiProjectToSBOM(p: Record<string, any>, idx: number): SBOMEntry {
@@ -640,7 +645,7 @@ export default function SBOMManagement() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/v1/sbom-export/projects?org_id=default", {
+      const res = await fetch(`/api/v1/sbom-export/projects?org_id=${sbomOrg()}`, {
         headers: SBOM_API_HEADERS(),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -665,7 +670,7 @@ export default function SBOMManagement() {
 
   useEffect(() => {
     fetchSBOMs();
-    fetch("/api/v1/sbom-export/diff?org_id=default", { headers: SBOM_API_HEADERS() })
+    fetch(`/api/v1/sbom-export/diff?org_id=${sbomOrg()}`, { headers: SBOM_API_HEADERS() })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => {
         const items = Array.isArray(d) ? d : (d?.components ?? d?.diff ?? []);
@@ -682,7 +687,7 @@ export default function SBOMManagement() {
       try {
         // Try to fetch assets and their components for this project
         const res = await fetch(
-          `/api/v1/sbom/assets?org_id=default`,
+          `/api/v1/sbom/assets?org_id=${sbomOrg()}`,
           { headers: SBOM_API_HEADERS() },
         );
         if (!res.ok) return;
@@ -693,7 +698,7 @@ export default function SBOMManagement() {
         );
         if (!asset) return;
         const compRes = await fetch(
-          `/api/v1/sbom/assets/${asset.id}/components?org_id=default`,
+          `/api/v1/sbom/assets/${asset.id}/components?org_id=${sbomOrg()}`,
           { headers: SBOM_API_HEADERS() },
         );
         if (!compRes.ok) return;

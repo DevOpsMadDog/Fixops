@@ -19,7 +19,7 @@ Routes:
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -160,6 +160,43 @@ def generate_spdx(req: GenerateRequest) -> Dict[str, Any]:
 def list_projects(org_id: str = Query(..., description="Organisation ID")) -> list:
     """List all projects with component counts."""
     return _get_engine().list_projects(org_id=org_id)
+
+
+@router.get("/diff", dependencies=[Depends(api_key_auth)])
+def diff_projects(
+    org_id: str = Query(..., description="Organisation ID"),
+    left: Optional[str] = Query(None, description="Baseline project name"),
+    right: Optional[str] = Query(None, description="Comparison project name"),
+) -> Dict[str, Any]:
+    """Component-level diff between two SBOM project snapshots.
+
+    Returns components added/removed/version-changed between ``left`` and ``right``.
+    Computed from real stored components (no fabricated data). When ``left``/``right``
+    are omitted (e.g. dashboard mount preload), returns an honest empty diff rather
+    than 404 so the UI can render its compare picker.
+    """
+    if not left or not right:
+        return {"left": left, "right": right, "added": [], "removed": [], "changed": [], "components": []}
+
+    engine = _get_engine()
+    left_comps = {c.get("name"): c for c in engine.list_components(org_id=org_id, project_name=left)}
+    right_comps = {c.get("name"): c for c in engine.list_components(org_id=org_id, project_name=right)}
+
+    added = [right_comps[n] for n in right_comps.keys() - left_comps.keys()]
+    removed = [left_comps[n] for n in left_comps.keys() - right_comps.keys()]
+    changed = [
+        {"name": n, "from": left_comps[n].get("version"), "to": right_comps[n].get("version")}
+        for n in left_comps.keys() & right_comps.keys()
+        if left_comps[n].get("version") != right_comps[n].get("version")
+    ]
+    return {
+        "left": left,
+        "right": right,
+        "added": added,
+        "removed": removed,
+        "changed": changed,
+        "components": added + removed,
+    }
 
 
 @router.get("/projects/{project_name}/summary", dependencies=[Depends(api_key_auth)])

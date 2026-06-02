@@ -7,6 +7,22 @@
 import { useEffect, useState } from "react";
 import { Cloud, ShieldAlert, AlertCircle, CheckCircle2 } from "lucide-react";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+
+// Authenticated fetch against the real tenant — no hardcoded org, real auth header.
+async function authedJson<T>(path: string, fallback: T): Promise<T> {
+  const org = getStoredOrgId() ?? "default";
+  const sep = path.includes("?") ? "&" : "?";
+  try {
+    const res = await fetch(`${path}${sep}org_id=${encodeURIComponent(org)}`, {
+      headers: { "X-API-Key": getStoredAuthToken() ?? "", "X-Org-ID": org },
+    });
+    if (!res.ok) return fallback;
+    return (await res.json()) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 interface PostureStats {
   score?: number;
@@ -57,8 +73,8 @@ export function CloudPosturePanel() {
     let cancelled = false;
     setLoading(true);
     Promise.all([
-      fetch("/api/v1/posture-score/stats?org_id=default").then(r => r.json()).catch(() => ({})),
-      fetch("/api/v1/cloud-security/findings?org_id=default&limit=10").then(r => r.json()).catch(() => ({ items: [] })),
+      authedJson<PostureStats | Record<string, never>>("/api/v1/posture-score/stats", {}),
+      authedJson<{ items?: Finding[] }>("/api/v1/cloud-security/findings?limit=10", { items: [] }),
     ]).then(([statsData, findingsData]) => {
       if (cancelled) return;
       setStats(statsData as PostureStats);

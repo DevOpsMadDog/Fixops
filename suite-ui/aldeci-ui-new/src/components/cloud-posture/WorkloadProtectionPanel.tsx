@@ -6,6 +6,22 @@
 import { useEffect, useState } from "react";
 import { ShieldCheck, AlertCircle, Server, Siren } from "lucide-react";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+
+// Authenticated fetch against the real tenant — no hardcoded org, real auth header.
+async function authedJson<T>(path: string, fallback: T): Promise<T> {
+  const org = getStoredOrgId() ?? "default";
+  const sep = path.includes("?") ? "&" : "?";
+  try {
+    const res = await fetch(`${path}${sep}org_id=${encodeURIComponent(org)}`, {
+      headers: { "X-API-Key": getStoredAuthToken() ?? "", "X-Org-ID": org },
+    });
+    if (!res.ok) return fallback;
+    return (await res.json()) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 interface CwpStats {
   total_workloads?: number;
@@ -64,9 +80,9 @@ export function WorkloadProtectionPanel() {
     let cancelled = false;
     setLoading(true);
     Promise.all([
-      fetch("/api/v1/cwp/stats?org_id=default").then(r => r.json()).catch(() => ({})),
-      fetch("/api/v1/cwp/workloads?org_id=default&limit=8").then(r => r.json()).catch(() => ({ items: [] })),
-      fetch("/api/v1/cwp/threats?org_id=default&limit=5").then(r => r.json()).catch(() => ({ items: [] })),
+      authedJson<CwpStats | Record<string, never>>("/api/v1/cwp/stats", {}),
+      authedJson<{ items?: Workload[] }>("/api/v1/cwp/workloads?limit=8", { items: [] }),
+      authedJson<{ items?: Threat[] }>("/api/v1/cwp/threats?limit=5", { items: [] }),
     ]).then(([statsData, wlData, threatData]) => {
       if (cancelled) return;
       setStats(statsData as CwpStats);

@@ -6,6 +6,22 @@
 import { useEffect, useState } from "react";
 import { Layers, AlertCircle, Server, ShieldAlert } from "lucide-react";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
+
+// Authenticated fetch against the real tenant — no hardcoded org, real auth header.
+async function authedJson<T>(path: string, fallback: T): Promise<T> {
+  const org = getStoredOrgId() ?? "default";
+  const sep = path.includes("?") ? "&" : "?";
+  try {
+    const res = await fetch(`${path}${sep}org_id=${encodeURIComponent(org)}`, {
+      headers: { "X-API-Key": getStoredAuthToken() ?? "", "X-Org-ID": org },
+    });
+    if (!res.ok) return fallback;
+    return (await res.json()) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 interface CwppSummary {
   total_workloads?: number;
@@ -63,9 +79,9 @@ export function CWPPPanel() {
     let cancelled = false;
     setLoading(true);
     Promise.all([
-      fetch("/api/v1/cwpp/summary?org_id=default").then(r => r.json()).catch(() => ({})),
-      fetch("/api/v1/cwpp/workloads?org_id=default&limit=8").then(r => r.json()).catch(() => ({ items: [] })),
-      fetch("/api/v1/cwpp/threats?org_id=default&limit=5").then(r => r.json()).catch(() => ({ items: [] })),
+      authedJson<CwppSummary | Record<string, never>>("/api/v1/cwpp/summary", {}),
+      authedJson<{ items?: CwppWorkload[] }>("/api/v1/cwpp/workloads?limit=8", { items: [] }),
+      authedJson<{ items?: CwppThreat[] }>("/api/v1/cwpp/threats?limit=5", { items: [] }),
     ]).then(([sumData, wlData, threatData]) => {
       if (cancelled) return;
       setSummary(sumData as CwppSummary);
