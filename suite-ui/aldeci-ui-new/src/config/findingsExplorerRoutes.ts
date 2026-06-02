@@ -849,7 +849,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Offline update bundles for air-gapped deployments",
       apiPath: "/api/v1/air-gap/bundle/list",
       itemsKey: "bundles",
-      statsPath: "/api/v1/air-gap/stats",
+      statsPath: "/api/v1/air-gap/bundle/stats",
       severityKey: null,
       filterOptions: [],
       columns: [

@@ -1,9 +1,14 @@
 /**
  * AI Attack Path View
  *
- * Choke-point analysis on AI/agent attack paths — which nodes appear in the most paths.
+ * Choke-point analysis on AI/agent attack paths — which crown-jewel assets the
+ * most entry points can reach (the assets attack paths converge on).
  * Route: /ai/attack-paths
- * API: GET /api/v1/attack-paths/choke-points
+ * API: GET /api/v1/attack-paths/crown-jewels-at-risk
+ *   (the /choke-points endpoint requires explicit source/sink node ids and
+ *    returns min-cut EDGES — wrong shape for this node-oriented overview, and
+ *    422s on a bare dashboard mount. crown-jewels-at-risk is the real,
+ *    no-param, node-frequency view this page wants.)
  * Multica id: 36dd3ab6-6664-4a9f-b04a-fb8522e4e621
  */
 
@@ -39,6 +44,37 @@ interface ChokeResponse {
   comingSoon?: boolean;
 }
 
+/** Raw node shape returned by /api/v1/attack-paths/crown-jewels-at-risk. */
+interface CrownJewelNode {
+  node_id: string;
+  name?: string;
+  node_type?: string;
+  risk_score?: number;
+  is_crown_jewel?: boolean;
+  vulnerabilities?: unknown[];
+  reachable_from?: string[];
+  reachable_from_count?: number;
+}
+
+/** Map a real crown-jewel-at-risk node into the table's ChokePoint shape. */
+function normaliseNode(n: CrownJewelNode): ChokePoint {
+  const risk = n.risk_score ?? 0;
+  const criticality =
+    n.is_crown_jewel || risk >= 80 ? "critical"
+    : risk >= 60 ? "high"
+    : risk >= 40 ? "medium"
+    : "low";
+  return {
+    id: n.node_id,
+    asset: n.name ?? n.node_id,
+    asset_type: n.node_type ?? "—",
+    paths_through: n.reachable_from_count ?? n.reachable_from?.length ?? 0,
+    blast_radius: risk,
+    cve_count: Array.isArray(n.vulnerabilities) ? n.vulnerabilities.length : 0,
+    criticality,
+  };
+}
+
 async function apiFetch<T>(path: string): Promise<{ data: T; status: number }> {
   const orgId = getStoredOrgId();
   const url = buildApiUrl(path, { org_id: orgId });
@@ -67,14 +103,15 @@ export default function AIAttackPathView() {
     setLoading(true);
     setComingSoon(false);
     try {
-      const { data } = await apiFetch<ChokeResponse>("/api/v1/attack-paths/choke-points");
-      if (data.comingSoon) {
+      const { data } = await apiFetch<ChokeResponse | CrownJewelNode[]>("/api/v1/attack-paths/crown-jewels-at-risk");
+      if (!Array.isArray(data) && data.comingSoon) {
         setComingSoon(true);
         setPoints([]);
       } else {
-        const list = Array.isArray(data) ? (data as ChokePoint[]) : (data.choke_points ?? data.items ?? []);
+        const raw = Array.isArray(data) ? data : (data.choke_points ?? data.items ?? []);
+        const list = (raw as CrownJewelNode[]).map(normaliseNode);
         setPoints(list);
-        setMeta(data);
+        setMeta(Array.isArray(data) ? { total_paths: list.reduce((s, p) => s + (p.paths_through ?? 0), 0) } : data);
       }
     } catch (e) {
       setErr((e as Error).message);
@@ -108,7 +145,7 @@ export default function AIAttackPathView() {
           <KpiCard title="Choke Points" value={totalPoints} icon={Crosshair} />
           <KpiCard title="Total Paths" value={totalPaths} icon={Network} />
           <KpiCard title="Critical" value={criticalCount} icon={AlertTriangle} trend={criticalCount ? "up" : "flat"} />
-          <KpiCard title="Max Blast Radius" value={maxBlast} icon={Network} />
+          <KpiCard title="Max Risk Score" value={maxBlast} icon={Network} />
         </div>
       )}
 
@@ -123,7 +160,7 @@ export default function AIAttackPathView() {
           ) : err ? (
             <ErrorState message={err} onRetry={load} />
           ) : comingSoon ? (
-            <EmptyState icon={Crosshair} title="Coming soon" description="GET /api/v1/attack-paths/choke-points is not enabled on this deployment." />
+            <EmptyState icon={Crosshair} title="Coming soon" description="GET /api/v1/attack-paths/crown-jewels-at-risk is not enabled on this deployment." />
           ) : points.length === 0 ? (
             <EmptyState icon={Crosshair} title="No choke points" description="No high-blast-radius nodes found in current attack paths." />
           ) : (
@@ -134,7 +171,7 @@ export default function AIAttackPathView() {
                     <TableHead className="text-[11px] h-8">Asset</TableHead>
                     <TableHead className="text-[11px] h-8">Type</TableHead>
                     <TableHead className="text-[11px] h-8 text-right">Paths Through</TableHead>
-                    <TableHead className="text-[11px] h-8 text-right">Blast Radius</TableHead>
+                    <TableHead className="text-[11px] h-8 text-right">Risk Score</TableHead>
                     <TableHead className="text-[11px] h-8 text-right">CVEs</TableHead>
                     <TableHead className="text-[11px] h-8">Criticality</TableHead>
                     <TableHead className="text-[11px] h-8">Recommendation</TableHead>
