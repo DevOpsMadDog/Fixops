@@ -169,7 +169,21 @@ def run_drift_scan(
     environment: Optional[str] = Query(None, description="Filter scan to environment"),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
-    return _wrap(engine.run_drift_scan(org_id, environment=environment))
+    try:
+        return _wrap(engine.run_drift_scan(org_id, environment=environment))
+    except NotImplementedError as exc:
+        # Honest 503 (NOT a 500 crash) when the CSPM cloud connector is unconfigured.
+        # run_drift_scan deliberately refuses to fabricate drift results; record_drift()
+        # ingests real events from an external CSPM tool meanwhile.
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "not_configured",
+                "error": "cspm_connector_required",
+                "detail": str(exc),
+                "needed": ["CSPM_CONNECTOR_URL"],
+            },
+        ) from exc
 
 
 @router.get("/stats")
