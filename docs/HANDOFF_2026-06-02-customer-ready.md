@@ -3,6 +3,27 @@
 > Branch `chore/ui-prune-plan-2026-05-24` · all commits **LOCAL (unpushed)** · push blocked (VPN DNS + revoked PAT)
 > Session: `359b05e6 → HEAD` (~66 commits) · loop log `docs/ralph_progress.md`
 
+## ADDENDUM 7 — deferred-endpoint clean-subset repointed to real data (continued tick, 2026-06-02 late night)
+Worked the 66-endpoint deferred backlog (addendum 6), extracting only the clean,
+non-fabrication, verifiable subset (NOT stubbing — no-fake-data rule):
+- **20 dashboard statsPaths** repointed `/X/stats`(404) → the engines' real `/X/summary`(200,
+  object-shaped). GenericDashboard auto-detects KPIs → real stats render. Live-verified
+  /access-reviews. (commit 14e98e7d)
+- **security-benchmarks** list: apiPath `/results`(404) → real `/benchmarks`(200) + itemsKey
+  `results`→`benchmarks`. Live-verified /security-benchmarks fires /benchmarks 200 + /summary 200,
+  0 console errors. (commit 77bb4b1e)
+- **Trap found + documented**: config-route entries whose path is shadowed by an App.tsx redirect
+  (e.g. `/exception-workflow` → `/remediate/exceptions`) are DEAD — the GenericDashboard config
+  never renders, so repointing them is a no-op (reverted one). Future backlog work must filter
+  these out first.
+- **Remaining backlog (~46)** categorized: 15 'router-exists' (engine live but the config's list
+  apiPath needs a real list route built or a verified repoint — per-endpoint, moderate value,
+  some dead-config), 23 'no-router' (missing engine — FOUNDER-BLOCKED on real data importers),
+  plus a few ambiguous-semantic repoints intentionally NOT forced (shape-mismatch risk).
+  Updated `docs/deferred_empty_endpoints_2026-06-02.md`.
+- **Gates**: build ~3.6s; tsc 0; create_app 8335; Beast smoke 755 + known ingest-timing flake
+  (passes isolated 0.60s). 0 page crashes across the whole route space.
+
 ## ADDENDUM 6 — deep-route sweep (613) + precise deferred-endpoint backlog (continued tick, 2026-06-02 late night)
 Extended the route-sweep harness to multi-segment + config-generated routes (613 vs ~100).
 Deep-route sweep: **0 page crashes** — every customer-facing page (incl. all config-driven
