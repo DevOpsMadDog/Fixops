@@ -58,7 +58,7 @@ def _api_key_auth() -> None:  # noqa: D401
 
 
 class SIEMTargetConfigure(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     name: str
     siem_type: str = Field(
         ..., description="splunk_hec | sentinel | generic"
@@ -74,7 +74,7 @@ class SIEMTargetStatusUpdate(BaseModel):
 
 
 class SIEMTestRequest(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     target_id: Optional[str] = None
 
 

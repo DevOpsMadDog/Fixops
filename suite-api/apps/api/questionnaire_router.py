@@ -75,7 +75,10 @@ class AddAnswerBankRequest(BaseModel):
     answer: str
     evidence_refs: Optional[List[str]] = None
     confidence: float = Field(1.0, ge=0.0, le=1.0)
-    org_id: str = Depends(get_org_id)
+    # NOTE: a Pydantic body field MUST NOT default to Depends() — the unresolved
+    # Depends sentinel becomes body.org_id and gets bound into SQL ("type 'Depends'
+    # is not supported" -> 500). Plain default (matches the GET handler's Query default).
+    org_id: str = "default"
 
 
 # ---------------------------------------------------------------------------

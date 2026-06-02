@@ -58,7 +58,7 @@ class CreateRuleRequest(BaseModel):
     action: str
     config: Dict[str, Any] = {}
     enabled: bool = True
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class UpdateRuleRequest(BaseModel):
@@ -71,12 +71,12 @@ class UpdateRuleRequest(BaseModel):
 
 class EvaluateFindingRequest(BaseModel):
     finding: Dict[str, Any]
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class RunActionRequest(BaseModel):
     finding: Dict[str, Any]
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class RuleResponse(BaseModel):

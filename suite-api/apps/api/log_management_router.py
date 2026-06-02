@@ -52,7 +52,7 @@ def _get_engine() -> LogManagementEngine:
 
 
 class LogSourceCreate(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     name: str
     log_type: str
     format: str = "json"
@@ -61,7 +61,7 @@ class LogSourceCreate(BaseModel):
 
 
 class LogEntryStore(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     source_id: str
     level: str = "info"
     message: str
@@ -69,7 +69,7 @@ class LogEntryStore(BaseModel):
 
 
 class RetentionPolicyCreate(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     name: str
     log_type: str
     retention_days: int = 90

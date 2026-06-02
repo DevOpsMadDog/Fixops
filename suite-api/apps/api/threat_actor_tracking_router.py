@@ -47,7 +47,7 @@ class TrackActorModel(BaseModel):
     threat_level: str = "medium"
     targeting_our_sector: bool = False
     mitre_groups: List[str] = []
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class RecordActivityModel(BaseModel):
@@ -58,7 +58,7 @@ class RecordActivityModel(BaseModel):
     indicators: List[str] = []
     source: str = ""
     verified: bool = False
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class AddIntelligenceModel(BaseModel):
@@ -67,11 +67,11 @@ class AddIntelligenceModel(BaseModel):
     confidence: float = 0.5
     source: str = ""
     valid_until: Optional[str] = None
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class UpdateActivityModel(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 # ---------------------------------------------------------------------------
@@ -204,7 +204,7 @@ def get_summary(org_id: str = Query("default")):
 # ---------------------------------------------------------------------------
 
 class ImportMitreModel(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     limit: Optional[int] = Field(
         default=None,
         description="Cap number of actors imported (None = all ~150 MITRE groups)",

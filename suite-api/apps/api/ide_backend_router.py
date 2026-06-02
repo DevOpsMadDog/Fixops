@@ -53,14 +53,14 @@ def _get_engine():
 
 
 class TreeBuildRequest(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     repo_ref: str = Field(..., min_length=1, max_length=256)
     root_path: str = Field(..., min_length=1, max_length=4096)
     commit_sha: str = ""
 
 
 class SnapshotRequest(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     repo_ref: str = Field(..., min_length=1, max_length=256)
     scan_id: str = ""
 

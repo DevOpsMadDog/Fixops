@@ -37,14 +37,14 @@ class GrantAccessRequest(BaseModel):
     access_level: AccessLevel
     resource_id: Optional[str] = Field(None, description="None = all resources of type")
     conditions: Dict[str, Any] = Field(default_factory=dict)
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class CheckAccessRequest(BaseModel):
     user_role: str
     resource_type: ResourceType
     resource_id: Optional[str] = None
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class CheckAccessResponse(BaseModel):

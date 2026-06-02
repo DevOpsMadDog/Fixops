@@ -58,7 +58,7 @@ def _get_engine():
 
 
 class RegisterIdentityRequest(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     identity_name: str
     identity_type: str = "user"
     cloud_provider: str = "aws"
@@ -75,7 +75,7 @@ class UpdatePermissionsRequest(BaseModel):
 
 
 class RecordAccessReviewRequest(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     identity_id: str
     reviewer: str = ""
     review_type: str = "periodic"
@@ -85,7 +85,7 @@ class RecordAccessReviewRequest(BaseModel):
 
 
 class RecordPermissionChangeRequest(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     identity_id: str
     change_type: str = "grant"
     permission_name: str

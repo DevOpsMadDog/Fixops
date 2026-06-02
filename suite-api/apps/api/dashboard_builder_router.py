@@ -59,7 +59,7 @@ class CreateDashboardRequest(BaseModel):
     name: str
     description: str = ""
     owner_email: str = "unknown"
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class UpdateDashboardRequest(BaseModel):
@@ -103,7 +103,7 @@ class FromTemplateRequest(BaseModel):
     template_id: str
     name: str
     owner_email: str = "unknown"
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 # ---------------------------------------------------------------------------

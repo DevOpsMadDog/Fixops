@@ -62,7 +62,7 @@ class CreateTemplateRequest(BaseModel):
     sections: List[Dict[str, Any]] = Field(default_factory=list)
     schedule: Optional[str] = None
     recipients: List[str] = Field(default_factory=list)
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     created_by: str = "system"
 
 

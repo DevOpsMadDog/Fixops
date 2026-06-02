@@ -53,14 +53,14 @@ class ScanRequirementsRequest(BaseModel):
     """Scan a requirements.txt file content."""
 
     content: str
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class ScanPackageJsonRequest(BaseModel):
     """Scan a package.json file content."""
 
     content: str
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class EvaluatePolicyRequest(BaseModel):
@@ -68,13 +68,13 @@ class EvaluatePolicyRequest(BaseModel):
 
     packages: List[Dict[str, str]]
     policy: Dict[str, Any]
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class SetPolicyRequest(BaseModel):
     """Configure license policy rules for an org."""
 
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     rules: Dict[str, Any]
 
 

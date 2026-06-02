@@ -69,7 +69,7 @@ class CreateWorkflowRequest(BaseModel):
     conditions: List[WorkflowConditionRequest] = Field(default_factory=list)
     actions: List[WorkflowActionRequest] = Field(default_factory=list)
     enabled: bool = True
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     created_by: str = "api"
 
 
@@ -84,7 +84,7 @@ class UpdateWorkflowRequest(BaseModel):
 
 class EvaluateEventRequest(BaseModel):
     event: Dict[str, Any]
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 # ---------------------------------------------------------------------------

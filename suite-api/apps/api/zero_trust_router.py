@@ -66,7 +66,7 @@ class UpdatePolicyRequest(BaseModel):
 
 class EvaluateRequest(BaseModel):
     user_id: str
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     resource: str = ""
     device_id: str = ""
     device_compliant: bool = False

@@ -76,7 +76,7 @@ class AddMetricRequest(BaseModel):
 
 
 class ListReportsQuery(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     report_type: Optional[str] = None
     status: Optional[str] = None
 

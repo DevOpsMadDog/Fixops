@@ -67,7 +67,7 @@ class CreateIncidentRequest(BaseModel):
     type: str
     severity: str
     reported_by: str
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class UpdateStatusRequest(BaseModel):

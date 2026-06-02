@@ -56,7 +56,7 @@ SUPPORTED_PROVIDERS: List[str] = ["aws", "azure", "gcp", "oci", "alibaba", "ibm"
 class ScanRequest(BaseModel):
     provider: str = Field(..., description="Provider name: aws|azure|gcp|oci|alibaba|ibm")
     account_id: str = Field(..., min_length=1, description="Cloud account identifier")
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 # ---------------------------------------------------------------------------

@@ -43,7 +43,7 @@ class CreateModelRequest(BaseModel):
     name: str = Field(..., min_length=1)
     description: str = ""
     scope: str = ""
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class AddComponentRequest(BaseModel):

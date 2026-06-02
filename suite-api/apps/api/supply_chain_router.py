@@ -606,12 +606,12 @@ class AnalyzePackageRequest(BaseModel):
     package_name: str
     ecosystem: str = "pip"
     version: str = ""
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class AnalyzeSBOMRequest(BaseModel):
     sbom_id: str
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     db_path: str = "data/sbom.db"
 
 

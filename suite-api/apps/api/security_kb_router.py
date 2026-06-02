@@ -44,7 +44,7 @@ class ArticleCreate(BaseModel):
     framework: Optional[str] = None
     severity_context: Optional[str] = None
     author: str = "api"
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class ArticleUpdate(BaseModel):

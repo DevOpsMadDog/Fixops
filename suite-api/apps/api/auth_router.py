@@ -970,7 +970,7 @@ class SignupResponseBody(BaseModel):
     # Use as: X-API-Key: <api_key>  OR  Authorization: Bearer <api_key>
     api_key: Optional[str] = None
     api_key_id: Optional[str] = None
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 def _mint_signup_api_key(user_id: str, email: str, org_id: str) -> tuple:

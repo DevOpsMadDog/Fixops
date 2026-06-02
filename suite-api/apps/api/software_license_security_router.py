@@ -59,7 +59,7 @@ def _get_engine():
 
 
 class AddLicenseRecordRequest(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     package_name: str
     package_version: str = ""
     license_type: str = "unknown"
@@ -71,7 +71,7 @@ class AddLicenseRecordRequest(BaseModel):
 
 
 class RecordViolationRequest(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     record_id: str
     violation_type: str = "unknown"
     severity: str = "medium"
@@ -83,7 +83,7 @@ class ResolveViolationRequest(BaseModel):
 
 
 class CreatePolicyRequest(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     policy_name: str
     allowed_licenses: List[str] = []
     blocked_licenses: List[str] = []

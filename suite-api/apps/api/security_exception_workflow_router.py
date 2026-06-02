@@ -50,7 +50,7 @@ class CreateRequestModel(BaseModel):
     compensating_controls: str = ""
     priority: str = "medium"
     expires_at: Optional[str] = None
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class ReviewRequestModel(BaseModel):
@@ -59,18 +59,18 @@ class ReviewRequestModel(BaseModel):
     conditions: str = ""
     risk_rating: str = "medium"
     comments: str = ""
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class RenewRequestModel(BaseModel):
     renewed_by: str
     new_expiry: str
     reason: str = ""
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class RevokeRequestModel(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 # ---------------------------------------------------------------------------

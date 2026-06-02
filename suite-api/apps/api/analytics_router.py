@@ -95,7 +95,7 @@ class FindingResponse(BaseModel):
     """Response model for a finding."""
 
     id: str
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     application_id: Optional[str]
     service_id: Optional[str]
     rule_id: str

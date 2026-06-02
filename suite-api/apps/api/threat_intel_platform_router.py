@@ -110,7 +110,7 @@ class ReportCreate(BaseModel):
 class CheckIndicatorRequest(BaseModel):
     value: str
     indicator_type: str
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 # ---------------------------------------------------------------------------

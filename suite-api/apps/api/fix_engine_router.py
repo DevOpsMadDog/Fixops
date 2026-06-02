@@ -56,7 +56,7 @@ class CreatePlaybookRequest(BaseModel):
     requires_approval: bool = False
     auto_rollback: bool = True
     target_finding_id: Optional[str] = None
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     created_by: str = "system"
 
 

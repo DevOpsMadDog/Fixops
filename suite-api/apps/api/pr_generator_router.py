@@ -62,7 +62,7 @@ class BatchGeneratePRRequest(BaseModel):
     findings: List[Dict[str, Any]] = Field(..., description="List of security findings")
     repo: str
     owner: str
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 # ---------------------------------------------------------------------------

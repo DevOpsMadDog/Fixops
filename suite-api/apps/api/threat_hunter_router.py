@@ -134,7 +134,7 @@ class FireTriggerRequest(BaseModel):
 
     trigger_type: HuntTriggerType
     context: Dict[str, Any] = Field(default_factory=dict)
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class ExportIOCsResponse(BaseModel):

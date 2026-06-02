@@ -52,7 +52,7 @@ def _get_engine():
 # ---------------------------------------------------------------------------
 
 class EndpointCreate(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     service_name: str
     endpoint_path: str
     http_method: str
@@ -65,7 +65,7 @@ class EndpointCreate(BaseModel):
 
 
 class ScanCreate(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     scan_name: str
     scan_target: str
     scan_type: str = "passive"
@@ -77,14 +77,14 @@ class ScanComplete(BaseModel):
 
 
 class ChangeCreate(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     endpoint_id: str
     change_type: str
     change_description: str = ""
 
 
 class LinkLayerRequest(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     layer: str = "api"
 
 

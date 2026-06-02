@@ -62,18 +62,18 @@ class ImportRequest(BaseModel):
 
 
 class CoverageRequest(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     file_paths: List[str] = Field(..., description="List of file paths to evaluate")
 
 
 class UnownedRequest(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     file_paths: List[str] = Field(..., description="List of file paths to check")
 
 
 class AutoAssignRequest(BaseModel):
     findings: List[Dict[str, Any]] = Field(..., description="List of finding dicts")
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 # ============================================================================

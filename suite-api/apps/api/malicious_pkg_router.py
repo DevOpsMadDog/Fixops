@@ -62,27 +62,27 @@ def _get_intel_engine():
 
 
 class ScoreReq(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     package_purl: str = Field(..., min_length=1)
     signals: Dict[str, Any] = Field(default_factory=dict)
 
 
 class QuarantineReq(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     package_purl: str = Field(..., min_length=1)
     reason: str = Field(..., min_length=1)
     quarantined_by: str = Field(..., min_length=1)
 
 
 class ReleaseReq(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     package_purl: str = Field(..., min_length=1)
     released_by: str = Field(..., min_length=1)
     reason: str = Field(..., min_length=1)
 
 
 class SignalReq(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
     package_purl: str = Field(..., min_length=1)
     signal_type: str = Field(..., min_length=1)
     value: Any = ""

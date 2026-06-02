@@ -67,7 +67,7 @@ class RotationRecord(BaseModel):
 
 
 class OrgQuery(BaseModel):
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 # ------------------------------------------------------------------

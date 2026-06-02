@@ -50,7 +50,7 @@ class CreateCaseRequest(BaseModel):
     breach_date: Optional[str] = None
     regulatory_deadline: Optional[str] = None
     status: str = "suspected"
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class UpdateCaseRequest(BaseModel):
@@ -69,14 +69,14 @@ class LogNotificationRequest(BaseModel):
     notification_type: str
     sent_at: str
     content_summary: str = ""
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 class AddReportRequest(BaseModel):
     regulator: str
     report_date: str
     status: str = "draft"
-    org_id: str = Depends(get_org_id)
+    org_id: str = "default"
 
 
 # ---------------------------------------------------------------------------
