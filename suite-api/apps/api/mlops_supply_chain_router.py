@@ -205,7 +205,9 @@ def analyze_package(body: PackageAnalyzeRequest) -> PackageAnalyzeResponse:
             is_typosquat=result["is_typosquat"],
             is_abandoned=result["is_abandoned"],
             similar_packages=result["similar_packages"],
-            days_since_last_release=result["days_since_last_release"],
+            # analyze_package omits this key when registry release metadata isn't
+            # available — accessing it directly 500'd. Default to 0 (not-computed).
+            days_since_last_release=result.get("days_since_last_release", 0),
             risks=result["risks"],
         )
     except Exception as exc:
