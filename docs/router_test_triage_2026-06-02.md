@@ -33,3 +33,20 @@ override to each file's app/client builder (the pattern used by 30 already-green
 tests). NOT product bugs — the endpoints are auth-protected and working.
 Also: security_baseline (test-data pollution 10!=1), nuclei (auth), sse
 (pydantic __pydantic_core_schema__ test edge), webhook_router/ws_events (auth-heavy).
+
+## Engine-test T3 slice (357 files) — round 2 findings (2026-06-02 ~13:45)
+REAL product bugs FIXED (clean systemic class, all live runtime errors):
+- 95 Depends-in-Pydantic field 500s (64bf56dc) + 6 SQL `FROM xWHERE`/`xSET` concats (c7ab0b91)
+- anomaly_ml `anomaly.anomaly_id`→`.id` AttributeError + 5 SQL `<col>FROM` concats
+  (recorded_at/opened_at/resolved_at/cnt/timestamp/name FROM) across anomaly_ml,
+  vulnerability_analytics, threat_hunting, deduplication(core), trustgraph/maintenance (53eaf240)
+Verified fixed: questionnaire 58, security_registry 62, api_abuse 58, deduplication 36,
+log_management 40, anomaly_ml 29, vulnerability_analytics 57, threat_hunting 67, intelligent_security 34.
+
+REMAINING engine-test fails = FOUNDER-BLOCKED test-infra / environment / stale (NOT product bugs):
+- checkov-binary deps: compliance_scanner, config_benchmark, kubernetes_security ("checkov produced no output")
+- env-var deps: backup_engine (FIXOPS_BACKUP_KEY not set)
+- missing-table fixtures: correlation_engine ("no such table: security_findings")
+- stale assertions (product improved past stub): semantic_analyzer (DID NOT RAISE NotImplementedError),
+  behavioral_analytics (assert 54.14 == 0), agentless_snapshot_scan_engine (assert 0 == 3, needs cloud creds)
+- openclaw_engine: honest NucleiNotConfiguredError (needs nuclei sidecar — founder-blocked tool dep)
