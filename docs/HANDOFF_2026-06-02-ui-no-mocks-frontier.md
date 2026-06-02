@@ -95,3 +95,11 @@ risk-quantification, cyber-insurance. Fix by adding stable/unique key= to the fl
 The app's global 404 exception handler rewrites per-route HTTPException(404) bodies into a generic
 "errors#routing" message — a real "not found" in curl looks like a routing-404. Verify with a REAL
 id before concluding a route is unregistered (cost time chasing soc-metrics ack/resolve this session).
+
+## UPDATE 4 — cosmetic key-warning investigation
+Fixed cross-domain-analytics dup-key. The other ~7 are DUP-key (every .map already has key=, but a
+value repeats) — need browser React-DevTools to pinpoint which key collides per page; 4 are behind
+<Navigate> redirects to hub tabs (trace: route -> hub -> active tab component), 1 is a static
+marketing page (competitive-comparison). Zero customer/functional impact (dev-only, stripped in prod).
+Recommended approach next session: open each page with React DevTools, read the "two children with
+same key" stack to the exact component, add index to that one key. Low priority.
