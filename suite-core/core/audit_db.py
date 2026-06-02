@@ -101,8 +101,14 @@ class AuditDB:
             log.id = str(uuid.uuid4())
         conn = self._get_connection()
         try:
+            # Name columns explicitly — the table gained an org_id column via
+            # migration (AUTHZ-VULN-09); a positional VALUES(?×11) crashed with
+            # "12 columns but 11 values supplied".
             conn.execute(
-                """INSERT INTO audit_logs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO audit_logs
+                   (id, event_type, severity, user_id, resource_type, resource_id,
+                    action, details, ip_address, user_agent, timestamp, org_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     log.id,
                     log.event_type.value,
@@ -115,6 +121,7 @@ class AuditDB:
                     log.ip_address,
                     log.user_agent,
                     log.timestamp.isoformat(),
+                    getattr(log, "org_id", None),
                 ),
             )
             conn.commit()
