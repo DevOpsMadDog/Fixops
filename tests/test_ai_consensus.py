@@ -190,16 +190,25 @@ class TestMultiAIOrchestrator:
             coro.close()
             raise asyncio.TimeoutError()
 
-        with patch("core.mpte_advanced.asyncio.wait_for", mock_wait_for):
-            result = await orchestrator._call_llm("openai", "test prompt")
+        # The orchestrator logs via structlog (not stdlib), so capture with
+        # structlog's own test capture rather than caplog.
+        import structlog
+
+        with structlog.testing.capture_logs() as logs:
+            with patch("core.mpte_advanced.asyncio.wait_for", mock_wait_for):
+                result = await orchestrator._call_llm("openai", "test prompt")
 
         # Should return fallback response
         parsed = json.loads(result)
         assert parsed["metadata"]["fallback"] is True
         assert "timed out" in parsed["reasoning"].lower()
 
-        # Verify timeout warning was logged
-        assert any("timed out" in record.message.lower() for record in caplog.records)
+        # Verify the timeout was logged (structlog event "mpte_llm_timeout").
+        assert any(
+            "timeout" in str(entry.get("event", "")).lower()
+            or "timed out" in str(entry.get("event", "")).lower()
+            for entry in logs
+        )
 
     @pytest.mark.asyncio
     async def test_get_architect_decision(self, orchestrator, mock_llm_manager):
