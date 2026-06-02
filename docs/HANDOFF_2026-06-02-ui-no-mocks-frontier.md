@@ -1,63 +1,52 @@
-# HANDOFF — UI NO-MOCKS Frontier (2026-06-02)
+# HANDOFF — UI NO-MOCKS / Customer-Readiness Frontier (2026-06-02, updated PM)
 
-Branch: `chore/ui-prune-plan-2026-05-24`. All commits LOCAL (push founder-blocked).
-Session commits: 120 (since 359b05e6). Stack live: backend :8000 (8319 routes), dev :5173.
-Final gate: **create_app boots 8319 routes; Beast smoke 756/756 passed.**
+Branch `chore/ui-prune-plan-2026-05-24`. All commits LOCAL (push founder-blocked).
+Session commits: 136 (since 359b05e6). Stack live: backend :8000 (8319 routes, rate-limit RESTORED),
+dev :5173. Final gate: create_app boots 8319 routes; Beast smoke 756/756.
 
-## What shipped this session (every fix browser- or curl-verified on the live stack)
+## Key process learning this session
+The route-sweep's 429s were MASKING real per-route bugs. A "class-clean" build is NOT
+"customer-ready" — only a CLEAN sweep (rate-limit disabled, then restored) reveals the truth.
+Reproduce: restart backend with FIXOPS_DISABLE_RATE_LIMIT=1, run e2e/route-sweep, RESTORE after.
 
-### Mock data removed (NO-MOCKS rule)
-- 36 dead unused mock-data consts across 9 dashboards (pages already render real liveData).
-- **SECURITY**: hardcoded 43-char API-key fallback removed from 19 files (was a universal
-  auth-bypass credential shipping in the client bundle).
+## DONE (all build-green; representative routes browser-verified 0 console errors)
+- **All white-screen crashes** (≈13): non-array .map/.filter (devsecops, regulatory-tracker,
+  security-chaos, security-health, vuln-correlation, container, deception, + 51-site arr() class);
+  .toFixed/.replace/.slice undefined (cyber-insurance fmt$, security-posture, certificates);
+  <div>-in-<tbody> (firmware, security-chaos, security-tabletop); EmptyState icon element->component
+  (prowler/servicenow/siem targets tabs).
+- **All 401 auth**: wrong localStorage keys (apiKey x6, aldeci_api_key x15 -> aldeci.authToken);
+  api-config static empty API_KEY -> getApiKey() runtime resolver (4 hub consumers); ChangelogPage.
+- **Mock data / security**: 36 dead mock consts removed; hardcoded API-key fallback removed (19 files).
+- **~22 endpoint repoints/fixes** to real existing paths (ai-advisor, api-threat-protection,
+  digital-identity<->identity-analytics, gap-analysis, dast, data-pipeline, patch-priority, incident,
+  event-timeline, ir, rules/dsl, cloud-iam, cost-optimization, security-investment, threat-response,
+  soc-metrics root+analysts, feeds/kev->threat-intel/kev, ti-confidence/iocs->high-confidence,
+  security-kpis 5->1 /executive).
+- **Honest empty-200** (not 404) for empty/air-gapped cache: threat-intel cves/recent + kev.
+- **Tenancy**: 34x hardcoded org_id=default -> real getStoredOrgId() (14 dashboards).
+- **awareness-metrics 422** -> metric_type optional.
+- **Infra**: vite /api proxy collision fixed; container-registry /images + sbom-export /diff added;
+  CNAPP/cloud-posture/SBOM authed real-org; e2e/route-sweep.spec.ts harness built.
 
-### Crashes (white-screen) fixed
-- `.map`-on-non-array class: 51 sites / 21 files wrapped with `arr()` coercion.
-- CertificatesPanel `.slice` on undefined `cert_id` guarded.
-- firmware-security invalid `<div>` inside `<tbody>` → proper `<TableRow><TableCell colSpan>`.
-- BUHeatmapPanel React key fallback.
+## REMAINING — buildable, next sessions (resilient pages: allSettled + EmptyStates, NO crashes)
+Genuine missing GET endpoints (need real backend construction or page rework; engine support varies):
+- soc-metrics/queue (+ queue/{id}/ack,/resolve) — SOC triage queue, no backend.
+- sca/vulns, sca/licenses — only scan-level /scans/{id}/vulnerable-deps + /license-report exist;
+  need org-level aggregate endpoints.
+- hunting/iocs, hunting/coverage — threat_hunting has /ioc-correlate (POST) only.
+- awareness-score/orgs/{org}/risk-trend — has /scores + /stats; add risk-trend or repoint.
+- feed-subscriptions/logs, incident/stats, incident-timeline/events, security-chaos/observations.
+React key warnings (cosmetic, non-blocking): competitive-comparison, compliance-calendar,
+cross-domain-analytics, exception-workflow, firewall-policy, grc-assessment, risk-quantification,
+cyber-insurance.
+Possible empty-404 anti-patterns to verify-then-convert IF hit on mount (sweep didn't flag, so
+verify first): attack_sim breach-impact, micro_pentest scan-data, security_telemetry datapoints.
 
-### Auth (401) fixed
-- 6 files read the WRONG localStorage key `apiKey` → corrected to `aldeci.authToken`.
-- ChangelogPage raw fetch had no auth header → added.
+## Founder-blocked (unchanged): push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
 
-### Endpoint mismatches (404) — 10 groups repointed to real existing endpoints
-ai-advisor/advisories→recommendations, api-threat-protection/threats→events,
-digital-identity/identities→profiles, identity-analytics/profiles→identities,
-gap-analysis analyses→assessments + stats→summary, dast/scans→findings,
-data-pipeline/sources→pipelines, patch-priority/→stats, incident/incidents→incident-triage/incidents,
-event-timeline/timelines→summary, ir/stats→metrics, rules/dsl/rules→rules/dsl (+POST→publish),
-cloud/principals→cloud-identity/identities.
-
-### Validation (422) fixed
-- awareness-metrics /metrics/latest + /trend: `metric_type` made optional (router + engine).
-
-### Tenancy
-- 34× hardcoded `org_id=default` across 14 dashboards → real `getStoredOrgId()`.
-  (Uses the real stored org; independent of the founder-flagged org-PRECEDENCE decision.)
-
-### Infra / proxy
-- vite `/api` proxy prefix collision → `^/api/` (unblocked the `/api-security*` SPA route family).
-- container-registry real `GET /images`; sbom-export real `GET /diff` endpoints added.
-- CNAPP + 3 cloud-posture panels + SBOM: authed real-org fetch.
-- Built `e2e/route-sweep.spec.ts` — automated all-routes NO-MOCKS/runtime gate (real authed
-  session; records console errors + failed /api/v1 per route → /tmp/route_sweep_report.json).
-
-## Remaining (NOT founder-blocked but needs product/backend design — see UI_SWEEP_REMAINING_2026-06-02.md)
-- `risk/brs/bu/default` — endpoint is correct; "default" isn't a real BU. UI should pick a real
-  BU or show an onboarding empty-state (product decision).
-- threat-hunting `/findings` + `/timeline` (the `/hunting` page) — no backend endpoints exist;
-  page is resilient (Promise.allSettled, loads fine). Needs real aggregate endpoints to populate
-  those two tabs (feature scoping).
-- 2 cosmetic React key warnings (competitive-comparison marketing page, compliance-calendar) —
-  warnings only, no functional impact.
-
-## Founder-blocked (recorded, unchanged)
-push (VPN-off + fresh PAT), Postgres migration, test-infra fixture, org-PRECEDENCE order,
-FIPS-CMVP, PIV-CAC, GPU, Stripe.
-
-## Notes for next session
-- A background process intermittently leaves BROKEN auto-edits (e.g. `Depends()` inside Pydantic
-  models) in tracked source. ALWAYS `git status --porcelain` and inspect/revert stray edits before
-  committing. (Caught + reverted cspm_router.py + deduplication_router.py this session.)
-- The route-sweep trips the backend 429 rate limiter (a real feature) — filter 429s when triaging.
+## Watch-outs
+- A background process leaves BROKEN auto-edits (Depends-in-Pydantic) in tracked source mid-session.
+  ALWAYS `git status --porcelain` + inspect/revert before finishing. (Caught cspm/dedup this session.)
+- src/lib `git add <dir>` warns "ignored" (a subpath is ignored) but the actual .ts files ARE tracked —
+  add by explicit file path; verify with `git show HEAD:<file>`.
