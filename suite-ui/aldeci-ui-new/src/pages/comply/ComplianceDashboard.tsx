@@ -7,7 +7,8 @@
  * - Control mapping table with framework/status filtering
  * - 12-month compliance trend line chart
  *
- * Data: real API with graceful mock fallback (same pattern as CISODashboard)
+ * Data: real API only (NO MOCKS) — frameworks from the compliance API; controls/evidence/trend
+ * show real data or an honest empty state. Never fabricated compliance numbers.
  */
 
 import { toArray } from "@/lib/api-utils";
@@ -94,156 +95,6 @@ interface TrendPoint {
   "NIST-CSF": number;
   CIS: number;
   GDPR: number;
-}
-
-// ══════════════════════════════════════════════════════════════
-// Mock Data (used as fallback when API is unavailable)
-// ══════════════════════════════════════════════════════════════
-
-const MOCK_FRAMEWORKS: Framework[] = [
-  {
-    id: "soc2",
-    name: "SOC 2 Type II",
-    shortName: "SOC2",
-    score: 92,
-    controlsPassed: 74,
-    totalControls: 80,
-    status: "compliant",
-    lastAudit: "2026-01-15",
-    nextAudit: "2026-07-15",
-    evidenceCollected: 68,
-    evidenceRequired: 74,
-  },
-  {
-    id: "pci-dss",
-    name: "PCI-DSS v4.0",
-    shortName: "PCI-DSS",
-    score: 81,
-    controlsPassed: 49,
-    totalControls: 60,
-    status: "partial",
-    lastAudit: "2025-11-20",
-    nextAudit: "2026-05-20",
-    evidenceCollected: 41,
-    evidenceRequired: 55,
-  },
-  {
-    id: "hipaa",
-    name: "HIPAA",
-    shortName: "HIPAA",
-    score: 88,
-    controlsPassed: 22,
-    totalControls: 25,
-    status: "compliant",
-    lastAudit: "2025-12-08",
-    nextAudit: "2026-06-08",
-    evidenceCollected: 19,
-    evidenceRequired: 22,
-  },
-  {
-    id: "iso27001",
-    name: "ISO 27001:2022",
-    shortName: "ISO27001",
-    score: 91,
-    controlsPassed: 36,
-    totalControls: 40,
-    status: "compliant",
-    lastAudit: "2026-02-01",
-    nextAudit: "2027-02-01",
-    evidenceCollected: 34,
-    evidenceRequired: 36,
-  },
-  {
-    id: "nist-csf",
-    name: "NIST CSF 2.0",
-    shortName: "NIST-CSF",
-    score: 74,
-    controlsPassed: 37,
-    totalControls: 50,
-    status: "partial",
-    lastAudit: "2025-10-14",
-    nextAudit: "2026-04-14",
-    evidenceCollected: 29,
-    evidenceRequired: 45,
-  },
-  {
-    id: "cis",
-    name: "CIS Controls v8",
-    shortName: "CIS",
-    score: 68,
-    controlsPassed: 41,
-    totalControls: 60,
-    status: "partial",
-    lastAudit: "2025-09-30",
-    nextAudit: "2026-03-30",
-    evidenceCollected: 35,
-    evidenceRequired: 55,
-  },
-  {
-    id: "gdpr",
-    name: "GDPR",
-    shortName: "GDPR",
-    score: 95,
-    controlsPassed: 47,
-    totalControls: 50,
-    status: "compliant",
-    lastAudit: "2026-03-01",
-    nextAudit: "2027-03-01",
-    evidenceCollected: 46,
-    evidenceRequired: 47,
-  },
-];
-
-const MOCK_EVIDENCE_ITEMS: EvidenceItem[] = [
-  { id: "e1", framework: "PCI-DSS", controlId: "PCI-DSS-6.5", title: "Penetration test report Q1 2026", dueDate: "2026-04-20", status: "in-progress", priority: "critical", assignee: "Alex Chen" },
-  { id: "e2", framework: "NIST-CSF", controlId: "NIST-PR.AC-4", title: "Access control policy v3 approval", dueDate: "2026-04-18", status: "pending", priority: "high", assignee: "Maria Santos" },
-  { id: "e3", framework: "CIS", controlId: "CIS-2.1", title: "Software asset inventory export", dueDate: "2026-04-15", status: "overdue", priority: "high", assignee: "Jordan Lee" },
-  { id: "e4", framework: "PCI-DSS", controlId: "PCI-DSS-10.2", title: "Audit log review records March", dueDate: "2026-04-22", status: "pending", priority: "medium", assignee: "Alex Chen" },
-  { id: "e5", framework: "NIST-CSF", controlId: "NIST-DE.CM-1", title: "Network monitoring configuration screenshots", dueDate: "2026-04-30", status: "in-progress", priority: "medium", assignee: "Sam Park" },
-  { id: "e6", framework: "CIS", controlId: "CIS-4.2", title: "Privileged account inventory — updated list", dueDate: "2026-04-14", status: "overdue", priority: "critical", assignee: "Jordan Lee" },
-  { id: "e7", framework: "SOC2", controlId: "SOC2-CC7.2", title: "Incident response test walkthrough recording", dueDate: "2026-05-10", status: "pending", priority: "medium", assignee: "Maria Santos" },
-  { id: "e8", framework: "HIPAA", controlId: "HIPAA-164.308", title: "Risk analysis update (annual)", dueDate: "2026-06-01", status: "pending", priority: "low", assignee: "Sam Park" },
-  { id: "e9", framework: "ISO27001", controlId: "ISO-A.8.3", title: "Media handling procedures document", dueDate: "2026-05-15", status: "collected", priority: "low", assignee: "Alex Chen" },
-  { id: "e10", framework: "GDPR", controlId: "GDPR-Art32", title: "Data encryption certificate renewal", dueDate: "2026-07-01", status: "pending", priority: "medium", assignee: "Maria Santos" },
-];
-
-const MOCK_CONTROLS: Control[] = [
-  { id: "c1", framework: "SOC2", controlId: "SOC2-CC6.1", description: "Logical access security software, infrastructure, and architectures", status: "compliant", evidenceCount: 4, findingsCount: 0, lastReviewed: "2026-03-15" },
-  { id: "c2", framework: "SOC2", controlId: "SOC2-CC6.2", description: "New internal and external users provisioning restricted", status: "compliant", evidenceCount: 3, findingsCount: 0, lastReviewed: "2026-03-15" },
-  { id: "c3", framework: "SOC2", controlId: "SOC2-CC7.2", description: "System components monitored to detect anomalies", status: "partial", evidenceCount: 2, findingsCount: 1, lastReviewed: "2026-02-28" },
-  { id: "c4", framework: "PCI-DSS", controlId: "PCI-DSS-6.5", description: "Develop and maintain secure systems and applications", status: "non-compliant", evidenceCount: 0, findingsCount: 3, lastReviewed: "2026-01-20" },
-  { id: "c5", framework: "PCI-DSS", controlId: "PCI-DSS-10.2", description: "Implement audit trails to link all access to system components", status: "partial", evidenceCount: 1, findingsCount: 2, lastReviewed: "2026-02-10" },
-  { id: "c6", framework: "PCI-DSS", controlId: "PCI-DSS-11.3", description: "Implement a methodology for penetration testing", status: "non-compliant", evidenceCount: 0, findingsCount: 2, lastReviewed: "2025-12-01" },
-  { id: "c7", framework: "HIPAA", controlId: "HIPAA-164.308", description: "Security management process — risk analysis and management", status: "compliant", evidenceCount: 5, findingsCount: 0, lastReviewed: "2026-03-01" },
-  { id: "c8", framework: "HIPAA", controlId: "HIPAA-164.312", description: "Technical safeguards — access control and encryption", status: "compliant", evidenceCount: 4, findingsCount: 0, lastReviewed: "2026-03-01" },
-  { id: "c9", framework: "ISO27001", controlId: "ISO-A.8.3", description: "Media handling — protection and disposal of physical media", status: "partial", evidenceCount: 1, findingsCount: 1, lastReviewed: "2026-02-20" },
-  { id: "c10", framework: "ISO27001", controlId: "ISO-A.9.1", description: "Access control policy — establish, document and review", status: "compliant", evidenceCount: 3, findingsCount: 0, lastReviewed: "2026-03-10" },
-  { id: "c11", framework: "NIST-CSF", controlId: "NIST-PR.AC-4", description: "Access permissions and authorizations managed", status: "partial", evidenceCount: 2, findingsCount: 2, lastReviewed: "2026-01-15" },
-  { id: "c12", framework: "NIST-CSF", controlId: "NIST-DE.CM-1", description: "Network monitoring to detect potential cybersecurity events", status: "non-compliant", evidenceCount: 1, findingsCount: 3, lastReviewed: "2025-11-30" },
-  { id: "c13", framework: "CIS", controlId: "CIS-2.1", description: "Establish and maintain a software asset inventory", status: "non-compliant", evidenceCount: 0, findingsCount: 2, lastReviewed: "2025-10-01" },
-  { id: "c14", framework: "CIS", controlId: "CIS-4.2", description: "Establish and maintain a service account inventory", status: "non-compliant", evidenceCount: 0, findingsCount: 3, lastReviewed: "2025-10-01" },
-  { id: "c15", framework: "GDPR", controlId: "GDPR-Art32", description: "Security of processing — encryption and pseudonymisation", status: "compliant", evidenceCount: 5, findingsCount: 0, lastReviewed: "2026-03-20" },
-  { id: "c16", framework: "GDPR", controlId: "GDPR-Art25", description: "Data protection by design and by default", status: "compliant", evidenceCount: 4, findingsCount: 0, lastReviewed: "2026-03-20" },
-  { id: "c17", framework: "SOC2", controlId: "SOC2-CC8.1", description: "Changes to infrastructure, data, and software controlled", status: "compliant", evidenceCount: 3, findingsCount: 0, lastReviewed: "2026-03-15" },
-  { id: "c18", framework: "NIST-CSF", controlId: "NIST-RS.CO-2", description: "Incidents reported per established criteria", status: "not-assessed", evidenceCount: 0, findingsCount: 0, lastReviewed: "2025-09-01" },
-];
-
-function generateMockTrend(): TrendPoint[] {
-  const months = ["May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr"];
-  const bases = { SOC2: 84, "PCI-DSS": 71, HIPAA: 80, ISO27001: 83, "NIST-CSF": 63, CIS: 58, GDPR: 87 };
-  return months.map((month, i) => {
-    const bump = i * 0.7;
-    return {
-      month,
-      SOC2: Math.min(100, Math.round(bases.SOC2 + bump + (Math.sin(i / 3) * 2))),
-      "PCI-DSS": Math.min(100, Math.round(bases["PCI-DSS"] + bump + (Math.cos(i / 4) * 3))),
-      HIPAA: Math.min(100, Math.round(bases.HIPAA + bump * 0.8 + (Math.sin(i / 5) * 1.5))),
-      ISO27001: Math.min(100, Math.round(bases.ISO27001 + bump + (Math.cos(i / 3) * 2))),
-      "NIST-CSF": Math.min(100, Math.round(bases["NIST-CSF"] + bump * 1.5 + (Math.sin(i / 4) * 2))),
-      CIS: Math.min(100, Math.round(bases.CIS + bump * 1.4 + (Math.cos(i / 5) * 2))),
-      GDPR: Math.min(100, Math.round(bases.GDPR + bump * 0.5 + (Math.sin(i / 6) * 1))),
-    };
-  });
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -921,11 +772,12 @@ export default function ComplianceDashboard() {
         evidenceCollected: f.evidence_collected ?? 0,
         evidenceRequired: f.evidence_required ?? 0,
       }))
-    : MOCK_FRAMEWORKS;
+    : [];  // NO MOCKS: empty (branded EmptyState) when the API returns no frameworks — never fabricated
 
-  const controls: Control[] = MOCK_CONTROLS; // Controls always from mock (not in API yet)
-  const evidenceItems: EvidenceItem[] = MOCK_EVIDENCE_ITEMS;
-  const trendData: TrendPoint[] = generateMockTrend();
+  // NO MOCKS: honest empty until these endpoints are wired — never fabricated controls/evidence.
+  const controls: Control[] = [];
+  const evidenceItems: EvidenceItem[] = [];
+  const trendData: TrendPoint[] = toArray((statusQuery.data as any)?.trend) as TrendPoint[];
 
   // Computed KPIs
   const compliantCount = frameworks.filter((f) => f.status === "compliant").length;
