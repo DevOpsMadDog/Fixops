@@ -621,3 +621,26 @@ Campaign T3 product-bug total (ticks 9-13): **6 real product bugs found + fixed*
 data-transform: 1, [+routing/endpoint fixes earlier]); router slice 0. Frontier: UI clean (4 dims)
 + backend hardened/verified (6 attack classes) + router/engine/data-transform T3 slices triaged.
 Remaining: product-blocked (Brain hero, /billing, GCP KMS) + founder-blocked.
+
+---
+
+## Addendum 2026-06-03 (tick 14) — systematic bug-class sweeps: 2 classes confirmed exhausted
+
+Two statically-derived real-bug-class scans (both generalised from real bugs found earlier),
+**0 new bugs**:
+- **Duplicate-class shadow** (generalised from tick-13 container_scanner): AST+grep over the whole
+  codebase → 17 files have a class name defined >1x, but ALL are benign — `try: pydantic /
+  except ImportError: dataclass` fallbacks (iac_scanner, data_security), `try: BaseHTTPMiddleware /
+  except: plain` middleware fallbacks (audit_logger/audit_log/rate_limiter_v2), otel fallbacks
+  (telemetry), or nested Pydantic `class Config` (braintrust/pagerduty). container_scanner was the
+  UNIQUE unconditional shadow (fixed tick 13). Class swept.
+- **SUM(…)→NULL-on-empty** (generalised from tick-11 threat_exposure): ~30 engines use SUM(CASE)
+  without SQL COALESCE, but spot-checks confirm they Python-coalesce the result (`totals[x] or 0`,
+  `.get(x,0)`, `int(… or 0)`) — safe. threat_exposure was the lone partial-coalesce slip (fixed).
+  Class effectively handled.
+
+Campaign real-bug total: ~10 fixed across routing/endpoint, engine (3), data-transform (1:
+container-scan crash), + the red-team hardenings (3). Statically-findable + test-findable frontier
+across all swept slices (router/engine/data-transform; lazy-import/Depends/SQL-concat/dup-class/
+SUM-None) is exhausted. Frontier: UI clean (4 dims) + backend hardened/verified + T3 triaged.
+Remaining: product-blocked (Brain hero, /billing, GCP KMS) + founder-blocked.
