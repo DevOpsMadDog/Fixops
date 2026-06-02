@@ -793,3 +793,27 @@ not source). Campaign real-bug total: 8 fixed + this 740-dup architecture findin
 Remaining: product/architecture-blocked (dup-route consolidation, Brain hero, /billing, GCP KMS,
 unified compliance API, IoT scan exposure, two-engine consolidations) + founder-blocked (push,
 env-tools, Postgres, FIPS, PIV, GPU, Stripe, batch auth-rot tests).
+
+---
+
+## 2026-06-03 ralph continuation — T3 sweep real-bug harvest + hollow-moat realness
+
+**14 commits this session.** Method: isolate→classify→verify-LIVE on T3 d-m sweep failures. Code is source of truth; verified every fix against the running app/engine, not self-reports. Push remains blocked (committed locally only).
+
+### Real PRODUCT bugs fixed (verified live)
+1. `id_allocator.ensure_ids` — JARVIS swarm rewrite dropped component_id minting + made run_id non-deterministic (uuid4) despite docstring promising deterministic. Restored deepcopy + C-<stem> component_id + content-hashed run_id. (`ccca00e5`)
+2. CLI stdout hygiene — structlog default logger writes to STDOUT + TrustGraph bus logs at import → every `core.cli` cmd prepended ~16 log lines, breaking json.loads on stdout. Routed logging to stderr at cli.py top. Also: `inventory add` graceful duplicate handling; FIXOPS_DB_PATH test isolation. (`dc5a48ff`)
+3. `iac_scanner_router` /api/v1/iac/policy/eval 500 — stdlib logger called with structlog kwargs (policy_id=). → structlog.get_logger. (committed)
+4. `websocket_alerts_router` — stdlib logger + connection_id= kwarg on WS disconnect. → structlog. (committed)
+5. Azure Key Vault `sign()` — missing algorithm arg (type:ignore masked it); would fail in PROD. (committed)
+6. `/inputs/sbom` 500 on gzip upload — format pre-pass json.load on raw gzip bytes (only caught JSONDecodeError). (`d057374b`)
+7. `/feedback` — generic error hid which field invalid; now surfaces recorder validation msg. (`88105556`)
+
+### Hollow moats made REAL (engine built-in defaults; overlay still overrides) — `5e953af3`
+Default overlay flag-enables modules but supplies NO content config → silent no-op. Fixed ai_agents (7-framework AI-BOM watchlist), ssdlc (5-stage map, all 14 evaluators), iac (8 IaC targets), tenancy (1 default tenant). See memory `project_hollow_pipeline_modules_2026-06-03`. **TODO: audit probabilistic/exploit_signals/context_engine/performance/enhanced_decision the same way.**
+
+### Test-rot repaired (product was correct; tests stale)
+dashboard_builder (org from header not body), graphql_schema (X-API-Key auth, 84/84), event_stream (dep-override auth, 51/51), feature3 ws (pop JWT secret for dev pass-through), executive_reports + fips_encryption (honor honest-null / honest-False; no fabrication), graphrag_cspm (accept honest 503 not_configured).
+
+### Status
+Beast smoke **756/756** green throughout. test_end_to_end **4/4**. Pre-existing (NOT mine, verified by stash): `test_tenancy_lint` 2 fails = empty `specs/tenancy_allowlist.txt` (regen: `python scripts/tenancy_lint.py --generate-allowlist`). Founder-blocked unchanged: push, FIPS-CMVP cert, cloud creds (CSPM live scan), Postgres.
