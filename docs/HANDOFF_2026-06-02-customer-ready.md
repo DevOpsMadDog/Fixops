@@ -878,3 +878,12 @@ All green: create_app 8345, Beast smoke 756/756.
 **Deferred (legacy-outdated wholesale redesigns — full rewrites):** analytics_cli, api_dependencies, compliance_gap_analysis (phantom /compliance-automation/*; real = /api/v1/compliance/*), beast_mode_integration (zero_trust dataclass→dict+policy), snyk, run_registry; council_adapter (founder/arch: consensus semantics + cost_usd=0.02-on-0-providers flag).
 **Founder-blocked/env-dep:** agent_memory_bridge (order-dependent test-infra pollution; product verified), abuseipdb/security_connectors_unit/sso_provider (vendor creds/DNS), autonomous_cycle, Stripe.
 All green: create_app 8345, Beast smoke 756/756 (ingest timing flake only).
+
+### 2026-06-03 (cont.) — a-c T3 sweep COMPLETE (21 files triaged)
+**Real bugs fixed:** crypto key_id-at-hybrid; audit_db org_id INSERT crash (broken SCIF audit trail); compliance_mapping_engine ignored FIXOPS_DATA_DIR (isolation/config).
+**Real arch (founder direction):** CSPM ingest-first (get_posture aggregates ingested cloud findings, honest no-data, no fabrication).
+**Test restorations (product correct):** cspm rule CIS ids; code_intel symbols 404 + /cspm/score real-200; bulk_operations auth (12→0); ai_consensus structlog capture; aldeci_self_scan accounting built; container_runtime stale-date time-bomb→relative; bulk export sync-shape; customer_journey pipeline POST path (/api/v1/pipeline/run); autonomous_cycle dropped broken e2e re-exports (16 fixture errors).
+**Deferred — legacy-outdated wholesale redesigns (full rewrites needed):** analytics_cli, api_dependencies, compliance_gap_analysis (phantom /compliance-automation/* — real is /api/v1/compliance/*), beast_mode_integration (zero_trust dataclass→dict+policy), snyk, run_registry.
+**Deferred — founder/arch:** council_adapter (consensus semantics + cost_usd=0.02-on-0-providers flag).
+**Founder-blocked/env-dep:** agent_memory_bridge (order-dependent test-infra pollution; product verified), abuseipdb/security_connectors_unit/sso_provider/cloud_runtime_unit (vendor creds/DNS/AWS), Stripe.
+All green: create_app 8345, Beast smoke 756/756 (lone ingest timing flake passes isolated). Swept ranges to date: d-m, t-v, q-s, a-c. Unswept: e-p (partial), w-z.
