@@ -3,6 +3,26 @@
 > Branch `chore/ui-prune-plan-2026-05-24` · all commits **LOCAL (unpushed)** · push blocked (VPN DNS + revoked PAT)
 > Session: `359b05e6 → HEAD` (~66 commits) · loop log `docs/ralph_progress.md`
 
+## ADDENDUM 4 — live-browser caught page crashes + nav 404 (continued tick, 2026-06-02 night)
+Continued the live-browser gate; surfaced real crashes/404s unit tests miss (they render
+components in isolation). 4 verified-local increments:
+- **Nav-link audit** (WorkspaceLayout/GlobalSearch vs literal+config-generated routes): the
+  main sidebar **Settings button (to=/settings) had no route → 404**. Added /settings →
+  /settings/integrations redirect. (24 other flags were false positives — config-generated routes.)
+- **Integrations page CRASHED** (error boundary) — Rules-of-Hooks violation: useQuery+useMemo
+  then useNavigate+useSyncIntegration+useConfigureIntegration were called AFTER the isLoading/
+  isError early returns → hook count changed between renders. Moved all 5 hooks above the returns.
+  Live: renders real /api/v1/integrations + /api/v1/webhooks/events (200), 0 console errors.
+- **TicketIntegration** (/remediate/tickets) — same hook-after-early-return crash → fixed.
+  Found via a static sweep of the class (18 suspects, 16 FPs where the return was inside a
+  .map/.filter/helper callback; real ones return JSX from a component guard).
+- **Keyless-Fragment-as-map-child key warnings** — CodeScanning (/discover/code) + Attestation
+  GraphPanel: a .map returned a keyless `<>` (inner rows keyed, but the Fragment is the list
+  child) → `<Fragment key=…>`. Live: /discover/code 0 console errors.
+- **Gates after**: create_app 8331; Beast smoke 756/756; tsc 0; vitest 135/0/53; build ~3.5s.
+- Residual: ComplianceDashboard's 2 dev-only key warnings (different cause, not pinpointed;
+  cosmetic, stripped in prod).
+
 ## ADDENDUM 3 — live-browser NO-MOCKS gate caught broken navigation (continued tick, 2026-06-02 evening)
 Ran the canonical NO-MOCKS browser gate (Playwright MCP vs the running dev server + backend,
 real SCIF auth). Static/test checks had all passed, but the **browser** surfaced a class of
