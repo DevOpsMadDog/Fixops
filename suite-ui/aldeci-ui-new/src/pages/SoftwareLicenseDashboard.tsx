@@ -25,8 +25,7 @@ import { cn } from "@/lib/utils";
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+  import.meta.env.VITE_API_KEY;
 const ORG_ID = (getStoredOrgId() ?? "default");
 
 async function apiFetch(path: string) {

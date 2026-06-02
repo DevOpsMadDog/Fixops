@@ -26,8 +26,7 @@ import { cn } from "@/lib/utils";
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
-  import.meta.env.VITE_API_KEY ||
-  "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
+  import.meta.env.VITE_API_KEY;
 
 const WS_BASE = API_BASE.replace(/^http/, "ws");
 const WS_URL = `${WS_BASE}/api/v1/ws/events?api_key=${API_KEY}`;
