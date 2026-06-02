@@ -625,6 +625,10 @@ export default function App() {
             <Route path="/comply/auditor" element={<AuditorEvidenceHub />} />
 
             {/* Settings */}
+            {/* The main sidebar "Settings" button links to /settings (WorkspaceLayout),
+                but only /settings/* sub-routes existed → the button 404'd. Redirect the
+                bare landing to the primary settings page. */}
+            <Route path="/settings" element={<Navigate to="/settings/integrations" replace />} />
             <Route path="/settings/integrations" element={<Integrations />} />
             <Route path="/settings/marketplace" element={<Marketplace />} />
             <Route path="/settings/health" element={<Navigate to="/admin?tab=system" replace />} />

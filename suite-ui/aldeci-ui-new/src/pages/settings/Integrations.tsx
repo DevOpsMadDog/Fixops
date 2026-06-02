@@ -209,9 +209,10 @@ export default function Integrations() {
   const refetch = useCallback(() => integrationsQuery.refetch(), [integrationsQuery]);
   const [categoryFilter, setCategoryFilter] = useState<IntegrationCategory>("all");
 
-  if (integrationsQuery.isLoading) return <PageSkeleton />;
-  if (integrationsQuery.isError) return <ErrorState message="Failed to load integrations" onRetry={refetch} />;
-
+  // NB: ALL hooks must run unconditionally BEFORE any early return. These were
+  // previously placed after the isLoading/isError returns below, so the hook count
+  // changed between renders ("Rendered more hooks than during the previous render")
+  // and the page crashed into the error boundary.
   const webhookEventsQuery = useQuery({
     queryKey: ["webhooks", "events"],
     queryFn: async () => { const { data } = await webhookEventsApi.list({ limit: 10 }); return data; },
@@ -233,6 +234,14 @@ export default function Integrations() {
     });
   }, [webhookEventsQuery.data]);
 
+  const navigate = useNavigate();
+  const syncMutation = useSyncIntegration();
+  const configureMutation = useConfigureIntegration();
+
+  // Early returns AFTER all hooks (Rules of Hooks).
+  if (integrationsQuery.isLoading) return <PageSkeleton />;
+  if (integrationsQuery.isError) return <ErrorState message="Failed to load integrations" onRetry={refetch} />;
+
   const integrations: any[] = toArray(integrationsQuery.data);
 
   const connected = integrations.filter((i: any) => i.status === "connected").length;
@@ -248,9 +257,6 @@ export default function Integrations() {
     ? integrations
     : integrations.filter((i: any) => (i.category ?? i.type ?? "Scanner") === categoryFilter);
 
-  const navigate = useNavigate();
-  const syncMutation = useSyncIntegration();
-  const configureMutation = useConfigureIntegration();
   const handleSync = (integration: any) => {
     syncMutation.mutate(integration.id ?? integration.name);
   };
