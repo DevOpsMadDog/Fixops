@@ -268,9 +268,12 @@ class TestSemanticSymbols:
         )
         assert r.status_code == 404
 
-    def test_symbols_missing_org_id_422(self, semantic_client):
+    def test_symbols_unknown_repo_404(self, semantic_client):
+        # org_id is resolved via the get_org_id dependency (defaults to
+        # "default"), not a required query param — so there's no 422 for a
+        # "missing" org_id. An unknown repo_ref returns 404 (repo not found).
         r = semantic_client.get("/api/v1/semantic/symbols?repo_ref=somerepo")
-        assert r.status_code == 422
+        assert r.status_code == 404
 
 
 # ===========================================================================
