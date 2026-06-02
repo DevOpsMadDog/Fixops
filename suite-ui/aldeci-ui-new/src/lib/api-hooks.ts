@@ -42,16 +42,17 @@ export interface UseApiState<T> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mock data fallbacks (used when API is unreachable)
+// Honest EMPTY-shaped fallbacks (zeros / empty arrays) used when the API is unreachable.
+// NOT fabricated data — components also receive `error`, never fake findings/scores.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MOCK_FINDINGS: FindingsResponse = {
+const EMPTY_FINDINGS: FindingsResponse = {
   findings: [],
   items: [],
   total: 0,
 };
 
-const MOCK_POSTURE: PostureScore = {
+const EMPTY_POSTURE: PostureScore = {
   score: 0,
   grade: "N/A",
   trend: "stable",
@@ -61,12 +62,12 @@ const MOCK_POSTURE: PostureScore = {
   low_count: 0,
 };
 
-const MOCK_COMPLIANCE: ComplianceStatus = {
+const EMPTY_COMPLIANCE: ComplianceStatus = {
   frameworks: [],
   overall_score: 0,
 };
 
-const MOCK_SLA: SLAMetrics = {
+const EMPTY_SLA: SLAMetrics = {
   total_findings: 0,
   within_sla: 0,
   breached: 0,
@@ -74,26 +75,26 @@ const MOCK_SLA: SLAMetrics = {
   compliance_rate: 0,
 };
 
-const MOCK_ATTACK_SURFACE: AttackSurfaceData = {
+const EMPTY_ATTACK_SURFACE: AttackSurfaceData = {
   assets: [],
   attack_paths: [],
   risk_score: 0,
   exposed_count: 0,
 };
 
-const MOCK_INCIDENTS: IncidentsResponse = {
+const EMPTY_INCIDENTS: IncidentsResponse = {
   incidents: [],
   items: [],
   total: 0,
 };
 
-const MOCK_VENDORS: VendorsResponse = {
+const EMPTY_VENDORS: VendorsResponse = {
   vendors: [],
   items: [],
   total: 0,
 };
 
-const MOCK_INTEGRATION_HEALTH: IntegrationHealthResponse = {
+const EMPTY_INTEGRATION_HEALTH: IntegrationHealthResponse = {
   integrations: [],
   total: 0,
   healthy: 0,
@@ -101,7 +102,7 @@ const MOCK_INTEGRATION_HEALTH: IntegrationHealthResponse = {
   down: 0,
 };
 
-const MOCK_METRICS: DashboardMetrics = {
+const EMPTY_METRICS: DashboardMetrics = {
   total_findings: 0,
   critical_findings: 0,
   open_findings: 0,
@@ -111,7 +112,7 @@ const MOCK_METRICS: DashboardMetrics = {
   sla_compliance: 0,
 };
 
-const MOCK_THREAT_HUNTING: ThreatHuntingResponse = {
+const EMPTY_THREAT_HUNTING: ThreatHuntingResponse = {
   sessions: [],
   items: [],
   total: 0,
@@ -123,7 +124,7 @@ const MOCK_THREAT_HUNTING: ThreatHuntingResponse = {
 
 function isApiUnavailable(err: unknown): boolean {
   if (err instanceof ApiError) {
-    // Network error (status 0) or server error — fall back to mock
+    // Network error (status 0) or server error — surface error + honest empty (not mock)
     return err.status === 0 || err.status >= 500;
   }
   return true;
@@ -164,7 +165,7 @@ function useApiQuery<T>(
           ? `API ${err.status}: ${err.message}`
           : (err as Error).message ?? "Unknown error";
       setError(message);
-      // Gracefully fall back to mock data when the API is unreachable
+      // Honest empty fallback (+ error set above) when the API is unreachable — never fabricated
       if (isApiUnavailable(err)) {
         setData(fallback);
       }
@@ -206,7 +207,7 @@ export function useFindings(
   return useApiQuery<FindingsResponse>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useCallback(() => aldeciClient.getFindings(filters), [filtersKey]),
-    MOCK_FINDINGS,
+    EMPTY_FINDINGS,
     options,
   );
 }
@@ -217,7 +218,7 @@ export function useFindings(
 export function usePosture(options?: UseApiOptions): UseApiState<PostureScore> {
   return useApiQuery<PostureScore>(
     useCallback(() => aldeciClient.getPostureScore(), []),
-    MOCK_POSTURE,
+    EMPTY_POSTURE,
     options,
   );
 }
@@ -228,7 +229,7 @@ export function usePosture(options?: UseApiOptions): UseApiState<PostureScore> {
 export function useCompliance(options?: UseApiOptions): UseApiState<ComplianceStatus> {
   return useApiQuery<ComplianceStatus>(
     useCallback(() => aldeciClient.getComplianceStatus(), []),
-    MOCK_COMPLIANCE,
+    EMPTY_COMPLIANCE,
     options,
   );
 }
@@ -239,7 +240,7 @@ export function useCompliance(options?: UseApiOptions): UseApiState<ComplianceSt
 export function useSLA(options?: UseApiOptions): UseApiState<SLAMetrics> {
   return useApiQuery<SLAMetrics>(
     useCallback(() => aldeciClient.getSLAStatus(), []),
-    MOCK_SLA,
+    EMPTY_SLA,
     options,
   );
 }
@@ -250,7 +251,7 @@ export function useSLA(options?: UseApiOptions): UseApiState<SLAMetrics> {
 export function useAttackSurface(options?: UseApiOptions): UseApiState<AttackSurfaceData> {
   return useApiQuery<AttackSurfaceData>(
     useCallback(() => aldeciClient.getAttackSurface(), []),
-    MOCK_ATTACK_SURFACE,
+    EMPTY_ATTACK_SURFACE,
     options,
   );
 }
@@ -266,7 +267,7 @@ export function useIncidents(
   return useApiQuery<IncidentsResponse>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useCallback(() => aldeciClient.getIncidents(params), [paramsKey]),
-    MOCK_INCIDENTS,
+    EMPTY_INCIDENTS,
     options,
   );
 }
@@ -282,7 +283,7 @@ export function useVendors(
   return useApiQuery<VendorsResponse>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useCallback(() => aldeciClient.getVendors(params), [paramsKey]),
-    MOCK_VENDORS,
+    EMPTY_VENDORS,
     options,
   );
 }
@@ -293,7 +294,7 @@ export function useVendors(
 export function useIntegrationHealth(options?: UseApiOptions): UseApiState<IntegrationHealthResponse> {
   return useApiQuery<IntegrationHealthResponse>(
     useCallback(() => aldeciClient.getIntegrationHealth(), []),
-    MOCK_INTEGRATION_HEALTH,
+    EMPTY_INTEGRATION_HEALTH,
     options,
   );
 }
@@ -304,7 +305,7 @@ export function useIntegrationHealth(options?: UseApiOptions): UseApiState<Integ
 export function useMetrics(options?: UseApiOptions): UseApiState<DashboardMetrics> {
   return useApiQuery<DashboardMetrics>(
     useCallback(() => aldeciClient.getMetrics(), []),
-    MOCK_METRICS,
+    EMPTY_METRICS,
     options,
   );
 }
@@ -320,7 +321,7 @@ export function useThreatHunting(
   return useApiQuery<ThreatHuntingResponse>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useCallback(() => aldeciClient.getThreatHunting(params), [paramsKey]),
-    MOCK_THREAT_HUNTING,
+    EMPTY_THREAT_HUNTING,
     options,
   );
 }
