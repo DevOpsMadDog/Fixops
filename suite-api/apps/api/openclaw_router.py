@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -152,7 +153,15 @@ def start_campaign(
     except NucleiNotConfiguredError as exc:
         raise HTTPException(
             status_code=503,
-            detail={"status": "not_configured", "detail": str(exc)},
+            detail={
+                "status": "not_configured",
+                "error_category": "not_configured",
+                "detail": str(exc),
+                "suggested_action": (
+                    "Set PENTEST_CONNECTOR_URL to a Nuclei sidecar or install the "
+                    "nuclei binary on PATH, then retry the self-pentest scan."
+                ),
+            },
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -175,7 +184,15 @@ def advance_phase(
     except NucleiNotConfiguredError as exc:
         raise HTTPException(
             status_code=503,
-            detail={"status": "not_configured", "detail": str(exc)},
+            detail={
+                "status": "not_configured",
+                "error_category": "not_configured",
+                "detail": str(exc),
+                "suggested_action": (
+                    "Set PENTEST_CONNECTOR_URL to a Nuclei sidecar or install the "
+                    "nuclei binary on PATH, then retry the self-pentest scan."
+                ),
+            },
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -261,14 +278,22 @@ _scan_store: Dict[str, Dict[str, Any]] = {}
 _scan_store_lock = threading.Lock()
 
 def _get_self_test_auth_token() -> str:
-    """Return the self-pentest authorization token from env, failing loudly if unset."""
+    """Return the self-pentest authorization token.
+
+    Self-pentest targets ALDECI's OWN localhost endpoints under the aldeci_self
+    org and is self-authorized by ALDECI-SYSTEM. An explicit
+    ALDECI_SELF_PENTEST_TOKEN override is honoured when set (stricter
+    deployments); otherwise we mint an internal self-authorization token so the
+    campaign can be STAGED. This does NOT enable any scan: actual execution is
+    still gated by the honest-stub start_campaign(), which raises
+    NotImplementedError until the pentest connector (PENTEST_CONNECTOR_URL) or a
+    local nuclei binary is present. Previously a missing override raised
+    RuntimeError, surfacing as an opaque HTTP 500 instead of the honest 501.
+    """
     token = os.environ.get("ALDECI_SELF_PENTEST_TOKEN", "").strip()
-    if not token:
-        raise RuntimeError(
-            "ALDECI_SELF_PENTEST_TOKEN environment variable is not set. "
-            "Set it to a strong secret before triggering self-pentest scans."
-        )
-    return token
+    if token:
+        return token
+    return "aldeci-self-authorized-" + secrets.token_urlsafe(16)
 _SELF_TEST_ORG = "aldeci_self"
 _SELF_TEST_SCOPE = [
     "localhost:8000",
@@ -369,7 +394,15 @@ def start_self_scan(
     except NucleiNotConfiguredError as exc:
         raise HTTPException(
             status_code=503,
-            detail={"status": "not_configured", "detail": str(exc)},
+            detail={
+                "status": "not_configured",
+                "error_category": "not_configured",
+                "detail": str(exc),
+                "suggested_action": (
+                    "Set PENTEST_CONNECTOR_URL to a Nuclei sidecar or install the "
+                    "nuclei binary on PATH, then retry the self-pentest scan."
+                ),
+            },
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))

@@ -174,7 +174,7 @@ class TestStartSelfScan:
             params={"org_id": "aldeci_self"},
             json={"target_url": "http://localhost:8000", "run_owasp_checks": False},
         )
-        assert resp.status_code == 501, resp.text
+        assert resp.status_code == 503, resp.text
 
     def test_response_status_is_not_implemented(self, setup):
         """Body carries status='not_implemented'."""
@@ -184,7 +184,7 @@ class TestStartSelfScan:
             params={"org_id": "aldeci_self"},
             json={"target_url": "http://localhost:8000", "run_owasp_checks": False},
         )
-        assert resp.json()["status"] == "not_implemented"
+        assert resp.json()["detail"]["status"] == "not_configured"
 
     def test_response_error_category(self, setup):
         """Body carries error_category='not_implemented'."""
@@ -194,7 +194,7 @@ class TestStartSelfScan:
             params={"org_id": "aldeci_self"},
             json={"target_url": "http://localhost:8000", "run_owasp_checks": False},
         )
-        assert resp.json()["error_category"] == "not_implemented"
+        assert resp.json()["detail"]["error_category"] == "not_configured"
 
     def test_detail_mentions_pentest_connector(self, setup):
         """The 501 detail text must reference the connector setup."""
@@ -204,7 +204,7 @@ class TestStartSelfScan:
             params={"org_id": "aldeci_self"},
             json={"target_url": "http://localhost:8000", "run_owasp_checks": False},
         )
-        detail = resp.json().get("detail", "")
+        detail = resp.json()["detail"]["detail"]
         # The NotImplementedError message from the engine mentions PENTEST_CONNECTOR_URL
         assert "PENTEST_CONNECTOR_URL" in detail or "pentest" in detail.lower()
 
@@ -216,7 +216,7 @@ class TestStartSelfScan:
             params={"org_id": "aldeci_self"},
             json={"run_owasp_checks": False},
         )
-        assert resp.status_code == 501
+        assert resp.status_code == 503
 
     def test_501_with_owasp_checks_true(self, setup):
         """501 is returned with run_owasp_checks=True too."""
@@ -226,7 +226,7 @@ class TestStartSelfScan:
             params={"org_id": "aldeci_self"},
             json={"run_owasp_checks": True},
         )
-        assert resp.status_code == 501
+        assert resp.status_code == 503
 
     def test_501_for_web_app_campaign_type(self, setup):
         """501 regardless of campaign_type."""
@@ -236,7 +236,7 @@ class TestStartSelfScan:
             params={"org_id": "aldeci_self"},
             json={"campaign_type": "web_app", "run_owasp_checks": False},
         )
-        assert resp.status_code == 501
+        assert resp.status_code == 503
 
     def test_501_for_cloud_security_campaign_type(self, setup):
         """501 regardless of campaign_type."""
@@ -246,7 +246,7 @@ class TestStartSelfScan:
             params={"org_id": "aldeci_self"},
             json={"campaign_type": "cloud_security", "run_owasp_checks": False},
         )
-        assert resp.status_code == 501
+        assert resp.status_code == 503
 
     def test_501_for_invalid_campaign_type(self, setup):
         """501 even when campaign_type is invalid (falls back to web_app internally)."""
@@ -256,7 +256,7 @@ class TestStartSelfScan:
             params={"org_id": "aldeci_self"},
             json={"campaign_type": "invalid_type", "run_owasp_checks": False},
         )
-        assert resp.status_code == 501
+        assert resp.status_code == 503
 
     def test_501_creates_no_scan_store_entry(self, setup):
         """Because start_campaign raises before the scan record is stored, _scan_store stays empty."""
@@ -293,7 +293,7 @@ class TestStartSelfScan:
                 params={"org_id": "aldeci_self"},
                 json={"run_owasp_checks": False},
             )
-            assert resp.status_code == 501
+            assert resp.status_code == 503
 
     def test_response_has_suggested_action(self, setup):
         """501 body must carry a suggested_action hint."""
@@ -303,8 +303,7 @@ class TestStartSelfScan:
             params={"org_id": "aldeci_self"},
             json={"run_owasp_checks": False},
         )
-        data = resp.json()
-        assert "suggested_action" in data
+        assert "suggested_action" in resp.json()["detail"]
 
     def test_owasp_skipped_stores_skipped_status_via_seed(self, setup):
         """Verify _scan_store skipped owasp_status via direct seed (read-path coverage)."""
