@@ -439,6 +439,11 @@ class RBACEngine:
         limit: int = 100,
     ) -> list[dict]:
         """Return audit log entries, optionally filtered by user_id and/or org_id."""
+        # Audit writes are buffered (batched every _audit_buf_limit for hot-path perf).
+        # A read MUST flush first, else recent permission checks are invisible to the audit
+        # query — unacceptable for a compliance audit trail. Flush is lock-safe + no-op when
+        # the buffer is empty.
+        self.flush_audit_log()
         clauses: list[str] = []
         params: list[Any] = []
         if user_id is not None:
