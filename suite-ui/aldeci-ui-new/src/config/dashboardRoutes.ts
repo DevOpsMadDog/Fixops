@@ -740,7 +740,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Evidence Vault",
       description: "Immutable evidence store with cryptographic integrity verification",
-      apiPath: "/api/v1/evidence-vault/items",
+      apiPath: "/api/v1/evidence-vault/search",
       itemsKey: "items",
       statsPath: "/api/v1/evidence-vault/summary",
     },
