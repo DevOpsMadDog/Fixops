@@ -65,3 +65,33 @@ before bulk-changing, or do it since real-org is strictly more correct.
 Backend endpoint additions require a uvicorn restart (no --reload):
 `PYTHONPATH="$(ls -d /Users/devops.ai/fixops/Fixops/suite-*|tr '\n' ':')" python -m uvicorn apps.api.app:create_app --factory --host 127.0.0.1 --port 8000`
 Do NOT restart while the sweep is running. Managed key: `/tmp/scif_key.txt`, org `/tmp/scif_org.txt`.
+
+---
+## UPDATE — clean (rate-limit-OFF) re-sweep, 2026-06-02 PM
+
+The first sweep's 429s MASKED real per-route bugs. Re-ran with FIXOPS_DISABLE_RATE_LIMIT=1
+(restored after). Real state was worse than "class-clean". Now fixed:
+
+### DONE this session (all build-green; representative routes browser-verified 0 errors)
+- ALL crashes (white-screens): devsecops, container-security, cyber-insurance(fmt$), deception,
+  regulatory-tracker, security-chaos, security-health, vuln-correlation (non-array map/filter);
+  security-chaos + security-tabletop + firmware (<div>-in-<tbody>); prowler/servicenow/siem
+  (EmptyState icon element->component); security-posture (.replace); certificates (.slice).
+- 401 class: 15 files wrong key aldeci_api_key->aldeci.authToken; api-config static empty API_KEY
+  -> getApiKey() runtime resolver in 4 hub consumers.
+
+### REMAINING — buildable, next ticks (from /tmp/route_sweep_report.json)
+404 (repoint to real endpoint or add): cost-optimization/stats, feeds/kev, event-timeline/stats,
+feed-subscriptions/logs, incident/stats, sca/vulns+licenses, awareness-score/orgs/{org}/risk-trend,
+security-chaos/observations, security-investment/stats, kpis/{scorecard,categories,strengths,
+weaknesses,trends}, soc-metrics{,/snapshots,/analysts,/queue}, incident-timeline/events,
+hunting/iocs+coverage, threat-intel/cves/recent, threat-response/stats+playbooks, ti-confidence/iocs.
+403: ti-confidence/sources. 422: posture-trends/{velocity-summary,trends,targets},
+program-maturity/{summary,domains}, sql/queries.
+React dup/missing-key warnings (cosmetic): competitive-comparison, compliance-calendar,
+cross-domain-analytics, exception-workflow, firewall-policy, grc-assessment, risk-quantification,
+cyber-insurance.
+
+### Method to reproduce a CLEAN sweep
+Restart backend with FIXOPS_DISABLE_RATE_LIMIT=1 (CI/test knob, app.py:2530), run route-sweep,
+then RESTART WITHOUT the flag to restore prod rate-limiting. Don't leave it disabled.
