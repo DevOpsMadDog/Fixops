@@ -1,7 +1,7 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Security Data Pipeline - Live API
- * API: GET /api/v1/data-pipeline/sources
+ * API: GET /api/v1/data-pipeline/pipelines
  */
 
 import { useState, useEffect } from "react";
@@ -28,7 +28,7 @@ export default function DataPipelineDashboard() {
     setLoading(true); setError(null);
     try {
       const [itemsRes, statsRes] = await Promise.allSettled([
-        apiFetch<any>("/api/v1/data-pipeline/sources"),
+        apiFetch<any>("/api/v1/data-pipeline/pipelines"),
         apiFetch<any>("/api/v1/data-pipeline/stats"),
       ]);
       if (itemsRes.status === "fulfilled") {

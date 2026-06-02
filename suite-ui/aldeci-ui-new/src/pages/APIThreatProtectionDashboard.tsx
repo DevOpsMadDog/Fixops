@@ -1,7 +1,7 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * API Threat Protection - Live API
- * API: GET /api/v1/api-threat-protection/threats
+ * API: GET /api/v1/api-threat-protection/events
  */
 
 import { useState, useEffect } from "react";
@@ -28,7 +28,7 @@ export default function APIThreatProtectionDashboard() {
     setLoading(true); setError(null);
     try {
       const [itemsRes, statsRes] = await Promise.allSettled([
-        apiFetch<any>("/api/v1/api-threat-protection/threats"),
+        apiFetch<any>("/api/v1/api-threat-protection/events"),
         apiFetch<any>("/api/v1/api-threat-protection/stats"),
       ]);
       if (itemsRes.status === "fulfilled") {

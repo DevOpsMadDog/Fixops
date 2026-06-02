@@ -1627,15 +1627,15 @@ export const threatModelingPipelineApi = {
 // ── Identity Analytics — /api/v1/identity-analytics ──
 export const identityAnalyticsApi = {
   profiles: (orgId = "default", limit = 50) =>
-    api.get("/api/v1/identity-analytics/profiles", { params: { org_id: orgId, limit } }),
+    api.get("/api/v1/identity-analytics/identities", { params: { org_id: orgId, limit } }),
   getProfile: (userId: string, orgId = "default") =>
-    api.get(`/api/v1/identity-analytics/profiles/${encodeURIComponent(userId)}`, { params: { org_id: orgId } }),
+    api.get(`/api/v1/identity-analytics/identities/${encodeURIComponent(userId)}`, { params: { org_id: orgId } }),
 };
 
 // ── Digital Identity — /api/v1/digital-identity ──
 export const digitalIdentityApi = {
   identities: (orgId = "default", limit = 50, offset = 0) =>
-    api.get("/api/v1/digital-identity/identities", { params: { org_id: orgId, limit, offset } }),
+    api.get("/api/v1/digital-identity/profiles", { params: { org_id: orgId, limit, offset } }),
   stats: (orgId = "default") =>
     api.get("/api/v1/digital-identity/stats", { params: { org_id: orgId } }),
   risks: (orgId = "default", limit = 50) =>

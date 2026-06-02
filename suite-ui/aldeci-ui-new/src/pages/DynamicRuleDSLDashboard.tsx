@@ -114,7 +114,7 @@ export default function DynamicRuleDSLDashboard() {
     try {
       const [s, r, sc] = await Promise.allSettled([
         apiFetch<Stats>("/api/v1/rules/dsl/stats"),
-        apiFetch<Rule[] | { rules?: Rule[]; items?: Rule[] }>("/api/v1/rules/dsl/rules"),
+        apiFetch<Rule[] | { rules?: Rule[]; items?: Rule[] }>("/api/v1/rules/dsl"),
         apiFetch<Schema>("/api/v1/rules/dsl/schema"),
       ]);
       setStats(s.status === "fulfilled" ? s.value : null);
@@ -133,9 +133,9 @@ export default function DynamicRuleDSLDashboard() {
     if (!dsl.trim() || !name.trim()) return;
     setSaving(true);
     try {
-      await apiFetch("/api/v1/rules/dsl/rules", {
+      await apiFetch("/api/v1/rules/dsl/publish", {
         method: "POST",
-        body: JSON.stringify({ name: name.trim(), dsl }),
+        body: JSON.stringify({ key: name.trim(), dsl_text: dsl }),
       });
       await load();
     } catch (e) { setErr((e as Error).message); }

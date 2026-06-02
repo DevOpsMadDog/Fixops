@@ -1,7 +1,7 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * AI Security Advisor - Live API
- * API: GET /api/v1/ai-advisor/advisories
+ * API: GET /api/v1/ai-advisor/recommendations
  */
 
 import { useState, useEffect } from "react";
@@ -28,7 +28,7 @@ export default function AISecurityAdvisorDashboard() {
     setLoading(true); setError(null);
     try {
       const [itemsRes, statsRes] = await Promise.allSettled([
-        apiFetch<any>("/api/v1/ai-advisor/advisories"),
+        apiFetch<any>("/api/v1/ai-advisor/recommendations"),
         apiFetch<any>("/api/v1/ai-advisor/stats"),
       ]);
       if (itemsRes.status === "fulfilled") {

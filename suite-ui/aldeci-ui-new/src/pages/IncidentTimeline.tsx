@@ -1,6 +1,6 @@
 /**
  * Incident Timeline - Live API
- * API: GET /api/v1/incident/incidents
+ * API: GET /api/v1/incident-triage/incidents
  */
 
 import { useState, useEffect } from "react";
@@ -27,7 +27,7 @@ export default function IncidentTimeline() {
     setLoading(true); setError(null);
     try {
       const [itemsRes, statsRes] = await Promise.allSettled([
-        apiFetch<any>("/api/v1/incident/incidents"),
+        apiFetch<any>("/api/v1/incident-triage/incidents"),
         apiFetch<any>("/api/v1/incident/stats"),
       ]);
       if (itemsRes.status === "fulfilled") {

@@ -29,7 +29,7 @@ export default function IRPlaybookDashboard() {
     try {
       const [itemsRes, statsRes] = await Promise.allSettled([
         apiFetch<any>("/api/v1/ir/playbooks"),
-        apiFetch<any>("/api/v1/ir/stats"),
+        apiFetch<any>("/api/v1/ir/metrics"),
       ]);
       if (itemsRes.status === "fulfilled") {
         const v = itemsRes.value as any;

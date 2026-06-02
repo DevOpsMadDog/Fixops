@@ -1,7 +1,7 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * DAST - Live API
- * API: GET /api/v1/dast/scans
+ * API: GET /api/v1/dast/findings
  */
 
 import { useState, useEffect } from "react";
@@ -28,7 +28,7 @@ export default function DASTDashboard() {
     setLoading(true); setError(null);
     try {
       const [itemsRes, statsRes] = await Promise.allSettled([
-        apiFetch<any>("/api/v1/dast/scans"),
+        apiFetch<any>("/api/v1/dast/findings"),
         apiFetch<any>("/api/v1/dast/stats"),
       ]);
       if (itemsRes.status === "fulfilled") {

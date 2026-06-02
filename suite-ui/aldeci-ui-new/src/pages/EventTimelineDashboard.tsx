@@ -1,7 +1,7 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Event Timeline - Live API
- * API: GET /api/v1/event-timeline/timelines
+ * API: GET /api/v1/event-timeline/summary
  */
 
 import { useState, useEffect } from "react";
@@ -28,7 +28,7 @@ export default function EventTimelineDashboard() {
     setLoading(true); setError(null);
     try {
       const [itemsRes, statsRes] = await Promise.allSettled([
-        apiFetch<any>("/api/v1/event-timeline/timelines"),
+        apiFetch<any>("/api/v1/event-timeline/summary"),
         apiFetch<any>("/api/v1/event-timeline/stats"),
       ]);
       if (itemsRes.status === "fulfilled") {

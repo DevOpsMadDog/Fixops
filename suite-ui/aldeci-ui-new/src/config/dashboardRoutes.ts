@@ -223,7 +223,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "AI Security Advisor",
       description: "Proactive security advisories and contextual recommendations",
-      apiPath: "/api/v1/ai-advisor/advisories",
+      apiPath: "/api/v1/ai-advisor/recommendations",
       itemsKey: "advisories",
       statsPath: "/api/v1/ai-advisor/stats",
     },
@@ -234,7 +234,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "API Threat Protection",
       description: "Runtime API threat detection, rate limiting, and abuse patterns",
-      apiPath: "/api/v1/api-threat-protection/threats",
+      apiPath: "/api/v1/api-threat-protection/events",
       itemsKey: "threats",
       statsPath: "/api/v1/api-threat-protection/stats",
     },
@@ -498,7 +498,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "DAST",
       description: "Dynamic application security testing — live scan results",
-      apiPath: "/api/v1/dast/scans",
+      apiPath: "/api/v1/dast/findings",
       itemsKey: "scans",
       statsPath: "/api/v1/dast/stats",
     },
@@ -520,7 +520,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Data Pipeline",
       description: "Security data pipeline sources, transform health, and ingestion rates",
-      apiPath: "/api/v1/data-pipeline/sources",
+      apiPath: "/api/v1/data-pipeline/pipelines",
       itemsKey: "sources",
       statsPath: "/api/v1/data-pipeline/stats",
     },
@@ -531,7 +531,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Digital Identity",
       description: "Identity lifecycle, credential hygiene, and access risk scoring",
-      apiPath: "/api/v1/digital-identity/identities",
+      apiPath: "/api/v1/digital-identity/profiles",
       itemsKey: "identities",
       statsPath: "/api/v1/digital-identity/stats",
     },
@@ -575,7 +575,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Event Timeline",
       description: "Chronological security event correlation and investigation pivot",
-      apiPath: "/api/v1/event-timeline/timelines",
+      apiPath: "/api/v1/event-timeline/summary",
       itemsKey: "timelines",
       statsPath: "/api/v1/event-timeline/stats",
     },
@@ -597,9 +597,9 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Gap Analysis",
       description: "Control gap identification against target security frameworks",
-      apiPath: "/api/v1/gap-analysis/analyses",
+      apiPath: "/api/v1/gap-analysis/assessments",
       itemsKey: "analyses",
-      statsPath: "/api/v1/gap-analysis/stats",
+      statsPath: "/api/v1/gap-analysis/summary",
     },
   },
   // ── Identity Risk ────────────────────────────────────────────────────────
@@ -676,7 +676,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Incident response playbook library and execution history",
       apiPath: "/api/v1/ir/playbooks",
       itemsKey: "playbooks",
-      statsPath: "/api/v1/ir/stats",
+      statsPath: "/api/v1/ir/metrics",
     },
   },
   // ── Alert Enrichment ─────────────────────────────────────────────────────

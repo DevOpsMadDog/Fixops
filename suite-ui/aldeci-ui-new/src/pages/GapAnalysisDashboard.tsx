@@ -1,7 +1,7 @@
 // REPLACED by GenericDashboard config in dashboardRoutes.ts 2026-04-27
 /**
  * Gap Analysis - Live API
- * API: GET /api/v1/gap-analysis/analyses
+ * API: GET /api/v1/gap-analysis/assessments
  */
 
 import { useState, useEffect } from "react";
@@ -28,8 +28,8 @@ export default function GapAnalysisDashboard() {
     setLoading(true); setError(null);
     try {
       const [itemsRes, statsRes] = await Promise.allSettled([
-        apiFetch<any>("/api/v1/gap-analysis/analyses"),
-        apiFetch<any>("/api/v1/gap-analysis/stats"),
+        apiFetch<any>("/api/v1/gap-analysis/assessments"),
+        apiFetch<any>("/api/v1/gap-analysis/summary"),
       ]);
       if (itemsRes.status === "fulfilled") {
         const v = itemsRes.value as any;

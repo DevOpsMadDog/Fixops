@@ -315,7 +315,7 @@ function PatchPrioritizerPanel() {
     setError(null);
     const org = DEFAULT_ORG_ID;
     Promise.all([
-      apiFetch<PrioritySummary>(`/api/v1/patch-priority/?org_id=${org}`),
+      apiFetch<PrioritySummary>(`/api/v1/patch-priority/stats?org_id=${org}`),
       apiFetch<PatchPlan[]>(`/api/v1/patch-priority/plans?org_id=${org}`),
       apiFetch<PriorityStats>(`/api/v1/patch-priority/stats?org_id=${org}`),
     ])
