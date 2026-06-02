@@ -632,9 +632,21 @@ class EnhancedLLMCouncil:
             result: Dict[str, Any] = {}
 
             def _run() -> None:
-                result.update(
-                    asyncio.run(council.convene(prompt, finding))
-                )
+                coro = council.convene(prompt, finding)
+                # This runs in a dedicated worker thread (no running loop), so
+                # asyncio.run is safe here. Use the standard loop-detection guard
+                # anyway for defense-in-depth and to satisfy the no-unsafe-
+                # asyncio.run lockdown.
+                try:
+                    asyncio.get_running_loop()
+                    loop = asyncio.new_event_loop()
+                    try:
+                        res = loop.run_until_complete(coro)
+                    finally:
+                        loop.close()
+                except RuntimeError:
+                    res = asyncio.run(coro)
+                result.update(res)
 
             with _cf.ThreadPoolExecutor(max_workers=1) as pool:
                 future = pool.submit(_run)
