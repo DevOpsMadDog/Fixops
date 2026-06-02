@@ -280,32 +280,33 @@ class GATLayer:
         attention_all = np.zeros((self.n_heads, N, N))
 
         for h in range(self.n_heads):
-            # 1. Linear transformation: (N, in) @ (in, out) → (N, out)
-            # errstate: numpy's BLAS backend can emit spurious fp warnings
-            # during large matmul even when the result is finite — suppress them.
+            # numpy's BLAS backend can emit spurious fp warnings (divide/overflow/
+            # invalid) during these matmuls even when the result is finite — and
+            # isolated/degree-0 nodes legitimately produce such intermediates. Suppress
+            # across the WHOLE per-head computation (all matmuls below), not just the
+            # first, so they don't surface as errors under warnings-as-errors test config.
             with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+                # 1. Linear transformation: (N, in) @ (in, out) → (N, out)
                 Wh = node_features @ self.W[h]
 
-            # 2. Attention coefficients
-            # a_src: (N, out) @ (out, 1) → (N, 1)
-            e_src = Wh @ self.a_src[h]  # (N, 1)
-            e_tgt = Wh @ self.a_tgt[h]  # (N, 1)
+                # 2. Attention coefficients: a_src (N, out) @ (out, 1) → (N, 1)
+                e_src = Wh @ self.a_src[h]  # (N, 1)
+                e_tgt = Wh @ self.a_tgt[h]  # (N, 1)
 
-            # Broadcast: e_ij = e_src_i + e_tgt_j
-            e = e_src + e_tgt.T  # (N, N)
-            e = _leaky_relu(e)
+                # Broadcast: e_ij = e_src_i + e_tgt_j
+                e = e_src + e_tgt.T  # (N, N)
+                e = _leaky_relu(e)
 
-            # Mask non-neighbors with -inf (only attend to connected nodes)
-            mask = (adjacency == 0)
-            # Also mask self-loops if not in adjacency
-            e = np.where(mask, -1e9, e)
+                # Mask non-neighbors with -inf (only attend to connected nodes)
+                mask = (adjacency == 0)
+                e = np.where(mask, -1e9, e)
 
-            # 3. Normalize attention weights
-            alpha = _softmax(e, axis=1)  # (N, N) — row-normalized
-            attention_all[h] = alpha
+                # 3. Normalize attention weights
+                alpha = _softmax(e, axis=1)  # (N, N) — row-normalized
+                attention_all[h] = alpha
 
-            # 4. Weighted aggregation: (N, N) @ (N, out) → (N, out)
-            h_out = alpha @ Wh
+                # 4. Weighted aggregation: (N, N) @ (N, out) → (N, out)
+                h_out = alpha @ Wh
 
             head_outputs.append(h_out)
 
