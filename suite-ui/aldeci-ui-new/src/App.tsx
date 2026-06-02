@@ -631,7 +631,7 @@ export default function App() {
             <Route path="/settings" element={<Navigate to="/settings/integrations" replace />} />
             <Route path="/settings/integrations" element={<Integrations />} />
             <Route path="/settings/marketplace" element={<Marketplace />} />
-            <Route path="/settings/health" element={<Navigate to="/admin?tab=system" replace />} />
+            <Route path="/settings/health" element={<Navigate to="/system-health" replace />} />
             <Route path="/settings/logs" element={<LogViewer />} />
 
             {/* AI Security Advisor */}
@@ -655,20 +655,21 @@ export default function App() {
             <Route path="/brain/fail" element={<Navigate to="/brain?tab=fail" replace />} />
             <Route path="/attack/mpte" element={<Navigate to="/brain?tab=mpte" replace />} />
             {/* P2 Wave: MCP Gateway + System Health → Admin hero (S28/S30).
-                NOTE: the planned tabbed Admin hero (/admin?tab=X) was never built —
-                /admin redirects to /admin/audit-log and nothing reads ?tab=, so these
-                redirects dead-end at the audit-log table. Routes whose real standalone
-                page still exists (/ai/mcp-registry, /skills, /system-health) were removed
-                from this block so the working page resolves instead of dead-ending. */}
-            <Route path="/connect/mcp" element={<Navigate to="/admin?tab=mcp" replace />} />
-            <Route path="/openclaw" element={<Navigate to="/admin?tab=mcp" replace />} />
-            <Route path="/airgap" element={<Navigate to="/admin?tab=mcp" replace />} />
-            <Route path="/admin/system" element={<Navigate to="/admin?tab=system-health" replace />} />
+                The planned tabbed Admin hero (/admin?tab=X) was never built — /admin
+                redirects to /admin/audit-log and nothing reads ?tab=, so the original
+                /admin?tab= redirects dead-ended at the audit-log table. Repointed each to
+                its real existing page; routes whose real same-path page exists
+                (/ai/mcp-registry, /skills, /system-health) were dropped from this block so
+                the working page resolves directly. */}
+            <Route path="/connect/mcp" element={<Navigate to="/ai/mcp-registry" replace />} />
+            <Route path="/openclaw" element={<Navigate to="/ai/mcp-registry" replace />} />
+            <Route path="/airgap" element={<Navigate to="/connect/mcp/air-gap" replace />} />
+            <Route path="/admin/system" element={<Navigate to="/system-health" replace />} />
             {/* NOTE: /capacity-planning resolves to the real CapacityPlanningDashboard
                 below — do NOT add a shadowing redirect here (an identical-path redirect
                 wins over the real page and silently kills the feature). */}
-            <Route path="/fips-status" element={<Navigate to="/admin?tab=system-health" replace />} />
-            <Route path="/local-store-status" element={<Navigate to="/admin?tab=system-health" replace />} />
+            <Route path="/fips-status" element={<Navigate to="/fips-compliance" replace />} />
+            <Route path="/local-store-status" element={<Navigate to="/local-store/status" replace />} />
             <Route path="/comply/waivers" element={<Navigate to="/compliance?tab=waivers" replace />} />
             <Route path="/comply/policies" element={<Navigate to="/compliance?tab=policies" replace />} />
             <Route path="/remediate/waivers" element={<Navigate to="/compliance?tab=waivers" replace />} />
@@ -1098,7 +1099,7 @@ export default function App() {
             {/* Wave 39 domain dashboards */}
             <Route path="/posture-reports" element={<Navigate to="/compliance?tab=posture-reports" replace />} />
             <Route path="/network-anomaly" element={<Navigate to="/discover/network?tab=anomaly" replace />} />
-            <Route path="/privileged-identity" element={<Navigate to="/admin?tab=privileged-access" replace />} />
+            <Route path="/privileged-identity" element={<Navigate to="/discover/privileged-access" replace />} />
             <Route path="/hunting-automation" element={<Navigate to="/mission-control/hunt?tab=automation" replace />} />
             <Route path="/service-catalog" element={<Navigate to="/assets?tab=catalog" replace />} />
 
@@ -1212,17 +1213,18 @@ export default function App() {
             <Route path="/mission-control/soc-t1" element={<Navigate to="/?view=soc" replace />} />
             <Route path="/mission-control/dev-security" element={<Navigate to="/?view=dev" replace />} />
 
-            {/* 90-day muscle-memory redirects → Admin hero */}
-            <Route path="/users/me/tokens" element={<Navigate to="/admin?tab=tokens" replace />} />
-            <Route path="/admin/tokens" element={<Navigate to="/admin?tab=tokens" replace />} />
-            <Route path="/connectors/mapping" element={<Navigate to="/admin?tab=connectors" replace />} />
+            {/* 90-day muscle-memory redirects → real pages (the tabbed Admin hero was
+                never built; /admin?tab= dead-ends at audit-log — repoint to real pages). */}
+            <Route path="/users/me/tokens" element={<Navigate to="/admin/api-keys" replace />} />
+            <Route path="/admin/tokens" element={<Navigate to="/admin/api-keys" replace />} />
+            <Route path="/connectors/mapping" element={<Navigate to="/integrations" replace />} />
             {/* Webhook + ingestion redirects — folded into WebhookIngestionHub (Phase 3, 2026-05-02) */}
             <Route path="/webhooks/event-catalogue" element={<Navigate to="/connect/webhook-ingestion?tab=catalogue" replace />} />
             <Route path="/webhooks/retry-queue" element={<Navigate to="/connect/webhook-ingestion?tab=retry" replace />} />
             {/* /organizations resolves to the real OrgHierarchyExplorer below — the
                 /admin?tab=orgs hero was never built (would dead-end at audit-log). */}
             <Route path="/billing" element={<Navigate to="/admin?tab=billing" replace />} />
-            <Route path="/settings/health" element={<Navigate to="/admin?tab=system" replace />} />
+            <Route path="/settings/health" element={<Navigate to="/system-health" replace />} />
 
             {/* 90-day muscle-memory redirects → Compliance hero */}
             <Route path="/comply/evidence" element={<Navigate to="/compliance?tab=evidence" replace />} />
@@ -1274,11 +1276,12 @@ export default function App() {
             <Route path="/finding/:findingId" element={<Navigate to="/issues" replace />} />
             <Route path="/vuln-lifecycle" element={<Navigate to="/issues" replace />} />
 
-            {/* P1 Wave 2 — Integrations Hub redirects → Admin hero */}
-            <Route path="/integrations-hub" element={<Navigate to="/admin?tab=integrations" replace />} />
-            <Route path="/connectors/health" element={<Navigate to="/admin?tab=integrations" replace />} />
-            <Route path="/connectors/marketplace" element={<Navigate to="/admin?tab=integrations" replace />} />
-            <Route path="/connect" element={<Navigate to="/admin?tab=integrations" replace />} />
+            {/* P1 Wave 2 — Integrations redirects → real pages (tabbed Admin hero never
+                built; /admin?tab=integrations dead-ends at audit-log). */}
+            <Route path="/integrations-hub" element={<Navigate to="/integrations" replace />} />
+            <Route path="/connectors/health" element={<Navigate to="/integrations" replace />} />
+            <Route path="/connectors/marketplace" element={<Navigate to="/settings/marketplace" replace />} />
+            <Route path="/connect" element={<Navigate to="/integrations" replace />} />
 
             {/* P1 Wave 2 — Attack Paths + SBOM new redirect-only routes → Asset Graph hero
                 (existing canonical routes preserved at /discover/sbom, /discover/attack-paths,
@@ -1382,13 +1385,13 @@ export default function App() {
             <Route path="/scopes" element={<ScopeManager />} />
             <Route path="/easm/seed-domain" element={<DomainSeedDiscoveryWizard />} />
             {/* /easm/subsidiaries → consolidated into /assets hero */}
-            <Route path="/users/me/tokens" element={<Navigate to="/admin?tab=tokens" replace />} />
+            <Route path="/users/me/tokens" element={<Navigate to="/admin/api-keys" replace />} />
             <Route path="/llm/context-tier" element={<LLMContextTierBadge />} />
             <Route path="/llm/estimate" element={<LLMPreFlightEstimateModal />} />
             <Route path="/llm/rules/edit" element={<LLMRuleContextEditor />} />
             <Route path="/hooks/policy" element={<Navigate to="/comply/policies/authoring?tab=hooks-policy" replace />} />
             <Route path="/hooks/status" element={<Navigate to="/comply/policies/authoring?tab=hooks-status" replace />} />
-            <Route path="/connectors/mapping" element={<Navigate to="/admin?tab=connectors" replace />} />
+            <Route path="/connectors/mapping" element={<Navigate to="/integrations" replace />} />
             <Route path="/connectors/mapping/dry-run" element={<Navigate to="/connect/webhook-ingestion?tab=dry-run" replace />} />
             <Route path="/pbom/propagation" element={<Navigate to="/comply/provenance?tab=pbom-prop" replace />} />
             <Route path="/provenance/attestation" element={<Navigate to="/comply/provenance?tab=attestation" replace />} />
