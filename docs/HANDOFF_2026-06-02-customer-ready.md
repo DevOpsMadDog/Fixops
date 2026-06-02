@@ -496,3 +496,27 @@ code vuln remains on the API-reachable surface.
 rate-limits, SSRF, deserialization, XXE, command-injection. Beast smoke 756/756. All committed
 locally. Remaining work is product-blocked (Brain hero, /billing) or founder-blocked (push,
 test-infra fixtures, Postgres, FIPS, PIV, GPU, Stripe) — nothing buildable-and-unblocked remains.
+
+---
+
+## Addendum 2026-06-03 (tick 9) — T3 triage: auth-fixture-rot cluster fixed (item C)
+
+- **T2 collection health PASS**: 46,931 tests collected, 0 errors (whole suite imports clean).
+- **T3 [a-f] router slice triaged**: 30-file batch = 272 failed/83 passed, but isolation proved
+  ZERO product bugs — failures are (a) cross-file TestClient pollution (braintrust: 22/22 pass
+  isolated) and (b) auth-fixture rot.
+- **Auth-fixture-rot cluster fixed (24 files, ~314 tests)**: connector/scanner router tests that
+  build an isolated FastAPI()+include_router(router) where the router enforces router-level
+  Depends(api_key_auth), but set no token → every data endpoint 401'd before the handler. Added
+  `app.dependency_overrides[api_key_auth]` (standard pattern, same as the passing braintrust) so
+  the tests exercise real router/engine behaviour. bitbucket(14) + 23 connector files now green;
+  **the routers were all correct — 0 product bugs**, the connector routers are now actually tested
+  (were 401-stubbed). Test-only changes; smoke 178/178 (subset) green, product code untouched.
+- **Recorded (founder-blocked test-infra, not fixed)**: ws_events_router (10 fails = stale
+  reference to the removed `_EXPECTED_TOKENS` global → needs a WS-auth-test rewrite); nuclei/zap
+  use a different app-build helper (patcher skipped).
+
+Frontier: UI verified-clean (4 dims); backend hardened+verified (runtime/status/path/rate/SSRF/
+deser/XXE/cmdi); T3 connector-router slice now actually-tested + triaged (0 product bugs). Beast
+smoke green. Remaining: product-blocked (Brain hero, /billing) + founder-blocked (push, deeper
+test-infra like ws_events/Postgres, FIPS, PIV, GPU, Stripe).
