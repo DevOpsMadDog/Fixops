@@ -23,7 +23,7 @@ from threading import Lock
 from typing import Any, Dict, List, Optional, Set
 
 from core.sast_engine import SAST_RULES, _EXTRA_RULES, get_sast_engine, SASTEngine, OWASP_CATEGORIES
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
@@ -351,6 +351,95 @@ async def scan_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     engine = get_sast_engine()
     summary = engine.get_summary()
     return summary
+
+
+def _trend_direction(totals: List[int]) -> str:
+    """Classify a findings-over-time series.
+
+    Compares the average of the older half vs the newer half (>=5% relative
+    change). Empty -> "flat", single scan -> "stable".
+    """
+    n = len(totals)
+    if n == 0:
+        return "flat"
+    if n == 1:
+        return "stable"
+    mid = n // 2
+    first = totals[:mid]
+    second = totals[mid:]
+    first_avg = sum(first) / len(first) if first else 0.0
+    second_avg = sum(second) / len(second) if second else 0.0
+    if second_avg > first_avg * 1.05:
+        return "increasing"
+    if second_avg < first_avg * 0.95:
+        return "decreasing"
+    return "stable"
+
+
+@router.get("/trends")
+async def scan_trends(
+    limit: int = Query(0, ge=0, le=1000, description="Return only the N most recent scans (0 = all)"),
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Historical SAST scan trend — per-scan findings over time + summary.
+
+    Reads the engine's real scan store (no mocks). Returns an empty/flat trend
+    when no scans have been run. ``data_points`` are oldest-first; ``summary``
+    (peak / average / direction) is computed across ALL scans even when
+    ``limit`` truncates the returned points.
+    """
+    engine = get_sast_engine()
+    store = getattr(engine, "_scan_store", {}) or {}
+    _floor = datetime.min.replace(tzinfo=timezone.utc)
+    results = sorted(
+        store.values(),
+        key=lambda r: getattr(r, "timestamp", None) or _floor,
+    )
+
+    def _ts(r: Any) -> Optional[str]:
+        ts = getattr(r, "timestamp", None)
+        try:
+            return ts.isoformat()
+        except Exception:
+            return str(ts) if ts is not None else None
+
+    def _top_cwe(by_cwe: Dict[str, int]) -> Dict[str, int]:
+        items = sorted((by_cwe or {}).items(), key=lambda kv: kv[1], reverse=True)
+        return dict(items[:10])
+
+    def _dp(r: Any) -> Dict[str, Any]:
+        return {
+            "scan_id": getattr(r, "scan_id", None),
+            "total_findings": int(getattr(r, "total_findings", 0) or 0),
+            "by_severity": dict(getattr(r, "by_severity", {}) or {}),
+            "by_cwe": _top_cwe(getattr(r, "by_cwe", {}) or {}),
+            "timestamp": _ts(r),
+            "files_scanned": int(getattr(r, "files_scanned", 0) or 0),
+            "duration_ms": float(getattr(r, "duration_ms", 0.0) or 0.0),
+        }
+
+    totals = [int(getattr(r, "total_findings", 0) or 0) for r in results]
+    if totals:
+        peak_findings = max(totals)
+        peak_scan_id = getattr(results[totals.index(peak_findings)], "scan_id", None)
+        avg_findings = round(sum(totals) / len(totals), 2)
+    else:
+        peak_findings = 0
+        peak_scan_id = None
+        avg_findings = 0
+
+    dp_results = results[-limit:] if limit else results
+
+    return {
+        "data_points": [_dp(r) for r in dp_results],
+        "total_scans": len(results),
+        "summary": {
+            "trend_direction": _trend_direction(totals),
+            "peak_findings": peak_findings,
+            "peak_scan_id": peak_scan_id,
+            "avg_findings_per_scan": avg_findings,
+        },
+    }
 
 
 @router.post("/rules/custom")
