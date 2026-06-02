@@ -850,3 +850,10 @@ All green: create_app 8343, Beast smoke 756/756.
 - **Test restorations (product correct):** SCIM server (32→0: router api_key_auth override + reload-resets-`_DB_PATH` isolation); SecurityFindingsEngine `_DEFAULT_DB` now call-time resolved (test isolation); siem synthetic-gen opt-in; soc2 RSA-fallback signing mock; signing/auth-router hardening contracts.
 - **Env-dep/founder-blocked (recorded):** security_connectors_unit (AWS creds), sso_provider (DNS/SSRF guard working), snyk (20, connector test-rot — next tick), stripe.
 All green: create_app 8345, Beast smoke 756/756.
+
+### 2026-06-03 (cont.) — q-s sweep exhausted; a-c sweep in flight
+- **snyk_integration (20) DEFERRED** — legacy-outdated: router rewritten client→engine (`get_snyk_vuln_engine`, new `/api/v1/snyk/v1/...` paths). 50 SnykClient unit tests pass; new router verified live (/ →200, /v1/orgs →503 honest "SNYK_TOKEN not configured", /v1/reporting →200). 20 router tests patch removed `_get_client` = full rewrite (like run_registry).
+- **Footgun census:** 40 engines use `db_path: str = _DEFAULT_DB` (default-arg bound at import). LATENT — only breaks where a test/caller overrides the module global at runtime; the 2 proven cases (SecurityFindingsEngine, SCIM) are fixed. Fix others only when a real failure surfaces.
+- **q-s sweep exhausted** of actionable real bugs. Remaining = legacy-outdated (snyk/run_registry, full rewrites) or env-dep/founder-blocked (AWS creds, DNS/SSRF, Stripe, Snyk token).
+- **a-c T3 sweep launched** (173 files, background) — results in `/tmp/t3ac_fail.txt` for next tick triage. Unswept ranges remain: a-c (running), e, n-r partial, w-z.
+All green: create_app 8345, Beast smoke 756/756.
