@@ -743,3 +743,29 @@ the genuine defects. Campaign real-bug total: **7** (engine 3, data-transform 1,
 + routing/endpoint). Frontier: UI clean + backend hardened/verified + T3 corpora triaged.
 Remaining: product-blocked (Brain hero, /billing, GCP KMS, unified compliance API, IoT scan
 exposure) + founder-blocked (push, env-tools, Postgres, FIPS, PIV, GPU, Stripe, batch test-rot).
+
+---
+
+## Addendum 2026-06-03 (tick 19) — broad-sweep triage cont'd: REAL bug #8 (duplicate route)
+
+- **REAL BUG #8 — duplicate POST /api/v1/bulk/export**: both `bulk_operations_router` (sync
+  file-export, prefix /api/v1/bulk, returns {id,total_records,file_path}) and `bulk_router`
+  (async JobResponse {job_id,status,...}) register the SAME path. bulk_operations_router wins
+  (registered first); bulk_router's async handler is dead-shadowed. Only /export collides (rest
+  of /api/v1/bulk is distinct). Live-verified: valid→200 sync shape, bad-format→422. Aligned
+  test_bulk_router_unit to the live winner + documented. **Route-dedup (which bulk-export API is
+  canonical: async-job vs sync-file) is an ARCHITECTURE DECISION — founder-flagged.** Did not
+  delete either router (non-destructive; needs consumer/UI intent).
+- **app_factory** — 2 stale (product correct): title rebranded "Enterprise API"→"ALDECI Security
+  Intelligence Platform"; /api/v1/metrics became a token-gated Prometheus SCRAPE endpoint (text/
+  plain, 401 w/o scrape token) not a JSON status blob. Fixed → 67/67.
+- Classified rest of sweep (test-infra/env, batch-deferred): bulk_operations(12)=auth-rot,
+  analytics_cli(10)=subprocess PYTHONPATH (python -m core.cli needs suite paths on a fresh proc),
+  cloud_runtime_unit(2)=AWS-creds env-dep, abuseipdb/auth_api/autonomous=auth-rot/env.
+
+Campaign real-bug total: **8** (engine 3, data-transform 1, versioning query-drop 1, dup-route 1,
++ routing/endpoint). The "high-count test failure may mask a real bug" lead keeps paying off
+(versioning tick-18, dup-route tick-19). Frontier: UI clean + backend hardened/verified + 6 T3
+corpora triaged. Remaining: product/architecture-blocked (Brain hero, /billing, GCP KMS, unified
+compliance API, IoT scan exposure, bulk-export dedup, two-engine consolidations) + founder-blocked
+(push, env-tools, Postgres, FIPS, PIV, GPU, Stripe, batch auth-rot test rewrite).
