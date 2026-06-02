@@ -141,13 +141,13 @@ export function BUHeatmapPanel() {
           ALE Exposure by Business Unit
         </p>
         <div className="flex flex-col gap-3">
-          {bus.map(bu => {
+          {bus.map((bu, idx) => {
             const ale = bu.total_ale ?? 0;
             const pct = Math.round((ale / maxAle) * 100);
             const level = bu.risk_level?.toLowerCase() ?? "low";
             const barClass = RISK_COLOR[level] ?? "bg-slate-500/70 border-slate-400";
             return (
-              <div key={bu.bu_id} className="flex items-center gap-3">
+              <div key={bu.bu_id ?? idx} className="flex items-center gap-3">
                 <span className="w-32 shrink-0 truncate text-xs font-medium text-foreground">
                   {bu.name ?? bu.bu_id}
                 </span>
