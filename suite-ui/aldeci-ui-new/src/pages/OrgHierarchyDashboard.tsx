@@ -66,10 +66,15 @@ export default function OrgHierarchyDashboard() {
     setErr(null);
     setRefreshing(true);
     try {
+      // These endpoints take the node id in the path (pk=target) AND require the
+      // tenant scope as a query param (org_id) for multi-tenant isolation — without
+      // it the API returns 422 (Field required). Tenant = the authenticated org.
+      const tenant = encodeURIComponent(getStoredOrgId() || "default");
+      const q = `?org_id=${tenant}`;
       const [c, a, p] = await Promise.allSettled([
-        apiFetch<OrgNode[] | { children?: OrgNode[] }>(`/api/v1/orgs/${encodeURIComponent(target)}/children`),
-        apiFetch<OrgNode[] | { ancestors?: OrgNode[] }>(`/api/v1/orgs/${encodeURIComponent(target)}/ancestors`),
-        apiFetch<Policy[] | { policies?: Policy[] }>(`/api/v1/orgs/${encodeURIComponent(target)}/effective-policies`),
+        apiFetch<OrgNode[] | { children?: OrgNode[] }>(`/api/v1/orgs/${encodeURIComponent(target)}/children${q}`),
+        apiFetch<OrgNode[] | { ancestors?: OrgNode[] }>(`/api/v1/orgs/${encodeURIComponent(target)}/ancestors${q}`),
+        apiFetch<Policy[] | { policies?: Policy[] }>(`/api/v1/orgs/${encodeURIComponent(target)}/effective-policies${q}`),
       ]);
       setChildren(c.status === "fulfilled" ? (Array.isArray(c.value) ? c.value : c.value.children ?? []) : []);
       setAncestors(a.status === "fulfilled" ? (Array.isArray(a.value) ? a.value : a.value.ancestors ?? []) : []);

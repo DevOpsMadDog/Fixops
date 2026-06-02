@@ -99,6 +99,10 @@ def list_children(
     try:
         return _get_engine().list_children(org_id, pk, depth=depth)
     except ValueError as exc:
+        # An org that isn't (yet) a registered hierarchy node honestly has no
+        # children — return empty rather than 404'ing the hierarchy dashboard.
+        if "not found" in str(exc):
+            return []
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
@@ -111,6 +115,9 @@ def get_ancestors(
     try:
         return _get_engine().get_ancestors(org_id, pk)
     except ValueError as exc:
+        # Unregistered node has no ancestors — honest-empty, not 404.
+        if "not found" in str(exc):
+            return []
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
@@ -153,6 +160,9 @@ def effective_policies(
     try:
         return _get_engine().effective_policies(org_id, pk)
     except ValueError as exc:
+        # Unregistered node inherits no policies — honest-empty, not 404.
+        if "not found" in str(exc):
+            return []
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
