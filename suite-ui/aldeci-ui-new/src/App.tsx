@@ -28,12 +28,10 @@ const SupportPage = lazy(() => import("@/pages/SupportPage"));
 // ── Lazy-loaded pages ──
 
 // Space 1: Mission Control
-const SLADashboard = lazy(() => import("@/pages/mission-control/SLADashboard"));
 const LiveFeed = lazy(() => import("@/pages/mission-control/LiveFeed"));
 const RiskOverview = lazy(() => import("@/pages/mission-control/RiskOverview"));
 const MissionControlComplianceDashboard = lazy(() => import("@/pages/mission-control/ComplianceDashboard"));
 const ThreatIntelDashboard = lazy(() => import("@/pages/mission-control/ThreatIntelDashboard"));
-const RiskRegister = lazy(() => import("@/pages/mission-control/RiskRegister"));
 const CISODashboard = lazy(() => import("@/pages/mission-control/CISODashboard"));
 
 // Findings Explorer (universal — all personas)
@@ -190,7 +188,6 @@ const SystemHealthDashboard = lazy(() => import("@/pages/SystemHealthDashboard")
 const NetworkTrafficDashboard = lazy(() => import("@/pages/NetworkTrafficDashboard"));
 
 // Threat Actor Intelligence + Security Champions
-const SecurityChampionsDashboard = lazy(() => import("@/pages/SecurityChampionsDashboard"));
 
 // Compliance Dashboard — standalone P07 view (route: /compliance)
 
@@ -586,6 +583,9 @@ export default function App() {
             <Route path="/discover/component-identity" element={<ComponentIdentityView />} />
 
             {/* Space 3: Validate — admin + security_analyst only (except Reachability) */}
+            {/* AttackSimulation (BAS): real 621-LOC API-backed page that was imported but
+                never routed (unreachable lost feature). Wired at its canonical sub-path. */}
+            <Route path="/validate/attack-simulation" element={<AttackSimulation />} />
             <Route path="/validate/reachability" element={<Reachability />} />
             {/* Wave 1 — Validate */}
             <Route path="/validate/reachability-proof" element={<ReachabilityProof />} />
