@@ -923,3 +923,17 @@ All gates green this session: create_app 8345 routes, Beast smoke 755 + document
 Test-rot / test-infra fixed: material_change (router refactor /changes/material-change/*), marketplace (auth_deps._EXPECTED_TOKENS removed → FIXOPS_API_TOKEN env), policies_cli (subprocess PYTHONPATH + bogus --status flag). Clean skips for removed modules: processing_layer_fallbacks (archive.enterprise_legacy), mitre_compliance_analyzer (core.services.enterprise.*), policy_kevs/policy_opa (api.v1.policy → now apps.api.pr_gate_router).
 i-r REMAINING (not bugs): llm_council_real_2member (FOUNDER-BLOCKED — needs OpenRouter/MuleRouter key, only local-model members present); llm_council_perf + perf_alert_triage_stats + perf_dast_engine_regex (PERF-TIMING flakes — cold-start/threshold, machine-dependent, same class as the documented ingest-timing flake; regex correctness passes).
 All gates green: create_app 8345 routes, Beast smoke 756/756.
+
+---
+## Session addendum 2026-06-03 (ralph tick70–72) — s-z T3 sweep COMPLETE; T3 alphabet done
+s-z sweep (180 files) fully triaged. 6 test-only fixes committed (no product changes):
+ - sso_provider: SSRF-guard skip when IdP host unresolvable offline (did NOT weaken the guard).
+ - subsidiary_attribution + vendor_saas_empty_endpoints + webhook_index_wired: auth-rot — removed auth_deps._EXPECTED_TOKENS/_HAS_TOKEN_AUTH or hardcoded/absent token → FIXOPS_API_TOKEN env / dependency_overrides[api_key_auth].
+ - vllm_provider_unit: provider lineup grew to 9 (+deepseek +mulerouter) → subset assert.
+ - xdr_router_http: empty-org stats used polluted shared ORG → per-run uuid empty org.
+FOUNDER-PRIORITY (recorded, NOT fixed): tenancy_lint reports 100 V1 "org_id: str = default" — sampling shows these are Pydantic MODEL FIELDS (scanner false positives; real endpoint V1s were eliminated by waves 12-16). Needs scripts/tenancy_lint.py AST-refinement to exclude model fields (or confirm request-model org_id defaults intended). Did NOT re-freeze allowlist (would hide debt) nor touch 100 sites (founder-blocked org-precedence).
+DEFERRED (wholesale redesign): zero_trust (3 failed) — 4 overlapping engines (zero_trust.py/_engine/_policy_engine/_enforcement_engine) + legacy/new router split (prefix now /api/v1/zero-trust-legacy). evaluate_access semantics + prefix reflect in-flight dataclass→dict+policy redesign; needs a focused pass to pick the canonical engine/router.
+
+### T3 BROAD REGRESSION — ALPHABET COMPLETE
+All non-blast-radius test slices swept across a-z (a-c, d-m, e-h, i-r, q-s, t-v, s-z). Real product bugs found+fixed this multi-tick session: audit_db 12-col INSERT, crypto key_id cache, RSA generate_key_pair key_id, compliance_mapping FIXOPS_DATA_DIR, soc_automation overlay, reasoning_bank judge loop, security_findings call-time DB, markov FPE matrix_power, soc-engine UTC date, council asyncio guard, mcp_gateway query/logger, health /metrics openapi, openclaw 500→503, patch_manager cve_ids, HIPAA category taxonomy, + egress-guard hardening. Remaining open: tenancy_lint scanner (founder-priority), zero_trust redesign (deferred), + perf-timing flakes & founder-blocked (OpenRouter key, DNS, GPU, push, Postgres, FIPS, PIV, Stripe).
+All gates green: create_app 8345 routes, Beast smoke 756/756, UI no-mocks-clean.
