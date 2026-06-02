@@ -112,7 +112,7 @@ function isOverdue(a: Assessment): boolean {
 export default function SecurityQuestionnaireDashboard() {
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
   useEffect(() => {
-    fetch("/api/v1/security-questionnaires", { headers: { "X-API-Key": localStorage.getItem("apiKey") || "" } })
+    fetch("/api/v1/security-questionnaires", { headers: { "X-API-Key": localStorage.getItem("aldeci.authToken") || "" } })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(() => { /* live data available */ })
       .catch(() => {});

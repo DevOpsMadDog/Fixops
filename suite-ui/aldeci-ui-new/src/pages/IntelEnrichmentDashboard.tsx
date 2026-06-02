@@ -10,7 +10,7 @@
 
 import { useState, useEffect } from "react";
 const _API_BASE = "/api/v1/intel-enrichment";
-const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("aldeci.authToken") || "" });
 
 
 // ── Types ──────────────────────────────────────────────────────

@@ -593,7 +593,7 @@ function VendorRow({ vendor, selected, onSelect, index }: VendorRowProps) {
 
 const API_HEADERS = () => ({
   "Content-Type": "application/json",
-  "X-API-Key": localStorage.getItem("apiKey") || "",
+  "X-API-Key": localStorage.getItem("aldeci.authToken") || "",
 });
 
 function scoreToGrade(score: number): RiskGrade {

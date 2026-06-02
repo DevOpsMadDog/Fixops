@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
+import { getStoredAuthToken } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { PageSkeleton } from "@/components/shared/PageSkeleton";
 
@@ -39,7 +40,9 @@ export default function ChangelogPage() {
   useEffect(() => {
     const fetchChangelog = async () => {
       try {
-        const response = await fetch("/api/v1/changelog/recent?limit=50");
+        const response = await fetch("/api/v1/changelog/recent?limit=50", {
+          headers: { "X-API-Key": getStoredAuthToken() ?? "" },
+        });
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }

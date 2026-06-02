@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 const _API_BASE = "/api/v1/identity-lifecycle";
-const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("aldeci.authToken") || "" });
 
 
 const accounts = [

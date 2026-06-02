@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 const API_BASE = "/api/v1/arch-review";
-const getHeaders = () => ({ "X-API-Key": localStorage.getItem("apiKey") || "" });
+const getHeaders = () => ({ "X-API-Key": localStorage.getItem("aldeci.authToken") || "" });
 
 const reviews = [
   { id: "rev-001", review_name: "Payment Service Architecture Review", system_name: "payment-svc", review_type: "threat_model", reviewer: "Alice Chen", finding_count: 8, critical_count: 2, overall_score: 62, risk_level: "high", status: "completed" },
