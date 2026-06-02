@@ -820,3 +820,8 @@ Beast smoke **756/756** green throughout. test_end_to_end **4/4**. Pre-existing 
 
 ### 2026-06-03 (cont.) — UI NO-MOCKS pass
 Full `suite-ui/aldeci-ui-new/src` scan: no MOCK_/fixtures imports, no src/data|fixtures dirs, zero truly-static pages. ONE real violation found+fixed: **SecurityQuestionnaireDashboard** rendered hardcoded data with a decorative result-discarding fetch. Wired real: engine `list_questionnaires`/`list_questions`, router `GET /questionnaires` + `/questionnaires/{id}/questions`, UI real apiGet + loading/error/branded EmptyStates. Live-verified create→add_question→list→questions; +5 engine tests (incl tenant isolation). Commits `50edc9e9`, `06f72a37`. All other pages real (GenericDashboard `apiPath`, `@/lib/api`, or legit config/marketing constants). **UI is no-mocks clean.** Build pass; create_app 8342; Beast smoke 756/756.
+
+### 2026-06-03 (cont.) — T3 t-v sweep harvest
+- **Real API bug:** `POST /api/v1/toxic-combo-rules` required `combo_id` but the store keys by `id` (auto-gen) and ignored it → valid requests 422'd. Made optional + mapped to store id. (`84356a69`)
+- **Tenant-isolation tests restored (product already secure):** `test_tenant_isolation_audit` (4) documented gaps now CLOSED (AttackPathEngine get_node/remove_node org_id-guarded; RedisQueue org-keyed) → rewritten to assert enforced isolation; `test_tenant_leak_remediation_reports` (16) auth-rot (hardcoded token) → use live FIXOPS_API_TOKEN, cross-org 404 coverage restored. (`a5fec54a`, `27ff9024`)
+All green: create_app 8342, Beast smoke 756/756. q-s T3 slice sweep in progress.
