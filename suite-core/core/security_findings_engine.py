@@ -130,10 +130,13 @@ class SecurityFindingsEngine:
 
     def __init__(
         self,
-        db_path: str = _DEFAULT_DB,
+        db_path: Optional[str] = None,
         tg_db_path: Optional[str] = None,
     ) -> None:
-        self.db_path = db_path
+        # Resolve _DEFAULT_DB at call time (not as a default-arg bound at import)
+        # so a runtime override of the module global takes effect — required for
+        # test isolation and for callers that repoint the store after import.
+        self.db_path = db_path or _DEFAULT_DB
         # Optional TrustGraph DB path override — used in tests for isolation.
         # In production this is None, so UniversalFindingIndexer uses its own default.
         self._tg_db_path = tg_db_path
