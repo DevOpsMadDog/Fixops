@@ -91,6 +91,27 @@ def list_soc_metrics(org_id: str = Query("default")) -> Dict[str, Any]:
     return _get_engine().get_soc_summary(org_id=org_id)
 
 
+@router.get("/queue", dependencies=[Depends(api_key_auth)])
+def list_alert_queue(
+    org_id: str = Query("default"),
+    status: Optional[str] = Query(default=None, description="Filter: open|acknowledged|resolved"),
+    limit: int = Query(default=100, ge=1, le=500),
+) -> Dict[str, Any]:
+    """SOC alert queue (real soc_alerts data, open first). Honest empty when none."""
+    items = _get_engine().list_alerts(org_id, status=status, limit=limit)
+    return {"alerts": items, "total": len(items)}
+
+
+@router.get("/snapshots", dependencies=[Depends(api_key_auth)])
+def list_snapshots(
+    org_id: str = Query("default"),
+    limit: int = Query(default=30, ge=1, le=365),
+) -> Dict[str, Any]:
+    """Recent daily SOC metric snapshots (real data, newest first)."""
+    items = _get_engine().list_snapshots(org_id, limit=limit)
+    return {"snapshots": items, "total": len(items)}
+
+
 @router.post("/alerts", dependencies=[Depends(api_key_auth)])
 def create_alert(body: AlertCreate) -> Dict[str, Any]:
     """Create a new SOC alert."""

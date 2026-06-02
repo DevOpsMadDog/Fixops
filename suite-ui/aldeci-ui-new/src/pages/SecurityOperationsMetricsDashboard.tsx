@@ -238,8 +238,8 @@ export default function SecurityOperationsMetricsDashboard() {
         {[
           { label: "Total Alerts",       value: stats.total_alerts,                       suffix: "",  color: "text-white",      icon: <AlertOctagon className="w-5 h-5 text-gray-400" /> },
           { label: "Critical",           value: stats.critical_alerts,                    suffix: "",  color: "text-red-400",    icon: <AlertOctagon className="w-5 h-5 text-red-400" /> },
-          { label: "False Positive Rate",value: stats.false_positive_rate.toFixed(1),     suffix: "%", color: "text-yellow-400", icon: <Clock className="w-5 h-5 text-yellow-400" /> },
-          { label: "Resolution Rate",    value: stats.resolution_rate.toFixed(1),         suffix: "%", color: "text-green-400",  icon: <CheckCircle className="w-5 h-5 text-green-400" /> },
+          { label: "False Positive Rate",value: (stats.false_positive_rate ?? 0).toFixed(1),     suffix: "%", color: "text-yellow-400", icon: <Clock className="w-5 h-5 text-yellow-400" /> },
+          { label: "Resolution Rate",    value: (stats.resolution_rate ?? 0).toFixed(1),         suffix: "%", color: "text-green-400",  icon: <CheckCircle className="w-5 h-5 text-green-400" /> },
         ].map(c => (
           <div key={c.label} className="bg-gray-800 rounded-lg p-4 flex items-center gap-3">
             {c.icon}

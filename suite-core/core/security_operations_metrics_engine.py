@@ -227,6 +227,30 @@ class SecurityOperationsMetricsEngine:
                 ).fetchone()
                 return self._row(updated)
 
+    def list_alerts(
+        self,
+        org_id: str,
+        status: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """List SOC alerts for the org (the alert queue), open first then newest.
+
+        Real data from soc_alerts; honest empty when none. Optional status filter.
+        """
+        sql = "SELECT * FROM soc_alerts WHERE org_id = ?"
+        params: list = [org_id]
+        if status:
+            sql += " AND status = ?"
+            params.append(status)
+        sql += (
+            " ORDER BY CASE status WHEN 'open' THEN 0 WHEN 'acknowledged' THEN 1 "
+            "ELSE 2 END, detected_at DESC LIMIT ?"
+        )
+        params.append(limit)
+        with self._conn() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [self._row(r) for r in rows]
+
     # ------------------------------------------------------------------
     # Snapshots
     # ------------------------------------------------------------------
@@ -296,6 +320,18 @@ class SecurityOperationsMetricsEngine:
                 )
 
         return record
+
+    def list_snapshots(
+        self, org_id: str, limit: int = 30
+    ) -> List[Dict[str, Any]]:
+        """List recent daily SOC metric snapshots (newest first). Real data, honest empty."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM soc_daily_snapshots WHERE org_id = ? "
+                "ORDER BY snapshot_date DESC LIMIT ?",
+                (org_id, limit),
+            ).fetchall()
+        return [self._row(r) for r in rows]
 
     # ------------------------------------------------------------------
     # Analyst workload
