@@ -740,7 +740,7 @@ export default function ComplianceDashboard() {
   const [expandedFramework, setExpandedFramework] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "evidence" | "controls" | "trends">("overview");
 
-  // API hooks with graceful fallback
+  // API hooks — real data only (NO MOCKS); honest-empty when the API returns nothing.
   const statusQuery = useComplianceStatus();
   const frameworksQuery = useComplianceFrameworks();
   const gapsQuery = useComplianceGaps();
@@ -756,7 +756,7 @@ export default function ComplianceDashboard() {
 
   if (isLoading) return <PageSkeleton />;
 
-  // Use API data where available, fall back to mock
+  // Real API data only — no mock fallback.
   const rawFrameworks = toArray(frameworksQuery.data);
   const frameworks: Framework[] = rawFrameworks.length > 0
     ? rawFrameworks.map((f: any) => ({
@@ -782,7 +782,10 @@ export default function ComplianceDashboard() {
   // Computed KPIs
   const compliantCount = frameworks.filter((f) => f.status === "compliant").length;
   const partialCount = frameworks.filter((f) => f.status === "partial" || f.status === "non-compliant").length;
-  const overallScore = Math.round(frameworks.reduce((sum, f) => sum + f.score, 0) / frameworks.length);
+  // Guard divide-by-zero on a genuinely empty org (was NaN in the KPI card).
+  const overallScore = frameworks.length
+    ? Math.round(frameworks.reduce((sum, f) => sum + f.score, 0) / frameworks.length)
+    : 0;
   const totalControls = frameworks.reduce((sum, f) => sum + f.totalControls, 0);
   const passedControls = frameworks.reduce((sum, f) => sum + f.controlsPassed, 0);
   const overdueEvidence = evidenceItems.filter((i) => i.status === "overdue").length;

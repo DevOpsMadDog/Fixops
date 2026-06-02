@@ -3,7 +3,11 @@
  *
  * ComplianceDashboard uses useComplianceStatus, useComplianceFrameworks,
  * useComplianceGaps, and useAssessCompliance from @/hooks/use-api.
- * The component falls back to MOCK_FRAMEWORKS when API data is empty.
+ *
+ * NO MOCKS contract: the component renders framework cards ONLY from real API
+ * data; when the frameworks API returns empty it shows no fabricated cards
+ * (honest-empty). These tests assert exactly that — real data in -> cards out,
+ * empty in -> no cards. (The old MOCK_FRAMEWORKS fallback was removed.)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, fireEvent, waitFor } from "@testing-library/react";
@@ -188,47 +192,43 @@ describe("ComplianceDashboard", () => {
     expect(screen.getByText("Trends")).toBeInTheDocument();
   });
 
-  it("shows SOC 2 Type II framework card from mock fallback data", async () => {
+  // ── NO MOCKS: framework cards render from REAL API data only ──
+  it("renders framework cards from real API data (no mock fallback)", async () => {
+    // Supply real frameworks via the hook as an array (toArray returns it as-is).
+    mocks.useComplianceFrameworks.mockReturnValue(
+      mockQueryResult([
+        {
+          id: "soc2",
+          name: "SOC 2 Type II",
+          score: 91,
+          controls_passed: 60,
+          total_controls: 64,
+          status: "compliant",
+        },
+        {
+          id: "pci",
+          name: "PCI-DSS v4.0",
+          score: 78,
+          controls_passed: 40,
+          total_controls: 51,
+          status: "partial",
+        },
+      ]),
+    );
     const Page = await loadComplianceDashboard();
     renderPage(<Page />);
-    // Name appears in both card title and filter dropdown — assert at least one exists
     expect(screen.getAllByText("SOC 2 Type II").length).toBeGreaterThan(0);
-  });
-
-  it("shows PCI-DSS v4.0 framework card from mock fallback data", async () => {
-    const Page = await loadComplianceDashboard();
-    renderPage(<Page />);
     expect(screen.getAllByText("PCI-DSS v4.0").length).toBeGreaterThan(0);
   });
 
-  it("shows HIPAA framework card from mock fallback data", async () => {
+  it("shows NO fabricated framework cards when the API returns empty (honest-empty)", async () => {
+    // Default beforeEach already returns empty frameworks; assert none of the old
+    // hardcoded fallback names leak into the DOM.
     const Page = await loadComplianceDashboard();
     renderPage(<Page />);
-    expect(screen.getAllByText("HIPAA").length).toBeGreaterThan(0);
-  });
-
-  it("shows ISO 27001:2022 framework card from mock fallback data", async () => {
-    const Page = await loadComplianceDashboard();
-    renderPage(<Page />);
-    expect(screen.getAllByText("ISO 27001:2022").length).toBeGreaterThan(0);
-  });
-
-  it("shows NIST CSF 2.0 framework card from mock fallback data", async () => {
-    const Page = await loadComplianceDashboard();
-    renderPage(<Page />);
-    expect(screen.getAllByText("NIST CSF 2.0").length).toBeGreaterThan(0);
-  });
-
-  it("shows CIS Controls v8 framework card from mock fallback data", async () => {
-    const Page = await loadComplianceDashboard();
-    renderPage(<Page />);
-    expect(screen.getAllByText("CIS Controls v8").length).toBeGreaterThan(0);
-  });
-
-  it("shows GDPR framework card from mock fallback data", async () => {
-    const Page = await loadComplianceDashboard();
-    renderPage(<Page />);
-    expect(screen.getAllByText("GDPR").length).toBeGreaterThan(0);
+    for (const name of ["SOC 2 Type II", "PCI-DSS v4.0", "HIPAA", "ISO 27001:2022"]) {
+      expect(screen.queryByText(name)).not.toBeInTheDocument();
+    }
   });
 
   it("switches to Evidence Collection tab when clicked", async () => {
