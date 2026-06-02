@@ -156,6 +156,23 @@ def get_license_report(scan_id: str, org_id: str = Depends(get_org_id)):
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.get("/vulns", dependencies=[Depends(api_key_auth)])
+def list_org_vulnerabilities(org_id: str = Depends(get_org_id)):
+    """Org-level vulnerable dependencies across each project's latest scan.
+
+    Real aggregation over stored scans (no fabricated data); honest empty list
+    when nothing has been scanned yet.
+    """
+    items = _get_engine().list_org_vulnerabilities(org_id)
+    return {"vulnerabilities": items, "total": len(items)}
+
+
+@router.get("/licenses", dependencies=[Depends(api_key_auth)])
+def get_org_license_report(org_id: str = Depends(get_org_id)):
+    """Org-level license distribution + risky licenses across latest scans."""
+    return _get_engine().get_org_license_report(org_id)
+
+
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_sca_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated SCA statistics for the org."""

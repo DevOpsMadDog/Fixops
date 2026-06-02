@@ -314,6 +314,53 @@ class SoftwareCompositionAnalysisEngine:
         }
 
     # ------------------------------------------------------------------
+    # Org-level aggregates (latest scan per project) — real data, no fabrication
+    # ------------------------------------------------------------------
+
+    def _latest_scans_per_project(self, org_id: str) -> List[Dict[str, Any]]:
+        """Return the most recent scan for each project in the org."""
+        latest: Dict[str, Dict[str, Any]] = {}
+        for scan in self.list_scans(org_id):  # already ORDER BY scanned_at DESC
+            pid = scan.get("project_id") or scan.get("id")
+            if pid not in latest:
+                latest[pid] = scan
+        return list(latest.values())
+
+    def list_org_vulnerabilities(self, org_id: str) -> List[Dict[str, Any]]:
+        """Flatten all vulnerable dependencies across each project's latest scan."""
+        out: List[Dict[str, Any]] = []
+        for scan in self._latest_scans_per_project(org_id):
+            for dep in scan.get("dependencies", []):
+                if dep.get("is_vulnerable"):
+                    out.append({
+                        **dep,
+                        "scan_id": scan.get("id"),
+                        "project_id": scan.get("project_id"),
+                        "project_name": scan.get("project_name"),
+                    })
+        return out
+
+    def get_org_license_report(self, org_id: str) -> Dict[str, Any]:
+        """Aggregate license distribution + risky licenses across latest scans."""
+        license_counts: Dict[str, int] = {}
+        risky: List[Dict[str, str]] = []
+        for scan in self._latest_scans_per_project(org_id):
+            for dep in scan.get("dependencies", []):
+                lic = dep.get("license", "Unknown")
+                license_counts[lic] = license_counts.get(lic, 0) + 1
+                if lic in _RISKY_LICENSES:
+                    risky.append({
+                        "name": dep.get("name", ""),
+                        "license": lic,
+                        "project_id": scan.get("project_id"),
+                    })
+        return {
+            "licenses": license_counts,
+            "risky_licenses": risky,
+            "risky_count": len(risky),
+        }
+
+    # ------------------------------------------------------------------
     # Stats
     # ------------------------------------------------------------------
 
