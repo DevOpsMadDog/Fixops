@@ -255,3 +255,40 @@ Founder: "all screens tabs are mostly not usable" (named Secrets Scanner Scanner
 **Browser-verified (real Playwright clicks, not synthetic):** DetectAndRespondHub ITDR→XDR→EDR and SupplyChainHub Security→Vendor Risk all switch active tab + panel content + URL with no revert. All 106 hub panels confirmed real-data-wired (0 stubs).
 
 **Also this session (all committed, build+tsc+smoke 756 green, browser-verified):** AdminUsersPage 401 (missing X-API-Key) → 200 [5710eade]; route-sweep API failures webhooks-out 404 + agentless-scan 404 [bc601386], attack-paths 422 + air-gap-bundles 404 [faf33b58], compliance-frameworks 404 [cb8469c9]; ComplianceDashboard keyless-rows/Unknown-data → rich /compliance/status [c08028f6] (cleared the shared React key warning behind 14 routes). Full route-sweep with real SCIF token: 0 API failures, 0 crashes, 0 console errors across all routes.
+
+## UPDATE (2026-06-02 ~11:30) — Tab-panel sweep: every hub tab now real-data clean
+
+Built a new e2e gate `e2e/tab-panel-sweep.spec.ts` that clicks EVERY tab on all 52
+hubs (route-sweep only loads each route's default tab, so broken NON-default panels
+were invisible). Ran it with the real SCIF token; it surfaced a systemic class:
+**frontend TS interfaces / fetch paths drifted from backend API field names**, plus a
+few missing endpoints and bare fetches without auth. All fixed + browser-verified:
+
+Interface/key drift (undefined or duplicate React keys + blank cells):
+  • FAIRQuantPanel  scenario.id  → scenario_id            (85364163)
+  • PostureScorePanel  component.name → id + component    (85364163)
+  • GRCAssessment  control_ref/title empty → control_id/risk_id/framework_id (6c770060)
+  • ModelingPipeline  model_id → id                       (6c770060)
+  • CyberInsurance  policy.id/claim.id → policy_id/claim_id (2364c180)
+  • ContainerImage  ScanRecord remapped to /containers/history shape (2364c180)
+  • ZeroTrustPolicy  policy.id → policy_id                (f418ebc7)
+
+Wrong path / missing param / missing auth:
+  • posture-trends + program-maturity 422 → pass org_id   (9ba5ca75)
+  • threat-response/playbooks 404 → /playbooks/performance (f418ebc7)
+  • knowledge-graph/ 404 → /export + graph.nodes normalise (f418ebc7)
+  • integrations/status 404 → /integrations/health        (2364c180)
+  • compliance-frameworks/agentless/air-gap/webhooks-out/attack-paths 404/422 (earlier batch)
+  • /discover/architect code-to-runtime + knowledge-graph 401 → bare fetch()
+    now sends auth headers                                  (26e35435)
+
+Net-new REAL backend endpoints (wired to existing engines, NO MOCKS):
+  • GET/PUT /api/v1/policy-enforcement/hooks/policy + GET /hooks/status
+    → DevSecOpsEngine.get_active_hook_policy / apply_hook_policy (81cbc484)
+  • GET /api/v1/autofix/fixes → AutoFixEngine.list_fixes()+to_dict()
+    (curl-verified real SQL-injection fix data)             (6edccf50)
+
+create_app boots 8339 routes. Beast smoke 756 (lone fail = known
+test_100_findings_ingest flake, passes isolated ~0.6s). Final tab-panel sweep: 0
+hubs with issues across all 52 hubs × every tab. All 106 hub panels are real-data
+wired (audited). Deferred (none — every sweep finding resolved this session).
