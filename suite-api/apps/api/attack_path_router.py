@@ -188,6 +188,20 @@ def crown_jewels_at_risk(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.get("/paths", summary="List attack paths (entry points that can reach crown jewels)")
+def list_paths(
+    org_id: str = Query("default", description="Organisation ID"),
+) -> dict:
+    try:
+        # Real attack paths from the graph: crown jewels + the entry points that reach them.
+        # (UI consumes {paths:[...]}; no fabricated data — honest empty when the graph is empty.)
+        paths = _get_engine().get_crown_jewels_at_risk(org_id=org_id)
+        return {"paths": paths, "total": len(paths)}
+    except Exception as exc:
+        logger.exception("Failed to list attack paths")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @router.get("/stats", summary="Attack graph statistics")
 def stats(
     org_id: str = Query("default", description="Organisation ID"),
