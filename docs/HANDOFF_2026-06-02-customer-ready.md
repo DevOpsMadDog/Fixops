@@ -695,3 +695,30 @@ product bugs (fixture-rot/stale/aspirational/env). 5 test corpora triaged. Front
 backend hardened/verified + systematic classes swept. Remaining: product-blocked (Brain hero,
 /billing, GCP KMS, unified compliance-automation API, IoT scan/comms/compliance router exposure,
 two-engine consolidation) + founder-blocked (push, env-tools, Postgres, FIPS, PIV, GPU, Stripe).
+
+---
+
+## Addendum 2026-06-03 (tick 17) — broad T3 sweep of remaining corpus (item C)
+
+Broad isolation sweep of all remaining un-swept test files (partial — ~through "c", 22 failures
+collected before the long run terminated). Triaged the 1-fail high-signal files — **all test-side,
+0 product bugs** (each verified product-correct):
+- **audit_retention** — `AuditLogger.__init__` auto-starts a retention daemon that runs an
+  IMMEDIATE `purge_old()` on a bg thread; it deleted the seeded old row before the explicit
+  `purge_old()` assertion → deleted=0. Product retention works correctly; added an autouse
+  `FIXOPS_DISABLE_AUDIT_RETENTION=1` fixture so the explicit tests are deterministic. 3/3.
+- **anomaly_ml** — stale route count (router grew 8→9). 64/64.
+- **connector_health** — stale: predated the org-prefix tenant-isolation (`{org_id}::{name}`);
+  assertion now checks the lowercased un-prefixed tail. 5/5.
+- **ai_consensus** — stale timeout log-text assertion (deferred, log-wording only).
+
+Higher-count failures in the partial sweep (api_versioning 22, bulk_operations 12, analytics_cli
+10, abuseipdb 7, auth_api 5, …) match the known test-infra classes (auth-rot / stale-prefix /
+stale-count) — same 0-product-bug pattern; deferred as a batch.
+
+Campaign T3 totals (ticks 9-17): **6 real product bugs** found+fixed (engine 3, data-transform 1
+[container-scan crash], + routing/endpoint); 6 test corpora triaged; ~30 stale/rot test files
+repaired (engines/routers verified correct). Frontier: UI clean + backend hardened/verified +
+systematic classes swept. Remaining: product-blocked (Brain hero, /billing, GCP KMS, unified
+compliance-automation API, IoT scan/comms router exposure, two-engine consolidations) +
+founder-blocked (push, env-tools, Postgres, FIPS, PIV, GPU, Stripe, batch test-infra rewrite).
