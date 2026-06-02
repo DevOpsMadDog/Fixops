@@ -609,7 +609,15 @@ class RiskQuantificationEngineV2:
         """
         bu = self._get_business_unit(org_id, bu_id)
         if not bu:
-            raise ValueError(f"Business unit {bu_id} not found for org {org_id}")
+            # "default" is the dashboard landing sentinel (no BU selected yet). For a
+            # fresh org with no business units defined, honour the documented
+            # "empty -> clean zeros (no crash)" contract instead of 404'ing the
+            # executive landing page. Explicit unknown BU ids still raise (real
+            # "not found"), so we never mask a genuinely missing BU the user asked for.
+            if bu_id == "default":
+                bu = {"name": "All Business Units", "criticality": "medium"}
+            else:
+                raise ValueError(f"Business unit {bu_id} not found for org {org_id}")
 
         if findings is None:
             findings = self._findings_for_bu(org_id, bu_id)

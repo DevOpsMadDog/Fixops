@@ -47,7 +47,7 @@ test("route sweep — console errors + failed /api/v1 calls per route", async ({
     [TOKEN, ORG],
   );
 
-  const report: Record<string, { consoleErrors: string[]; failedApi: string[] }> = {};
+  const report: Record<string, { consoleErrors: string[]; failedApi: string[]; crash?: string }> = {};
 
   for (const route of routes) {
     const consoleErrors: string[] = [];
@@ -79,13 +79,22 @@ test("route sweep — console errors + failed /api/v1 calls per route", async ({
     // 429-masks. SWEEP_ROUTE_DELAY_MS tunes inter-route pacing (default 2500ms).
     await page.waitForTimeout(Number(process.env.SWEEP_ROUTE_DELAY_MS || 2500));
 
+    // Capture render-state crashes the network/console miss: error-boundary fallback
+    // and SPA 404 (both render 200 + index.html, so they only show in the DOM).
+    let crash: string | undefined;
+    try {
+      const txt = (await page.evaluate(() => document.body.innerText || "")).slice(0, 5000);
+      if (txt.includes("Page not found")) crash = "404_PAGE_NOT_FOUND";
+      else if (txt.includes("Something went wrong") || txt.includes("error boundary")) crash = "ERROR_BOUNDARY";
+    } catch { /* page closed */ }
+
     page.off("console", onConsole);
     page.off("response", onResponse);
 
     // de-dupe
     const uniq = (a: string[]) => [...new Set(a)];
-    if (consoleErrors.length || failedApi.length) {
-      report[route] = { consoleErrors: uniq(consoleErrors), failedApi: uniq(failedApi) };
+    if (consoleErrors.length || failedApi.length || crash) {
+      report[route] = { consoleErrors: uniq(consoleErrors), failedApi: uniq(failedApi), ...(crash ? { crash } : {}) };
     }
     // Write incrementally so a suite timeout still leaves a usable report.
     fs.writeFileSync(REPORT, JSON.stringify(report, null, 2));
