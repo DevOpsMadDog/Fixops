@@ -520,3 +520,27 @@ Frontier: UI verified-clean (4 dims); backend hardened+verified (runtime/status/
 deser/XXE/cmdi); T3 connector-router slice now actually-tested + triaged (0 product bugs). Beast
 smoke green. Remaining: product-blocked (Brain hero, /billing) + founder-blocked (push, deeper
 test-infra like ws_events/Postgres, FIPS, PIV, GPU, Stripe).
+
+---
+
+## Addendum 2026-06-03 (tick 10) — entire router-test corpus triaged clean (item C)
+
+- **nuclei + zap** (last 2 of the 26-file auth-rot cluster): nuclei's monkeypatch.setattr(api_key_auth)
+  was a no-op (FastAPI binds Depends at router-def time) → dependency_overrides. KEY LEARNING:
+  the override MUST be zero-arg (`lambda: True`) — a `(*_a, **_k)` signature makes FastAPI treat
+  `_a`/`_k` as required query params → 422. nuclei 9/9, zap 8/8.
+- **Isolation sweep of the remaining 137 router-test files**: only 3 failed, ALL test-rot (0 product bugs):
+  - gcp_cloudkms_router → orphan test for a never-built connector → `pytest.importorskip` (18 errors→skips;
+    building it is GCP-creds founder-blocked).
+  - security_baseline_router → `dependency_overrides[_get_engine]` was a no-op (router uses a module
+    `_get_engine()` singleton, not Depends) → tests hit shared default DB (total=16). Fixed via
+    `monkeypatch.setattr` on the module engine. 6/6.
+  - webhook_router → auth-fixture rot → zero-arg `dependency_overrides[api_key_auth]`. 22/22.
+
+**Whole router-test corpus now triaged clean.** Every failure across the campaign's T3 work was
+test-fixture rot (auth-override / monkeypatch-vs-Depends / engine-singleton isolation / orphan-module)
+or cross-file TestClient pollution — **zero product defects** in the router layer. Test-only changes;
+Beast smoke 756/756, product code untouched.
+
+Recorded as founder-blocked: GCP Cloud KMS connector (unbuilt, needs GCP creds); ws_events stale-symbol
+rot (tick 9). Frontier: UI clean (4 dims) + backend hardened/verified + router-test corpus clean.
