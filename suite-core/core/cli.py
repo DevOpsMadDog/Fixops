@@ -9,6 +9,25 @@ import os
 import sys
 from pathlib import Path
 
+# ---------------------------------------------------------------------------
+# Keep stdout pure for machine-readable output (JSON). Diagnostic logs must go
+# to stderr — otherwise structlog's default stdout logger (used by the
+# TrustGraph event bus, which initialises at import time) prepends log lines to
+# command output and breaks any consumer that parses stdout as JSON. This must
+# run BEFORE the core.* imports below that trigger event-bus initialisation.
+# ---------------------------------------------------------------------------
+try:  # pragma: no cover - logging setup
+    import logging as _logging
+
+    import structlog as _structlog
+
+    _logging.basicConfig(stream=sys.stderr, level=_logging.WARNING)
+    _structlog.configure(
+        logger_factory=_structlog.PrintLoggerFactory(file=sys.stderr),
+    )
+except Exception:  # noqa: BLE001 - logging must never break the CLI
+    pass
+
 # Add fixops-enterprise to path if not already present (done once at module load)
 # Use append instead of insert(0) to avoid shadowing repo root packages like services.graph
 ENTERPRISE_SRC = Path(__file__).resolve().parent.parent / "fixops-enterprise"
@@ -2358,21 +2377,28 @@ def _handle_inventory(args: argparse.Namespace) -> int:
     elif args.inventory_command == "add":
         app_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
-        cursor.execute(
-            "INSERT INTO applications (id, name, description, owner, criticality, environment, repository_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                app_id,
-                args.name,
-                getattr(args, "description", None),
-                getattr(args, "owner", None),
-                getattr(args, "criticality", "medium"),
-                getattr(args, "environment", "production"),
-                getattr(args, "repo", None),
-                now,
-                now,
-            ),
-        )
-        conn.commit()
+        try:
+            cursor.execute(
+                "INSERT INTO applications (id, name, description, owner, criticality, environment, repository_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    app_id,
+                    args.name,
+                    getattr(args, "description", None),
+                    getattr(args, "owner", None),
+                    getattr(args, "criticality", "medium"),
+                    getattr(args, "environment", "production"),
+                    getattr(args, "repo", None),
+                    now,
+                    now,
+                ),
+            )
+            conn.commit()
+        except sqlite3.IntegrityError:
+            # Application name is UNIQUE — report cleanly instead of dumping a
+            # traceback so scripted callers get a usable exit code + message.
+            conn.close()
+            print(f"Application already exists: {args.name}")
+            return 1
         print(f"Added application: {app_id}")
 
     elif args.inventory_command == "get":

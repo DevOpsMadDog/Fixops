@@ -21,33 +21,40 @@ def test_db_path():
 
 @pytest.fixture(autouse=True)
 def setup_test_db(test_db_path, monkeypatch):
-    """Setup test database for CLI tests."""
-    monkeypatch.setenv("FIXOPS_INVENTORY_DB", test_db_path)
+    """Isolate each test on its own DB.
+
+    The CLI inventory handler resolves its store from FIXOPS_DB_PATH (the
+    platform-wide convention), so the subprocess must inherit that var — using
+    a non-existent FIXOPS_INVENTORY_DB silently leaked writes to the shared
+    .fixops_data/fixops.db and broke isolation (duplicate-name UNIQUE errors).
+    """
+    monkeypatch.setenv("FIXOPS_DB_PATH", test_db_path)
 
 
 class TestInventoryCLI:
     """Test inventory CLI commands."""
 
     def test_inventory_list_empty(self):
-        """Test listing when inventory is empty."""
+        """Test listing when inventory is empty (subcommand: apps)."""
         result = subprocess.run(
-            ["python", "-m", "core.cli", "inventory", "list", "--format", "json"],
+            ["python", "-m", "core.cli", "inventory", "apps", "--format", "json"],
             capture_output=True,
             text=True,
         )
         assert result.returncode == 0
+        # stdout must be pure machine-readable JSON (logs go to stderr).
         data = json.loads(result.stdout)
         assert isinstance(data, list)
 
     def test_inventory_create(self):
-        """Test creating application via CLI."""
+        """Test creating application via CLI (subcommand: add)."""
         result = subprocess.run(
             [
                 "python",
                 "-m",
                 "core.cli",
                 "inventory",
-                "create",
+                "add",
                 "--name",
                 "CLI Test App",
                 "--description",
@@ -60,7 +67,7 @@ class TestInventoryCLI:
         )
 
         assert result.returncode == 0
-        assert "Created application:" in result.stdout
+        assert "Added application:" in result.stdout
 
     def test_inventory_search(self):
         """Test search command."""
@@ -70,7 +77,7 @@ class TestInventoryCLI:
                 "-m",
                 "core.cli",
                 "inventory",
-                "create",
+                "add",
                 "--name",
                 "Searchable App",
                 "--description",
@@ -92,7 +99,7 @@ class TestInventoryCLI:
         assert "applications" in data
 
     def test_inventory_help(self):
-        """Test help command."""
+        """Test help command lists the real subcommands."""
         result = subprocess.run(
             ["python", "-m", "core.cli", "inventory", "--help"],
             capture_output=True,
@@ -100,6 +107,6 @@ class TestInventoryCLI:
         )
 
         assert result.returncode == 0
-        assert "list" in result.stdout
-        assert "create" in result.stdout
+        assert "apps" in result.stdout
+        assert "add" in result.stdout
         assert "search" in result.stdout
