@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -125,7 +126,7 @@ async def bulk_match(req: BulkMatchRequest) -> Dict[str, Any]:
 
 @router.get("/events")
 async def list_events(
-    org_id: str = Query(...),
+    org_id: str = Depends(get_org_id),
     service_name: Optional[str] = Query(None),
     limit: int = Query(200, ge=1, le=1000),
 ) -> List[Dict[str, Any]]:
@@ -136,7 +137,7 @@ async def list_events(
 
 @router.get("/matches")
 async def list_matches(
-    org_id: str = Query(...),
+    org_id: str = Depends(get_org_id),
     event_id: Optional[str] = Query(None),
     limit: int = Query(200, ge=1, le=1000),
 ) -> List[Dict[str, Any]]:
@@ -146,5 +147,5 @@ async def list_matches(
 
 
 @router.get("/stats")
-async def stats(org_id: str = Query(...)) -> Dict[str, Any]:
+async def stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().stats(org_id)
