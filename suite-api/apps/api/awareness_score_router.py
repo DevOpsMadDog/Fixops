@@ -156,3 +156,13 @@ def get_awareness_stats(org_id: str) -> Dict[str, Any]:
     except Exception as exc:
         _logger.exception("get_awareness_stats failed")
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/orgs/{org_id}/risk-trend", summary="Org-wide human-risk score trend by month")
+def get_risk_trend(org_id: str, months: int = 6) -> Dict[str, Any]:
+    """Monthly avg overall awareness score (real data from awareness_scores)."""
+    try:
+        return {"trend": get_engine().get_risk_trend(org_id, months=months)}
+    except Exception as exc:
+        _logger.exception("get_risk_trend failed")
+        raise HTTPException(status_code=500, detail=str(exc))

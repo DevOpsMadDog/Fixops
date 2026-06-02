@@ -487,6 +487,28 @@ class AwarenessScoreEngine:
 
         return {"by_department": by_department}
 
+    def get_risk_trend(self, org_id: str, months: int = 6) -> List[Dict[str, Any]]:
+        """Org-wide human-risk trend: avg overall_score bucketed by month.
+
+        Real historical data from awareness_scores.calculated_at — no fabrication.
+        Returns oldest->newest [{month: 'YYYY-MM', score: <avg 0-100>}].
+        """
+        with self._lock:
+            with self._conn() as conn:
+                rows = conn.execute(
+                    """SELECT strftime('%Y-%m', calculated_at) AS month,
+                              AVG(overall_score) AS score
+                       FROM awareness_scores
+                       WHERE org_id = ?
+                       GROUP BY month
+                       ORDER BY month DESC
+                       LIMIT ?""",
+                    (org_id, months),
+                ).fetchall()
+        out = [{"month": r["month"], "score": round(r["score"] or 0.0, 1)} for r in rows]
+        out.reverse()  # oldest -> newest for the chart
+        return out
+
     def get_awareness_stats(self, org_id: str) -> Dict[str, Any]:
         """Return high-level awareness stats for an org."""
         with self._lock:
