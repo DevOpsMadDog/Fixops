@@ -267,9 +267,19 @@ def _build_enforced_status_fields() -> Dict[str, Any]:
         except Exception:  # noqa: BLE001
             pass
 
+    # egress_blocked reflects the ACTUAL socket-level guard when running, not
+    # just the env-var intent — honest reporting (SPEC-005 Red-Team line).
+    egress_blocked = enforced
+    try:
+        from core.egress_guard import is_egress_guard_installed
+        if enforced:
+            egress_blocked = is_egress_guard_installed()
+    except Exception:  # noqa: BLE001
+        pass
+
     return {
         "airgap_mode": airgap_mode,
-        "egress_blocked": enforced,
+        "egress_blocked": egress_blocked,
         "telemetry_disabled": telemetry_disabled,
         "local_llm_backend": local_llm_backend,
     }

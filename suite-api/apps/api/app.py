@@ -2230,6 +2230,19 @@ def create_app() -> FastAPI:
                 "continuing with env-var guards only",
                 _ag_exc,
             )
+        # SPEC-005 Red-Team line: a central socket-level egress guard so no
+        # outbound to the public internet can slip past the per-call-site
+        # guards (HF, feeds, license check, package fetch, or a future dep).
+        # Loopback/RFC1918/link-local stay reachable for internal services.
+        try:
+            from core.egress_guard import install_egress_guard
+            install_egress_guard()
+        except Exception as _eg_exc:  # pragma: no cover
+            logging.getLogger(__name__).warning(
+                "airgap(enforced): egress guard install failed (%s) — "
+                "continuing with per-call-site guards only",
+                _eg_exc,
+            )
 
     # ── Production observability: Sentry + StatsD (cred-gated, honest no-op) ─
     try:
