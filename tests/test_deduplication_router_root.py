@@ -37,9 +37,14 @@ def isolated_service(tmp_path, monkeypatch):
 
 @pytest.fixture()
 def client(isolated_service):
-    """FastAPI test client with no auth (dedup router has no auth dep)."""
+    """FastAPI test client. The dedup router auth-gates ALL routes (SCIF posture:
+    findings counts/breakdowns are sensitive), so override the auth dependency to
+    exercise the root handler's shape without a configured token. Auth itself stays
+    enforced in production — it's tested separately."""
     app = FastAPI()
     app.include_router(dedup_router)
+    if getattr(dedup_module, "api_key_auth", None) is not None:
+        app.dependency_overrides[dedup_module.api_key_auth] = lambda: "test-user"
     return TestClient(app)
 
 

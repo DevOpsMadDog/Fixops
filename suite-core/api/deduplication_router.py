@@ -36,6 +36,25 @@ def get_dedup_service() -> DeduplicationService:
     return _dedup_service
 
 
+def _get_analytics_findings_count() -> Dict[str, int]:
+    """Real findings counts (total + open) from AnalyticsDB.
+
+    Used by the root summary to show how many findings the system holds vs how
+    many the dedup engine has clustered. Honest zeros when the analytics store
+    is unavailable — never fabricated.
+    """
+    try:
+        from core.analytics_db import AnalyticsDB
+
+        db = AnalyticsDB()
+        return {
+            "total_findings": int(db.count_findings()),
+            "open_findings": int(db.count_findings(status="open")),
+        }
+    except Exception:  # noqa: BLE001 - analytics store optional; honest-empty fallback
+        return {"total_findings": 0, "open_findings": 0}
+
+
 class ProcessFindingRequest(BaseModel):
     """Request to process a single finding."""
 
@@ -315,6 +334,30 @@ def create_correlation_link(
         reason=request.reason,
     )
     return {"link_id": link_id, "status": "created"}
+
+
+@router.get("/")
+def dedup_root(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Root summary for the deduplication engine.
+
+    Real data only: cluster/event counts + breakdowns from the dedup service,
+    and findings totals from AnalyticsDB. Lets the UI/clients hit the engine
+    root and see live dedup health without crafting a sub-path.
+    """
+    service = get_dedup_service()
+    stats = service.get_dedup_stats(org_id)
+    findings = _get_analytics_findings_count()
+    return {
+        "org_id": org_id,
+        "engine": "deduplication",
+        "total_clusters": int(stats.get("total_clusters", 0)),
+        "total_events": int(stats.get("total_events", 0)),
+        "noise_reduction_percent": stats.get("noise_reduction_percent", 0.0),
+        "status_breakdown": stats.get("status_breakdown", {}) or {},
+        "severity_breakdown": stats.get("severity_breakdown", {}) or {},
+        "findings_in_system": int(findings.get("total_findings", 0)),
+        "open_findings": int(findings.get("open_findings", 0)),
+    }
 
 
 @router.get("/stats")
