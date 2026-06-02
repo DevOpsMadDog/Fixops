@@ -35,6 +35,9 @@ interface Portfolio {
 }
 
 function fmt$(n: number, currency = "USD") {
+  // Guard undefined/NaN — an unset value (e.g. data.invested) crashed the whole
+  // Investment tab via .toFixed on undefined (RouteErrorBoundary), taking the page down.
+  n = typeof n === "number" && Number.isFinite(n) ? n : 0;
   if (n >= 1_000_000) return `${currency === "USD" ? "$" : ""}${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000)     return `${currency === "USD" ? "$" : ""}${(n / 1_000).toFixed(0)}K`;
   return `${currency === "USD" ? "$" : ""}${n.toFixed(0)}`;
@@ -153,7 +156,8 @@ export function InvestmentPanel() {
           <div className="space-y-2">
             {Object.entries(portfolio.by_category).map(([cat, data]) => {
               const total = portfolio.total_invested ?? 1;
-              const pct   = total > 0 ? ((data.invested / total) * 100) : 0;
+              const invested = Number.isFinite(data?.invested) ? data.invested : 0;
+              const pct   = total > 0 ? ((invested / total) * 100) : 0;
               return (
                 <div key={cat}>
                   <div className="flex items-center justify-between text-xs mb-1">
