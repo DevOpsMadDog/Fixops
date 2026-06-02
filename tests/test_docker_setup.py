@@ -192,15 +192,16 @@ class TestDockerCompose:
         assert "aldeci-ui:" in self.content
 
     def test_ui_has_no_profile(self):
-        # aldeci-ui must NOT require a profile to start
-        # We verify that 'profiles:' does not appear in the aldeci-ui stanza
-        # Simple heuristic: ui section must not list 'profiles:' before next top-level service
+        # aldeci-ui must NOT require a profile to start (UI must come up on plain `compose up`).
+        # Detect the NEXT top-level service generically — NOT a hardcoded name. (A
+        # `seed-demo-data:` service was inserted between aldeci-ui and trustgraph-init, so the
+        # old hardcoded `trustgraph-init` anchor over-read into seed-demo-data's (correct)
+        # profiles: and false-flagged aldeci-ui.)
+        import re
         ui_section_start = self.content.find("aldeci-ui:")
-        # Find next top-level service or network/volume declaration
-        next_section = self.content.find("\n  trustgraph-init:", ui_section_start)
-        if next_section == -1:
-            next_section = len(self.content)
-        ui_section = self.content[ui_section_start:next_section]
+        rest = self.content[ui_section_start + len("aldeci-ui:"):]
+        m = re.search(r"\n  [A-Za-z0-9_-]+:", rest)  # next 2-space-indent top-level key
+        ui_section = rest[: m.start()] if m else rest
         assert "profiles:" not in ui_section, "aldeci-ui must not be behind a profile"
 
     def test_aldeci_seed_demo_env_set(self):
