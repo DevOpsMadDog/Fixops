@@ -3,6 +3,31 @@
 > Branch `chore/ui-prune-plan-2026-05-24` · all commits **LOCAL (unpushed)** · push blocked (VPN DNS + revoked PAT)
 > Session: `359b05e6 → HEAD` (~66 commits) · loop log `docs/ralph_progress.md`
 
+## ADDENDUM 2 — backend hidden-gate bug sweep (continued tick, 2026-06-02 later)
+Found via the same "hidden-red-gate" approach that surfaced the tsc bugs: `ruff check`
+was red with genuine runtime bugs that import/boot cleanly but `NameError`/crash on the
+code path. 6 verified-local increments:
+- **30 F821/F811 fixed**: missing imports (uuid, socket, Any, timedelta×4, Tuple),
+  undefined loggers (_logger/logger), undefined thread-local `_tls` (feed_correlator),
+  dead shadowed method `get_siem_stats`, duplicate route-handler names renamed (both
+  routes kept; 2 were this session's own collisions), `CspmScanResult` TYPE_CHECKING,
+  10 llm_guard dead-branch names defined via optional-import+None fallback.
+- **5 PLE0704/B018/PLW0127**: bare `raise` outside except (would throw "No active
+  exception") → explicit RuntimeError; dead `anomaly.is_anomaly` no-op removed; bare
+  `config.data_directories` (allowlist-validation side-effect) made explicit; 2 no-op
+  self-assignments removed.
+- **B005 real bug**: vendor domain check used `lstrip("https://")` (strips char-SET) →
+  mangled `shop.example.com`→`op.example.com`; fixed to `removeprefix` (live-proven).
+  B023 dedup union-find closure binding hardened.
+- **deduplication root `GET /`** implemented (8 red TDD-spec tests → green): real
+  engine-backed summary (cluster/event counts + breakdowns from get_dedup_stats,
+  findings from AnalyticsDB.count_findings); test's stale no-auth assumption fixed via
+  dependency_overrides (auth stays enforced — SCIF posture).
+- **ide_root** batch-403 diagnosed as test pollution (passes 6/6 isolated) → recorded
+  as founder-blocked test-infra (cross-module env/auth-cache isolation), not chased.
+- **Gates after**: ruff genuine-bug classes (F821/F811/PLE/B005/B006/B023/F823/F706)
+  **0**; create_app **8331 routes**; Beast smoke **756/756**; tsc **0**; dedup suite 108/108.
+
 ## ADDENDUM — UI test-suite + new-endpoint coverage (continued tick, 2026-06-02 late)
 Four more verified-local increments after the "exhausted" mark above:
 - **Backend regression coverage** for the 7 org-aggregate engine methods this session wired (SCA org vulns/licenses, chaos observations, incident events/MTTR, SOC alert-queue/snapshots, awareness risk-trend) — `tests/test_new_org_aggregate_methods.py`, 6 tests, real data via engine write-paths (no mocks), asserts honest-empty on unknown org. Previously **zero** coverage. No suite pollution (216 passed w/ smoke files; clean collection).
