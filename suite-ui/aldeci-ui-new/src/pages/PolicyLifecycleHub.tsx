@@ -40,7 +40,7 @@ import {
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { API_BASE_URL, API_KEY, DEFAULT_ORG_ID } from "@/lib/api-config";
+import { API_BASE_URL, API_KEY, getApiKey, DEFAULT_ORG_ID } from "@/lib/api-config";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared fetch helper
@@ -48,7 +48,7 @@ import { API_BASE_URL, API_KEY, DEFAULT_ORG_ID } from "@/lib/api-config";
 
 async function apiFetch<T>(path: string): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (API_KEY) headers["X-API-Key"] = API_KEY;
+  if (getApiKey()) headers["X-API-Key"] = getApiKey();
   const res = await fetch(`${API_BASE_URL}${path}`, { headers });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json() as Promise<T>;
@@ -56,7 +56,7 @@ async function apiFetch<T>(path: string): Promise<T> {
 
 async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (API_KEY) headers["X-API-Key"] = API_KEY;
+  if (getApiKey()) headers["X-API-Key"] = getApiKey();
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: "PATCH",
     headers,

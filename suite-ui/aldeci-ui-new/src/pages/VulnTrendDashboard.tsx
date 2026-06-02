@@ -27,7 +27,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 const ORG_ID = "default";
 
 async function apiFetch(path: string) {
-  const key = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
+  const key = (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
     import.meta.env.VITE_API_KEY || (getStoredAuthToken() ?? "");
   const res = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": key } });
   if (!res.ok) throw new Error(`${res.status}`);

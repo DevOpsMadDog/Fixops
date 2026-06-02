@@ -16,6 +16,22 @@ export const API_BASE_URL: string =
 export const API_KEY: string =
   (import.meta.env.VITE_API_KEY as string | undefined)?.trim() || "";
 
+/**
+ * Resolve the API key at REQUEST time: build-time VITE_API_KEY if set, else the
+ * real logged-in token from localStorage ("aldeci.authToken"). The static API_KEY
+ * const above is evaluated once at module load (before login) and is empty in
+ * prod/dev, which caused authed pages to send no X-API-Key -> 401. Always prefer
+ * getApiKey() over API_KEY for outgoing requests.
+ */
+export function getApiKey(): string {
+  const envKey = (import.meta.env.VITE_API_KEY as string | undefined)?.trim();
+  if (envKey) return envKey;
+  if (typeof window !== "undefined") {
+    return window.localStorage.getItem("aldeci.authToken") ?? "";
+  }
+  return "";
+}
+
 /** Default organisation ID injected as X-Org-ID header. */
 export const DEFAULT_ORG_ID: string =
   (import.meta.env.VITE_ORG_ID as string | undefined)?.trim() || "default";

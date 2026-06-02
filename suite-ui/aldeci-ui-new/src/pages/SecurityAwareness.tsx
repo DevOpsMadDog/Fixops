@@ -45,7 +45,7 @@ const ORG_ID = "default";
 
 function getApiKey() {
   return (
-    (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) ||
+    (typeof window !== "undefined" && localStorage.getItem("aldeci.authToken")) ||
     import.meta.env.VITE_API_KEY ||
     (getStoredAuthToken() ?? "")
   );

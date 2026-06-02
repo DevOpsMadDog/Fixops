@@ -14,7 +14,7 @@ import { Eye, Search, Zap, AlertTriangle, CheckCircle, XCircle } from "lucide-re
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
+const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) || import.meta.env.VITE_API_KEY || "demo-key";
 const ORG_ID = (getStoredOrgId() ?? "default");
 async function apiFetch(path: string) {
   const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });

@@ -35,7 +35,7 @@ const ORG_ID = (getStoredOrgId() ?? "default");
 
 async function apiFetch(path: string) {
   const key =
-    (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
     (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
     import.meta.env.VITE_API_KEY ||
     (getStoredAuthToken() ?? "");

@@ -51,7 +51,7 @@ import { cn } from "@/lib/utils";
 
 function getApiKey(): string {
   return (
-    (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) ||
+    (typeof window !== "undefined" && localStorage.getItem("aldeci.authToken")) ||
     (import.meta.env.VITE_API_KEY as string) ||
     (getStoredAuthToken() ?? "")
   );

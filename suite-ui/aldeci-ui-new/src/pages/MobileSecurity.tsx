@@ -17,7 +17,7 @@ import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 
 // ── API helpers ────────────────────────────────────────────────
-const API_KEY = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || (getStoredAuthToken() ?? "");
+const API_KEY = localStorage.getItem("aldeci.authToken") || import.meta.env.VITE_API_KEY || (getStoredAuthToken() ?? "");
 const ORG_ID = "default";
 
 async function apiFetch(path: string) {
