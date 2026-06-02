@@ -173,9 +173,14 @@ def checkov_scan(req: ScanRequest) -> Dict[str, Any]:
     ``unavailable`` and clients can poll ``GET /scan/{scan_id}`` for the
     error detail.
     """
+    # Red-Team hardening: target_path is a caller-supplied FS path the scanner reads.
+    from apps.api._path_safety import safe_fs_path
+    _tp = safe_fs_path(req.target_path, "FIXOPS_ALLOWED_SCAN_ROOTS")
+    if _tp is None:
+        raise HTTPException(status_code=400, detail="Invalid or disallowed target_path")
     try:
         return _engine().queue_scan(
-            target_path=req.target_path,
+            target_path=str(_tp),
             frameworks=req.frameworks,
             check_ids=req.check_ids,
             skip_checks=req.skip_checks,

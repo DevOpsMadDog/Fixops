@@ -178,9 +178,14 @@ def queue_scan(body: ScanRequest) -> Dict[str, Any]:
                     f" Allowed: {SEVERITY_LEVELS}"
                 ),
             )
+    # Red-Team hardening: target_path is a caller-supplied FS path the scanner reads.
+    from apps.api._path_safety import safe_fs_path
+    _tp = safe_fs_path(body.target_path, "FIXOPS_ALLOWED_SCAN_ROOTS")
+    if _tp is None:
+        raise HTTPException(status_code=400, detail="Invalid or disallowed target_path")
     try:
         scan = engine.queue_scan(
-            target_path=body.target_path,
+            target_path=str(_tp),
             rule_ids=body.rule_ids,
             severity_threshold=(
                 body.severity_threshold.upper()

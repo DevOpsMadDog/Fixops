@@ -22,7 +22,7 @@ real boundary) pointing the server at arbitrary paths to read/write/leak files.
 - **`import_router` zip extraction** — `zipfile.extract` sanitizes `..` (Python 3.6+) and
   there is an explicit `..`-skip; no zip-slip. (Extracts regular files, not symlinks.)
 
-## RECOMMENDED — opt-in allowlist (DEPLOY/OPS DECISION, not yet applied)
+## RECOMMENDED — opt-in allowlist (all applied this session; envs default-off)
 These are **operator-facing path-choice features** where the chosen path IS the point, so
 a hard restriction would break legitimate ops. The correct pattern (mirroring the
 code-intel fix) is an **opt-in allowlist env** + always-on `..`/null rejection. Deferred
@@ -32,9 +32,10 @@ because choosing the allowed roots is a deployment decision (founder/operator):
   import (bundle_path) AND update-package (content_paths) sites now guarded by
   `_guard_airgap_path` -> shared `safe_fs_path` with **`FIXOPS_ALLOWED_AIRGAP_ROOTS`**
   (opt-in) + always-on `..`/null rejection. Non-breaking default. Regression: 11/11.
-- **Scanner `target_path`** (`checkov_router`, `bandit_router`, `container_scanner_router`)
-  — scans a caller-supplied filesystem path (arbitrary-dir read/scan). Intended use:
-  scan a target dir. Recommend `FIXOPS_ALLOWED_SCAN_ROOTS` + always reject `..`/null.
+- ~~**Scanner `target_path`**~~ — **DONE**: checkov + bandit queue_scan target_path now
+  guarded by shared `safe_fs_path` with **`FIXOPS_ALLOWED_SCAN_ROOTS`** (opt-in) + always-on
+  `..`/null rejection -> 400 on disallowed. (container_scanner `file_path` is a reporting
+  label only — not a real FS read, no change needed.) Non-breaking default.
 
 All endpoints above are auth-gated (`Depends(api_key_auth)` / `_require_api_key`); the
 residual risk is an *authorized* user reading/writing outside the intended workspace —
