@@ -857,3 +857,10 @@ All green: create_app 8345, Beast smoke 756/756.
 - **q-s sweep exhausted** of actionable real bugs. Remaining = legacy-outdated (snyk/run_registry, full rewrites) or env-dep/founder-blocked (AWS creds, DNS/SSRF, Stripe, Snyk token).
 - **a-c T3 sweep launched** (173 files, background) — results in `/tmp/t3ac_fail.txt` for next tick triage. Unswept ranges remain: a-c (running), e, n-r partial, w-z.
 All green: create_app 8345, Beast smoke 756/756.
+
+### 2026-06-03 (cont.) — a-c T3 sweep (in progress)
+- **Fixed:** ai_consensus timeout test (use structlog.testing.capture_logs, not caplog — orchestrator logs via structlog) 33/33; aldeci_self_scan — BUILT the step/ok/fail/warn/_finalize_step accounting layer the tests spec (honest pass/fail tally) 4/4.
+- **Deferred (legacy-outdated wholesale redesigns — like snyk/run_registry):** analytics_cli (subcommands {dashboard,mttr,coverage,roi,export}; test refs removed findings/decisions/top-risks + changed keys; also a real env-replace bug noted), api_dependencies (rich api.dependencies → slim apps.api.dependencies re-export; validated_payload/authenticate gone).
+- **Deferred to FOUNDER/ARCH:** council_adapter — consensus fallback semantics (escalated="review" conservative default vs test's graceful fallback) + **flag: cost_usd=0.02 with providers_queried=0** (heuristic claiming non-zero cost contradicts the $0-fake guard/real-cost moat).
+- **a-c failures queued for next tick:** abuseipdb(7), bulk_operations(12), compliance_gap_analysis(15), code_intel_real_data(5), beast_mode_integration(3), audit_db(2+4err), cloud_runtime(2), agent_memory_bridge(1), etc. (sweep results in /tmp/t3ac_fail.txt).
+All green: create_app 8345, Beast smoke 756/756.
