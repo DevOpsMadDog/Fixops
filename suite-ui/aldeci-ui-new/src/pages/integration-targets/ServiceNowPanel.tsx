@@ -189,13 +189,13 @@ export default function ServiceNowPanel() {
       {/* Incidents table */}
       {!connected ? (
         <EmptyState
-          icon={<Workflow className="h-8 w-8 text-amber-400" />}
+          icon={Workflow}
           title="ServiceNow not configured"
           description="Set SERVICENOW_URL, SERVICENOW_USER, and SERVICENOW_PASSWORD environment variables to connect."
         />
       ) : incidents.length === 0 ? (
         <EmptyState
-          icon={<CheckCircle2 className="h-8 w-8 text-emerald-400" />}
+          icon={CheckCircle2}
           title="No incidents"
           description="No incidents returned from ServiceNow."
         />

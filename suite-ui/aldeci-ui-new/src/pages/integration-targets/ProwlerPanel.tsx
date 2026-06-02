@@ -248,7 +248,7 @@ export default function ProwlerPanel() {
       {/* Findings table */}
       {filtered.length === 0 ? (
         <EmptyState
-          icon={<CheckCircle2 className="h-8 w-8 text-emerald-400" />}
+          icon={CheckCircle2}
           title="No findings"
           description="No Prowler findings match the selected filter."
         />

@@ -199,7 +199,7 @@ export default function SIEMPanel() {
       {subView === "sources" && (
         sources.length === 0 ? (
           <EmptyState
-            icon={<Server className="h-8 w-8 text-indigo-400" />}
+            icon={Server}
             title="No SIEM sources"
             description="Register a SIEM source to start forwarding events."
           />
@@ -240,7 +240,7 @@ export default function SIEMPanel() {
       {subView === "alerts" && (
         alerts.length === 0 ? (
           <EmptyState
-            icon={<AlertTriangle className="h-8 w-8 text-amber-400" />}
+            icon={AlertTriangle}
             title="No correlation alerts"
             description="No correlation alerts have been triggered yet."
           />
@@ -280,7 +280,7 @@ export default function SIEMPanel() {
       {subView === "events" && (
         events.length === 0 ? (
           <EmptyState
-            icon={<Activity className="h-8 w-8 text-blue-400" />}
+            icon={Activity}
             title="No SIEM events"
             description="No events have been ingested yet."
           />
