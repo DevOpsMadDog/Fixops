@@ -252,7 +252,7 @@ export default function RegulatoryTrackerDashboard() {
               Compliance Obligations
             </CardTitle>
             <Badge className="text-[10px] border border-red-500/30 text-red-400 bg-red-500/10">
-              {(liveData?.stats?.obligations ?? []).filter((o: any) => o.status === "overdue").length} overdue
+              {(Array.isArray(liveData?.stats?.obligations) ? liveData.stats.obligations : []).filter((o: any) => o.status === "overdue").length} overdue
             </Badge>
           </div>
           <CardDescription className="text-xs">Active obligations across all tracked regulations</CardDescription>

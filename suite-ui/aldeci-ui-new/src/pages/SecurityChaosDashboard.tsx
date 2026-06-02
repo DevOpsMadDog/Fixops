@@ -122,7 +122,7 @@ export default function SecurityChaosDashboard() {
   };
 
   const stats        = liveData.stats        ?? { total_experiments: 0, active_experiments: 0, avg_resilience_score: 0, open_findings: 0 };
-  const experiments  = liveData.experiments  ?? [];
+  const experiments  = Array.isArray(liveData.experiments) ? liveData.experiments : [];
   const observations = liveData.observations ?? [];
 
   if (loading) return (
@@ -188,10 +188,14 @@ export default function SecurityChaosDashboard() {
               </TableHeader>
               <TableBody>
                 {experiments.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={8}>
+                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                        <p className="text-lg font-medium">No data available</p>
+                        <p className="text-sm">Data will appear here once available</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   experiments.map((ex: any, i: number) => (
                   <TableRow key={ex.id ?? i} className="hover:bg-muted/30">
@@ -238,10 +242,14 @@ export default function SecurityChaosDashboard() {
               </TableHeader>
               <TableBody>
                 {observations.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={8}>
+                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                        <p className="text-lg font-medium">No data available</p>
+                        <p className="text-sm">Data will appear here once available</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   observations.map((ob: any, i: number) => (
                   <TableRow key={ob.id ?? i} className="hover:bg-muted/30">

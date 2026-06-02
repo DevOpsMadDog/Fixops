@@ -143,7 +143,7 @@ export default function SecurityHealthDashboard() {
 
   const liveChecks    = liveData?.checks?.items    ?? liveData?.checks    ?? [];
   const liveIncidents = liveData?.incidents?.items ?? liveData?.incidents ?? [];
-  const liveDomains   = liveData?.stats?.domains   ?? liveData?.domains   ?? [];
+  const liveDomains   = Array.isArray(liveData?.stats?.domains) ? liveData.stats.domains : Array.isArray(liveData?.domains) ? liveData.domains : [];
   const liveTrend     = liveData?.stats?.trend      ?? liveData?.trend     ?? [];
 
   return (

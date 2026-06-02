@@ -206,10 +206,14 @@ export default function SecurityTabletopDashboard() {
               </TableHeader>
               <TableBody>
                 {exercises.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={8}>
+                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                        <p className="text-lg font-medium">No data available</p>
+                        <p className="text-sm">Data will appear here once available</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   exercises.map((ex: any, i: number) => (
                   <TableRow key={ex.title ?? i} className="hover:bg-muted/30">
@@ -257,10 +261,14 @@ export default function SecurityTabletopDashboard() {
               </TableHeader>
               <TableBody>
                 {findings.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
-                    <p className="text-lg font-medium">No data available</p>
-                    <p className="text-sm">Data will appear here once available</p>
-                  </div>
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={8}>
+                      <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
+                        <p className="text-lg font-medium">No data available</p>
+                        <p className="text-sm">Data will appear here once available</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   findings.map((f: any, i: number) => (
                   <TableRow key={i} className="hover:bg-muted/30">
