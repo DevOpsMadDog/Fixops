@@ -60,8 +60,11 @@ export default function OrgHierarchyExplorer() {
     setErr(null);
     setRefreshing(true);
     try {
-      const r = await apiFetch<Resp>("/api/v1/organizations");
-      setData(r);
+      // Real endpoint is /api/v1/orgs (there is no /organizations — it 404s). It
+      // returns a BARE array of orgs, so normalize to the {organizations,total}
+      // shape the table below consumes.
+      const r = await apiFetch<Resp | Org[]>("/api/v1/orgs");
+      setData(Array.isArray(r) ? { organizations: r, total: r.length } : r);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -99,7 +102,7 @@ export default function OrgHierarchyExplorer() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold">Organizations</CardTitle>
-          <CardDescription className="text-xs">Endpoint: <code className="text-[10px]">GET /api/v1/organizations</code></CardDescription>
+          <CardDescription className="text-xs">Endpoint: <code className="text-[10px]">GET /api/v1/orgs</code></CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? <div className="p-6 text-sm text-muted-foreground">Loading…</div>

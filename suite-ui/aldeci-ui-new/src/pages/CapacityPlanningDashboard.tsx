@@ -28,8 +28,8 @@ export default function CapacityPlanningDashboard() {
     setLoading(true); setError(null);
     try {
       const [itemsRes, statsRes] = await Promise.allSettled([
-        apiFetch<any>("/api/v1/capacity-planning/plans"),
-        apiFetch<any>("/api/v1/capacity-planning/stats"),
+        apiFetch<any>("/api/v1/capacity-planning/teams"),
+        apiFetch<any>("/api/v1/capacity-planning/summary"),
       ]);
       if (itemsRes.status === "fulfilled") {
         const v = itemsRes.value as any;

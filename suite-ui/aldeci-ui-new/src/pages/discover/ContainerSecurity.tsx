@@ -93,7 +93,7 @@ export default function ContainerSecurity() {
   const load = () => {
     setDataLoading(true);
     Promise.allSettled([
-      apiFetch("/api/v1/container-security/summary"),
+      apiFetch("/api/v1/container-security/stats"),
       apiFetch("/api/v1/container-security/images"),
       apiFetch("/api/v1/container-security/runtime-threats"),
       apiFetch("/api/v1/container-security/k8s-posture"),

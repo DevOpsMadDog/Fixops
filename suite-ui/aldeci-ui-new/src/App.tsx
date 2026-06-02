@@ -654,15 +654,19 @@ export default function App() {
             <Route path="/brain/mpte" element={<Navigate to="/brain?tab=mpte" replace />} />
             <Route path="/brain/fail" element={<Navigate to="/brain?tab=fail" replace />} />
             <Route path="/attack/mpte" element={<Navigate to="/brain?tab=mpte" replace />} />
-            {/* P2 Wave: MCP Gateway + System Health → Admin hero (S28/S30) */}
+            {/* P2 Wave: MCP Gateway + System Health → Admin hero (S28/S30).
+                NOTE: the planned tabbed Admin hero (/admin?tab=X) was never built —
+                /admin redirects to /admin/audit-log and nothing reads ?tab=, so these
+                redirects dead-end at the audit-log table. Routes whose real standalone
+                page still exists (/ai/mcp-registry, /skills, /system-health) were removed
+                from this block so the working page resolves instead of dead-ending. */}
             <Route path="/connect/mcp" element={<Navigate to="/admin?tab=mcp" replace />} />
-            <Route path="/ai/mcp-registry" element={<Navigate to="/admin?tab=mcp" replace />} />
-            <Route path="/skills" element={<Navigate to="/admin?tab=mcp" replace />} />
             <Route path="/openclaw" element={<Navigate to="/admin?tab=mcp" replace />} />
             <Route path="/airgap" element={<Navigate to="/admin?tab=mcp" replace />} />
             <Route path="/admin/system" element={<Navigate to="/admin?tab=system-health" replace />} />
-            <Route path="/system-health" element={<Navigate to="/admin?tab=system-health" replace />} />
-            <Route path="/capacity-planning" element={<Navigate to="/admin?tab=system-health" replace />} />
+            {/* NOTE: /capacity-planning resolves to the real CapacityPlanningDashboard
+                below — do NOT add a shadowing redirect here (an identical-path redirect
+                wins over the real page and silently kills the feature). */}
             <Route path="/fips-status" element={<Navigate to="/admin?tab=system-health" replace />} />
             <Route path="/local-store-status" element={<Navigate to="/admin?tab=system-health" replace />} />
             <Route path="/comply/waivers" element={<Navigate to="/compliance?tab=waivers" replace />} />
@@ -1215,7 +1219,8 @@ export default function App() {
             {/* Webhook + ingestion redirects — folded into WebhookIngestionHub (Phase 3, 2026-05-02) */}
             <Route path="/webhooks/event-catalogue" element={<Navigate to="/connect/webhook-ingestion?tab=catalogue" replace />} />
             <Route path="/webhooks/retry-queue" element={<Navigate to="/connect/webhook-ingestion?tab=retry" replace />} />
-            <Route path="/organizations" element={<Navigate to="/admin?tab=orgs" replace />} />
+            {/* /organizations resolves to the real OrgHierarchyExplorer below — the
+                /admin?tab=orgs hero was never built (would dead-end at audit-log). */}
             <Route path="/billing" element={<Navigate to="/admin?tab=billing" replace />} />
             <Route path="/settings/health" element={<Navigate to="/admin?tab=system" replace />} />
 
