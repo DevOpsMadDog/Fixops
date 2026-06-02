@@ -38,6 +38,64 @@ HEADERS = {
 G = "\033[92m"; R = "\033[91m"; Y = "\033[93m"; C = "\033[96m"; B = "\033[1m"; X = "\033[0m"
 
 
+# ── Step accounting ─────────────────────────────────────────────────────────────
+# A "step" is one logical check. Multiple ok() messages within a step still count
+# as ONE passed step; any fail() within a step makes the whole step a failure
+# (fail overrides ok); a step with only warn()/info() counts as neither pass nor
+# fail. step() auto-finalizes the previous open step. This keeps the self-scan
+# pass/fail tally honest (no double-counting, no false pass/fail).
+
+PASS = 0
+FAIL = 0
+TOTAL = 0
+CURRENT_STEP_STATUS = None   # None | "pass" | "fail" for the open step
+STEP_OPEN = False
+
+
+def _finalize_step() -> None:
+    """Close the currently open step and fold its outcome into the tallies."""
+    global PASS, FAIL, TOTAL, CURRENT_STEP_STATUS, STEP_OPEN
+    if not STEP_OPEN:
+        return
+    TOTAL += 1
+    if CURRENT_STEP_STATUS == "pass":
+        PASS += 1
+    elif CURRENT_STEP_STATUS == "fail":
+        FAIL += 1
+    # warn/info-only steps (status None) count toward TOTAL but neither tally.
+    STEP_OPEN = False
+    CURRENT_STEP_STATUS = None
+
+
+def step(name: str) -> None:
+    """Begin a new accounting step (auto-finalizes any previous open step)."""
+    global STEP_OPEN, CURRENT_STEP_STATUS
+    _finalize_step()
+    STEP_OPEN = True
+    CURRENT_STEP_STATUS = None
+    print(f"{B}{C}▶ {name}{X}")
+
+
+def ok(msg: str) -> None:
+    """Record a success within the current step (does not override a prior fail)."""
+    global CURRENT_STEP_STATUS
+    if CURRENT_STEP_STATUS != "fail":
+        CURRENT_STEP_STATUS = "pass"
+    print(f"  {G}✓{X} {msg}")
+
+
+def fail(msg: str) -> None:
+    """Record a failure within the current step (overrides any prior ok)."""
+    global CURRENT_STEP_STATUS
+    CURRENT_STEP_STATUS = "fail"
+    print(f"  {R}✗{X} {msg}")
+
+
+def warn(msg: str) -> None:
+    """Record a non-fatal warning (does not affect the step's pass/fail status)."""
+    print(f"  {Y}!{X} {msg}")
+
+
 # ── HTTP helpers ───────────────────────────────────────────────────────────────
 
 def _req(method: str, path: str, body=None) -> dict:
