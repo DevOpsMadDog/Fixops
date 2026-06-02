@@ -44,13 +44,64 @@ class FrameworkSignature:
     package_terms: Set[str] = field(init=False, repr=False)
 
 
+# Built-in AI-agent framework watchlist. Used when the overlay does not supply
+# its own ``framework_signatures`` so the AI-BOM / agent-detection capability
+# works out-of-the-box instead of silently disabling itself. Keywords are
+# distinctive single tokens (the matcher tokenises keywords, so multi-word
+# terms like "semantic kernel" would split into common tokens and misfire).
+_DEFAULT_WATCHLIST_VERSION = "builtin-ai-frameworks-2026.06"
+_DEFAULT_FRAMEWORK_SIGNATURES: List[Dict[str, Any]] = [
+    {
+        "name": "LangChain",
+        "keywords": ["langchain"],
+        "aliases": ["langgraph"],
+        "package_indicators": ["langchain", "langchain-core", "langgraph"],
+        "threat_profile": "Prompt injection, tool/agent abuse, unbounded autonomous tool execution",
+    },
+    {
+        "name": "LlamaIndex",
+        "keywords": ["llamaindex"],
+        "package_indicators": ["llama-index", "llama_index"],
+        "threat_profile": "RAG data exfiltration and prompt injection via retrieved context",
+    },
+    {
+        "name": "AutoGPT",
+        "keywords": ["autogpt"],
+        "threat_profile": "Autonomous goal execution with unbounded tool/network access and recursive self-prompting",
+    },
+    {
+        "name": "CrewAI",
+        "keywords": ["crewai"],
+        "threat_profile": "Multi-agent role escalation and inter-agent prompt injection",
+    },
+    {
+        "name": "AutoGen",
+        "keywords": ["autogen"],
+        "aliases": ["pyautogen"],
+        "threat_profile": "Multi-agent untrusted code generation and execution",
+    },
+    {
+        "name": "Haystack",
+        "keywords": ["haystack"],
+        "threat_profile": "RAG pipeline prompt injection and retriever poisoning",
+    },
+    {
+        "name": "DSPy",
+        "keywords": ["dspy"],
+        "threat_profile": "Prompt-program optimisation drift and injection via compiled prompts",
+    },
+]
+
+
 class AIAgentAdvisor:
     """Identify AI-agent frameworks and recommend controls."""
 
     def __init__(self, settings: Mapping[str, Any]):
         self.settings = settings
+        configured = settings.get("framework_signatures")
+        using_defaults = not configured
         signatures: List[FrameworkSignature] = []
-        for entry in settings.get("framework_signatures", []):
+        for entry in configured or _DEFAULT_FRAMEWORK_SIGNATURES:
             if not isinstance(entry, Mapping):
                 continue
             name = entry.get("name")
@@ -83,7 +134,9 @@ class AIAgentAdvisor:
         self.signatures = signatures
         self.controls: Mapping[str, Any] = settings.get("controls", {})
         self.playbooks: Iterable[Mapping[str, Any]] = settings.get("playbooks", [])
-        self.watchlist_version = settings.get("watchlist_version")
+        self.watchlist_version = settings.get("watchlist_version") or (
+            _DEFAULT_WATCHLIST_VERSION if using_defaults else None
+        )
 
     def enabled(self) -> bool:
         return bool(self.signatures)

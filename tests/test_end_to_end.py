@@ -92,6 +92,13 @@ def test_end_to_end_pipeline():
 
     if TestClient is not None and create_app is not None:
         os.environ["FIXOPS_API_TOKEN"] = "test-token"
+        # Enterprise mode (conftest default) enables evidence encryption, which
+        # refuses to run without a key — supply a real Fernet key so the
+        # encrypted evidence bundle is produced (exercises the real path).
+        if not os.environ.get("FIXOPS_EVIDENCE_KEY"):
+            from cryptography.fernet import Fernet
+
+            os.environ["FIXOPS_EVIDENCE_KEY"] = Fernet.generate_key().decode()
         app = create_app()
         client = TestClient(app)
 

@@ -9,12 +9,30 @@ if TYPE_CHECKING:  # pragma: no cover - imported for typing only
     from core.configuration import OverlayConfig
 
 
+# Built-in single-tenant fallback. Used when the overlay supplies no
+# ``tenants`` so the tenant-lifecycle summary is populated out-of-the-box (a
+# single-tenant deployment) instead of reporting zero tenants. Overlay-provided
+# tenants take precedence.
+_DEFAULT_TENANTS: list = [
+    {
+        "id": "default",
+        "name": "Default Tenant",
+        "status": "active",
+        "stage": "operational",
+        "environments": ["production"],
+        "modules": [],
+    }
+]
+
+
 class TenantLifecycleManager:
     """Summarise tenant health and lifecycle status."""
 
     def __init__(self, settings: Mapping[str, Any]):
         self.settings = dict(settings or {})
-        self.tenants = self._parse_tenants(self.settings.get("tenants"))
+        self.tenants = self._parse_tenants(
+            self.settings.get("tenants") or _DEFAULT_TENANTS
+        )
         self.lifecycle = self._coerce_mapping(self.settings.get("lifecycle"))
         self.defaults = self._coerce_mapping(self.settings.get("defaults"))
 

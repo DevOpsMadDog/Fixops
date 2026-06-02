@@ -38,12 +38,74 @@ class StageResult:
     requirements: List[RequirementResult]
 
 
+# Built-in secure-SDLC stage map. Used when the overlay does not supply its own
+# ``stages`` so the SSDLC assessment works out-of-the-box instead of returning
+# zero stages. Every requirement key here has a registered evaluator in
+# _check_requirement (design, threat_model, ai_register, sbom, ...).
+_DEFAULT_STAGES: List[Dict[str, Any]] = [
+    {
+        "id": "plan",
+        "name": "Plan & Design",
+        "description": "Secure design, threat modelling and AI component registration.",
+        "requirements": [
+            {"key": "design", "title": "Architecture/design captured"},
+            {"key": "threat_model", "title": "Threat model performed"},
+            {"key": "ai_register", "title": "AI/agent components registered"},
+        ],
+    },
+    {
+        "id": "build",
+        "name": "Build & Dependencies",
+        "description": "Software composition and dependency hygiene.",
+        "requirements": [
+            {"key": "sbom", "title": "SBOM generated"},
+            {"key": "dependency_pinning", "title": "Dependencies pinned"},
+        ],
+    },
+    {
+        "id": "test",
+        "name": "Test & Analysis",
+        "description": "Static analysis, guardrails and vulnerability scanning.",
+        "requirements": [
+            {"key": "sarif", "title": "SAST/analysis findings ingested"},
+            {"key": "guardrails", "title": "Security guardrails enforced"},
+            {"key": "cve", "title": "Known-vulnerability scan performed"},
+        ],
+    },
+    {
+        "id": "release",
+        "name": "Release & Compliance",
+        "description": "Policy automation, compliance posture and deploy approvals.",
+        "requirements": [
+            {"key": "policy_automation", "title": "Policy automation executed"},
+            {"key": "compliance", "title": "Compliance status evaluated"},
+            {"key": "deploy_approvals", "title": "Deployment approvals recorded"},
+        ],
+    },
+    {
+        "id": "operate",
+        "name": "Operate & Evidence",
+        "description": "Evidence retention, observability and feedback loops.",
+        "requirements": [
+            {"key": "evidence", "title": "Evidence bundle produced"},
+            {"key": "observability", "title": "Observability in place"},
+            {"key": "feedback_loop", "title": "Feedback loop active"},
+        ],
+    },
+]
+
+
 class SSDLCEvaluator:
     """Evaluate overlay-defined SSDLC requirements against pipeline artefacts."""
 
     def __init__(self, settings: Mapping[str, Any]):
         self.settings = dict(settings or {})
-        self.stages = self._parse_stages(self.settings.get("stages", []))
+        # Fall back to the built-in stage map when the overlay supplies none so
+        # the assessment is populated out-of-the-box (overlay still overrides).
+        configured_stages = self.settings.get("stages")
+        self.stages = self._parse_stages(
+            configured_stages if configured_stages else _DEFAULT_STAGES
+        )
 
     @staticmethod
     def _parse_stages(raw: Any) -> List[Dict[str, Any]]:

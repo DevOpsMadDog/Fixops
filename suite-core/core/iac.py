@@ -61,11 +61,97 @@ class IACTarget:
         )
 
 
+# Built-in IaC technology watchlist. Used when the overlay supplies no
+# ``targets`` so IaC posture coverage works out-of-the-box rather than
+# returning None (overlay-provided targets still take precedence).
+_DEFAULT_IAC_TARGETS: List[Dict[str, Any]] = [
+    {
+        "id": "terraform",
+        "display_name": "Terraform",
+        "match": ["terraform", "tf", "hcl"],
+        "required_artifacts": ["sbom", "sarif"],
+        "recommended_controls": [
+            "Static IaC scanning (tfsec/checkov)",
+            "Encrypt and lock remote state",
+            "Least-privilege provider credentials",
+        ],
+        "environments": ["aws", "azure", "gcp", "on-prem"],
+    },
+    {
+        "id": "cloudformation",
+        "display_name": "AWS CloudFormation",
+        "match": ["cloudformation", "cfn"],
+        "required_artifacts": ["sarif"],
+        "recommended_controls": ["cfn-nag/cfn-lint scanning", "Stack drift detection"],
+        "environments": ["aws"],
+    },
+    {
+        "id": "kubernetes",
+        "display_name": "Kubernetes",
+        "match": ["kubernetes", "k8s", "kubectl", "manifest"],
+        "required_artifacts": ["sbom", "sarif"],
+        "recommended_controls": [
+            "Pod Security Standards",
+            "Network policies",
+            "Admission control (OPA/Kyverno)",
+        ],
+        "environments": ["aws", "azure", "gcp", "on-prem"],
+    },
+    {
+        "id": "helm",
+        "display_name": "Helm",
+        "match": ["helm", "chart"],
+        "required_artifacts": ["sbom"],
+        "recommended_controls": ["Chart provenance/signing", "Values secret scanning"],
+        "environments": ["aws", "azure", "gcp", "on-prem"],
+    },
+    {
+        "id": "ansible",
+        "display_name": "Ansible",
+        "match": ["ansible", "playbook"],
+        "required_artifacts": ["sarif"],
+        "recommended_controls": ["ansible-lint", "Vault for secrets"],
+        "environments": ["on-prem", "aws", "azure", "gcp"],
+    },
+    {
+        "id": "pulumi",
+        "display_name": "Pulumi",
+        "match": ["pulumi"],
+        "required_artifacts": ["sbom", "sarif"],
+        "recommended_controls": ["Policy as code (CrossGuard)", "Encrypted secrets"],
+        "environments": ["aws", "azure", "gcp"],
+    },
+    {
+        "id": "bicep",
+        "display_name": "Azure Bicep/ARM",
+        "match": ["bicep", "arm"],
+        "required_artifacts": ["sarif"],
+        "recommended_controls": ["Bicep linter", "what-if drift checks"],
+        "environments": ["azure"],
+    },
+    {
+        "id": "dockerfile",
+        "display_name": "Dockerfile / OCI image",
+        "match": ["dockerfile", "docker", "containerfile", "oci"],
+        "required_artifacts": ["sbom"],
+        "recommended_controls": [
+            "hadolint",
+            "Non-root runtime user",
+            "Minimal/distroless base image",
+        ],
+        "environments": ["aws", "azure", "gcp", "on-prem"],
+    },
+]
+
+
 class IaCPostureEvaluator:
     """Evaluate IaC coverage across multi-cloud and on-prem deployments."""
 
     def __init__(self, settings: Mapping[str, Any]):
         raw_targets = settings.get("targets") if isinstance(settings, Mapping) else []
+        # Fall back to the built-in watchlist when the overlay supplies none.
+        if not raw_targets:
+            raw_targets = _DEFAULT_IAC_TARGETS
         targets: List[IACTarget] = []
         for entry in raw_targets or []:
             if not isinstance(entry, Mapping):
