@@ -119,6 +119,10 @@ class TestConnectorHealthEndpoint:
             resp = client.get("/api/v1/connectors/GitHub-Main/health")
 
         assert resp.status_code == 200
-        # Verify the lookup used the lowercased name
-        uc.get_connector.assert_called_once_with("github-main")
+        # Verify the lookup used the lowercased name. The handler also org-namespaces the
+        # internal name ("{org_id}::{name}") for tenant isolation, so assert the lowercased
+        # name is the un-prefixed tail rather than hardcoding the org prefix.
+        uc.get_connector.assert_called_once()
+        called_arg = uc.get_connector.call_args[0][0]
+        assert called_arg.endswith("::github-main") or called_arg == "github-main", called_arg
         assert resp.json()["name"] == "github-main"
