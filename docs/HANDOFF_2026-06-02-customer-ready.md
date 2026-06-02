@@ -864,3 +864,10 @@ All green: create_app 8345, Beast smoke 756/756.
 - **Deferred to FOUNDER/ARCH:** council_adapter — consensus fallback semantics (escalated="review" conservative default vs test's graceful fallback) + **flag: cost_usd=0.02 with providers_queried=0** (heuristic claiming non-zero cost contradicts the $0-fake guard/real-cost moat).
 - **a-c failures queued for next tick:** abuseipdb(7), bulk_operations(12), compliance_gap_analysis(15), code_intel_real_data(5), beast_mode_integration(3), audit_db(2+4err), cloud_runtime(2), agent_memory_bridge(1), etc. (sweep results in /tmp/t3ac_fail.txt).
 All green: create_app 8345, Beast smoke 756/756.
+
+### 2026-06-03 (cont.) — FOUNDER DIRECTION: intelligence layer, ingest-first
+Founder confirmed FixOps is an **intelligence/correlation layer**, not an independent CSPM/ASPM scanner — it **ingests** OSS/commercial scanner output (61 normalizers: Prowler/Checkov/ScoutSuite/Steampipe/Trivy/Grype/Semgrep/Snyk/ZAP/Nessus/…). Native scanning = fallback + self-dogfood; live connectors = optional enrichment.
+- **CSPM made ingest-first** (`9178fd29`): `get_posture()` now aggregates REAL ingested cloud findings from SecurityFindingsEngine (was hard-requiring a live cloud connector → 503 everywhere). Hard no-fabrication invariant kept (empty → honest no_baseline/503, never fake 100/0). /baseline-diff honest no_baseline 200; drift + save_baseline made connector-optional. Tests seed real ingested findings (no mocks). 6/6 + 85/85 related.
+- **Audit:** ASPM = the Brain Pipeline (ingest-first by design, no separate engine). The other ~N `*NotConfiguredError` engines are **vendor integrations** (akamai/auth0/amazon_inspector/…) that correctly report "not configured" until you connect that tool — honest, not a bug.
+- Memory: `feedback_intelligence_layer_ingest_first` (the reusable principle + no-fabrication invariant).
+All green: create_app 8345, Beast smoke 756/756.
