@@ -833,3 +833,11 @@ All green: create_app 8342, Beast smoke 756/756. q-s T3 slice sweep in progress.
 - **Tests restored (product already correct):** signing dev-key-fallback contract; tenant-isolation audit (gaps closed); remediation/reports cross-org auth-rot.
 - **Deferred:** `test_run_registry` (5) — wholesale obsolete test vs superseded RunRegistry API (product verified working); needs full rewrite (+maybe transparency-index/RS256 = founder crypto). Remaining q-s failures (sast_trends/scim/snyk/...) for next tick; stripe = founder-blocked.
 All green: create_app 8342, Beast smoke 756/756 (known ingest timing flake passes isolated).
+
+### 2026-06-03 (cont.) — q-s sweep: openclaw graduation, /sast/trends feature, hardenings
+- **openclaw graduated to REAL** → removed from the simulated-engine guard (`test_simulated_engines_flagged_v2`). It was the LAST simulated engine — the **engine no-stubs program is complete** (ENGINES == []). (`cc8944fe`)
+- **FEATURE BUILD (item C):** `GET /api/v1/sast/trends` was specced by 13 tests but didn't exist (404). Built it against the real `SASTEngine._scan_store` (no mocks): oldest-first data_points + summary (trend_direction/peak/avg), `?limit=N`. 13/13; +1 route (8343). (`f9bea6b6`) — NOTE: `sast_router.py` is a symlink → `suite-attack/api/sast_router.py`.
+- **SecurityFindingsEngine db-default footgun:** `__init__ db_path=_DEFAULT_DB` (bound at import) made runtime overrides / test isolation impossible. Fixed to call-time resolution. (dedup itself verified correct.) (`53c2e1d8`)
+- **Tests aligned to secure reality:** auth-router JWT (ephemeral per-process secret, not weaker env-default); signing dev-key fallback.
+- **Deferred:** `test_run_registry` (obsolete API). Remaining q-s fails (scim/snyk/security_training/siem/sso/soc/soc2/router_index/sast_rules/security_connectors) for next tick; Stripe founder-blocked.
+All green: create_app 8343, Beast smoke 756/756.
