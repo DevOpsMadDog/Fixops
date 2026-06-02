@@ -544,3 +544,30 @@ Beast smoke 756/756, product code untouched.
 
 Recorded as founder-blocked: GCP Cloud KMS connector (unbuilt, needs GCP creds); ws_events stale-symbol
 rot (tick 9). Frontier: UI clean (4 dims) + backend hardened/verified + router-test corpus clean.
+
+---
+
+## Addendum 2026-06-03 (tick 11) — T3 engine-test sweep: 3 REAL product bugs fixed (item C)
+
+Isolation-swept 357 engine-test files; 16 had failures. Triaged the low-failure-count files
+(highest real-bug signal) and found **3 genuine product bugs** (engine tests exercise business
+logic directly — far higher signal than the router layer's 0):
+
+1. **threat_exposure_engine.get_exposure_stats** — `SUM(CASE…)` returns NULL (not 0) over zero
+   rows, so an empty org returned `critical_assets:None, assessed_today:None` (UI-breaking count
+   contract). Coalesced to 0.
+2. **upgrade_path_resolver list_versions** — returned versions in registry/insertion order (live
+   path), not semver order → non-deterministic for any consumer. Now sorts ascending (resilient).
+3. **rbac_engine.get_audit_log** — read the audit_trail table WITHOUT flushing the batched
+   in-memory `_audit_buf` (50-entry buffer) → recent permission checks invisible to audit queries
+   + crash-lossy. **Compliance audit-trail bug** (NIST AU / ICD 503). Now flushes on read.
+
+Plus 3 test-rot fixes (engines correct): cspm stale enum (added alibaba/ibm/oci, 4→7);
+insider_threat time-dependent dates (hardcoded 2026-04-10 aged out of the 30-day window →
+_RECENT_DAY); empty_endpoint_31 stale prefix (/remediation → real /fix-engine).
+
+All verified + Beast smoke 756/756, create_app 8340. Remaining ~10 engine-test failures are the
+shared-DB order-dependent isolation class (correlation "no such table: security_findings" — table
+owned by security_findings_engine, created at app startup; not product bugs). Frontier: UI clean
+(4 dims) + backend hardened/verified + router & engine T3 slices triaged (5 real product bugs found
++ fixed across ticks 9-11). Remaining: product-blocked (Brain hero, /billing, GCP KMS) + founder-blocked.
