@@ -604,7 +604,7 @@ class MCPGateway:
 
             adapter = get_graphrag_adapter()
             result = adapter.query(
-                question=f"findings: {query} severity:{severity}",
+                query_text=f"findings: {query} severity:{severity}",
                 agent_type="security_analyst",
             )
             entities = result.entities[:limit] if result.entities else []
@@ -796,7 +796,7 @@ class MCPGateway:
 
             adapter = get_graphrag_adapter()
             result = adapter.query(
-                question=query,
+                query_text=query,
                 agent_type="security_analyst",
                 target_cores=[2],  # Core 2 = threat_intel
             )
@@ -809,7 +809,7 @@ class MCPGateway:
                 "core_queried": "threat_intel",
             }
         except Exception as exc:
-            logger.warning("threat_intel_graphrag_unavailable", error=str(exc))
+            logger.warning("threat_intel_graphrag_unavailable: %s", exc)
             return {
                 "query": query,
                 "entity_type": entity_type,
@@ -831,7 +831,7 @@ class MCPGateway:
 
             adapter = get_graphrag_adapter()
             result = adapter.query(
-                question=question,
+                query_text=question,
                 agent_type=agent_type,
                 context=context or {},
             )
@@ -844,7 +844,7 @@ class MCPGateway:
                 "agent_type": agent_type,
             }
         except Exception as exc:
-            logger.warning("copilot_graphrag_unavailable", error=str(exc))
+            logger.warning("copilot_graphrag_unavailable: %s", exc)
             return {
                 "question": question,
                 "answer": None,
