@@ -722,3 +722,24 @@ repaired (engines/routers verified correct). Frontier: UI clean + backend harden
 systematic classes swept. Remaining: product-blocked (Brain hero, /billing, GCP KMS, unified
 compliance-automation API, IoT scan/comms router exposure, two-engine consolidations) +
 founder-blocked (push, env-tools, Postgres, FIPS, PIV, GPU, Stripe, batch test-infra rewrite).
+
+---
+
+## Addendum 2026-06-03 (tick 18) — REAL bug: legacy versioning redirect dropped query string
+
+Triaging the broad sweep's biggest failure (api_versioning, 22 fails) — it was NOT pure test-rot:
+the stale fixture (mounted only the auth-gated /api/v1/versions router, called the legacy
+/api/versions/* paths) MASKED a **real product bug**. The legacy 308 redirect
+/api/versions/* → /api/v1/versions/* set Location WITHOUT the query string, so filters/params
+(e.g. ?version=v2) were silently dropped on the hop — changing responses for legacy clients
+(an invalid-version 422 became a 200; version filters ignored). FIXED: the redirect now preserves
+`request.url.query` (added the missing `Request` import). Fixed the fixture too (mount both
+routers + override api_key_auth + follow_redirects). test_api_versioning 59/59 (was 22 failed).
+Beast smoke 755/756 (known ingest-timing flake); create_app 8340.
+
+This is the SECOND time a stale-prefix test masked a real product bug (cf. tick-16 iot near-miss,
+tick-13 container-scan) — fixing the test harness to actually reach the handler is what surfaces
+the genuine defects. Campaign real-bug total: **7** (engine 3, data-transform 1, versioning 1,
++ routing/endpoint). Frontier: UI clean + backend hardened/verified + T3 corpora triaged.
+Remaining: product-blocked (Brain hero, /billing, GCP KMS, unified compliance API, IoT scan
+exposure) + founder-blocked (push, env-tools, Postgres, FIPS, PIV, GPU, Stripe, batch test-rot).
