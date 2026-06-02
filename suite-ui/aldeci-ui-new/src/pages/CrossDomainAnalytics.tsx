@@ -195,12 +195,12 @@ export default function CrossDomainAnalytics() {
               ? <EmptyState icon={BarChart3} title="No trend data yet" description="Compliance score history will appear here once data is collected." />
               : (
                 <div className="flex items-end gap-3 h-36">
-                  {trend.map((m: any) => {
+                  {trend.map((m: any, idx: number) => {
                     const score = m.score ?? m.compliance_score ?? 0;
                     const label = m.month ?? m.label ?? m.period ?? "—";
                     const TREND_MAX = 100;
                     return (
-                      <div key={label} className="flex-1 flex flex-col items-center gap-0.5">
+                      <div key={`${label}-${idx}`} className="flex-1 flex flex-col items-center gap-0.5">
                         <span className="text-[10px] text-muted-foreground mb-1">{score}%</span>
                         <div className="w-full flex items-end h-24">
                           <motion.div
