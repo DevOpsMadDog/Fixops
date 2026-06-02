@@ -196,6 +196,45 @@ def history(
     return {"repo_path": repo_path, "count": len(items), "items": items}
 
 
+@router.get("/status", dependencies=[Depends(api_key_auth)])
+def status() -> Dict[str, Any]:
+    """Store-wide status for the LocalStoreStatus UI — real on-disk scan.
+
+    The UI's LocalStoreStatus page mounts a single GET /api/v1/local-store/status
+    and expects {initialized, size_bytes, records, data_dir, last_write}. The
+    repo-scoped endpoints above can't answer that, so this aggregates the actual
+    store root via the real disk-scan helpers. Never 404s: an absent store root is
+    a valid "not initialized" state (initialized=false) so the page shows a real
+    status instead of an error.
+    """
+    from apps.api.local_file_store_api_router import (
+        _quota_bytes,
+        _scan_store,
+        _store_root,
+    )
+
+    root = _store_root()
+    if not root.exists() or not root.is_dir():
+        return {
+            "initialized": False,
+            "size_bytes": 0,
+            "records": 0,
+            "data_dir": str(root),
+            "last_write": None,
+            "quota_bytes": _quota_bytes(),
+        }
+    entries = _scan_store(root)
+    created = [e["created_at"] for e in entries if e.get("created_at")]
+    return {
+        "initialized": True,
+        "size_bytes": sum(e["size_bytes"] for e in entries),
+        "records": len(entries),
+        "data_dir": str(root),
+        "last_write": max(created) if created else None,
+        "quota_bytes": _quota_bytes(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Endpoints — config
 # ---------------------------------------------------------------------------
