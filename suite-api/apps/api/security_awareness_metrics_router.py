@@ -109,24 +109,21 @@ def list_metrics(
 @router.get("/metrics/latest", dependencies=[Depends(api_key_auth)])
 def get_latest_metric(
     org_id: str = Query(..., description="Organization ID"),
-    metric_type: str = Query(..., description="Metric type"),
+    metric_type: Optional[str] = Query(default=None, description="Metric type (optional; latest of any type if omitted)"),
     department: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
-    """Return the most recent metric record for a given type and department."""
+    """Return the most recent metric record. Latest of any type if metric_type omitted."""
     result = _get_engine().get_latest_metric(org_id, metric_type, department=department)
     if result is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No metric found for type '{metric_type}'"
-            + (f" department '{department}'" if department else ""),
-        )
+        # Honest empty snapshot (no metrics recorded yet) — avoids 404 on dashboard mount.
+        return {}
     return result
 
 
 @router.get("/metrics/trend", dependencies=[Depends(api_key_auth)])
 def get_trend(
     org_id: str = Query(..., description="Organization ID"),
-    metric_type: str = Query(..., description="Metric type"),
+    metric_type: Optional[str] = Query(default=None, description="Metric type (optional; any type if omitted)"),
     department: Optional[str] = Query(default=None),
     periods: int = Query(default=4, ge=2, le=52),
 ) -> Dict[str, Any]:

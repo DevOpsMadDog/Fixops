@@ -176,14 +176,20 @@ class SecurityAwarenessMetricsEngine:
     def get_latest_metric(
         self,
         org_id: str,
-        metric_type: str,
+        metric_type: Optional[str] = None,
         department: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-        """Return the most recent metric record for a given type and department."""
-        query = (
-            "SELECT * FROM sam_metrics WHERE org_id = ? AND metric_type = ?"
-        )
-        params: List[Any] = [org_id, metric_type]
+        """Return the most recent metric record.
+
+        When ``metric_type`` is omitted, returns the single most recent metric of
+        any type for the org (used by the dashboard snapshot). Real data only.
+        """
+        query = "SELECT * FROM sam_metrics WHERE org_id = ?"
+        params: List[Any] = [org_id]
+
+        if metric_type is not None:
+            query += " AND metric_type = ?"
+            params.append(metric_type)
 
         if department is not None:
             query += " AND department = ?"
@@ -198,15 +204,21 @@ class SecurityAwarenessMetricsEngine:
     def get_trend(
         self,
         org_id: str,
-        metric_type: str,
+        metric_type: Optional[str] = None,
         department: Optional[str] = None,
         periods: int = 4,
     ) -> Dict[str, Any]:
-        """Return last N records and computed trend (improving/declining/stable)."""
-        query = (
-            "SELECT * FROM sam_metrics WHERE org_id = ? AND metric_type = ?"
-        )
-        params: List[Any] = [org_id, metric_type]
+        """Return last N records and computed trend (improving/declining/stable).
+
+        When ``metric_type`` is omitted, trends over the most recent records of any
+        type for the org (dashboard view). Real data only.
+        """
+        query = "SELECT * FROM sam_metrics WHERE org_id = ?"
+        params: List[Any] = [org_id]
+
+        if metric_type is not None:
+            query += " AND metric_type = ?"
+            params.append(metric_type)
 
         if department is not None:
             query += " AND department = ?"
