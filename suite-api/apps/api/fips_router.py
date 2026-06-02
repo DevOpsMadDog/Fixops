@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -94,7 +95,7 @@ def register_pqc_algo(body: PQCAlgoRegister) -> Dict[str, Any]:
 
 @router.get("/pqc-inventory")
 def list_pqc_inventory(
-    org_id: str = Query(...),
+    org_id: str = Depends(get_org_id),
     category: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     try:
@@ -104,17 +105,17 @@ def list_pqc_inventory(
 
 
 @router.get("/readiness")
-def fips_readiness_score(org_id: str = Query(...)) -> Dict[str, Any]:
+def fips_readiness_score(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().fips_readiness_score(org_id=org_id)
 
 
 @router.get("/evidence")
-def export_fips_evidence(org_id: str = Query(...)) -> Dict[str, Any]:
+def export_fips_evidence(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().export_fips_evidence(org_id=org_id)
 
 
 @router.get("/status")
-def get_fips_status(org_id: str = Query(...)) -> Dict[str, Any]:
+def get_fips_status(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().get_fips_status(org_id=org_id)
 
 
@@ -133,7 +134,7 @@ def get_runtime_fips_status() -> Dict[str, Any]:
 
 
 @router.get("/stats")
-def stats(org_id: str = Query(...)) -> Dict[str, Any]:
+def stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().stats(org_id=org_id)
 
 

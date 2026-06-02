@@ -14,6 +14,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -231,7 +232,7 @@ async def record_override(
     summary="Get authoritative CVSS for a CVE",
 )
 async def get_authoritative(
-    org_id: str = Query(...),
+    org_id: str = Depends(get_org_id),
     cve_id: str = Query(..., description="e.g. CVE-2023-1234"),
     _=Depends(_auth),
 ) -> Dict[str, Any]:
@@ -260,7 +261,7 @@ async def get_authoritative(
     summary="List all override decisions for an org",
 )
 async def list_overrides(
-    org_id: str = Query(...),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=100, ge=1, le=500),
     _=Depends(_auth),
 ) -> Dict[str, Any]:

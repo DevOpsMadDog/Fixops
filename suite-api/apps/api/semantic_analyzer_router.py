@@ -19,6 +19,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -108,7 +109,7 @@ def parse_repo(req: ParseRepoRequest) -> Dict[str, Any]:
 
 @router.get("/symbols")
 def list_symbols(
-    org_id: str = Query(...),
+    org_id: str = Depends(get_org_id),
     repo_ref: str = Query(...),
     symbol_type: Optional[str] = Query(None),
     limit: int = Query(500, ge=1, le=5000),
@@ -168,7 +169,7 @@ def parse_orm_schema(req: OrmParseRequest) -> Dict[str, Any]:
 
 
 @router.get("/erd/{repo_ref}")
-def get_erd(repo_ref: str, org_id: str = Query(...)) -> Dict[str, Any]:
+def get_erd(repo_ref: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     eng = _get_engine()
     repo = eng.get_repo(org_id, repo_ref)
     if not repo:
@@ -177,6 +178,6 @@ def get_erd(repo_ref: str, org_id: str = Query(...)) -> Dict[str, Any]:
 
 
 @router.get("/stats")
-def get_stats(org_id: str = Query(...)) -> Dict[str, Any]:
+def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     eng = _get_engine()
     return eng.stats(org_id=org_id)
