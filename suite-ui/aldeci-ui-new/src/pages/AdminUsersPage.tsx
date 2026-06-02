@@ -22,6 +22,23 @@ import {
   Shield,
   Download,
 } from "lucide-react";
+import { getApiKey } from "@/lib/api-config";
+import { getStoredOrgId } from "@/lib/api";
+
+/** Auth headers for admin user CRUD — these calls previously sent no X-API-Key
+ * and 401'd on every request (the page was non-functional). */
+function authHeaders(json = false): Record<string, string> {
+  return {
+    "X-API-Key": getApiKey(),
+    "X-Org-ID": getStoredOrgId() || "default",
+    ...(json ? { "Content-Type": "application/json" } : {}),
+  };
+}
+
+/** Resolve the active org at call time (not module load / hardcoded). */
+function activeOrg(): string {
+  return getStoredOrgId() || "default";
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -44,7 +61,6 @@ type ApiResponse = {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const ORG_ID = "default";
 const BASE = "/api/v1/orgs";
 
 const ROLES = [
@@ -87,7 +103,7 @@ function formatDate(iso: string | null) {
 // ── API helpers ───────────────────────────────────────────────────────────────
 
 async function fetchOrgUsers(orgId: string): Promise<ApiResponse> {
-  const r = await fetch(`${BASE}/${orgId}/users`);
+  const r = await fetch(`${BASE}/${orgId}/users`, { headers: authHeaders() });
   if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
   return r.json();
 }
@@ -101,7 +117,7 @@ async function inviteUser(
 ): Promise<OrgUser> {
   const r = await fetch(`${BASE}/${orgId}/users`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(true),
     body: JSON.stringify({ email, role, first_name: firstName, last_name: lastName }),
   });
   if (!r.ok) {
@@ -114,7 +130,7 @@ async function inviteUser(
 async function updateRole(orgId: string, uid: string, role: string): Promise<OrgUser> {
   const r = await fetch(`${BASE}/${orgId}/users/${uid}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(true),
     body: JSON.stringify({ role }),
   });
   if (!r.ok) {
@@ -125,7 +141,7 @@ async function updateRole(orgId: string, uid: string, role: string): Promise<Org
 }
 
 async function removeUser(orgId: string, uid: string): Promise<void> {
-  const r = await fetch(`${BASE}/${orgId}/users/${uid}`, { method: "DELETE" });
+  const r = await fetch(`${BASE}/${orgId}/users/${uid}`, { method: "DELETE", headers: authHeaders() });
   if (!r.ok) {
     const err = await r.json().catch(() => ({ detail: r.statusText }));
     throw new Error(err.detail ?? r.statusText);
@@ -173,7 +189,7 @@ export default function AdminUsersPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchOrgUsers(ORG_ID);
+      const data = await fetchOrgUsers(activeOrg());
       setUsers(data.items);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load users");
@@ -189,7 +205,7 @@ export default function AdminUsersPage() {
     if (!inviteEmail.trim()) return;
     setInviting(true);
     try {
-      const u = await inviteUser(ORG_ID, inviteEmail.trim(), inviteRole, inviteFirst || "Invited", inviteLast || "User");
+      const u = await inviteUser(activeOrg(), inviteEmail.trim(), inviteRole, inviteFirst || "Invited", inviteLast || "User");
       setUsers((prev) => [u, ...prev]);
       setInviteEmail("");
       setInviteFirst("");
@@ -207,7 +223,7 @@ export default function AdminUsersPage() {
   const handleRoleChange = async (uid: string, role: string) => {
     setUpdatingRole(uid);
     try {
-      const updated = await updateRole(ORG_ID, uid, role);
+      const updated = await updateRole(activeOrg(), uid, role);
       setUsers((prev) => prev.map((u) => (u.id === uid ? { ...u, role: updated.role } : u)));
       toast("Role updated", "ok");
     } catch (e) {
@@ -221,7 +237,7 @@ export default function AdminUsersPage() {
     if (!window.confirm(`Remove ${email} from this org?`)) return;
     setRemovingId(uid);
     try {
-      await removeUser(ORG_ID, uid);
+      await removeUser(activeOrg(), uid);
       setUsers((prev) => prev.filter((u) => u.id !== uid));
       toast("User removed", "ok");
     } catch (e) {
@@ -235,7 +251,7 @@ export default function AdminUsersPage() {
     setExporting(true);
     try {
       toast("Generating ZIP...", "ok");
-      const r = await fetch(`/api/v1/orgs/${ORG_ID}/export`, { method: "POST" });
+      const r = await fetch(`/api/v1/orgs/${activeOrg()}/export`, { method: "POST", headers: authHeaders() });
       if (!r.ok) {
         const err = await r.json().catch(() => ({ detail: r.statusText }));
         throw new Error(err.detail ?? r.statusText);
