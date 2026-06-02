@@ -128,7 +128,8 @@ class TestStormDoesNotCrash:
 
     def test_storm_returns_429_responses(self):
         """Fire enough to exhaust the bucket; verify Retry-After header is set on 429s."""
-        _, client, _ = _build_storm_app(rpm=60, burst=2)
+        # capacity == rpm + burst, so keep it well under the 50-request storm.
+        _, client, _ = _build_storm_app(rpm=10, burst=1)
 
         saw_429_with_header = False
         for _ in range(50):

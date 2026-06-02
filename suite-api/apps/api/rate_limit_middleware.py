@@ -103,7 +103,13 @@ class _TokenBucket:
 
             # Time until the bucket has one token
             needed = 1.0 - self._tokens
-            retry_after = needed / self._refill_rate
+            if self._refill_rate > 0:
+                retry_after = needed / self._refill_rate
+            else:
+                # rpm=0 / no refill: the bucket never recovers. Signal a long,
+                # finite backoff instead of dividing by zero (which would crash
+                # the rejected request rather than return a clean 429).
+                retry_after = 3600.0
             return False, retry_after
 
     @property
@@ -156,7 +162,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # OrderedDict so we can do O(1) LRU eviction under storm conditions
         # — prevents unbounded memory growth from spoofed-IP / unique-key floods.
         self._buckets: "OrderedDict[str, _TokenBucket]" = OrderedDict()
-        self._max_buckets = max(100, max_tracked_buckets)
+        # Honor the operator-configured cap (>=1). A hard floor of 100 used to
+        # silently override smaller configured caps; the LRU eviction below
+        # enforces whatever bound is set.
+        self._max_buckets = max(1, max_tracked_buckets)
         self._lock = threading.Lock()
 
         # ---- 429 storm self-limiter --------------------------------------
