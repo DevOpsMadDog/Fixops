@@ -756,23 +756,35 @@ export default function ComplianceDashboard() {
 
   if (isLoading) return <PageSkeleton />;
 
-  // Real API data only — no mock fallback.
-  const rawFrameworks = toArray(frameworksQuery.data);
-  const frameworks: Framework[] = rawFrameworks.length > 0
-    ? rawFrameworks.map((f: any) => ({
-        id: f.id ?? f.name,
-        name: f.name ?? f.framework ?? "Unknown",
-        shortName: (f.short_name ?? f.name ?? "").toUpperCase(),
-        score: f.score ?? 0,
-        controlsPassed: f.controls_passed ?? f.automated_controls ?? 0,
-        totalControls: f.total_controls ?? f.controls ?? 0,
-        status: f.status ?? "not-assessed",
-        lastAudit: f.last_audit ?? "—",
-        nextAudit: f.next_audit ?? "—",
-        evidenceCollected: f.evidence_collected ?? 0,
-        evidenceRequired: f.evidence_required ?? 0,
-      }))
-    : [];  // NO MOCKS: empty (branded EmptyState) when the API returns no frameworks — never fabricated
+  // Real API data only — no mock fallback. Prefer the rich per-framework objects
+  // from /compliance/status (framework/full_name/score/total_controls/passing);
+  // /compliance/frameworks only returns bare code strings (["SOC2", …]) which
+  // would render every row as "Unknown"/0 AND leave key={f.id} undefined → the
+  // React "unique key" warning. Fall back to the string list when status is empty.
+  const statusFrameworks = toArray((statusQuery.data as any)?.frameworks);
+  const rawFrameworks = statusFrameworks.length > 0 ? statusFrameworks : toArray(frameworksQuery.data);
+  const frameworks: Framework[] = rawFrameworks.map((f: any) => {
+    // /compliance/frameworks rows are plain strings ("SOC2"); status rows are objects.
+    const isStr = typeof f === "string";
+    const code = isStr ? f : (f.framework ?? f.id ?? f.short_name ?? f.name ?? "");
+    const total = isStr ? 0 : (f.total_controls ?? f.controls ?? 0);
+    const passed = isStr ? 0 : (f.passing ?? f.controls_passed ?? f.automated_controls ?? 0);
+    // Derive % from passing/total so we don't guess the API's score scale (0–1 vs 0–100).
+    const score = total > 0 ? Math.round((passed / total) * 100) : (isStr ? 0 : Math.round((f.score ?? 0) <= 1 ? (f.score ?? 0) * 100 : (f.score ?? 0)));
+    return {
+      id: (isStr ? f : (f.id ?? f.framework ?? f.name)) || code || `fw-${code}`,
+      name: isStr ? f : (f.full_name ?? f.name ?? f.framework ?? "Unknown"),
+      shortName: String(code).toUpperCase(),
+      score,
+      controlsPassed: passed,
+      totalControls: total,
+      status: isStr ? "not-assessed" : (f.status ?? (total > 0 && passed >= total ? "compliant" : passed > 0 ? "partial" : "not-assessed")),
+      lastAudit: isStr ? "—" : (f.last_audit ?? "—"),
+      nextAudit: isStr ? "—" : (f.next_audit ?? "—"),
+      evidenceCollected: isStr ? 0 : (f.evidence_collected ?? 0),
+      evidenceRequired: isStr ? 0 : (f.evidence_required ?? 0),
+    };
+  });  // NO MOCKS: empty (branded EmptyState) when the API returns no frameworks — never fabricated
 
   // NO MOCKS: honest empty until these endpoints are wired — never fabricated controls/evidence.
   const controls: Control[] = [];
