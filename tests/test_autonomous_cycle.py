@@ -15,16 +15,10 @@ import pytest
 # different name" (pluggy ValueError).  The fixtures we need from e2e/conftest
 # are available automatically via pytest's conftest discovery.
 
-from tests.e2e.test_bn_lr_hybrid import TestBNLRHybrid as _TestBNLRHybrid
-from tests.e2e.test_branding_namespace import TestBrandingNamespace as _TestBrandingNamespace
+# NOTE: the e2e suites (tests/e2e/test_bn_lr_hybrid.py, test_branding_namespace.py)
+# are intentionally NOT re-exported here. Their fixtures (fixture_manager,
+# cli_runner) live in tests/e2e/conftest.py, and pytest conftest fixtures are
+# directory-scoped — they do NOT propagate up to tests/. Re-exporting those test
+# classes here errored with "fixture 'cli_runner' not found" for all 16 cases.
+# Those suites run (and pass) in their own directory.
 from tests.test_ai_consensus import *  # noqa: F401,F403
-
-
-@pytest.mark.timeout(120)
-class TestBNLRHybrid(_TestBNLRHybrid):
-    pass
-
-
-@pytest.mark.timeout(120)
-class TestBrandingNamespace(_TestBrandingNamespace):
-    pass
