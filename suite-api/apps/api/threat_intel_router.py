@@ -177,10 +177,10 @@ async def get_recent_cves(
     """
     records = _aggregator.get_cached_cves(limit=limit)
     if not records:
-        raise HTTPException(
-            status_code=404,
-            detail="No CVE data cached yet — call POST /api/v1/threat-intel/refresh first",
-        )
+        # Honest empty (200), not 404: an unrefreshed/air-gapped cache is a valid
+        # empty state, not an error. The UI renders a branded EmptyState and prompts
+        # POST /api/v1/threat-intel/refresh. No fabricated data.
+        return []
     # Enrich with latest EPSS if missing
     missing_epss = [r.cve_id for r in records if r.epss_score == 0.0]
     if missing_epss:
@@ -204,10 +204,9 @@ async def get_kev_catalog() -> Dict[str, Any]:
     """
     kev_map = _aggregator._load_kev_from_cache()
     if not kev_map:
-        raise HTTPException(
-            status_code=404,
-            detail="KEV catalog not yet cached — call POST /api/v1/threat-intel/refresh",
-        )
+        # Honest empty (200), not 404 — an unrefreshed/air-gapped KEV cache is a valid
+        # empty state. UI shows EmptyState + prompts POST /api/v1/threat-intel/refresh.
+        return {"count": 0, "entries": []}
     return {
         "count": len(kev_map),
         "entries": [

@@ -634,7 +634,7 @@ export const threatFeedsApi = {
   list: (params?: Record<string, string>) => api.get("/api/v1/feeds", { params }),
   trending: () => api.get("/api/v1/feeds/trending"),
   epss: (cveIds: string) => api.get("/api/v1/feeds/epss", { params: { cve_ids: cveIds } }),
-  kev: (cveId?: string) => api.get("/api/v1/feeds/kev", { params: cveId ? { cve_id: cveId } : undefined }),
+  kev: (cveId?: string) => api.get("/api/v1/threat-intel/kev", { params: cveId ? { cve_id: cveId } : undefined }),
 };
 
 export const reachabilityApi = {

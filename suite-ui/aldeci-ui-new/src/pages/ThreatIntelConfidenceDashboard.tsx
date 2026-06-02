@@ -158,7 +158,7 @@ export default function ThreatIntelConfidenceDashboard() {
 
   useEffect(() => {
     Promise.allSettled([
-      apiFetch(`/api/v1/ti-confidence/iocs?org_id=${ORG_ID}`),
+      apiFetch(`/api/v1/ti-confidence/high-confidence?org_id=${ORG_ID}`),
       apiFetch(`/api/v1/ti-confidence/sources?org_id=${ORG_ID}`),
     ]).then(([iocsRes, sourcesRes]) => {
       if (iocsRes.status === "fulfilled") {
