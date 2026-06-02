@@ -78,7 +78,13 @@ def test_bulk_apply_policies(client, headers):
 
 
 def test_bulk_export(client, headers):
-    """Test bulk export returns a job response."""
+    """Test bulk export returns a synchronous file export.
+
+    The mounted /api/v1/bulk/export handler performs a synchronous export and
+    returns the written file path + format. (An async job-based export variant
+    exists in a second router and is shadowed at this path — see the duplicate-
+    route consolidation epic; whichever wins is a founder/arch decision.)
+    """
     response = client.post(
         "/api/v1/bulk/export",
         json={"ids": ["id1", "id2", "id3"], "format": "json", "org_id": "test-org"},
@@ -86,5 +92,5 @@ def test_bulk_export(client, headers):
     )
     assert response.status_code == 200
     data = response.json()
-    assert "job_id" in data
-    assert data["status"] in ("pending", "running", "completed")
+    assert "file_path" in data
+    assert data.get("format") == "json"
