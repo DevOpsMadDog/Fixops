@@ -63,6 +63,9 @@ def _build_app(
 
     app = FastAPI()
     app.include_router(router)
+    from apps.api.auth_deps import api_key_auth as _akauth  # test-auth override
+    app.dependency_overrides[_akauth] = lambda: {'sub': 'test', 'org_id': 'default', 'role': 'admin'}
+
     return app
 
 

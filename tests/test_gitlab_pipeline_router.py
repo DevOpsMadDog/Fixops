@@ -135,6 +135,9 @@ def _build_app(engine: GitLabPipelineEngine) -> TestClient:
     _router_mod._get_engine = lambda: engine  # type: ignore[attr-defined]
     app = FastAPI()
     app.include_router(router)
+    from apps.api.auth_deps import api_key_auth as _akauth  # test-auth override
+    app.dependency_overrides[_akauth] = lambda: {'sub': 'test', 'org_id': 'default', 'role': 'admin'}
+
     return TestClient(app, raise_server_exceptions=True)
 
 

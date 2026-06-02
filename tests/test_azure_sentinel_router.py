@@ -64,6 +64,9 @@ def app() -> FastAPI:
     from apps.api.azure_sentinel_router import router
     a = FastAPI()
     a.include_router(router)
+    from apps.api.auth_deps import api_key_auth as _akauth  # test-auth override
+    a.dependency_overrides[_akauth] = lambda: {'sub': 'test', 'org_id': 'default', 'role': 'admin'}
+
     return a
 
 
