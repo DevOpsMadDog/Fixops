@@ -166,8 +166,12 @@ class TestCompliancePosture:
         )
         d = p.to_dict()
         assert d["framework"] == "SOC2"
-        # compliance_pct = (50 + 20*0.5) / max(100-0, 1) * 100 = 60.0
-        assert d["compliance_percentage"] == 60.0
+        # Engine denominator EXCLUDES not_applicable AND not_assessed (% of *assessed*
+        # applicable controls): (50 + 20*0.5) / max(100 - 0 - 10, 1) * 100 = 60/90 = 66.7.
+        # NOTE(product): unassessed controls do NOT lower the %; if the intended definition
+        # is conservative (unassessed = non-compliant) drop the `- not_assessed` term at
+        # compliance_engine.py:166-168.
+        assert d["compliance_percentage"] == 66.7
 
     def test_not_applicable_excluded_from_denominator(self):
         p = CompliancePosture(

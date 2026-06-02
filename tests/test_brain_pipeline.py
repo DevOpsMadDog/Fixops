@@ -548,7 +548,11 @@ class TestStepScoreRisk:
         assert findings[0]["risk_score"] > 0
 
     def test_score_risk_empty_findings(self, pipeline):
-        inp = PipelineInput(org_id="org", findings=[])
+        # Use a unique org with NO persisted findings — the connect step legitimately pulls
+        # existing per-org findings from the store, so the shared "org" id gets polluted by
+        # other tests (leftover findings → scored>0). A fresh org isolates the "empty in" case.
+        import uuid as _uuid
+        inp = PipelineInput(org_id=f"empty-{_uuid.uuid4().hex[:12]}", findings=[])
         result = pipeline.run(inp)
         step = result.steps[7]
         assert step.status == StepStatus.COMPLETED

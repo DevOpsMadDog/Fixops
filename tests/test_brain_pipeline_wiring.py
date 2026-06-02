@@ -31,7 +31,7 @@ def basic_input():
 
 
 def test_enrich_threats_calls_fusion(pipeline):
-    """When findings have CVE ids, fusion.ingest_source_feed must fire per CVE."""
+    """When findings have CVE ids, fusion.ingest_from_source must fire per CVE."""
     findings = [
         {"id": "F-1", "cve_id": "CVE-2024-1001", "severity": "high", "engine": "snyk",
          "cvss_score": 7.5, "epss_score": 0.1},
@@ -54,8 +54,8 @@ def test_enrich_threats_calls_fusion(pipeline):
                return_value=fake_fusion):
         pipeline._fuse_vuln_intel(ctx)
 
-    # ingest_source_feed called once per CVE finding
-    assert fake_fusion.ingest_source_feed.call_count == 2
+    # ingest_from_source called once per CVE finding
+    assert fake_fusion.ingest_from_source.call_count == 2
     # Findings enriched with fusion fields
     assert findings[0]["fusion_score"] == 0.85
     assert findings[0]["consensus_severity"] == "high"
@@ -68,7 +68,7 @@ def test_enrich_threats_calls_fusion(pipeline):
 
 
 def test_enrich_threats_skips_findings_without_cve(pipeline):
-    """Findings without cve_id must NOT trigger ingest_source_feed."""
+    """Findings without cve_id must NOT trigger ingest_from_source."""
     findings = [
         {"id": "F-1", "severity": "high"},  # no cve_id
         {"id": "F-2", "severity": "low", "rule_id": "CWE-79"},  # no cve_id
@@ -82,7 +82,7 @@ def test_enrich_threats_skips_findings_without_cve(pipeline):
                return_value=fake_fusion):
         pipeline._fuse_vuln_intel(ctx)
 
-    assert fake_fusion.ingest_source_feed.call_count == 0
+    assert fake_fusion.ingest_from_source.call_count == 0
     # No fusion_score injected on either finding
     assert "fusion_score" not in findings[0]
     assert "fusion_score" not in findings[1]
