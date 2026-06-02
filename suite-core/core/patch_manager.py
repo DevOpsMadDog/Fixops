@@ -384,7 +384,10 @@ class PatchManager:
             "patch_id": patch_id,
             "org_id": patch.org_id,
             "package_name": patch.package_name,
-            "cve_ids": patch.cve_ids,
+            # Patch carries a single optional cve_id; emit as a list so the
+            # event's cve_ids contract holds (the attribute was patch.cve_ids,
+            # which does not exist and raised AttributeError on every deploy).
+            "cve_ids": [patch.cve_id] if patch.cve_id else [],
             "priority": patch.priority.value if hasattr(patch.priority, "value") else str(patch.priority),
         })
         return patch
