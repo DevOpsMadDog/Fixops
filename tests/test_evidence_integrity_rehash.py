@@ -58,6 +58,29 @@ def test_tampered_artifact_fails(eng, tmp_path):
     assert r["verified"] is False  # the bug was returning True here
 
 
+def test_storage_root_allowlist_blocks_spoofed_path(eng, tmp_path, monkeypatch):
+    # SPEC-019 Red-Team hardening: with FIXOPS_EVIDENCE_STORAGE_ROOT set, an artifact OUTSIDE the
+    # managed root is NOT re-hashed (cannot be spoofed into a false "verified").
+    org = "ev-root-allow"
+    cid = _case(eng, org)
+    fp = tmp_path / "art.bin"
+    fp.write_bytes(b"REAL")
+    sha = hashlib.sha256(b"REAL").hexdigest()
+    ev = eng.add_evidence(org, cid, {
+        "evidence_type": "file", "filename": "art.bin",
+        "hash_sha256": sha, "storage_location": str(fp), "size_bytes": 4,
+    })
+    # root = a DIFFERENT dir -> file is outside -> not trusted
+    monkeypatch.setenv("FIXOPS_EVIDENCE_STORAGE_ROOT", str(tmp_path / "managed_store_elsewhere"))
+    r_out = eng.verify_integrity(org, ev["evidence_id"])
+    assert r_out["hash_recomputed"] is False
+    assert r_out["content_integrity"] == "unverified_no_artifact"
+    # root = the file's own dir -> trusted -> verified
+    monkeypatch.setenv("FIXOPS_EVIDENCE_STORAGE_ROOT", str(tmp_path))
+    r_in = eng.verify_integrity(org, ev["evidence_id"])
+    assert r_in["content_integrity"] == "verified"
+
+
 def test_no_artifact_is_unverified_not_faked(eng, tmp_path):
     org = "ev-rehash-noart"
     cid = _case(eng, org)

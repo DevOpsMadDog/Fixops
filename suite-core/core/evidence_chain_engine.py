@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import sqlite3
 import threading
 import uuid
@@ -415,6 +416,24 @@ class EvidenceChainEngine:
         hash_recomputed = False
         hash_match = False
         artifact = Path(storage_location) if storage_location else None
+        # SPEC-019 Red-Team hardening: only re-hash artifacts under the operator-managed storage
+        # root(s) (FIXOPS_EVIDENCE_STORAGE_ROOT, os.pathsep-separated). This prevents a spoofed
+        # storage_location pointing at an attacker-controlled file from forcing a false "verified".
+        # Unset root => no restriction (back-compat). A path outside the root => treated as not
+        # retrievable (content_integrity="unverified_no_artifact"), never trusted.
+        if artifact is not None:
+            _roots = [r.strip() for r in os.environ.get("FIXOPS_EVIDENCE_STORAGE_ROOT", "").split(os.pathsep) if r.strip()]
+            if _roots:
+                try:
+                    _resolved = artifact.resolve()
+                    _ok = any(
+                        _resolved == Path(r).resolve() or _resolved.is_relative_to(Path(r).resolve())
+                        for r in _roots
+                    )
+                except (OSError, ValueError):
+                    _ok = False
+                if not _ok:
+                    artifact = None  # outside managed store -> do not re-hash, report unverified
         if artifact is not None and artifact.is_file():
             try:
                 h_sha, h_md5 = hashlib.sha256(), hashlib.md5()
