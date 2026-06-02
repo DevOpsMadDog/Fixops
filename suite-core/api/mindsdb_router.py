@@ -130,6 +130,25 @@ def _get_store():
 # ---------------------------------------------------------------------------
 
 
+@router.get("/")
+async def ml_index(org_id: str = Depends(get_org_id)):
+    """Index for the ML Learning Layer: live store stats + available operations."""
+    store = _get_store()
+    return {
+        "service": "ml",
+        "status": "ok",
+        "store_stats": store.get_stats(),
+        "model_count": len(getattr(store, "_model_info", {}) or {}),
+        "endpoints": [
+            "GET /health",
+            "GET /status",
+            "GET /models",
+            "POST /train",
+            "POST /predict/anomaly",
+        ],
+    }
+
+
 @router.get("/health")
 async def get_ml_health(org_id: str = Depends(get_org_id)):
     """Health check for ML/MindsDB engine."""

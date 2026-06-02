@@ -364,6 +364,26 @@ async def check_auto_merge(req: AutoMergeCheckRequest):
     return {"status": "ok", "fix_id": req.fix_id, "decision": decision}
 
 
+@router.get("/", summary="AutoFix index — capabilities and live stats")
+async def autofix_index():
+    """Index for the AutoFix API: live engine stats + available operations."""
+    engine = _get_engine()
+    return {
+        "service": "autofix",
+        "status": "ok",
+        "stats": engine.get_stats(),
+        "endpoints": [
+            "GET /stats",
+            "GET /health",
+            "GET /status",
+            "GET /fix-types",
+            "GET /history",
+            "GET /fixes/{fix_id}",
+            "GET /suggestions/{finding_id}",
+        ],
+    }
+
+
 @router.get("/stats", summary="AutoFix statistics")
 async def get_stats():
     """Get AutoFix engine statistics — generation rates, PR counts, etc."""
