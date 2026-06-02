@@ -19,8 +19,9 @@ Auth:
 from __future__ import annotations
 
 import asyncio
-import logging
 import uuid
+
+import structlog
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Set
 
@@ -55,7 +56,9 @@ except ImportError:  # graceful degradation if suite-core not on path
         get_alert_broadcaster,
     )
 
-_logger = logging.getLogger(__name__)
+# structlog (not stdlib) — disconnect path logs connection_id= as a kwarg,
+# which a stdlib Logger rejects with a TypeError mid-handler.
+_logger = structlog.get_logger(__name__)
 
 router = APIRouter(tags=["alerts"])
 
