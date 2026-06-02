@@ -215,22 +215,9 @@ class RuntimeMapToCodeRequest(BaseModel):
 # so self-scan / dogfooding is not broken; deployments opt into the allowlist.
 # ---------------------------------------------------------------------------
 def _safe_local_repo_path(raw: Optional[str]) -> Optional[Path]:
-    if not raw or "\x00" in raw or ".." in raw.replace("\\", "/").split("/"):
-        return None
-    try:
-        resolved = Path(raw).expanduser().resolve()
-    except (OSError, ValueError, RuntimeError):
-        return None
-    roots = [r for r in os.environ.get("FIXOPS_ALLOWED_REPO_ROOTS", "").split(os.pathsep) if r.strip()]
-    if roots:
-        for root in roots:
-            try:
-                resolved.relative_to(Path(root).expanduser().resolve())
-                return resolved
-            except ValueError:
-                continue
-        return None  # outside every configured allowlist root
-    return resolved
+    # Delegates to the shared path-safety primitive (FIXOPS_ALLOWED_REPO_ROOTS allowlist).
+    from apps.api._path_safety import safe_fs_path
+    return safe_fs_path(raw, "FIXOPS_ALLOWED_REPO_ROOTS")
 
 
 # ===========================================================================

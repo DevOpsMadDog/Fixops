@@ -205,6 +205,20 @@ def _get_engine():
     return get_airgap_engine()
 
 
+def _guard_airgap_path(raw: str) -> str:
+    """Red-Team hardening: air-gap export/import takes an operator-supplied absolute
+    path. Reject null-byte/`..` traversal always; when FIXOPS_ALLOWED_AIRGAP_ROOTS is
+    set, require the path within an allowlisted root (SCIF lockdown). Default (unset) =
+    passthrough so legitimate USB/offline transfer paths still work. Returns the
+    resolved path string; raises 400 on a disallowed/malformed path.
+    """
+    from apps.api._path_safety import safe_fs_path
+    safe = safe_fs_path(raw, "FIXOPS_ALLOWED_AIRGAP_ROOTS")
+    if safe is None:
+        raise HTTPException(status_code=400, detail="Invalid or disallowed path")
+    return str(safe)
+
+
 def _with_banner(response: Dict[str, Any]) -> Dict[str, Any]:
     """Inject classification banner if classification mode is active."""
     try:
@@ -384,7 +398,7 @@ async def import_vuln_db(
     """
     try:
         engine = _get_engine()
-        info = engine.import_vuln_db(req.bundle_path)
+        info = engine.import_vuln_db(_guard_airgap_path(req.bundle_path))
         return _with_banner({
             "status": "ok",
             "message": "Vulnerability database imported successfully",
@@ -431,7 +445,7 @@ async def export_vuln_db(
     """
     try:
         engine = _get_engine()
-        output_path = engine.export_vuln_db(req.output_path)
+        output_path = engine.export_vuln_db(_guard_airgap_path(req.output_path))
         return _with_banner({
             "status": "ok",
             "message": "Vulnerability database exported successfully",
@@ -471,7 +485,7 @@ async def import_threat_intel(
     """
     try:
         engine = _get_engine()
-        manifest = engine.import_threat_intel(req.bundle_path)
+        manifest = engine.import_threat_intel(_guard_airgap_path(req.bundle_path))
         return _with_banner({
             "status": "ok",
             "message": "Threat intelligence bundle imported successfully",
@@ -516,7 +530,7 @@ async def export_threat_intel(
         if req.classification:
             current_level = engine.config.classification_level
             engine.set_classification(req.classification)
-        output_path = engine.export_threat_intel(req.output_path)
+        output_path = engine.export_threat_intel(_guard_airgap_path(req.output_path))
         if req.classification:
             # Restore previous classification
             engine.set_classification(current_level)
@@ -686,9 +700,9 @@ async def create_update_package(
         engine = _get_engine()
         manifest = engine.create_update_package(
             package_type=req.package_type,
-            content_paths=req.content_paths,
+            content_paths=[_guard_airgap_path(p) for p in req.content_paths],
             version=req.version,
-            output_path=req.output_path,
+            output_path=_guard_airgap_path(req.output_path),
         )
         return _with_banner({
             "status": "ok",
