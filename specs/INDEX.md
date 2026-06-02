@@ -7,6 +7,7 @@
 | SPEC-003 | Per-customer Local LLM (distillation run) | Council/Learning | PLANNED | llm_learning_loop, llm_distill_train |
 | SPEC-004 | Multi-language Reachability (TS/Java/Go) | ASPM | PLANNED | function_reachability_engine |
 | [SPEC-011](SPEC-011-aspm.md) | ASPM — Scanner Ingest, Findings, SmartDedup, Reachability | ASPM | BACKFILL | scanner_ingest_router, findings_routes, security_findings_router, findings_lifecycle_router, function_reachability_router, SecurityFindingsEngine, SmartDedup |
+| [SPEC-020](SPEC-020-council-verdict.md) | Council Verdict API — multi-LLM 3-stage decision + honest cost/escalation | Council/Decision | BACKFILL | council_router, LLMCouncilEngine, CouncilVerdict |
 | [SPEC-019](SPEC-019-evidence-chain-of-custody.md) | Evidence Chain-of-Custody — cases/custody/seal + REAL re-hash integrity | Evidence/Forensics | BACKFILL | evidence_chain_router, EvidenceChainEngine |
 | [SPEC-018](SPEC-018-risk-aggregator.md) | Risk Aggregator — composite org risk score (0-100) + heatmap + thresholds | Risk/CTEM | BACKFILL | risk_aggregator_router, RiskAggregatorEngine |
 | [SPEC-017](SPEC-017-full-pipeline-on-ingest.md) | Full Brain-Pipeline on ingest — config-gated, non-blocking, bounded, air-gap-safe | ASPM/BrainPipeline | IMPLEMENTED | pipeline_on_ingest, scanner_ingest_router, wiz_router, prisma_router, blackduck_router |
