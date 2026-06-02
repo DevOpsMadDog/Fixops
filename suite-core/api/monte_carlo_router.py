@@ -101,16 +101,20 @@ async def simulate_fair(req: FAIRSimulationRequest) -> Dict[str, Any]:
 @router.post("/cvss", summary="Simulate from CVSS score")
 async def simulate_from_cvss(req: CVSSSimulationRequest) -> Dict[str, Any]:
     """Derive FAIR inputs from a CVSS score and run simulation."""
-    from core.monte_carlo import simulate_risk_for_cve
+    # NB: simulate_risk_for_cve never existed (bare lazy import -> 500). Use the real
+    # MonteCarloRiskEngine.simulate_from_cvss (iterations is a constructor arg; result
+    # is a MonteCarloResult -> .to_dict()).
+    from core.monte_carlo import MonteCarloRiskEngine
 
-    return simulate_risk_for_cve(
+    engine = MonteCarloRiskEngine(iterations=req.iterations)
+    result = engine.simulate_from_cvss(
         cvss_score=req.cvss_score,
         asset_value=req.asset_value,
         has_exploit=req.has_exploit,
         is_internet_facing=req.is_internet_facing,
         industry=req.industry,
-        iterations=req.iterations,
     )
+    return result.to_dict()
 
 
 @router.post("/cve", summary="CVE-specific risk quantification")
