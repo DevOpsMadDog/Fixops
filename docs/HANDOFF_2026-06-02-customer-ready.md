@@ -937,3 +937,18 @@ DEFERRED (wholesale redesign): zero_trust (3 failed) — 4 overlapping engines (
 ### T3 BROAD REGRESSION — ALPHABET COMPLETE
 All non-blast-radius test slices swept across a-z (a-c, d-m, e-h, i-r, q-s, t-v, s-z). Real product bugs found+fixed this multi-tick session: audit_db 12-col INSERT, crypto key_id cache, RSA generate_key_pair key_id, compliance_mapping FIXOPS_DATA_DIR, soc_automation overlay, reasoning_bank judge loop, security_findings call-time DB, markov FPE matrix_power, soc-engine UTC date, council asyncio guard, mcp_gateway query/logger, health /metrics openapi, openclaw 500→503, patch_manager cve_ids, HIPAA category taxonomy, + egress-guard hardening. Remaining open: tenancy_lint scanner (founder-priority), zero_trust redesign (deferred), + perf-timing flakes & founder-blocked (OpenRouter key, DNS, GPU, push, Postgres, FIPS, PIV, Stripe).
 All gates green: create_app 8345 routes, Beast smoke 756/756, UI no-mocks-clean.
+
+---
+## ⚠️ FOUNDER DECISION NEEDED 2026-06-03 — tenancy gate is inaccurate
+docs/findings_tenancy_scanner_2026-06-03.md (committed): the SPEC-007 tenancy
+lint scanner's V1 regex misses positional `org_id: str = Query("default")` (only
+matches keyword `Query(default=)`) and flags Pydantic model fields as false
+positives. AST analysis: TRUE endpoint V1 debt ≈948 across 185 files; scanner
+reports 100 (98 false positives + 2 real). The "tenancy allowlist 0 / clean"
+milestone rests on this gap — ~946 caller-controlled org_id endpoint defaults are
+invisible to the gate (cross-tenant read / default-tenant fallback risk).
+A working AST scanner fix was prototyped+verified, then REVERTED (committing
+redefines the security gate 0→948; remediation = founder-blocked org-precedence
+at 185-file scale). DECISION NEEDED: (1) adopt AST scanner, (2) schedule tenancy
+wave 17 (Query("default")→Depends(get_org_id)), (3) interim allowlist-freeze of
+948 vs keep "tenancy 0" claim. This is a real founder-blocker — yielding here.
