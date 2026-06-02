@@ -93,9 +93,12 @@ def _import_fresh(module_name: str) -> tuple[types.ModuleType, _WarningCapture]:
 # header probes (is_simulated=False), no longer a stub.
 # core.ioc_enrichment_engine is REMOVED — enrich_ioc() now queries the real
 # abuse.ch Feodo Tracker threat feed (is_simulated=False), no longer a stub.
-ENGINES = [
-    ("core.openclaw_engine", "openclaw_engine"),
-]
+# core.openclaw_engine is REMOVED — start_campaign()/advance_phase() now run
+# real Nuclei scans via NucleiConnector and raise NucleiNotConfiguredError when
+# no connector is configured (honest fail, REQ-002-04). No random/simulated
+# outcomes anywhere (REQ-002-01) — no longer a stub. This was the last
+# simulated engine; the no-stubs engine program is complete.
+ENGINES: list[tuple[str, str]] = []
 
 # connectors.iam_sso_connector is REMOVED — it is now production-ready with
 # Keycloak real-mode + synthetic fallback and no longer a simulated engine.
@@ -132,7 +135,9 @@ ROUTERS = [
     "apps.api.iam_sso_router",
     # apps.api.ccm_router is REMOVED — it serves real conftest/OPA results with
     # a truthful _DATA_SOURCE (is_simulated=False), not a _SIMULATION_WARNING stub.
-    "apps.api.openclaw_router",
+    # apps.api.openclaw_router is REMOVED — it wires the real OpenClawEngine
+    # (real Nuclei via NucleiConnector, honest NucleiNotConfiguredError when
+    # unconfigured), not a _SIMULATION_WARNING stub.
 ]
 
 
