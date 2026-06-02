@@ -50,10 +50,12 @@ def app_client(monkeypatch, tmp_path):
 
     monkeypatch.setattr(DevSecOpsEngine, "__init__", patched_init)
 
-    # Patch auth_deps to accept our test token (tokens load at module import time).
+    # Force token auth on with our test token. auth_deps was refactored to load
+    # tokens per-request from FIXOPS_API_TOKEN (the old module-level
+    # _EXPECTED_TOKENS/_HAS_TOKEN_AUTH were removed — see auth_deps._load_api_tokens),
+    # so set the env var + disable dev-mode bypass.
     from apps.api import auth_deps as _auth_deps
-    monkeypatch.setattr(_auth_deps, "_EXPECTED_TOKENS", ("test-api-key-123",))
-    monkeypatch.setattr(_auth_deps, "_HAS_TOKEN_AUTH", True)
+    monkeypatch.setenv("FIXOPS_API_TOKEN", "test-api-key-123")
     monkeypatch.setattr(_auth_deps, "_DEV_MODE", False)
 
     from apps.api.app import create_app
