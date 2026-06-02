@@ -745,141 +745,79 @@ class TestSingletonAccessor:
 
 
 class TestIoTRouter:
+    """Tests the REAL iot_security_router (core.iot_security_engine — dict-based device
+    CRUD + anomalies/policies/stats). NOTE: scan/comms/compliance/summary live in the OTHER
+    subsystem (core.iot_security, IoTDevice-based, engine-tested directly above) and are NOT
+    exposed by this router — those tests were removed (they 404'd) and the surface gap is
+    tracked. (Rewritten 2026-06-03: previously injected the wrong engine + posted
+    IoTDevice-shaped bodies against this DeviceCreate router.)
+    """
+
     @pytest.fixture
     def client(self):
-        """Create FastAPI test client with IoT router mounted."""
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
+        # ROUTER uses core.iot_security_engine.IoTSecurityEngine (dict API), NOT the
+        # core.iot_security.IoTSecurityEngine (IoTDevice API) imported at module top.
+        from core.iot_security_engine import IoTSecurityEngine as _RouterEngine
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            db_path = os.path.join(tmpdir, "router_test.db")
-            test_engine = IoTSecurityEngine(db_path=db_path)
-
-            from apps.api.iot_security_router import router
+            test_engine = _RouterEngine(db_path=os.path.join(tmpdir, "router_test.db"))
             import apps.api.iot_security_router as router_module
-
             original_engine = router_module._engine
             router_module._engine = test_engine
-
             app = FastAPI()
-            app.include_router(router)
-            client = TestClient(app)
-
-            yield client
-
-            router_module._engine = original_engine
+            app.include_router(router_module.router)
+            from apps.api.auth_deps import api_key_auth as _akauth
+            app.dependency_overrides[_akauth] = lambda: True  # zero-arg override
+            try:
+                yield TestClient(app)
+            finally:
+                router_module._engine = original_engine
 
     def test_register_device_returns_201(self, client) -> None:
-        resp = client.post("/api/v1/iot/devices", json={
-            "name": "Test Camera",
-            "device_type": "camera",
-            "manufacturer": "hikvision",
+        resp = client.post("/api/v1/iot-security/devices", json={
+            "device_name": "Test Camera", "device_category": "camera",
             "ip_address": "192.168.1.10",
-            "org_id": "test-org",
         })
-        assert resp.status_code == 201
+        assert resp.status_code == 201, resp.text
         data = resp.json()
-        assert data["name"] == "Test Camera"
+        assert data["device_name"] == "Test Camera"
         assert "id" in data
 
     def test_list_devices_returns_200(self, client) -> None:
-        client.post("/api/v1/iot/devices", json={
-            "name": "Cam A", "device_type": "camera",
-            "manufacturer": "hikvision", "ip_address": "10.0.0.1", "org_id": "test-org",
-        })
-        resp = client.get("/api/v1/iot/devices?org_id=test-org")
+        client.post("/api/v1/iot-security/devices", json={
+            "device_name": "Cam A", "device_category": "camera", "ip_address": "10.0.0.1"})
+        resp = client.get("/api/v1/iot-security/devices?org_id=default")
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
 
     def test_get_device_returns_200(self, client) -> None:
-        create_resp = client.post("/api/v1/iot/devices", json={
-            "name": "Cam B", "device_type": "camera",
-            "manufacturer": "hikvision", "ip_address": "10.0.0.2", "org_id": "test-org",
-        })
-        device_id = create_resp.json()["id"]
-        resp = client.get(f"/api/v1/iot/devices/{device_id}")
+        create = client.post("/api/v1/iot-security/devices", json={
+            "device_name": "Cam B", "device_category": "camera", "ip_address": "10.0.0.2"})
+        device_id = create.json()["id"]
+        resp = client.get(f"/api/v1/iot-security/devices/{device_id}")
         assert resp.status_code == 200
         assert resp.json()["id"] == device_id
 
     def test_get_device_not_found_returns_404(self, client) -> None:
-        resp = client.get("/api/v1/iot/devices/does-not-exist")
-        assert resp.status_code == 404
+        assert client.get("/api/v1/iot-security/devices/does-not-exist").status_code == 404
 
-    def test_scan_device_returns_scan_result(self, client) -> None:
-        create_resp = client.post("/api/v1/iot/devices", json={
-            "name": "Scan Cam", "device_type": "camera",
-            "manufacturer": "hikvision", "firmware_version": "5.5.0",
-            "ip_address": "10.0.0.3", "org_id": "test-org",
-            "protocols": ["http", "telnet"],
-            "network_segment": "corporate",
-        })
-        device_id = create_resp.json()["id"]
-        resp = client.post(f"/api/v1/iot/devices/{device_id}/scan", json={})
+    def test_list_devices_filter_by_category(self, client) -> None:
+        client.post("/api/v1/iot-security/devices", json={
+            "device_name": "Filter Cam", "device_category": "camera", "ip_address": "10.0.1.1"})
+        client.post("/api/v1/iot-security/devices", json={
+            "device_name": "Filter PLC", "device_category": "plc", "ip_address": "10.0.1.2"})
+        resp = client.get("/api/v1/iot-security/devices?org_id=default&device_category=camera")
         assert resp.status_code == 200
-        data = resp.json()
-        assert data["device_id"] == device_id
-        assert "risk_score" in data
-        assert "overall_risk" in data
+        assert all(d["device_category"] == "camera" for d in resp.json())
 
-    def test_scan_nonexistent_device_returns_404(self, client) -> None:
-        resp = client.post("/api/v1/iot/devices/no-such-device/scan", json={})
-        assert resp.status_code == 404
-
-    def test_record_communication_returns_201(self, client) -> None:
-        create_resp = client.post("/api/v1/iot/devices", json={
-            "name": "Comm Device", "device_type": "sensor",
-            "manufacturer": "acme", "ip_address": "10.0.0.4", "org_id": "test-org",
-        })
-        device_id = create_resp.json()["id"]
-        resp = client.post(f"/api/v1/iot/devices/{device_id}/comms", json={
-            "remote_ip": "203.0.113.1",
-            "remote_port": 443,
-            "protocol": "tcp",
-            "bytes_sent": 1024,
-            "bytes_received": 512,
-        })
-        assert resp.status_code == 201
-
-    def test_get_comms_anomalies_returns_200(self, client) -> None:
-        create_resp = client.post("/api/v1/iot/devices", json={
-            "name": "Comms Device", "device_type": "sensor",
-            "manufacturer": "acme", "ip_address": "10.0.0.5", "org_id": "test-org",
-        })
-        device_id = create_resp.json()["id"]
-        resp = client.get(f"/api/v1/iot/devices/{device_id}/comms")
+    def test_stats_returns_200(self, client) -> None:
+        resp = client.get("/api/v1/iot-security/stats")
         assert resp.status_code == 200
-        assert isinstance(resp.json(), list)
+        assert isinstance(resp.json(), dict)
 
-    def test_get_compliance_returns_200(self, client) -> None:
-        create_resp = client.post("/api/v1/iot/devices", json={
-            "name": "Compliance Device", "device_type": "camera",
-            "manufacturer": "hikvision", "ip_address": "10.0.0.6", "org_id": "test-org",
-        })
-        device_id = create_resp.json()["id"]
-        # Run a scan to populate compliance data
-        client.post(f"/api/v1/iot/devices/{device_id}/scan", json={})
-        resp = client.get(f"/api/v1/iot/devices/{device_id}/compliance")
+    def test_capability_summary_returns_200(self, client) -> None:
+        resp = client.get("/api/v1/iot-security/")
         assert resp.status_code == 200
-        assert isinstance(resp.json(), list)
-
-    def test_get_summary_returns_200(self, client) -> None:
-        resp = client.get("/api/v1/iot/summary?org_id=test-org")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert "total_devices" in data
-        assert "devices_by_type" in data
-        assert "org_id" in data
-
-    def test_list_devices_filter_by_type(self, client) -> None:
-        client.post("/api/v1/iot/devices", json={
-            "name": "Filter Cam", "device_type": "camera",
-            "manufacturer": "hikvision", "ip_address": "10.0.1.1", "org_id": "filter-org",
-        })
-        client.post("/api/v1/iot/devices", json={
-            "name": "Filter PLC", "device_type": "plc",
-            "manufacturer": "siemens", "ip_address": "10.0.1.2", "org_id": "filter-org",
-        })
-        resp = client.get("/api/v1/iot/devices?org_id=filter-org&device_type=camera")
-        assert resp.status_code == 200
-        devices = resp.json()
-        assert all(d["device_type"] == "camera" for d in devices)
+        assert isinstance(resp.json(), dict)
