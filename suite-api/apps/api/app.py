@@ -3824,54 +3824,61 @@ def create_app() -> FastAPI:
             raise HTTPException(
                 status_code=400, detail=f"Invalid JSON in SBOM: {exc}"
             ) from exc
+        except UnicodeDecodeError:
+            # Compressed/binary upload (gzip/zip): this format-detection pre-pass
+            # only understands plain JSON. The normalizer below handles
+            # decompression + parsing for all accepted content types, so skip
+            # the pre-pass rather than 500 on the gzip magic byte (0x8b).
+            sbom_data = None
 
         overlay: OverlayConfig = app.state.overlay
         strict_validation = overlay.toggles.get("strict_validation", False)
 
-        bom_format = sbom_data.get("bomFormat")
-        if bom_format and bom_format not in ("CycloneDX", "SPDX"):
-            if strict_validation:
-                raise HTTPException(
-                    status_code=422,
-                    detail={
-                        "message": f"Unsupported SBOM format: {bom_format}",
-                        "supported_formats": ["CycloneDX", "SPDX"],
-                    },
-                )
-            else:
-                logger.warning(
-                    "SBOM has unsupported bomFormat: %s, continuing with provider fallback",
-                    bom_format,
+        if sbom_data is not None:
+            bom_format = sbom_data.get("bomFormat")
+            if bom_format and bom_format not in ("CycloneDX", "SPDX"):
+                if strict_validation:
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "message": f"Unsupported SBOM format: {bom_format}",
+                            "supported_formats": ["CycloneDX", "SPDX"],
+                        },
+                    )
+                else:
+                    logger.warning(
+                        "SBOM has unsupported bomFormat: %s, continuing with provider fallback",
+                        bom_format,
+                    )
+
+            if not bom_format:
+                components = sbom_data.get("components")
+                detected_manifests = sbom_data.get("detectedManifests")
+                artifacts = sbom_data.get("artifacts")
+                descriptor = sbom_data.get("descriptor")
+                # SPDX format detection — SPDX docs use spdxVersion/SPDXID/packages
+                spdx_version = sbom_data.get("spdxVersion")
+                spdx_id = sbom_data.get("SPDXID")
+                spdx_packages = sbom_data.get("packages")
+
+                has_known_format = (
+                    isinstance(components, list)
+                    or isinstance(detected_manifests, dict)
+                    or isinstance(artifacts, list)
+                    or isinstance(descriptor, dict)
+                    or isinstance(spdx_version, str)
+                    or isinstance(spdx_id, str)
+                    or isinstance(spdx_packages, list)
                 )
 
-        if not bom_format:
-            components = sbom_data.get("components")
-            detected_manifests = sbom_data.get("detectedManifests")
-            artifacts = sbom_data.get("artifacts")
-            descriptor = sbom_data.get("descriptor")
-            # SPDX format detection — SPDX docs use spdxVersion/SPDXID/packages
-            spdx_version = sbom_data.get("spdxVersion")
-            spdx_id = sbom_data.get("SPDXID")
-            spdx_packages = sbom_data.get("packages")
-
-            has_known_format = (
-                isinstance(components, list)
-                or isinstance(detected_manifests, dict)
-                or isinstance(artifacts, list)
-                or isinstance(descriptor, dict)
-                or isinstance(spdx_version, str)
-                or isinstance(spdx_id, str)
-                or isinstance(spdx_packages, list)
-            )
-
-            if not has_known_format and strict_validation:
-                raise HTTPException(
-                    status_code=422,
-                    detail={
-                        "message": "SBOM missing bomFormat and has unrecognized structure",
-                        "hint": "Provide bomFormat field or use a known format (CycloneDX, SPDX, GitHub dependency snapshot, Syft)",
-                    },
-                )
+                if not has_known_format and strict_validation:
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "message": "SBOM missing bomFormat and has unrecognized structure",
+                            "hint": "Provide bomFormat field or use a known format (CycloneDX, SPDX, GitHub dependency snapshot, Syft)",
+                        },
+                    )
 
         buffer.seek(0)
         try:
