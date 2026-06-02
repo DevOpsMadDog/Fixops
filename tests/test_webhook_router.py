@@ -68,6 +68,10 @@ def client(tmp_db):
     """TestClient wired to a fresh in-memory DB."""
     app = FastAPI()
     app.include_router(router)
+    # Satisfy router-level Depends(api_key_auth) for this isolated app (no token set).
+    # Must be ZERO-ARG — a (*a, **k) signature makes FastAPI treat them as query params (422).
+    from apps.api.auth_deps import api_key_auth as _akauth
+    app.dependency_overrides[_akauth] = lambda: True
     return TestClient(app, raise_server_exceptions=True)
 
 

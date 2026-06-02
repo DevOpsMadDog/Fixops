@@ -21,6 +21,7 @@ import pytest
 from fastapi import FastAPI, Depends
 from fastapi.testclient import TestClient
 
+import apps.api.security_baseline_router as _bl_router_mod
 from apps.api.security_baseline_router import router, _get_engine
 from apps.api.auth_deps import api_key_auth
 from core.security_baseline_engine import SecurityBaselineEngine
@@ -31,16 +32,20 @@ from core.security_baseline_engine import SecurityBaselineEngine
 # ---------------------------------------------------------------------------
 
 @pytest.fixture()
-def client(tmp_path):
+def client(tmp_path, monkeypatch):
     """Minimal FastAPI app with the security-baseline router and real engine."""
     app = FastAPI()
 
     # Override auth dependency — no-op, returns None
     app.dependency_overrides[api_key_auth] = lambda: None
 
-    # Point the router's engine at a tmp DB so tests are fully isolated
+    # Point the router's engine at a tmp DB so tests are fully isolated.
+    # NOTE: the router calls the module-level _get_engine() singleton DIRECTLY (not via
+    # Depends(_get_engine)), so app.dependency_overrides[_get_engine] is a NO-OP — without
+    # this monkeypatch the tests hit the shared default DB (15 dev baselines) and see total=16.
     real_engine = SecurityBaselineEngine(db_path=str(tmp_path / "bl_router_test.db"))
-    app.dependency_overrides[_get_engine] = lambda: real_engine
+    monkeypatch.setattr(_bl_router_mod, "_engine", real_engine)
+    monkeypatch.setattr(_bl_router_mod, "_get_engine", lambda: real_engine)
 
     app.include_router(router)
     return TestClient(app, raise_server_exceptions=True)
