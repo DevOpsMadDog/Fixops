@@ -3,6 +3,22 @@
 > Branch `chore/ui-prune-plan-2026-05-24` · all commits **LOCAL (unpushed)** · push blocked (VPN DNS + revoked PAT)
 > Session: `359b05e6 → HEAD` (~66 commits) · loop log `docs/ralph_progress.md`
 
+## ADDENDUM 9 — Red-Team path-handling surface HARDENED (2026-06-02 late night)
+Item (B). Closed the caller-supplied-path read/write/scan surface with ONE shared
+primitive (`apps.api._path_safety.safe_fs_path`: always reject null-byte + `..`; opt-in
+allowlist env; passthrough when unset = non-breaking) applied across all 3 classes:
+- **code-intel** repo paths (architecture-detect / dca-parse / callgraph py+ts+java) —
+  authenticated arbitrary-dir READ — `FIXOPS_ALLOWED_REPO_ROOTS`.
+- **air-gap** export/import (output_path WRITE + bundle_path/content_paths READ, highest
+  severity) — `FIXOPS_ALLOWED_AIRGAP_ROOTS`.
+- **scanners** checkov + bandit `target_path` READ — `FIXOPS_ALLOWED_SCAN_ROOTS`.
+Verified-safe (no change): bulk_router download (canonical-containment), import zip-extract
+(zipfile sanitizes), container_scanner file_path (reporting label only).
+Regression: 11/11 (test_path_safety_airgap + test_code_intel_repo_path_allowlist).
+Gates: create_app 8335 · Beast smoke 756/756 · tsc 0. Docs: docs/redteam_path_hardening_2026-06-02.md.
+Default behaviour unchanged (envs default-off) so self-scan/USB-export/scan ops still work;
+SCIF deployments set the envs to lock the surface down.
+
 ## ADDENDUM 8 — config-repoint subset EXHAUSTED + session stop state (2026-06-02 late night)
 Completed the clean config-repoint subset: **22 config api-paths** now fire real data
 (20 statsPath /X/stats->/X/summary, security-benchmarks /results->/benchmarks, evidence-vault
