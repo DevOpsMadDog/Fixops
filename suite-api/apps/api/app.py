@@ -5199,7 +5199,11 @@ def create_app() -> FastAPI:
             entry = recorder.record(payload)
         except ValueError as exc:
             logger.warning("feedback.invalid: %s", type(exc).__name__)
-            raise HTTPException(status_code=400, detail="Invalid feedback payload") from exc
+            # Surface the recorder's field-validation message (client-input only,
+            # no internal detail) so callers learn which field is invalid.
+            raise HTTPException(
+                status_code=400, detail=f"Invalid feedback payload: {exc}"
+            ) from exc
         return entry
 
     # ------------------------------------------------------------------
