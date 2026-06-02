@@ -1183,3 +1183,70 @@ class PushEventAnalyzer:
         except Exception as exc:  # noqa: BLE001
             logger.warning("material_change.get_failed: %s", exc)
             return None
+
+
+# ---------------------------------------------------------------------------
+# Module-level singleton accessors (consumed by gap_router /changes/sla-impact).
+# These were referenced (get_detector / get_pr_analyzer) but never defined, so the
+# endpoint raised ImportError at runtime. Real implementations — no mocks.
+# ---------------------------------------------------------------------------
+
+_detector_singleton: "_Optional[MaterialChangeDetector]" = None
+_pr_analyzer_singleton: "_Optional[PRDiffAnalyzer]" = None
+
+
+def get_detector() -> "MaterialChangeDetector":
+    """Return the process-wide MaterialChangeDetector singleton."""
+    global _detector_singleton
+    if _detector_singleton is None:
+        _detector_singleton = MaterialChangeDetector()
+    return _detector_singleton
+
+
+class PRDiffAnalyzer:
+    """Aggregate per-file diff analysis across a PR's file_diffs.
+
+    Reuses MaterialChangeDetector.analyze_diff (real classification logic) and
+    rolls the per-file ChangeAnalysis up into the {changes, overall_risk_score}
+    shape gap_router expects. file_diffs items may be raw diff strings or dicts
+    carrying a 'diff'/'patch' field.
+    """
+
+    def __init__(self) -> None:
+        self._detector = get_detector()
+
+    def analyze(self, file_diffs: list) -> dict:
+        changes: list = []
+        max_delta = 0.0
+        for item in file_diffs or []:
+            if isinstance(item, str):
+                diff_text = item
+            elif isinstance(item, dict):
+                diff_text = item.get("diff") or item.get("patch") or ""
+            else:
+                diff_text = ""
+            if not diff_text:
+                continue
+            for ca in self._detector.analyze_diff(diff_text):
+                max_delta = max(max_delta, float(ca.risk_delta or 0.0))
+                changes.append(
+                    {
+                        "file_path": ca.file_path,
+                        "classification": ca.classification.value,
+                        "risk_delta": ca.risk_delta,
+                        "reason": ca.reason,
+                    }
+                )
+        return {
+            "changes": changes,
+            "overall_risk_score": round(max_delta * 100.0, 1),
+            "total_changes": len(changes),
+        }
+
+
+def get_pr_analyzer() -> "PRDiffAnalyzer":
+    """Return the process-wide PR file-diff analyzer singleton."""
+    global _pr_analyzer_singleton
+    if _pr_analyzer_singleton is None:
+        _pr_analyzer_singleton = PRDiffAnalyzer()
+    return _pr_analyzer_singleton
