@@ -5552,8 +5552,15 @@ def create_app() -> FastAPI:
         """Gracefully stop the audit retention scheduler."""
         scheduler = getattr(app.state, "audit_scheduler", None)
         if scheduler is not None:
-            scheduler.shutdown()
-            _logger.info("Audit retention scheduler stopped")
+            # Guard: shutdown() raises SchedulerNotRunningError if the scheduler
+            # was created but never started (or already stopped). App teardown
+            # must never crash on it.
+            try:
+                if getattr(scheduler, "running", False):
+                    scheduler.shutdown()
+                    _logger.info("Audit retention scheduler stopped")
+            except Exception as exc:  # noqa: BLE001 - teardown must not raise
+                _logger.debug("Audit scheduler shutdown skipped: %s", exc)
 
     # -----------------------------------------------------------------------
     # OpenTelemetry — OTLP exporter + custom spans for critical operations
