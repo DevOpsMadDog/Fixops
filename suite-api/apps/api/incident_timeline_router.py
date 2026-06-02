@@ -100,6 +100,16 @@ def get_stats(org_id: str = Depends(get_org_id)):
     return _get_engine().get_timeline_stats(org_id)
 
 
+# NOTE: must be registered BEFORE /{timeline_id} so the static path isn't captured as an id.
+@router.get("/events", dependencies=[Depends(api_key_auth)])
+def list_all_events(
+    org_id: str = Depends(get_org_id),
+    limit: int = Query(default=100, ge=1, le=500),
+):
+    """List recent timeline events across all incidents for the org (real data, newest first)."""
+    return _get_engine().list_all_events(org_id, limit=limit)
+
+
 @router.get("/{timeline_id}", dependencies=[Depends(api_key_auth)])
 def get_timeline(timeline_id: str, org_id: str = Depends(get_org_id)):
     """Get a single incident timeline by ID."""

@@ -28,7 +28,7 @@ export default function IncidentTimeline() {
     try {
       const [itemsRes, statsRes] = await Promise.allSettled([
         apiFetch<any>("/api/v1/incident-triage/incidents"),
-        apiFetch<any>("/api/v1/incident/stats"),
+        apiFetch<any>("/api/v1/incident-timeline/stats"),
       ]);
       if (itemsRes.status === "fulfilled") {
         const v = itemsRes.value as any;

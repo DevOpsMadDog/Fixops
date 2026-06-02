@@ -388,6 +388,25 @@ class IncidentTimelineEngine:
             result.append(d)
         return result
 
+    def list_all_events(
+        self, org_id: str, limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """List recent timeline events across ALL incidents for the org (newest first)."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM timeline_events WHERE org_id=? ORDER BY event_time DESC LIMIT ?",
+                (org_id, limit),
+            ).fetchall()
+        result = []
+        for r in rows:
+            d = self._row(r)
+            try:
+                d["evidence_refs"] = json.loads(d.get("evidence_refs") or "[]")
+            except (json.JSONDecodeError, ValueError):
+                d["evidence_refs"] = []
+            result.append(d)
+        return result
+
     # ------------------------------------------------------------------
     # Affected systems
     # ------------------------------------------------------------------
