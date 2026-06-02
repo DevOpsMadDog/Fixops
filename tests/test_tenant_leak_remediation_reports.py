@@ -43,9 +43,16 @@ ORG_A = "tenant-alpha"
 ORG_B = "tenant-beta"
 
 
+def _api_token() -> str:
+    """The live configured API token (conftest sets FIXOPS_API_TOKEN session-wide)."""
+    import os
+
+    return os.environ.get("FIXOPS_API_TOKEN", "test-key")
+
+
 def _headers(org_id: str) -> dict:
-    """Produce auth headers that satisfy get_org_id."""
-    return {"X-Org-ID": org_id, "X-API-Key": "test-key"}
+    """Produce auth headers that satisfy api_key_auth + get_org_id."""
+    return {"X-Org-ID": org_id, "X-API-Key": _api_token()}
 
 
 def _skip_if_engine_down(response, endpoint: str):
