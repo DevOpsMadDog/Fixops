@@ -420,7 +420,10 @@ class SmartDedup:
             # Union-Find within same file
             parent: Dict[str, str] = {fid: fid for fid, _ in entries}
 
-            def _find(x: str) -> str:
+            # bind the per-iteration `parent` via default arg (B023): the closure is
+            # only called within this iteration, but the default makes it provably
+            # correct and not dependent on the loop variable's late binding.
+            def _find(x: str, parent: Dict[str, str] = parent) -> str:
                 while parent[x] != x:
                     parent[x] = parent[parent[x]]
                     x = parent[x]

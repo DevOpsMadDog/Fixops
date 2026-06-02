@@ -1236,7 +1236,15 @@ class VendorRiskEngine:
                 5.0,
             )
 
-        domain_clean = domain.strip().lower().lstrip("https://").lstrip("http://").split("/")[0]
+        # NOTE: use removeprefix, NOT lstrip — lstrip("https://") strips any of the
+        # chars {h,t,p,s,:,/} from the left (e.g. "shop.example.com" -> "op.example.com").
+        domain_clean = (
+            domain.strip()
+            .lower()
+            .removeprefix("https://")
+            .removeprefix("http://")
+            .split("/")[0]
+        )
         try:
             socket.setdefaulttimeout(5)
             socket.gethostbyname(domain_clean)
