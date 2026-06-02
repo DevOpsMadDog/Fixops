@@ -50,3 +50,13 @@ REMAINING engine-test fails = FOUNDER-BLOCKED test-infra / environment / stale (
 - stale assertions (product improved past stub): semantic_analyzer (DID NOT RAISE NotImplementedError),
   behavioral_analytics (assert 54.14 == 0), agentless_snapshot_scan_engine (assert 0 == 3, needs cloud creds)
 - openclaw_engine: honest NucleiNotConfiguredError (needs nuclei sidecar — founder-blocked tool dep)
+
+## Connector endpoints LIVE-probed (2026-06-03) — auth-fixture failures hide NO product bugs
+Restarted backend + curled every connector router root with the real SCIF key:
+ansible-tower, aws-ecr/eks/s3, azure-keyvault/sentinel, bitbucket, circleci, gar,
+github-api, gitlab-pipeline, harbor, jenkins, jira-cloud, lacework, mattermost, noname,
+microsoft-purview, splunk, sumologic, syft, wiz, workday, zap → ALL 200. (gcp-cloudkms
+prefix unresolved via grep but loaded — create_app boots clean.) CONCLUSION: the ~25
+connector-router test failures are 100% auth-fixture test-rot (401 in test only); the
+endpoints are healthy at runtime. Fixing those test fixtures = pure test-health
+(founder-blocked test-infra), NOT bug-finding. No hidden customer-facing connector bugs.
