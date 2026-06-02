@@ -561,6 +561,11 @@ class TestStreamRouter:
 
         app = FastAPI()
         app.include_router(router)
+        # Router enforces Depends(api_key_auth); isolated app sets no token, so
+        # override the dependency (zero-arg) to authenticate the test client.
+        from apps.api.auth_deps import api_key_auth
+
+        app.dependency_overrides[api_key_auth] = lambda: True
         self._client = TestClient(app, raise_server_exceptions=True)
 
     def test_publish_returns_202(self):
@@ -650,6 +655,9 @@ class TestStreamRouter:
 
             app2 = FastAPI()
             app2.include_router(sr_module.router)
+            from apps.api.auth_deps import api_key_auth
+
+            app2.dependency_overrides[api_key_auth] = lambda: True
             c = TestClient(app2, raise_server_exceptions=False)
 
             with c.stream("GET", "/api/v1/stream/sse/findings") as resp:
