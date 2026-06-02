@@ -180,9 +180,9 @@ export function PostureScorePanel() {
                   </thead>
                   <tbody className="divide-y divide-border/40">
                     {components.map((c) => (
-                      <tr key={c.name} className="bg-card hover:bg-muted/20 transition-colors">
+                      <tr key={c.id} className="bg-card hover:bg-muted/20 transition-colors">
                         <td className="px-3 py-2 font-medium text-foreground capitalize">
-                          {(c.name ?? "").replace(/_/g, " ")}
+                          {(c.component ?? "").replace(/_/g, " ")}
                         </td>
                         <td className="px-3 py-2 tabular-nums text-foreground">
                           {c.score ?? 0}

@@ -1362,7 +1362,9 @@ export interface PostureStats {
 }
 
 export interface PostureComponent {
-  name: string;
+  // API (/api/v1/posture-score/components) returns id + component (not name).
+  id: string;
+  component: string;
   score: number;
   weight: number | null;
   source: string;

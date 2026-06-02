@@ -17,7 +17,7 @@ interface RiskStats {
 }
 
 interface Scenario {
-  id: string;
+  scenario_id: string;
   name: string;
   threat_actor: string;
   attack_vector: string;
@@ -150,7 +150,7 @@ export function FAIRQuantPanel() {
         </div>
         <div className="divide-y divide-border/40">
           {scenarios.slice(0, 10).map((s) => (
-            <div key={s.id} className="flex items-center justify-between px-4 py-3 text-sm hover:bg-muted/20 transition-colors">
+            <div key={s.scenario_id} className="flex items-center justify-between px-4 py-3 text-sm hover:bg-muted/20 transition-colors">
               <div className="flex flex-col gap-0.5 min-w-0">
                 <span className="font-medium text-foreground truncate">{s.name}</span>
                 <span className="text-xs text-muted-foreground">{s.attack_vector} · {s.threat_actor?.replace("_", " ")}</span>
