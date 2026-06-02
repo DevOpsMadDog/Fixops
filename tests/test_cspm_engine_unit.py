@@ -309,11 +309,14 @@ class TestRules:
         for rules in [AWS_RULES, AZURE_RULES, GCP_RULES]:
             for rule in rules:
                 assert len(rule) == 8
-                rid, title, sev, cwe, cat, desc, rec, frameworks = rule
+                rid, title, sev, control, cat, desc, rec, frameworks = rule
                 assert isinstance(rid, str)
                 assert isinstance(title, str)
                 assert sev in ("critical", "high", "medium", "low", "info")
-                assert cwe.startswith("CWE-")
+                # CSPM rules map cloud misconfigurations to CIS benchmark
+                # controls (e.g. CIS-AWS-2.1.5); app/code rules may use CWE-.
+                # Accept either standard prefix.
+                assert control.startswith(("CIS-", "CWE-"))
                 assert isinstance(frameworks, list)
 
     def test_aws_rules_have_compliance(self):
