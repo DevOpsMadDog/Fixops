@@ -410,7 +410,7 @@ export const copilotApi = {
 
 export const integrationsApi = {
   list: () => api.get("/api/v1/integrations"),
-  status: () => api.get("/api/v1/integrations/status"),
+  status: () => api.get("/api/v1/integrations/health"),
   test: (id: string) => api.post(`/api/v1/integrations/${id}/test`),
   sync: (id: string) => api.post(`/api/v1/integrations/${id}/sync`),
   configure: (id: string, data: unknown) => api.put(`/api/v1/integrations/${id}`, data),

@@ -19,7 +19,7 @@ interface InsuranceStats {
 }
 
 interface Policy {
-  id: string;
+  policy_id: string;
   carrier: string;
   policy_number: string;
   coverage_type: string;
@@ -30,7 +30,7 @@ interface Policy {
 }
 
 interface Claim {
-  id: string;
+  claim_id: string;
   policy_id: string;
   incident_type: string;
   incident_date?: string;
@@ -183,7 +183,7 @@ export function CyberInsurancePanel() {
               </thead>
               <tbody>
                 {policies.map(p => (
-                  <tr key={p.id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
+                  <tr key={p.policy_id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
                     <td className="px-4 py-2.5 font-medium text-foreground">{p.carrier || "—"}</td>
                     <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{p.policy_number || "—"}</td>
                     <td className="px-4 py-2.5 capitalize text-muted-foreground">{p.coverage_type}</td>
@@ -220,7 +220,7 @@ export function CyberInsurancePanel() {
               </thead>
               <tbody>
                 {claims.map(c => (
-                  <tr key={c.id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
+                  <tr key={c.claim_id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
                     <td className="px-4 py-2.5 capitalize text-foreground">{c.incident_type || "—"}</td>
                     <td className="px-4 py-2.5 text-muted-foreground text-xs">{c.incident_date ?? "—"}</td>
                     <td className="px-4 py-2.5 text-right font-mono text-foreground">{fmt$(c.estimated_loss)}</td>

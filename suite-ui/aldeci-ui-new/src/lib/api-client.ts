@@ -447,7 +447,7 @@ export class ALDECIClient {
 
   /** Integration health status for all connected tools. */
   getIntegrationHealth(): Promise<IntegrationHealthResponse> {
-    return this.get<IntegrationHealthResponse>("/api/v1/integrations/status");
+    return this.get<IntegrationHealthResponse>("/api/v1/integrations/health");
   }
 
   /** High-level dashboard metrics (overview). */

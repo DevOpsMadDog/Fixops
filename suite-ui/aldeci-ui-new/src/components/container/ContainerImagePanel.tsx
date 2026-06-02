@@ -18,16 +18,27 @@ interface ScanStats {
   high_issues?: number;
 }
 
+// Matches GET /api/v1/containers/history rows: id + base_image/file_path + score
+// + findings_count + nested findings[{severity}] (NOT the flat scan_id/image_name/
+// critical/high shape this panel was first written against — that drift made the
+// row key undefined AND every cell blank).
+interface ScanFinding {
+  severity?: string;
+}
 interface ScanRecord {
-  scan_id: string;
-  image_name?: string;
+  id: string;
+  base_image?: string;
+  file_path?: string;
   score?: number;
-  passed?: boolean;
-  critical?: number;
-  high?: number;
-  medium?: number;
-  low?: number;
-  scanned_at?: string;
+  findings_count?: number;
+  findings?: ScanFinding[];
+}
+
+/** Count a scan's findings at a given severity (case-insensitive). */
+function sevCount(s: ScanRecord, level: string): number {
+  return (s.findings ?? []).filter(
+    (f) => (f.severity ?? "").toLowerCase() === level,
+  ).length;
 }
 
 const SEVERITY_BAR: Record<string, string> = {
@@ -140,28 +151,28 @@ export function ContainerImagePanel() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/10">
-                {["Image", "Score", "C", "H", "M", "L", "Status", "Scanned"].map(h => (
+                {["Image", "Score", "C", "H", "M", "L", "Status", "File"].map(h => (
                   <th key={h} className="text-left px-4 py-2 text-xs text-muted-foreground font-medium">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {history.slice(0, 50).map(s => (
-                <tr key={s.scan_id} className="border-b border-border/50 hover:bg-muted/10 transition-colors">
-                  <td className="px-4 py-2 font-mono text-xs max-w-[160px] truncate">{s.image_name ?? (s.scan_id ? s.scan_id.slice(0, 12) : "—")}</td>
+                <tr key={s.id} className="border-b border-border/50 hover:bg-muted/10 transition-colors">
+                  <td className="px-4 py-2 font-mono text-xs max-w-[160px] truncate">{s.base_image ?? (s.id ? s.id.slice(0, 12) : "—")}</td>
                   <td className="px-4 py-2 text-xs">{s.score != null ? `${s.score}%` : "—"}</td>
-                  <td className="px-4 py-2 text-xs text-red-400">{s.critical ?? 0}</td>
-                  <td className="px-4 py-2 text-xs text-orange-400">{s.high ?? 0}</td>
-                  <td className="px-4 py-2 text-xs text-amber-400">{s.medium ?? 0}</td>
-                  <td className="px-4 py-2 text-xs text-blue-400">{s.low ?? 0}</td>
+                  <td className="px-4 py-2 text-xs text-red-400">{sevCount(s, "critical")}</td>
+                  <td className="px-4 py-2 text-xs text-orange-400">{sevCount(s, "high")}</td>
+                  <td className="px-4 py-2 text-xs text-amber-400">{sevCount(s, "medium")}</td>
+                  <td className="px-4 py-2 text-xs text-blue-400">{sevCount(s, "low")}</td>
                   <td className="px-4 py-2">
-                    {s.passed
+                    {(s.findings_count ?? 0) === 0
                       ? <span className="inline-flex items-center gap-1 text-xs text-green-400"><CheckCircle2 className="h-3 w-3" />Pass</span>
                       : <span className="inline-flex items-center gap-1 text-xs text-red-400"><AlertTriangle className="h-3 w-3" />Fail</span>
                     }
                   </td>
-                  <td className="px-4 py-2 text-xs text-muted-foreground">
-                    {s.scanned_at ? new Date(s.scanned_at).toLocaleDateString() : "—"}
+                  <td className="px-4 py-2 text-xs text-muted-foreground font-mono max-w-[140px] truncate">
+                    {s.file_path ?? "—"}
                   </td>
                 </tr>
               ))}
