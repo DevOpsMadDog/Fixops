@@ -10,18 +10,35 @@ import requests
 import pytest
 
 API = os.getenv("FIXOPS_API", "http://localhost:8000/api/v1")
-KEY = os.getenv("FIXOPS_API_KEY", "fixops_sk_WIjum9WxuQv8s6vzJeU2gYKximI5WSdMDtshH1U_p0U")
+# Prefer the canonical token the rest of the suite uses; fall back to the legacy
+# env name, then a last-resort literal.
+KEY = (
+    os.getenv("FIXOPS_API_KEY")
+    or os.getenv("FIXOPS_API_TOKEN")
+    or "fixops_sk_WIjum9WxuQv8s6vzJeU2gYKximI5WSdMDtshH1U_p0U"
+)
 HEADERS = {"X-API-Key": KEY, "Content-Type": "application/json"}
 
-# Skip all tests if the live API server is not running
+# Skip all tests unless a live API server is reachable AND accepts our key.
+# A bare reachability check is not enough: a server may be running on :8000 from
+# another session that rejects our token, which would turn every test into a
+# false 401 failure. Require an authenticated 200 so we SKIP (live integration
+# unavailable) instead of failing.
 def _server_available():
     try:
-        requests.get(f"{API}/health", headers=HEADERS, timeout=2)
-        return True
+        # Probe an AUTHENTICATED endpoint (not the public /health): this gates on
+        # both reachability and our key being accepted, so a foreign server on
+        # :8000 that rejects our token results in a SKIP, not 18 false 401s.
+        r = requests.get(f"{API}/mitre/health", headers=HEADERS, timeout=2)
+        return r.status_code == 200
     except Exception:
         return False
 
-pytestmark = pytest.mark.skipif(not _server_available(), reason="Live API server not running (start with uvicorn)")
+pytestmark = pytest.mark.skipif(
+    not _server_available(),
+    reason="Live API server not running or not accepting our API key "
+    "(start uvicorn and set FIXOPS_API_TOKEN/FIXOPS_API_KEY)",
+)
 
 passed = 0
 failed = 0
