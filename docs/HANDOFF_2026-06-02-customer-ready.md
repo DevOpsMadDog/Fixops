@@ -332,3 +332,13 @@ api_abuse 58, deduplication 36, log_management 40, anomaly_ml 29, vulnerability_
 Detection recipe (for the test-infra follow-up) + remaining founder-blocked test-infra
 backlog (~25 connector-router auth-fixture files, checkov/env/missing-table fixtures,
 stale stub-assertions) are in docs/router_test_triage_2026-06-02.md.
+
+---
+
+## Addendum 2026-06-03 — UI NO-MOCKS verified clean + lazy-import 500 swept
+
+- **monte-carlo /cvss 500 fixed** (commit 5f74ee8d): bare lazy `from core.monte_carlo import simulate_risk_for_cve` (never existed) → repointed to real `MonteCarloRiskEngine.simulate_from_cvss().to_dict()`. **Live-verified POST /api/v1/risk/simulate/cvss → 200** with real output (mean_annual_loss 4.5M, VaR). Refined try/except-aware AST scan proved this was the *only* real bare-lazy-import 500 (gap_router already fixed); the other 20 candidates are intentional graceful fallbacks.
+- **UI NO-MOCKS pass (item A) VERIFIED CLEAN**: 290 pages, 0 `src/data|fixtures|mocks` dirs, 0 fixture imports, 0 MOCK_/lorem/sample literals. 7 "static" candidates triaged → 3 legit marketing pages, 4 data-pages all fetch real `/api/v1` via typed clients. `npm run build` green 3.76s.
+- **SQL-concat class confirmed FULLY swept**: VALUES/JOIN/ORDER BY/LIMIT/INSERT adjacency scan clean (FTS5 `table(cols)` is valid syntax, not a bug).
+- **Three static-findable backend bug classes all swept clean**: Depends-in-Pydantic (95), SQL-concat (12), bare-lazy-import (2). ~110 real runtime-500s total this campaign.
+- **Terminal state**: UI no-mocks-clean; all statically-findable real-bug classes swept; remaining work is founder-blocked test-infra (auth fixtures) proven to hide zero product bugs. Gates green (create_app 8339, smoke 756, build 3.76s). Push blocked — all committed locally.
