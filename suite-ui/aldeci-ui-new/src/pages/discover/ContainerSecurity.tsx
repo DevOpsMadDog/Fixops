@@ -19,6 +19,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import {
   Shield, AlertTriangle, Container, Activity,
@@ -39,7 +40,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
-  "dev-key";
+  (getStoredAuthToken() ?? "");
 
 async function apiFetch(path: string) {
   const res = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY } });

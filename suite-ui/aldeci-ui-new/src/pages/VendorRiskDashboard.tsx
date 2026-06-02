@@ -13,6 +13,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
@@ -160,8 +161,8 @@ function formatAssessmentTime(isoStr: string): string {
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
-  "dev-key";
-const ORG_ID = "aldeci-demo";
+  (getStoredAuthToken() ?? "");
+const ORG_ID = (getStoredOrgId() ?? "default");
 
 async function apiFetch(path: string) {
   const res = await fetch(`${API_BASE}${path}?org_id=default`, {

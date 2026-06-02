@@ -10,6 +10,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Crosshair, Play, Square, Plus, ChevronDown, ChevronRight,
@@ -179,7 +180,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
-  "dev-key";
+  (getStoredAuthToken() ?? "");
 const ORG_ID = "default";
 
 // ═══════════════════════════════════════════════════════════

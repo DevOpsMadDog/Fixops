@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import {
   Zap, RefreshCw, FlaskConical, AlertTriangle, Activity, Eye,
@@ -30,7 +31,7 @@ const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
   "nr0fzLuDiBu8u8f9dw10RVKnG2wjfHkmWM94tDnx2es";
-const ORG_ID = "aldeci-demo";
+const ORG_ID = (getStoredOrgId() ?? "default");
 
 async function apiFetch(path: string) {
   const res = await fetch(`${API_BASE}${path}`, {

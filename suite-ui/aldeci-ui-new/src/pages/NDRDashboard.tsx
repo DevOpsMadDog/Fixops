@@ -13,6 +13,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import { Network, AlertTriangle, Activity, Shield, RefreshCw, Eye, Radio } from "lucide-react";
 
@@ -23,7 +24,7 @@ function getApiKey() {
   return (
     (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) ||
     import.meta.env.VITE_API_KEY ||
-    "dev-key"
+    (getStoredAuthToken() ?? "")
   );
 }
 

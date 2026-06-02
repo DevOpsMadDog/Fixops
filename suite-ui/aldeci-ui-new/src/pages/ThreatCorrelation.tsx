@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import { GitMerge, Zap, Bell, BarChart3, RefreshCw, Radio, Inbox } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -27,7 +28,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
-  "dev-key";
+  (getStoredAuthToken() ?? "");
 const ORG_ID = "default";
 
 async function apiFetch(path: string) {

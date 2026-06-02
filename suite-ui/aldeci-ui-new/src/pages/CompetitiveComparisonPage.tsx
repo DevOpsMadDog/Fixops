@@ -8,12 +8,13 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { Shield, DollarSign, CheckCircle, XCircle, AlertCircle, TrendingDown, Award, Calculator } from "lucide-react";
 
 // ── API helpers ───────────────────────────────────────────────
 const ORG_ID = "default";
 function getApiKey() {
-  return (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "dev-key";
+  return (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || (getStoredAuthToken() ?? "");
 }
 async function apiFetch(path: string) {
   const res = await fetch(`/api/v1${path}`, { headers: { "X-API-Key": getApiKey() } });

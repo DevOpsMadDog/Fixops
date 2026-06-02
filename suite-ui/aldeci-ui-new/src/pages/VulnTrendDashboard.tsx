@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import { Bug, TrendingUp, TrendingDown, AlertTriangle, RefreshCw, BarChart3, Clock, Users, Inbox } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -27,7 +28,7 @@ const ORG_ID = "default";
 
 async function apiFetch(path: string) {
   const key = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
-    import.meta.env.VITE_API_KEY || "dev-key";
+    import.meta.env.VITE_API_KEY || (getStoredAuthToken() ?? "");
   const res = await fetch(`${API_BASE}${path}?org_id=default`, { headers: { "X-API-Key": key } });
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json();

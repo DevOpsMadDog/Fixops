@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import { Zap, Play, CheckCircle2, Timer, RefreshCw, ListChecks } from "lucide-react";
 
@@ -24,7 +25,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
   import.meta.env.VITE_API_KEY ||
-  "dev-key";
+  (getStoredAuthToken() ?? "");
 const ORG_ID = "default";
 
 async function apiFetch(path: string) {

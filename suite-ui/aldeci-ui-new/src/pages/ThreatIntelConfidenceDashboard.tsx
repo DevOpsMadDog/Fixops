@@ -9,12 +9,13 @@
  */
 
 import { useState, useEffect, type ReactNode } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { Eye, Search, Zap, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const API_KEY = (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) || import.meta.env.VITE_API_KEY || "demo-key";
-const ORG_ID = "aldeci-demo";
+const ORG_ID = (getStoredOrgId() ?? "default");
 async function apiFetch(path: string) {
   const r = await fetch(`${API_BASE}${path}`, { headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" } });
   if (!r.ok) throw new Error(`${r.status}`);

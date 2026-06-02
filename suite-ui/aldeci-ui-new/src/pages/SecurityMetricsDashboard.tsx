@@ -14,6 +14,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import {
   Clock,
@@ -38,7 +39,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 
 // ── API helpers ────────────────────────────────────────────────
 
-const apiKey = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || "dev-key";
+const apiKey = localStorage.getItem("aldeci_api_key") || import.meta.env.VITE_API_KEY || (getStoredAuthToken() ?? "");
 const apiFetch = (path: string) =>
   fetch(`/api/v1${path}`, { headers: { "X-API-Key": apiKey } }).then((r) => {
     if (!r.ok) throw new Error(`API error: ${r.status}`);

@@ -19,6 +19,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -52,7 +53,7 @@ function getApiKey(): string {
   return (
     (typeof window !== "undefined" && localStorage.getItem("aldeci_api_key")) ||
     (import.meta.env.VITE_API_KEY as string) ||
-    "dev-key"
+    (getStoredAuthToken() ?? "")
   );
 }
 

@@ -14,6 +14,7 @@
  */
 
 import { useState } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -30,14 +31,14 @@ import { PageSkeleton } from "@/components/shared/PageSkeleton";
 import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
-const ORG_ID = "aldeci-demo";
+const ORG_ID = (getStoredOrgId() ?? "default");
 
 async function apiFetch(path: string) {
   const key =
     (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
     (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
     import.meta.env.VITE_API_KEY ||
-    "dev-key";
+    (getStoredAuthToken() ?? "");
   const url = path.startsWith("/api") ? `${API_BASE}${path}` : `${API_BASE}/api/v1${path}`;
   const res = await fetch(url, { headers: { "X-API-Key": key } });
   if (!res.ok) throw new Error(`${res.status}`);

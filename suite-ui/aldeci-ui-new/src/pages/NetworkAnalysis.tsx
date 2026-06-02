@@ -9,6 +9,7 @@
  */
 
 import { useState } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -26,7 +27,7 @@ const API = import.meta.env.VITE_API_URL || "";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci_api_key")) ||
   import.meta.env.VITE_API_KEY ||
-  "dev-key";
+  (getStoredAuthToken() ?? "");
 
 async function apiFetch(path: string) {
   const res = await fetch(`${API}${path}`, { headers: { "X-API-Key": API_KEY } });

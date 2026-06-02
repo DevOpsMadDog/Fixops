@@ -18,8 +18,8 @@ import { Database, Search, Shield, AlertTriangle, RefreshCw, BarChart3, Globe, A
 import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-// NO MOCKS: real authenticated token + the caller's real org (was a hardcoded "aldeci-demo"
-// demo org + "dev-key" build-time key that always 401'd).
+// NO MOCKS: real authenticated token + the caller's real org (was a hardcoded demo org +
+// build-time dev-key that always 401'd).
 const ORG_ID = getStoredOrgId() ?? "default";
 
 async function apiFetch(path: string) {

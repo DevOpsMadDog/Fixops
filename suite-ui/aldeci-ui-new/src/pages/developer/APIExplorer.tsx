@@ -10,6 +10,7 @@
  */
 
 import { useState, useCallback, useRef } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Play, ChevronRight, ChevronDown, Clock, CheckCircle2,
@@ -759,7 +760,7 @@ export default function APIExplorer() {
   const [paramValues, setParamValues]   = useState<Record<string, string>>({});
   const [bodyText, setBodyText]         = useState<string>("");
   const [apiKey, setApiKey]             = useState<string>(
-    (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) || "dev-key"
+    (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) || (getStoredAuthToken() ?? "")
   );
   const [response, setResponse]         = useState<ResponseState>({ status: null, data: null, ms: null, error: null });
   const [loading, setLoading]           = useState(false);

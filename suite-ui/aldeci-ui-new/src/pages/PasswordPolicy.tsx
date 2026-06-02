@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import {
   Key, Shield, AlertTriangle, CheckCircle, XCircle,
@@ -20,8 +21,8 @@ import {
 
 // ── API helpers ────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "";
-const API_KEY  = import.meta.env.VITE_API_KEY || "dev-key";
-const ORG_ID   = "aldeci-demo";
+const API_KEY  = import.meta.env.VITE_API_KEY || (getStoredAuthToken() ?? "");
+const ORG_ID   = (getStoredOrgId() ?? "default");
 
 async function apiFetch(path: string) {
   const res = await fetch(`${API_BASE}${path}?org_id=default`, {

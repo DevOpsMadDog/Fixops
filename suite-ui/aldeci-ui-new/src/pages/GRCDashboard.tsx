@@ -13,6 +13,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion } from "framer-motion";
 import { Shield, AlertTriangle, CheckCircle, BarChart3, FileText, RefreshCw, ClipboardList } from "lucide-react";
 
@@ -21,8 +22,8 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_KEY =
   (typeof window !== "undefined" && window.localStorage.getItem("aldeci.authToken")) ||
   import.meta.env.VITE_API_KEY ||
-  "dev-key";
-const ORG_ID = "aldeci-demo";
+  (getStoredAuthToken() ?? "");
+const ORG_ID = (getStoredOrgId() ?? "default");
 
 async function apiFetch(path: string) {
   const res = await fetch(`${API_BASE}${path}?org_id=default`, {
