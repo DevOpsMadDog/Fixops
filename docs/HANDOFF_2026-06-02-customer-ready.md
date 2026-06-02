@@ -292,3 +292,19 @@ create_app boots 8339 routes. Beast smoke 756 (lone fail = known
 test_100_findings_ingest flake, passes isolated ~0.6s). Final tab-panel sweep: 0
 hubs with issues across all 52 hubs × every tab. All 106 hub panels are real-data
 wired (audited). Deferred (none — every sweep finding resolved this session).
+
+## UPDATE (2026-06-02 ~12:32) — Tab-panel sweep VERIFIED COMPLETE (52/52, 184 tabs)
+
+Correction to the earlier "all 52 clean" note: those runs had TIMED OUT at
+Playwright's 600s globalTimeout (and one HUNG on a real InvestmentPanel crash), so
+coverage was partial. Fixed the harness (dialog auto-dismiss, per-hub progress log,
+700ms default pacing) and the InvestmentPanel crash, then ran a genuinely complete
+sweep: **52 hubs, 184 tabs clicked, 1 issue found** (/remediate/exceptions Workflow
+request_id→id keyless), now fixed + browser-verified. The Investment & ROI tab crash
+(fmt$ .toFixed on undefined → RouteErrorBoundary blanked the page) was a real
+customer-facing defect the sweep's "hang" had been masking — also fixed (3e73969e).
+
+RESULT: every one of the 52 hubs × every tab fires real /api/v1 calls (or honest
+EmptyState) with 0 API failures, 0 crashes, 0 React key warnings. Commits this
+campaign: 3e73969e (Investment crash), cb2231f3 (Exception workflow), 489b37f6 +
+fcc2c804 (sweep hardening), plus the earlier panel/endpoint batch.
