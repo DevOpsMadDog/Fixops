@@ -186,3 +186,17 @@ pre-mortem's disqualifying/major failures are closed. Each story = a spec throug
   Smoke 755/756 (only known flake test_100_findings_ingest_under_1_second 1029ms). Build green 3.59s.
   SYSTEMIC FINDING (follow-up, needs per-route destination mapping): ~19 OTHER /admin?tab=X redirects also dead-end at /admin/audit-log (tabbed admin hero never built) — /settings/health /connect/mcp /openclaw /airgap /admin/system /fips-status /local-store-status /privileged-identity /users/me/tokens /admin/tokens /connectors/mapping /billing /integrations-hub /connectors/health /connectors/marketplace /connect. Some have real hubs (AirGapHub, PrivilegedAccessHub) and should be repointed; others may be retired. Did NOT mass-remap this tick (each needs a verified real destination, not a guess).
 - 2026-06-02T14:53:12Z Repointed 14 dead-end /admin?tab= redirects to real existing pages (tabbed Admin hero never built -> all dead-ended at audit-log). Verified each destination route exists; /airgap browser-confirmed -> /connect/mcp/air-gap (AirGapHub). Map: settings/health+admin/system->system-health; connect/mcp+openclaw->ai/mcp-registry; airgap->connect/mcp/air-gap; fips-status->fips-compliance; local-store-status->local-store/status; privileged-identity->discover/privileged-access; users-me-tokens+admin/tokens->admin/api-keys; integrations-hub+connectors/health+connect->integrations; connectors/marketplace->settings/marketplace; connectors/mapping->integrations. Left /billing honest (no internal billing page = real product gap). Build green 3.61s.
+- 2026-06-03 SYSTEMIC DEAD-END finding #2 (documented, NOT fixed — needs product direction / hero build):
+  Beyond the /admin?tab= class (fixed), there are 23 /brain?tab=X redirects (/ai/brain->pipeline,
+  /ai/consensus->consensus, /ai/algorithms->lab, /ai/ml->ml, /ai/predictions->predictions,
+  /verification+/brain/mpte+/attack/mpte->mpte, /brain/fail->fail, /bug-bounty, /mitre,
+  /incident-timeline-dashboard, /ai-governance, /attack-chains, /alert-enrichment, /code-intel,
+  /score-transparency, /factor-weights, ...). ALL dead-end: /brain -> /brain/neural (BrainVisualization,
+  which reads 0 tabs) and the ?tab= is dropped at the /brain hop, so every one lands on the neural
+  viz regardless of intended tab. The planned tabbed "Brain hero" was never built and NO standalone
+  pages exist for pipeline/consensus/lab/ml/predictions/mpte/fail content (greps found only unrelated
+  vuln-pipeline/data-pipeline/security-chaos). Cannot be surgically repointed like the admin class —
+  requires either (a) building a Brain hero that reads ?tab= and renders those panels, or (b) locating
+  where each panel's content now lives. FOUNDER/PRODUCT decision. Customer impact depends on whether the
+  live nav sidebar links these paths (verify next) vs. them being legacy bookmarks-only aliases.
+  Likely same pattern for some /compliance?tab= redirects (ComplianceDashboard tab-read unconfirmed).
