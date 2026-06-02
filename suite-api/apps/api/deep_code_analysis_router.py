@@ -69,6 +69,13 @@ async def analyze_repo(req: AnalyzeRepoRequest) -> Dict[str, Any]:
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    except NotImplementedError as exc:
+        # Honest 501 (not a 500 crash) when a language tree-sitter bundle is absent in this
+        # deploy — e.g. a leaner SCIF image without tree-sitter-{ts,java,go}. No fake results.
+        raise HTTPException(
+            status_code=501,
+            detail={"status": "not_implemented", "error": "language_bundle_missing", "detail": str(exc)},
+        ) from exc
     except Exception as exc:  # noqa: BLE001
         _logger.exception("dca analyze failed")
         raise HTTPException(status_code=500, detail=f"analyze failed: {exc}")
