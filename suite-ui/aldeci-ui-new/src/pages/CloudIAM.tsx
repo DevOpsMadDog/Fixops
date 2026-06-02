@@ -27,12 +27,12 @@ export default function CloudIAM() {
     setLoading(true); setError(null);
     try {
       const [itemsRes, statsRes] = await Promise.allSettled([
-        apiFetch<any>("/api/v1/cloud/principals"),
-        apiFetch<any>("/api/v1/cloud/stats"),
+        apiFetch<any>("/api/v1/cloud-identity/identities"),
+        apiFetch<any>("/api/v1/cloud-identity/stats"),
       ]);
       if (itemsRes.status === "fulfilled") {
         const v = itemsRes.value as any;
-        setPrincipals(Array.isArray(v) ? v : (v.principals ?? v.items ?? v.data ?? []));
+        setPrincipals(Array.isArray(v) ? v : (v.identities ?? v.principals ?? v.items ?? v.data ?? []));
       }
       if (statsRes.status === "fulfilled") {
         setStats(statsRes.value);
