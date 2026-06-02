@@ -136,6 +136,12 @@ def _build_app(engine: BitbucketEngine) -> TestClient:
     _router_mod._get_engine = lambda: engine  # type: ignore[attr-defined]
     app = FastAPI()
     app.include_router(router)
+    # The router enforces auth via router-level Depends(api_key_auth); this isolated test
+    # app sets no FIXOPS_API_TOKEN, so without an override every data endpoint 401s before
+    # the handler runs (the auth result is not consumed by handlers — router-level only).
+    # Override it so the tests exercise real router/engine behaviour, not the auth gate.
+    from apps.api.auth_deps import api_key_auth as _api_key_auth
+    app.dependency_overrides[_api_key_auth] = lambda: {"sub": "test", "org_id": "default", "role": "admin"}
     return TestClient(app, raise_server_exceptions=True)
 
 
