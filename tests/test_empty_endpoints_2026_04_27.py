@@ -70,6 +70,32 @@ def assert_501_structured(resp, endpoint_fragment):
     assert "tracking" in detail, "Expected 'tracking' in 501 detail"
 
 
+def assert_real_importer(resp, endpoint_fragment):
+    """Public-source importer is now wired to a real source.
+
+    These endpoints were 501 stubs when this suite was written; the importers
+    have since been built. Accept either:
+      * 200 — a real import result (counts present), OR
+      * 502 — an honest ``source_unreachable`` when the upstream public source
+        is offline/404/air-gapped (the correct behaviour for an offline deploy).
+    Must NOT be a 501 stub and must NOT fabricate a not_implemented envelope.
+    """
+    assert resp.status_code in (200, 502), (
+        f"Expected real importer (200) or honest 502 source_unreachable for "
+        f"{endpoint_fragment}, got {resp.status_code}: {resp.text[:300]}"
+    )
+    body = resp.json()
+    detail = body.get("detail", {}) if isinstance(body, dict) else {}
+    if resp.status_code == 200:
+        assert detail.get("error") != "not_implemented", (
+            f"Importer {endpoint_fragment} must not return a not_implemented stub"
+        )
+    else:  # 502 — must be the honest source-unreachable signal, not a generic crash
+        assert detail.get("error") == "source_unreachable", (
+            f"502 for {endpoint_fragment} must be honest source_unreachable, got {detail}"
+        )
+
+
 # ===========================================================================
 # CLASS-C: Empty IS correct — structured response with hint
 # ===========================================================================
@@ -136,11 +162,14 @@ class TestClassCStructuredEmpty:
 
 
 # ===========================================================================
-# CLASS-B: Public-source importer missing — 501 stubs
+# CLASS-B: Public-source importers — now REAL (were 501 stubs)
+#   These importers have since been wired to real public sources.  Each must
+#   return a real import result (200) or an honest source_unreachable (502)
+#   when the upstream is offline/air-gapped — never a 501 stub, never faked.
 # ===========================================================================
 
 class TestClassB501Stubs:
-    """All class-b import endpoints must return 501 with structured detail."""
+    """All class-b import endpoints are wired to real public-source importers."""
 
     def test_vuln_correlation_assets_list_structured(self, client):
         resp = _get(client, "/api/v1/vuln-correlation/assets")
@@ -148,7 +177,7 @@ class TestClassB501Stubs:
 
     def test_vuln_correlation_import_kev_501(self, client):
         resp = _post_501(client, "/api/v1/vuln-correlation/import-kev")
-        assert_501_structured(resp, "/api/v1/vuln-correlation/import-kev")
+        assert_real_importer(resp, "/api/v1/vuln-correlation/import-kev")
 
     def test_threat_vectors_list_structured(self, client):
         resp = client.get(
@@ -164,7 +193,7 @@ class TestClassB501Stubs:
             params={"org_id": ORG},
             headers=HEADERS,
         )
-        assert_501_structured(resp, "/api/v1/threat-vectors/import-mitre")
+        assert_real_importer(resp, "/api/v1/threat-vectors/import-mitre")
 
     def test_ti_automation_feeds_list_structured(self, client):
         resp = _get(client, "/api/v1/ti-automation/feeds")
@@ -172,7 +201,7 @@ class TestClassB501Stubs:
 
     def test_ti_automation_feeds_import_global_501(self, client):
         resp = _post_501(client, "/api/v1/ti-automation/feeds/import-global")
-        assert_501_structured(resp, "/api/v1/ti-automation/feeds/import-global")
+        assert_real_importer(resp, "/api/v1/ti-automation/feeds/import-global")
 
     def test_posture_benchmarking_list_structured(self, client):
         resp = _get(client, "/api/v1/posture-benchmarking/benchmarks")
@@ -180,7 +209,7 @@ class TestClassB501Stubs:
 
     def test_posture_benchmarking_import_cis_501(self, client):
         resp = _post_501(client, "/api/v1/posture-benchmarking/import-cis")
-        assert_501_structured(resp, "/api/v1/posture-benchmarking/import-cis")
+        assert_real_importer(resp, "/api/v1/posture-benchmarking/import-cis")
 
     def test_security_benchmarks_list_structured(self, client):
         resp = _get(client, "/api/v1/security-benchmarks/benchmarks")
@@ -188,7 +217,7 @@ class TestClassB501Stubs:
 
     def test_security_benchmarks_import_dbir_501(self, client):
         resp = _post_501(client, "/api/v1/security-benchmarks/import-dbir")
-        assert_501_structured(resp, "/api/v1/security-benchmarks/import-dbir")
+        assert_real_importer(resp, "/api/v1/security-benchmarks/import-dbir")
 
     def test_hunting_playbooks_list_structured(self, client):
         resp = _get(client, "/api/v1/hunting-playbooks/playbooks")
@@ -196,7 +225,7 @@ class TestClassB501Stubs:
 
     def test_hunting_playbooks_import_sigma_501(self, client):
         resp = _post_501(client, "/api/v1/hunting-playbooks/import-sigma")
-        assert_501_structured(resp, "/api/v1/hunting-playbooks/import-sigma")
+        assert_real_importer(resp, "/api/v1/hunting-playbooks/import-sigma")
 
 
 # ===========================================================================
