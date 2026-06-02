@@ -534,7 +534,9 @@ def test_step6_get_verdict(journey_state: Dict[str, Any]) -> None:
         ]
 
     resp = _client.post(
-        "/api/v1/pipeline/pipeline/run",
+        # POST Brain-Pipeline run is mounted at /api/v1/pipeline/run (single
+        # "pipeline" — the prior double-"pipeline" path is GET-only → 405).
+        "/api/v1/pipeline/run",
         json={
             "org_id": org_id,
             "findings": sample_findings,
