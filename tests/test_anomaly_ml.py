@@ -625,11 +625,11 @@ class TestRouterImport:
         assert router is not None
         assert router.prefix == "/api/v1/anomaly-ml"
 
-    def test_router_has_8_routes(self) -> None:
+    def test_router_has_9_routes(self) -> None:
         from apps.api.anomaly_ml_router import router
-        # FastAPI stores routes in router.routes
+        # FastAPI stores routes in router.routes (was 8; a 9th route was added — count updated)
         route_paths = [r.path for r in router.routes]  # type: ignore[attr-defined]
-        assert len(route_paths) == 8
+        assert len(route_paths) == 9
 
     def test_request_models_importable(self) -> None:
         from apps.api.anomaly_ml_router import (
