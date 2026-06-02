@@ -184,6 +184,21 @@ def list_assessments(
     return _get_engine().list_assessments(org_id, vendor_id=vendor_id, status=status)
 
 
+@router.get("/questionnaires", dependencies=[Depends(api_key_auth)])
+def list_questionnaires(org_id: str = Depends(get_org_id)):
+    """List questionnaire templates for an org."""
+    return _get_engine().list_questionnaires(org_id)
+
+
+@router.get(
+    "/questionnaires/{questionnaire_id}/questions",
+    dependencies=[Depends(api_key_auth)],
+)
+def list_questions(questionnaire_id: str, org_id: str = Depends(get_org_id)):
+    """List the questions belonging to a questionnaire."""
+    return _get_engine().list_questions(questionnaire_id, org_id)
+
+
 @router.get("", dependencies=[Depends(api_key_auth)])
 def get_root(org_id: str = Depends(get_org_id)):
     """Root endpoint — returns assessments list for dashboard health-checks."""

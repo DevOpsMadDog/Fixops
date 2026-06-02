@@ -439,6 +439,26 @@ class SecurityQuestionnaireEngine:
             rows = conn.execute(sql, params).fetchall()
         return [self._row(r) for r in rows]
 
+    def list_questionnaires(self, org_id: str) -> List[Dict[str, Any]]:
+        """List questionnaire templates for an org."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM questionnaires WHERE org_id = ? ORDER BY created_at DESC",
+                (org_id,),
+            ).fetchall()
+        return [self._row(r) for r in rows]
+
+    def list_questions(self, questionnaire_id: str, org_id: str) -> List[Dict[str, Any]]:
+        """List the questions belonging to a questionnaire (org-scoped)."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                """SELECT * FROM questions
+                   WHERE questionnaire_id = ? AND org_id = ?
+                   ORDER BY created_at ASC""",
+                (questionnaire_id, org_id),
+            ).fetchall()
+        return [self._row(r) for r in rows]
+
     def get_overdue_assessments(self, org_id: str) -> List[Dict[str, Any]]:
         """Return sent assessments whose due_date is in the past."""
         now = _now_iso()

@@ -34,6 +34,7 @@ interface Assessment {
   id: string;
   vendor_name: string;
   questionnaire: string;
+  questionnaire_id?: string;
   status: "draft" | "sent" | "in_progress" | "completed" | "overdue";
   score: number;
   risk_level: "critical" | "high" | "medium" | "low";
@@ -48,37 +49,68 @@ interface Question {
   required: boolean;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
-
-const QUESTIONNAIRES: Questionnaire[] = [
-  { id: "q1", name: "SIG Core",            framework: "SIG",      question_count: 218, type: "standard", created_at: "2026-01-10" },
-  { id: "q2", name: "CAIQ 4.0",            framework: "CSA",      question_count: 261, type: "standard", created_at: "2026-01-15" },
-  { id: "q3", name: "VSA Lite",            framework: "VSAQ",     question_count: 62,  type: "lite",     created_at: "2026-02-01" },
-  { id: "q4", name: "GDPR Vendor Check",   framework: "GDPR",     question_count: 48,  type: "custom",   created_at: "2026-02-10" },
-  { id: "q5", name: "ISO 27001 Supplier",  framework: "ISO 27001",question_count: 114, type: "standard", created_at: "2026-02-20" },
-  { id: "q6", name: "PCI DSS Vendor",      framework: "PCI-DSS",  question_count: 87,  type: "custom",   created_at: "2026-03-05" },
-];
-
-const ASSESSMENTS: Assessment[] = [
-  { id: "a1", vendor_name: "Acme Cloud",       questionnaire: "SIG Core",           status: "completed",   score: 88,  risk_level: "low",      sent_at: "2026-03-01", due_date: "2026-03-31" },
-  { id: "a2", vendor_name: "DataSafe Inc",      questionnaire: "CAIQ 4.0",           status: "in_progress", score: 62,  risk_level: "medium",   sent_at: "2026-03-10", due_date: "2026-04-10" },
-  { id: "a3", vendor_name: "SecureNet Corp",    questionnaire: "GDPR Vendor Check",  status: "overdue",     score: 0,   risk_level: "high",     sent_at: "2026-02-15", due_date: "2026-03-15" },
-  { id: "a4", vendor_name: "PayFlow Systems",   questionnaire: "PCI DSS Vendor",     status: "sent",        score: 0,   risk_level: "critical", sent_at: "2026-03-20", due_date: "2026-04-20" },
-  { id: "a5", vendor_name: "LogiTech Partners", questionnaire: "VSA Lite",           status: "completed",   score: 74,  risk_level: "medium",   sent_at: "2026-02-28", due_date: "2026-03-28" },
-  { id: "a6", vendor_name: "CloudStore Ltd",    questionnaire: "ISO 27001 Supplier", status: "overdue",     score: 0,   risk_level: "high",     sent_at: "2026-02-10", due_date: "2026-03-10" },
-  { id: "a7", vendor_name: "Apex Analytics",    questionnaire: "SIG Core",           status: "in_progress", score: 55,  risk_level: "high",     sent_at: "2026-03-25", due_date: "2026-04-25" },
-  { id: "a8", vendor_name: "NovaTech AI",       questionnaire: "CAIQ 4.0",           status: "draft",       score: 0,   risk_level: "medium",   sent_at: "—",          due_date: "2026-05-01" },
-];
-
-const SAMPLE_QUESTIONS: Question[] = [
-  { id: "sq1", text: "Does your organization have a documented Information Security Policy reviewed annually?", category: "Governance", required: true },
-  { id: "sq2", text: "Are all production systems covered by a vulnerability management program?", category: "Vulnerability Mgmt", required: true },
-  { id: "sq3", text: "Is multi-factor authentication enforced for all privileged accounts?", category: "Access Control", required: true },
-  { id: "sq4", text: "Does your organization maintain an inventory of all third-party sub-processors?", category: "Supply Chain", required: false },
-  { id: "sq5", text: "Are encryption standards documented and enforced for data at rest and in transit?", category: "Cryptography", required: true },
-];
-
 const RESPONSE_LABELS = ["No", "Partial", "Yes", "Yes + Evidence", "N/A"];
+
+// ── API (real backend, no mocks) ───────────────────────────────
+
+function getApiKey(): string {
+  return (
+    (typeof window !== "undefined" && localStorage.getItem("aldeci.authToken")) ||
+    import.meta.env.VITE_API_KEY ||
+    ""
+  );
+}
+
+async function apiGet<T>(path: string): Promise<T> {
+  const res = await fetch(`/api/v1/security-questionnaires${path}`, {
+    headers: { "X-API-Key": getApiKey() },
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json() as Promise<T>;
+}
+
+const QUESTIONNAIRE_TYPES = new Set(["standard", "custom", "lite"]);
+
+function mapQuestionnaire(r: Record<string, any>): Questionnaire {
+  const t = String(r.questionnaire_type ?? r.type ?? "custom").toLowerCase();
+  return {
+    id: String(r.id),
+    name: String(r.questionnaire_name ?? r.name ?? r.id),
+    framework: String(r.framework ?? "custom"),
+    question_count: Number(r.question_count ?? 0),
+    type: (QUESTIONNAIRE_TYPES.has(t) ? t : "custom") as Questionnaire["type"],
+    created_at: String(r.created_at ?? "").slice(0, 10),
+  };
+}
+
+function mapAssessment(
+  r: Record<string, any>,
+  qnameById: Record<string, string>,
+): Assessment {
+  const status = String(r.status ?? "draft").toLowerCase() as Assessment["status"];
+  const risk = String(r.risk_level ?? "medium").toLowerCase() as Assessment["risk_level"];
+  return {
+    id: String(r.id),
+    vendor_name: String(r.vendor_name || r.vendor_id || "Unknown vendor"),
+    questionnaire: qnameById[String(r.questionnaire_id)] ?? String(r.questionnaire_id ?? "—"),
+    status,
+    score: Number(r.score ?? 0),
+    risk_level: risk,
+    sent_at: String(r.sent_at ?? "—").slice(0, 10) || "—",
+    due_date: String(r.due_date ?? "—").slice(0, 10) || "—",
+    // keep questionnaire_id around so the response form can fetch questions
+    ...(r.questionnaire_id ? { questionnaire_id: String(r.questionnaire_id) } : {}),
+  } as Assessment;
+}
+
+function mapQuestion(r: Record<string, any>): Question {
+  return {
+    id: String(r.id),
+    text: String(r.question_text ?? r.text ?? ""),
+    category: String(r.question_category ?? r.category ?? "general"),
+    required: Boolean(r.required ?? true),
+  };
+}
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -110,28 +142,87 @@ function isOverdue(a: Assessment): boolean {
 // ── Component ──────────────────────────────────────────────────
 
 export default function SecurityQuestionnaireDashboard() {
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
-  useEffect(() => {
-    fetch("/api/v1/security-questionnaires", { headers: { "X-API-Key": localStorage.getItem("aldeci.authToken") || "" } })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(() => { /* live data available */ })
-      .catch(() => {});
-  }, []);
   const [responses, setResponses] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState<"assessments" | "questionnaires">("assessments");
 
-  const overdue = ASSESSMENTS.filter(isOverdue);
-  const completed = ASSESSMENTS.filter(a => a.status === "completed");
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [qRaw, aRaw] = await Promise.all([
+          apiGet<Record<string, any>[]>("/questionnaires"),
+          apiGet<Record<string, any>[]>("/assessments"),
+        ]);
+        if (cancelled) return;
+        const qs = (Array.isArray(qRaw) ? qRaw : []).map(mapQuestionnaire);
+        const qnameById: Record<string, string> = {};
+        qs.forEach(q => { qnameById[q.id] = q.name; });
+        setQuestionnaires(qs);
+        setAssessments((Array.isArray(aRaw) ? aRaw : []).map(r => mapAssessment(r, qnameById)));
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || "Failed to load questionnaires");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Load the selected assessment's questionnaire questions for the response form.
+  useEffect(() => {
+    const qid = selectedAssessment?.questionnaire_id;
+    if (!qid) { setQuestions([]); return; }
+    let cancelled = false;
+    apiGet<Record<string, any>[]>(`/questionnaires/${encodeURIComponent(qid)}/questions`)
+      .then(rows => { if (!cancelled) setQuestions((Array.isArray(rows) ? rows : []).map(mapQuestion)); })
+      .catch(() => { if (!cancelled) setQuestions([]); });
+    return () => { cancelled = true; };
+  }, [selectedAssessment?.questionnaire_id]);
+
+  const overdue = assessments.filter(isOverdue);
+  const completed = assessments.filter(a => a.status === "completed");
   const avgScore = completed.length
     ? Math.round(completed.reduce((s, a) => s + a.score, 0) / completed.length)
     : 0;
 
   const vendorRisk = {
-    critical: ASSESSMENTS.filter(a => a.risk_level === "critical").length,
-    high: ASSESSMENTS.filter(a => a.risk_level === "high").length,
-    medium: ASSESSMENTS.filter(a => a.risk_level === "medium").length,
-    low: ASSESSMENTS.filter(a => a.risk_level === "low").length,
+    critical: assessments.filter(a => a.risk_level === "critical").length,
+    high: assessments.filter(a => a.risk_level === "high").length,
+    medium: assessments.filter(a => a.risk_level === "medium").length,
+    low: assessments.filter(a => a.risk_level === "low").length,
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] text-white p-6 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-gray-400">
+          <RefreshCw className="w-5 h-5 animate-spin" /> Loading security questionnaires…
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0f172a] text-white p-6 flex items-center justify-center">
+        <div className="bg-red-900/40 border border-red-700 rounded-lg p-6 flex items-center gap-3 max-w-md">
+          <AlertTriangle className="w-6 h-6 text-red-400 shrink-0" />
+          <div>
+            <div className="font-semibold text-red-300">Couldn’t load questionnaires</div>
+            <div className="text-red-400/80 text-sm mt-1">{error}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-6 space-y-6">
@@ -163,8 +254,8 @@ export default function SecurityQuestionnaireDashboard() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Questionnaires", value: QUESTIONNAIRES.length, icon: <ClipboardList className="w-5 h-5 text-blue-400" />, sub: "templates available" },
-          { label: "Active Assessments", value: ASSESSMENTS.filter(a => ["sent","in_progress"].includes(a.status)).length, icon: <Clock className="w-5 h-5 text-yellow-400" />, sub: "awaiting response" },
+          { label: "Questionnaires", value: questionnaires.length, icon: <ClipboardList className="w-5 h-5 text-blue-400" />, sub: "templates available" },
+          { label: "Active Assessments", value: assessments.filter(a => ["sent","in_progress"].includes(a.status)).length, icon: <Clock className="w-5 h-5 text-yellow-400" />, sub: "awaiting response" },
           { label: "Overdue", value: overdue.length, icon: <AlertTriangle className="w-5 h-5 text-red-400" />, sub: "require follow-up" },
           { label: "Avg Score", value: `${avgScore}%`, icon: <BarChart2 className="w-5 h-5 text-green-400" />, sub: "completed assessments" },
         ].map(k => (
@@ -224,7 +315,15 @@ export default function SecurityQuestionnaireDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {ASSESSMENTS.map(a => (
+                  {assessments.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-10 text-center text-gray-500 text-sm">
+                        No vendor assessments yet. Click “Send Assessment” to send a
+                        questionnaire to a vendor.
+                      </td>
+                    </tr>
+                  )}
+                  {assessments.map(a => (
                     <tr
                       key={a.id}
                       onClick={() => setSelectedAssessment(a)}
@@ -275,8 +374,13 @@ export default function SecurityQuestionnaireDashboard() {
             </div>
             {selectedAssessment ? (
               <>
+                {questions.length === 0 && (
+                  <p className="text-gray-500 text-sm">
+                    This questionnaire has no questions defined yet.
+                  </p>
+                )}
                 <div className="space-y-4">
-                  {SAMPLE_QUESTIONS.map((q, i) => (
+                  {questions.map((q, i) => (
                     <div key={q.id} className="bg-gray-700/50 rounded-lg p-3 space-y-2">
                       <div className="text-xs text-gray-400 flex justify-between">
                         <span className="bg-gray-600 px-2 py-0.5 rounded">{q.category}</span>
@@ -327,7 +431,15 @@ export default function SecurityQuestionnaireDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {QUESTIONNAIRES.map(q => (
+                {questionnaires.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-10 text-center text-gray-500 text-sm">
+                      No questionnaire templates yet. Create one to start sending vendor
+                      assessments.
+                    </td>
+                  </tr>
+                )}
+                {questionnaires.map(q => (
                   <tr key={q.id} className="border-t border-gray-700 hover:bg-gray-700/30 transition-colors">
                     <td className="px-4 py-3 font-medium">{q.name}</td>
                     <td className="px-4 py-3">
