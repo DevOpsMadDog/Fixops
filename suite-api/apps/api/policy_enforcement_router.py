@@ -177,3 +177,83 @@ def get_enforcement_stats(
 ):
     """Return aggregated policy enforcement statistics."""
     return _get_engine(org_id).get_enforcement_stats(org_id)
+
+
+# ---------------------------------------------------------------------------
+# Hook policy + runtime status (DevSecOps hooks lifecycle)
+# UI: HooksPolicyPanel / HooksStatusPanel under /comply/policies/authoring.
+# Backed by DevSecOpsEngine.get_active_hook_policy / apply_hook_policy — real,
+# persisted in the hook_policies table (NO MOCKS). Status rows are DERIVED from
+# the CONFIGURED hooks in the active policy with status "idle" (configured, no
+# execution events tracked yet) — never fabricated health/metrics; honest empty
+# list when no hook policy exists for the org.
+# ---------------------------------------------------------------------------
+
+
+def _devsecops():
+    from core.devsecops_engine import get_devsecops_engine
+    return get_devsecops_engine()
+
+
+@router.get("/hooks/policy")
+def get_hook_policy(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Return the active hook policy (the hooks dict) for the org, or {} if none."""
+    try:
+        rec = _devsecops().get_active_hook_policy(org_id)
+    except Exception as exc:  # pragma: no cover
+        _logger.exception("get_hook_policy failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return (rec.get("policy", {}) or {}) if rec else {}
+
+
+@router.put("/hooks/policy")
+def put_hook_policy(body: Dict[str, Any], org_id: str = Query("default")) -> Dict[str, Any]:
+    """Persist an edited hook policy (the hooks dict). Idempotent on content hash."""
+    if not isinstance(body, dict) or not body:
+        raise HTTPException(
+            status_code=422, detail="Body must be a non-empty hook policy object."
+        )
+    try:
+        return _devsecops().apply_hook_policy(org_id, body)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover
+        _logger.exception("put_hook_policy failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/hooks/status", response_model=List[Dict[str, Any]])
+def get_hook_status(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+    """Derive a runtime-status list from the active policy's CONFIGURED hooks.
+
+    Each configured stage becomes one row with status ``idle`` (configured, no
+    execution events are tracked yet) — honest, never fabricated health. Returns
+    an empty list when no hook policy is configured for the org.
+    """
+    try:
+        rec = _devsecops().get_active_hook_policy(org_id)
+    except Exception as exc:  # pragma: no cover
+        _logger.exception("get_hook_status failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    if not rec:
+        return []
+    policy = rec.get("policy", {}) or {}
+    rows: List[Dict[str, Any]] = []
+    for stage, cfg in policy.items():
+        if not isinstance(stage, str):
+            continue
+        enabled = True
+        if isinstance(cfg, dict) and "enabled" in cfg:
+            enabled = bool(cfg["enabled"])
+        rows.append(
+            {
+                "hook_id": f"{rec.get('id', '')}:{stage}",
+                "name": stage,
+                "hook_type": stage,
+                "stage": stage,
+                "status": "idle" if enabled else "disabled",
+                "trigger_count": 0,
+                "error_count": 0,
+            }
+        )
+    return rows
