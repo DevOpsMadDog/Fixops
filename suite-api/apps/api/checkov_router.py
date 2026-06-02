@@ -174,13 +174,14 @@ def checkov_scan(req: ScanRequest) -> Dict[str, Any]:
     error detail.
     """
     # Red-Team hardening: target_path is a caller-supplied FS path the scanner reads.
+    # Validate to REJECT traversal/null/out-of-allowlist; pass the caller's original
+    # string through on accept (preserve the round-trip contract — don't canonicalize).
     from apps.api._path_safety import safe_fs_path
-    _tp = safe_fs_path(req.target_path, "FIXOPS_ALLOWED_SCAN_ROOTS")
-    if _tp is None:
+    if safe_fs_path(req.target_path, "FIXOPS_ALLOWED_SCAN_ROOTS") is None:
         raise HTTPException(status_code=400, detail="Invalid or disallowed target_path")
     try:
         return _engine().queue_scan(
-            target_path=str(_tp),
+            target_path=req.target_path,
             frameworks=req.frameworks,
             check_ids=req.check_ids,
             skip_checks=req.skip_checks,
