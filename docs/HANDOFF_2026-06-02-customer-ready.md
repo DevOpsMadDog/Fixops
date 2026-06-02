@@ -308,3 +308,27 @@ RESULT: every one of the 52 hubs × every tab fires real /api/v1 calls (or hones
 EmptyState) with 0 API failures, 0 crashes, 0 React key warnings. Commits this
 campaign: 3e73969e (Investment crash), cb2231f3 (Exception workflow), 489b37f6 +
 fcc2c804 (sweep hardening), plus the earlier panel/endpoint batch.
+
+## UPDATE (2026-06-02 ~13:50) — Backend bulk-corruption sweep (~107 real runtime 500s fixed)
+
+A fresh T3 test slice (router + engine, run PER-FILE in isolation to filter FastAPI
+TestClient cross-file pollution — the batch run is ~28% false-fail) exposed a repo-wide
+bulk stray-auto-edit corruption that the smoke gate entirely missed (only fails at
+request/runtime). Two systemic classes, now SWEPT CLEAN (AST + bidirectional grep):
+
+1. **95 `org_id: str = Depends(get_org_id)` Pydantic FIELD defaults across 41 routers**
+   → every affected POST 500'd on omitted org_id. AST-targeted fix → `= "default"`. (64bf56dc)
+2. **12 SQL keyword-concatenation runtime errors** (table/col glued to FROM/WHERE/SET):
+   log_management, security_training, api_abuse_detector, security_registry,
+   deduplication(core,×3), anomaly_ml, vulnerability_analytics, threat_hunting,
+   trustgraph/maintenance. (c7ab0b91, 53eaf240)
+Plus: gap_router /changes/sla-impact ImportError 500 (real accessors added, 9e26eccd),
+mlops /analyze KeyError 500, anomaly_ml `.anomaly_id`→`.id` AttributeError, + 4 test-rot.
+
+Verified per-file (post-fix, isolation): questionnaire 58, security_registry 62,
+api_abuse 58, deduplication 36, log_management 40, anomaly_ml 29, vulnerability_analytics
+57, threat_hunting 67, intelligent_security 34, gap 31, mlops 14. create_app 8339; smoke 756.
+
+Detection recipe (for the test-infra follow-up) + remaining founder-blocked test-infra
+backlog (~25 connector-router auth-fixture files, checkov/env/missing-table fixtures,
+stale stub-assertions) are in docs/router_test_triage_2026-06-02.md.
