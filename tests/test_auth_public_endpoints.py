@@ -124,6 +124,25 @@ class TestPublicAuthEndpoints:
             f"Unexpected status {resp.status_code}. Body: {resp.text}"
         )
 
+    def test_refresh_is_rate_limited(self, client, monkeypatch):
+        """Regression (2026-06-03): /refresh mints access tokens and is exempt from the
+        global limiter, so it MUST have its own IP rate limit (auth:refresh, 30/min).
+        Hammering well past the limit must yield at least one 429 — otherwise refresh
+        tokens can be ground unbounded. (conftest disables rate-limiting globally; this
+        test re-enables it like test_rate_limiting.py does.)"""
+        monkeypatch.delenv("FIXOPS_DISABLE_RATE_LIMIT", raising=False)
+        from apps.api import endpoint_rate_limit as _erl
+        _erl._buckets.clear()  # clean rolling window for a deterministic count
+        statuses = [
+            client.post("/api/v1/auth/refresh",
+                        json={"refresh_token": "grind-me"}).status_code
+            for _ in range(45)
+        ]
+        assert 429 in statuses, (
+            "No 429 after 45 rapid /refresh calls — the auth:refresh rate limit is "
+            f"missing or not enforced. Statuses seen: {sorted(set(statuses))}"
+        )
+
 
 # ---------------------------------------------------------------------------
 # PROTECTED endpoints — must still require auth

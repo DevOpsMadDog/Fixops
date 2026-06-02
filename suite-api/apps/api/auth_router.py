@@ -1134,6 +1134,12 @@ async def auth_refresh(body: RefreshRequestBody, request: Request) -> RefreshRes
     Validates the refresh token (HS256, FIXOPS_JWT_SECRET), checks token_type==refresh,
     then mints a new access token. Audit-logged on success and failure.
     """
+    # IP-level rate limit BEFORE any JWT crypto — /refresh mints access tokens and is
+    # exempt from the global limiter (/api/v1/auth/*), so without this an attacker could
+    # grind refresh tokens unbounded. 30/min is generous for legitimate multi-device/tab
+    # refresh while blocking brute-force. (Matches the login/signup _rl_enforce pattern.)
+    _rl_enforce(request, limit_key="auth:refresh", max_per_minute=30)
+
     client_ip = request.client.host if request.client else "unknown"
     secret = _get_login_jwt_secret()
 
