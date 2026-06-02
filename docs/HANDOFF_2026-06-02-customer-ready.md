@@ -825,3 +825,11 @@ Full `suite-ui/aldeci-ui-new/src` scan: no MOCK_/fixtures imports, no src/data|f
 - **Real API bug:** `POST /api/v1/toxic-combo-rules` required `combo_id` but the store keys by `id` (auto-gen) and ignored it → valid requests 422'd. Made optional + mapped to store id. (`84356a69`)
 - **Tenant-isolation tests restored (product already secure):** `test_tenant_isolation_audit` (4) documented gaps now CLOSED (AttackPathEngine get_node/remove_node org_id-guarded; RedisQueue org-keyed) → rewritten to assert enforced isolation; `test_tenant_leak_remediation_reports` (16) auth-rot (hardcoded token) → use live FIXOPS_API_TOKEN, cross-org 404 coverage restored. (`a5fec54a`, `27ff9024`)
 All green: create_app 8342, Beast smoke 756/756. q-s T3 slice sweep in progress.
+
+### 2026-06-03 (cont.) — q-s T3 sweep: real bugs in moats + hardenings
+- **ReasoningBank self-learning loop was DEAD** (PRIMARY moat): `judge()` always returned False (called undefined `_fetch_content_by_key`) so no DPO→reward labeling ever happened; distillation dropped ~half its data via `min_similarity=0.0`. Both fixed — loop now records outcomes + mines patterns (test_reasoning_bank 5/5). Memory: `project_reasoningbank_loop_dead_2026-06-03`. (`9fa7cf7d`)
+- **Rate-limiter hardenings (item B):** `_TokenBucket.consume()` ZeroDivisionError when rpm=0 (crashed rejected requests vs 429) → finite backoff; `_max_buckets=max(100,cfg)` overrode operator cap below 100 (defeated LRU memory bound vs spoofed-IP storms) → honor config. (`828af9d4`)
+- **Real API bug:** `toxic-combo-rules` required-but-ignored `combo_id` → 422 on valid requests. (`84356a69`)
+- **Tests restored (product already correct):** signing dev-key-fallback contract; tenant-isolation audit (gaps closed); remediation/reports cross-org auth-rot.
+- **Deferred:** `test_run_registry` (5) — wholesale obsolete test vs superseded RunRegistry API (product verified working); needs full rewrite (+maybe transparency-index/RS256 = founder crypto). Remaining q-s failures (sast_trends/scim/snyk/...) for next tick; stripe = founder-blocked.
+All green: create_app 8342, Beast smoke 756/756 (known ingest timing flake passes isolated).
