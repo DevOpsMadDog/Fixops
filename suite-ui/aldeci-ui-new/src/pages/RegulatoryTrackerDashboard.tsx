@@ -43,57 +43,9 @@ import { cn } from "@/lib/utils";
 
 // ── Mock data ───────────────────────────────────────────────────
 
-const UPCOMING_CHANGES = [
-  { id: "RC-001", reg: "EU AI Act",            changeType: "new_requirement", impact: "critical", domains: ["AI/ML", "Data"], effectiveAt: "2026-05-01", daysUntil: 15 },
-  { id: "RC-002", reg: "NIS2 Directive",       changeType: "enforcement",     impact: "high",     domains: ["Infra", "OT"],   effectiveAt: "2026-05-15", daysUntil: 29 },
-  { id: "RC-003", reg: "SEC Cyber Rule",       changeType: "deadline",        impact: "high",     domains: ["Reporting"],     effectiveAt: "2026-06-01", daysUntil: 46 },
-  { id: "RC-004", reg: "DORA",                 changeType: "amendment",       impact: "medium",   domains: ["DR/BCP", "3rd Party"], effectiveAt: "2026-06-15", daysUntil: 60 },
-  { id: "RC-005", reg: "CCPA Amendment AB-2",  changeType: "new_requirement", impact: "medium",   domains: ["Privacy", "Data"], effectiveAt: "2026-07-01", daysUntil: 76 },
-  { id: "RC-006", reg: "HIPAA Safe Harbor 2.0",changeType: "clarification",   impact: "medium",   domains: ["Healthcare"],    effectiveAt: "2026-07-15", daysUntil: 90 },
-  { id: "RC-007", reg: "PCI DSS 4.0.1",        changeType: "deadline",        impact: "high",     domains: ["Payments"],      effectiveAt: "2026-08-01", daysUntil: 107 },
-  { id: "RC-008", reg: "ISO 27001:2022",       changeType: "deadline",        impact: "medium",   domains: ["ISMS"],          effectiveAt: "2026-09-01", daysUntil: 138 },
-  { id: "RC-009", reg: "Cyber Resilience Act", changeType: "new_requirement", impact: "high",     domains: ["Products", "IoT"], effectiveAt: "2026-10-01", daysUntil: 168 },
-  { id: "RC-010", reg: "GDPR Fines Revision",  changeType: "amendment",       impact: "critical", domains: ["Privacy"],       effectiveAt: "2026-12-01", daysUntil: 229 },
-];
 
-const OBLIGATIONS = [
-  { title: "Incident notification within 24h",    reg: "NIS2",       type: "operational",     deadline: "2026-05-15", status: "on_track",  owner: "SOC Team",   daysLeft: 29 },
-  { title: "AI system risk assessment",            reg: "EU AI Act",  type: "technical",       deadline: "2026-05-01", status: "at_risk",   owner: "AI Team",    daysLeft: 15 },
-  { title: "Material breach 4-day disclosure",     reg: "SEC Cyber",  type: "administrative",  deadline: "2026-06-01", status: "on_track",  owner: "Legal",      daysLeft: 46 },
-  { title: "ICT third-party risk registers",       reg: "DORA",       type: "operational",     deadline: "2026-06-15", status: "on_track",  owner: "GRC",        daysLeft: 60 },
-  { title: "Consumer data deletion workflow",      reg: "CCPA AB-2",  type: "technical",       deadline: "2026-07-01", status: "planned",   owner: "Eng",        daysLeft: 76 },
-  { title: "PHI de-identification audit",          reg: "HIPAA",      type: "administrative",  deadline: "2026-07-15", status: "planned",   owner: "Compliance", daysLeft: 90 },
-  { title: "SAQ-D completion + ASV scan",          reg: "PCI 4.0.1",  type: "technical",       deadline: "2026-08-01", status: "on_track",  owner: "PCI Team",   daysLeft: 107 },
-  { title: "Annual ISMS internal audit",           reg: "ISO 27001",  type: "operational",     deadline: "2026-09-01", status: "planned",   owner: "GRC",        daysLeft: 138 },
-  { title: "Vulnerability disclosure policy",      reg: "CRA",        type: "administrative",  deadline: "2026-10-01", status: "planned",   owner: "Product",    daysLeft: 168 },
-  { title: "Records of processing activities",     reg: "GDPR",       type: "administrative",  deadline: "2026-04-20", status: "overdue",   owner: "DPO",        daysLeft: -4 },
-  { title: "Penetration testing report",           reg: "SOC2",       type: "technical",       deadline: "2026-04-18", status: "overdue",   owner: "SecEng",     daysLeft: -2 },
-  { title: "Board-level cyber risk briefing",      reg: "SEC Cyber",  type: "administrative",  deadline: "2026-04-30", status: "at_risk",   owner: "CISO",       daysLeft: 14 },
-];
 
-const ASSESSMENTS = [
-  { reg: "SOC2 Type II",     compliancePct: 91, gaps: 4,  critGaps: 0, assessedAt: "2026-03-15", assessor: "Deloitte" },
-  { reg: "ISO 27001",        compliancePct: 85, gaps: 12, critGaps: 2, assessedAt: "2026-02-20", assessor: "BSI" },
-  { reg: "PCI DSS 4.0",      compliancePct: 78, gaps: 18, critGaps: 3, assessedAt: "2026-02-10", assessor: "Verizon QSA" },
-  { reg: "HIPAA Security",   compliancePct: 82, gaps: 9,  critGaps: 1, assessedAt: "2026-01-28", assessor: "Internal" },
-  { reg: "NIST CSF 2.0",     compliancePct: 74, gaps: 22, critGaps: 4, assessedAt: "2026-01-15", assessor: "Internal" },
-  { reg: "GDPR",             compliancePct: 88, gaps: 7,  critGaps: 1, assessedAt: "2025-12-10", assessor: "TrustArc" },
-  { reg: "CCPA",             compliancePct: 93, gaps: 3,  critGaps: 0, assessedAt: "2025-11-20", assessor: "Internal" },
-  { reg: "NIS2",             compliancePct: 61, gaps: 31, critGaps: 6, assessedAt: "2025-11-05", assessor: "ENISA Partner" },
-];
 
-const CATALOG = [
-  { name: "GDPR",              jurisdiction: "EU",   category: "privacy",      status: "active",   version: "2018/679" },
-  { name: "NIS2 Directive",    jurisdiction: "EU",   category: "cybersecurity",status: "active",   version: "2022/2555" },
-  { name: "EU AI Act",         jurisdiction: "EU",   category: "AI/ML",        status: "active",   version: "2024/1689" },
-  { name: "DORA",              jurisdiction: "EU",   category: "financial",    status: "active",   version: "2022/2554" },
-  { name: "CCPA",              jurisdiction: "US",   category: "privacy",      status: "active",   version: "AB-375" },
-  { name: "HIPAA",             jurisdiction: "US",   category: "healthcare",   status: "active",   version: "45 CFR" },
-  { name: "SEC Cyber Rule",    jurisdiction: "US",   category: "financial",    status: "active",   version: "33-11216" },
-  { name: "UK Cyber Top 10",   jurisdiction: "UK",   category: "cybersecurity",status: "active",   version: "2024" },
-  { name: "MAS TRM",           jurisdiction: "APAC", category: "financial",    status: "active",   version: "2021" },
-  { name: "Cyber Resilience Act",jurisdiction:"EU",  category: "cybersecurity",status: "pending",  version: "Draft" },
-];
 
 // ── Helpers ─────────────────────────────────────────────────────
 

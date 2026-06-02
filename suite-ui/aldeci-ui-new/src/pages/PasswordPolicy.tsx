@@ -42,81 +42,9 @@ import { cn } from "@/lib/utils";
 
 // ── Mock data ──────────────────────────────────────────────────
 
-const POLICIES = [
-  {
-    name: "Corporate Standard Policy",
-    requirements: [
-      { label: "Minimum 12 characters", met: true },
-      { label: "At least 1 uppercase letter", met: true },
-      { label: "At least 1 lowercase letter", met: true },
-      { label: "At least 1 number", met: true },
-      { label: "At least 1 special symbol", met: true },
-      { label: "No dictionary words", met: true },
-      { label: "No previous 10 passwords", met: false },
-    ],
-    compliance: 91,
-    users: 2104,
-  },
-  {
-    name: "Privileged Account Policy",
-    requirements: [
-      { label: "Minimum 16 characters", met: true },
-      { label: "At least 2 uppercase letters", met: true },
-      { label: "At least 2 special symbols", met: true },
-      { label: "No dictionary words", met: true },
-      { label: "No previous 24 passwords", met: true },
-      { label: "Rotation every 30 days", met: true },
-      { label: "MFA required alongside", met: false },
-    ],
-    compliance: 88,
-    users: 142,
-  },
-  {
-    name: "Guest / Contractor Policy",
-    requirements: [
-      { label: "Minimum 8 characters", met: true },
-      { label: "At least 1 uppercase letter", met: true },
-      { label: "At least 1 number", met: true },
-      { label: "At least 1 special symbol", met: false },
-      { label: "No previous 5 passwords", met: true },
-      { label: "Rotation every 90 days", met: false },
-    ],
-    compliance: 74,
-    users: 1601,
-  },
-];
 
-const VIOLATIONS = [
-  { userId: "usr_a7k3***", policy: "Corporate Standard", type: "Weak Password",         severity: "High",   detected: "2026-04-16 09:02", status: "Open" },
-  { userId: "usr_b2m9***", policy: "Privileged Account", type: "Expired Password",       severity: "High",   detected: "2026-04-16 08:45", status: "Open" },
-  { userId: "usr_c5q1***", policy: "Corporate Standard", type: "Password Reuse",          severity: "Medium", detected: "2026-04-16 07:30", status: "Open" },
-  { userId: "usr_d8r4***", policy: "Guest/Contractor",   type: "No Special Symbol",       severity: "Medium", detected: "2026-04-15 22:14", status: "Open" },
-  { userId: "usr_e1s7***", policy: "Corporate Standard", type: "Dictionary Word Found",   severity: "High",   detected: "2026-04-15 20:55", status: "Open" },
-  { userId: "usr_f9t2***", policy: "Privileged Account", type: "Rotation Overdue 15d",    severity: "Critical", detected: "2026-04-15 18:00", status: "Open" },
-  { userId: "usr_g3u8***", policy: "Corporate Standard", type: "Minimum Length Fail",     severity: "Medium", detected: "2026-04-15 15:42", status: "Remediated" },
-  { userId: "usr_h6v5***", policy: "Guest/Contractor",   type: "No Rotation in 95d",      severity: "Medium", detected: "2026-04-15 13:20", status: "Remediated" },
-  { userId: "usr_i4w1***", policy: "Privileged Account", type: "Rotation Overdue 7d",     severity: "High",   detected: "2026-04-15 11:05", status: "Open" },
-  { userId: "usr_j7x3***", policy: "Corporate Standard", type: "Common Pattern (123…)",   severity: "Medium", detected: "2026-04-14 23:50", status: "Remediated" },
-  { userId: "usr_k2y9***", policy: "Corporate Standard", type: "No Uppercase Letter",     severity: "Low",    detected: "2026-04-14 19:30", status: "Remediated" },
-  { userId: "usr_l5z6***", policy: "Guest/Contractor",   type: "Weak Password",           severity: "High",   detected: "2026-04-14 16:15", status: "Remediated" },
-];
 
-const AUDITS = [
-  { date: "2026-04-16 00:00", checked: 3847, violations: 234, compliance: "93.9%" },
-  { date: "2026-04-09 00:00", checked: 3812, violations: 258, compliance: "93.2%" },
-  { date: "2026-04-02 00:00", checked: 3790, violations: 271, compliance: "92.9%" },
-  { date: "2026-03-26 00:00", checked: 3765, violations: 289, compliance: "92.3%" },
-  { date: "2026-03-19 00:00", checked: 3741, violations: 312, compliance: "91.7%" },
-  { date: "2026-03-12 00:00", checked: 3718, violations: 334, compliance: "91.0%" },
-];
 
-const STRENGTH_DIST = [
-  { label: "Very Weak", count: 47,  color: "bg-red-600",    pct: 1.2 },
-  { label: "Weak",      count: 156, color: "bg-red-400",    pct: 4.1 },
-  { label: "Fair",      count: 412, color: "bg-amber-400",  pct: 10.7 },
-  { label: "Strong",    count: 2198,color: "bg-green-500",  pct: 57.1 },
-  { label: "Very Strong",count: 1034,color: "bg-green-400", pct: 26.9 },
-];
 
 // ── Helpers ────────────────────────────────────────────────────
 

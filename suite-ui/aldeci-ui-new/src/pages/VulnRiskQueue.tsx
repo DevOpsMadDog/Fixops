@@ -69,50 +69,9 @@ import { useAuth } from "@/lib/auth";
 
 // ── Mock data ──────────────────────────────────────────────────
 
-const QUEUE = [
-  { cve: "CVE-2025-29927", asset: "api-gateway-prod",   cvss: 9.8, epss: 0.94, kev: true,  composite: 9.7, team: "AppSec",   status: "open",        sla: "2026-04-16" },
-  { cve: "CVE-2024-38856", asset: "auth-service-01",    cvss: 9.6, epss: 0.91, kev: true,  composite: 9.5, team: "AppSec",   status: "in-progress", sla: "2026-04-16" },
-  { cve: "CVE-2025-21298", asset: "k8s-master-node",    cvss: 9.4, epss: 0.88, kev: false, composite: 9.1, team: "InfraSec", status: "open",        sla: "2026-04-17" },
-  { cve: "CVE-2024-49113", asset: "ldap-server-01",     cvss: 9.0, epss: 0.82, kev: true,  composite: 9.0, team: "IAM Team", status: "open",        sla: "2026-04-17" },
-  { cve: "CVE-2025-24813", asset: "web-proxy-prod",     cvss: 8.8, epss: 0.79, kev: false, composite: 8.6, team: "NetSec",   status: "in-progress", sla: "2026-04-18" },
-  { cve: "CVE-2024-37085", asset: "vsphere-host-02",    cvss: 8.7, epss: 0.76, kev: true,  composite: 8.7, team: "CloudOps", status: "open",        sla: "2026-04-18" },
-  { cve: "CVE-2025-0282",  asset: "vpn-gateway-ext",    cvss: 8.5, epss: 0.71, kev: true,  composite: 8.5, team: "NetSec",   status: "open",        sla: "2026-04-19" },
-  { cve: "CVE-2024-50603", asset: "jenkins-build-01",   cvss: 8.3, epss: 0.68, kev: false, composite: 8.1, team: "DevSec",   status: "accepted",    sla: "2026-04-20" },
-  { cve: "CVE-2025-24200", asset: "mobile-api-gw",      cvss: 8.1, epss: 0.62, kev: false, composite: 7.9, team: "AppSec",   status: "in-progress", sla: "2026-04-20" },
-  { cve: "CVE-2024-41713", asset: "voip-pbx-01",        cvss: 7.9, epss: 0.58, kev: true,  composite: 7.9, team: "NetSec",   status: "open",        sla: "2026-04-21" },
-  { cve: "CVE-2025-21333", asset: "hyperv-host-03",     cvss: 7.8, epss: 0.54, kev: false, composite: 7.6, team: "InfraSec", status: "open",        sla: "2026-04-22" },
-  { cve: "CVE-2024-47076", asset: "print-server-01",    cvss: 7.5, epss: 0.49, kev: false, composite: 7.2, team: "InfraSec", status: "resolved",    sla: "2026-04-23" },
-  { cve: "CVE-2025-26633", asset: "dc-windows-01",      cvss: 7.3, epss: 0.44, kev: false, composite: 7.0, team: "IAM Team", status: "in-progress", sla: "2026-04-24" },
-  { cve: "CVE-2024-20767", asset: "coldfusion-app",     cvss: 7.1, epss: 0.41, kev: true,  composite: 7.1, team: "AppSec",   status: "open",        sla: "2026-04-25" },
-  { cve: "CVE-2025-23006", asset: "sonicwall-fw-01",    cvss: 7.0, epss: 0.38, kev: true,  composite: 7.0, team: "NetSec",   status: "open",        sla: "2026-04-26" },
-];
 
-const DISTRIBUTION = [
-  { label: "Critical", count: 47,  color: "bg-red-500",    text: "text-red-400",    max: 47 },
-  { label: "High",     count: 124, color: "bg-amber-500",  text: "text-amber-400",  max: 124 },
-  { label: "Medium",   count: 213, color: "bg-yellow-500", text: "text-yellow-400", max: 213 },
-  { label: "Low",      count: 89,  color: "bg-blue-500",   text: "text-blue-400",   max: 213 },
-  { label: "Info",     count: 31,  color: "bg-muted",      text: "text-muted-foreground", max: 213 },
-];
 
-const TEAMS = [
-  { name: "AppSec",   assigned: 58, overdue: 9,  avgResolution: "4.1d" },
-  { name: "CloudOps", assigned: 34, overdue: 4,  avgResolution: "3.2d" },
-  { name: "InfraSec", assigned: 41, overdue: 6,  avgResolution: "5.0d" },
-  { name: "DevSec",   assigned: 22, overdue: 2,  avgResolution: "2.8d" },
-  { name: "NetSec",   assigned: 37, overdue: 5,  avgResolution: "4.5d" },
-];
 
-const RISK_ACCEPTANCE = [
-  { id: "RA-041", cve: "CVE-2024-50603", asset: "jenkins-build-01", risk: "High",   reason: "Isolated network segment, no internet exposure", requestor: "DevSec" },
-  { id: "RA-042", cve: "CVE-2025-21333", asset: "hyperv-host-03",   risk: "High",   reason: "Compensating control: IDS/IPS active on segment",  requestor: "InfraSec" },
-  { id: "RA-043", cve: "CVE-2024-12693", asset: "legacy-erp-01",    risk: "Medium", reason: "Vendor EOL — migration planned Q3 2026",           requestor: "CloudOps" },
-  { id: "RA-044", cve: "CVE-2025-1974",  asset: "nginx-ingress",    risk: "Medium", reason: "WAF rule active, patch in next maintenance window", requestor: "NetSec" },
-  { id: "RA-045", cve: "CVE-2024-47076", asset: "print-server-01",  risk: "Medium", reason: "Air-gapped VLAN, no remote access",                 requestor: "InfraSec" },
-  { id: "RA-046", cve: "CVE-2025-24085", asset: "ios-mdm-server",   risk: "Low",    reason: "Not exploitable in current config",                 requestor: "IAM Team" },
-  { id: "RA-047", cve: "CVE-2024-38063", asset: "ipv6-stack",       risk: "Low",    reason: "IPv6 disabled on all affected hosts",               requestor: "NetSec" },
-  { id: "RA-048", cve: "CVE-2025-0411",  asset: "7-zip-workstations",risk: "Low",   reason: "EDR detects and blocks exploitation attempt",      requestor: "DevSec" },
-];
 
 // ── Helpers ────────────────────────────────────────────────────
 

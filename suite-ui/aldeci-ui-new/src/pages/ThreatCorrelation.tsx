@@ -41,51 +41,8 @@ async function apiFetch(path: string) {
 
 // ── Mock data ──────────────────────────────────────────────────
 
-const RULES = [
-  { name: "Brute Force Login",        events: ["auth_failure", "account_lockout"],           window: "5 min",  threshold: 10, severity: "High",     enabled: true,  hits: 14 },
-  { name: "Lateral Movement",         events: ["rdp_login", "smb_access", "wmi_exec"],       window: "15 min", threshold: 3,  severity: "Critical", enabled: true,  hits: 3  },
-  { name: "Data Exfiltration",        events: ["large_upload", "dns_tunnel"],                window: "10 min", threshold: 2,  severity: "Critical", enabled: true,  hits: 1  },
-  { name: "Privilege Escalation",     events: ["sudo_usage", "token_impersonation"],         window: "2 min",  threshold: 2,  severity: "High",     enabled: true,  hits: 5  },
-  { name: "C2 Beacon Pattern",        events: ["periodic_dns", "periodic_http"],             window: "1 hour", threshold: 5,  severity: "Critical", enabled: true,  hits: 2  },
-  { name: "Credential Dumping",       events: ["lsass_access", "reg_export"],               window: "1 min",  threshold: 1,  severity: "Critical", enabled: false, hits: 0  },
-  { name: "Recon Activity",           events: ["port_scan", "dns_enum", "ldap_query"],      window: "30 min", threshold: 20, severity: "Medium",   enabled: true,  hits: 8  },
-  { name: "Impossible Travel",        events: ["geo_login_a", "geo_login_b"],               window: "1 hour", threshold: 2,  severity: "High",     enabled: true,  hits: 2  },
-  { name: "Insider Threat Pattern",   events: ["off_hours_access", "bulk_download"],        window: "4 hours",threshold: 2,  severity: "Medium",   enabled: true,  hits: 4  },
-  { name: "Supply Chain Indicator",   events: ["unsigned_binary", "unusual_parent"],        window: "5 min",  threshold: 1,  severity: "High",     enabled: true,  hits: 1  },
-];
 
-const ALERTS = [
-  { id: "COR-2041", rule: "Brute Force Login",       matched: 23, severity: "High",     status: "Investigating", created: "2m ago"   },
-  { id: "COR-2040", rule: "Lateral Movement",         matched: 5,  severity: "Critical", status: "Open",          created: "8m ago"   },
-  { id: "COR-2039", rule: "Recon Activity",           matched: 31, severity: "Medium",   status: "Closed",        created: "14m ago"  },
-  { id: "COR-2038", rule: "Insider Threat Pattern",   matched: 4,  severity: "Medium",   status: "Investigating", created: "22m ago"  },
-  { id: "COR-2037", rule: "Privilege Escalation",     matched: 3,  severity: "High",     status: "Open",          created: "35m ago"  },
-  { id: "COR-2036", rule: "Impossible Travel",        matched: 2,  severity: "High",     status: "Closed",        created: "41m ago"  },
-  { id: "COR-2035", rule: "C2 Beacon Pattern",        matched: 7,  severity: "Critical", status: "Investigating", created: "58m ago"  },
-  { id: "COR-2034", rule: "Data Exfiltration",        matched: 2,  severity: "Critical", status: "Open",          created: "1h ago"   },
-  { id: "COR-2033", rule: "Supply Chain Indicator",   matched: 1,  severity: "High",     status: "Closed",        created: "1h 20m ago" },
-  { id: "COR-2032", rule: "Brute Force Login",        matched: 18, severity: "High",     status: "Closed",        created: "2h ago"   },
-  { id: "COR-2031", rule: "Recon Activity",           matched: 26, severity: "Medium",   status: "Closed",        created: "2h 30m ago" },
-  { id: "COR-2030", rule: "Insider Threat Pattern",   matched: 3,  severity: "Medium",   status: "Closed",        created: "3h ago"   },
-];
 
-const EVENT_STREAM = [
-  { type: "auth_failure",    source_ip: "192.168.4.82",   user_id: "jsmith",   asset: "srv-auth-01",  ts: "5s ago",  severity: "high"   },
-  { type: "port_scan",       source_ip: "10.0.2.45",      user_id: "—",        asset: "net-edge",     ts: "12s ago", severity: "medium" },
-  { type: "rdp_login",       source_ip: "172.16.8.22",    user_id: "bwilson",  asset: "ws-finance-3", ts: "28s ago", severity: "high"   },
-  { type: "large_upload",    source_ip: "10.1.5.14",      user_id: "mlee",     asset: "s3-bucket-01", ts: "45s ago", severity: "critical"},
-  { type: "sudo_usage",      source_ip: "10.0.3.99",      user_id: "devops1",  asset: "k8s-node-02",  ts: "1m ago",  severity: "medium" },
-  { type: "dns_query",       source_ip: "192.168.2.11",   user_id: "—",        asset: "workstation",  ts: "1m ago",  severity: "low"    },
-  { type: "lsass_access",    source_ip: "10.0.1.7",       user_id: "SYSTEM",   asset: "dc-01",        ts: "2m ago",  severity: "critical"},
-  { type: "bulk_download",   source_ip: "10.2.4.55",      user_id: "agarcia",  asset: "nas-01",       ts: "2m ago",  severity: "high"   },
-  { type: "geo_login",       source_ip: "185.234.12.66",  user_id: "cthomas",  asset: "vpn-gw",       ts: "3m ago",  severity: "high"   },
-  { type: "wmi_exec",        source_ip: "172.16.3.44",    user_id: "ADMIN",    asset: "srv-db-02",    ts: "3m ago",  severity: "critical"},
-  { type: "reg_export",      source_ip: "10.0.1.7",       user_id: "SYSTEM",   asset: "dc-01",        ts: "4m ago",  severity: "high"   },
-  { type: "smb_access",      source_ip: "172.16.8.22",    user_id: "bwilson",  asset: "srv-files",    ts: "4m ago",  severity: "medium" },
-  { type: "periodic_dns",    source_ip: "10.3.2.88",      user_id: "—",        asset: "workstation",  ts: "5m ago",  severity: "medium" },
-  { type: "off_hrs_access",  source_ip: "10.0.4.21",      user_id: "rjones",   asset: "crm-app",      ts: "6m ago",  severity: "medium" },
-  { type: "unsigned_binary", source_ip: "10.1.1.9",       user_id: "SYSTEM",   asset: "srv-build",    ts: "7m ago",  severity: "high"   },
-];
 
 // TIMELINE is derived from live data in the component; no static array here.
 

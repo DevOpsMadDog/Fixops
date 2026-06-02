@@ -40,90 +40,9 @@ async function apiFetch(path: string) {
 
 // ── Mock data ──────────────────────────────────────────────────
 
-const PROFILES = [
-  { name: "CIS Ubuntu 22.04 L2",     standard: "CIS",          target: "Linux",      version: "2.0.0", last_assessed: "2026-04-15", score: 72 },
-  { name: "CIS AWS Foundations",      standard: "CIS",          target: "Cloud",      version: "3.0.0", last_assessed: "2026-04-14", score: 81 },
-  { name: "DISA STIG RHEL 9",        standard: "DISA STIG",    target: "Linux",      version: "1.1",   last_assessed: "2026-04-13", score: 55 },
-  { name: "DISA STIG Apache 2.4",    standard: "DISA STIG",    target: "Web Server", version: "2.0",   last_assessed: "2026-04-10", score: 63 },
-  { name: "NIST 800-53 Rev 5",       standard: "NIST 800-53",  target: "Full Stack", version: "Rev 5", last_assessed: "2026-04-08", score: 68 },
-  { name: "PCI DSS 4.0 Network",     standard: "PCI DSS",      target: "Network",    version: "4.0",   last_assessed: "2026-04-12", score: 74 },
-  { name: "CIS Kubernetes 1.29",     standard: "CIS",          target: "Container",  version: "1.9.0", last_assessed: "2026-04-15", score: 59 },
-  { name: "CIS Docker CE",           standard: "CIS",          target: "Container",  version: "1.7.0", last_assessed: "2026-04-11", score: 83 },
-];
 
-const CHECK_RESULTS = [
-  { ref: "CIS-1.1.1",   title: "Ensure mounting of cramfs disabled",     category: "Filesystem",   status: "pass",    severity: "Low",     actual: "cramfs disabled", expected: "disabled"  },
-  { ref: "CIS-1.3.2",   title: "Ensure filesystem integrity is checked",  category: "Filesystem",   status: "fail",    severity: "Medium",  actual: "aide not found",  expected: "aide installed" },
-  { ref: "CIS-2.1.1",   title: "Ensure xinetd not installed",            category: "Services",     status: "pass",    severity: "Medium",  actual: "not installed",   expected: "not installed" },
-  { ref: "CIS-3.1.2",   title: "Ensure packet redirect disabled",        category: "Network",      status: "fail",    severity: "Medium",  actual: "1",               expected: "0" },
-  { ref: "CIS-3.3.1",   title: "Ensure IPv6 router ads not accepted",    category: "Network",      status: "pass",    severity: "Medium",  actual: "0",               expected: "0" },
-  { ref: "CIS-4.1.1.1", title: "Ensure auditd installed",               category: "Logging",      status: "pass",    severity: "High",    actual: "installed",       expected: "installed" },
-  { ref: "CIS-4.1.6",   title: "Ensure system admin scope collected",    category: "Logging",      status: "warn",    severity: "Medium",  actual: "partial",         expected: "full" },
-  { ref: "CIS-5.2.4",   title: "Ensure SSH LogLevel is appropriate",    category: "SSH",          status: "pass",    severity: "Medium",  actual: "VERBOSE",         expected: "INFO or VERBOSE" },
-  { ref: "CIS-5.2.11",  title: "Ensure only strong MACs used",          category: "SSH",          status: "fail",    severity: "High",    actual: "hmac-sha1 found", expected: "strong only" },
-  { ref: "CIS-5.3.1",   title: "Ensure sudo is installed",              category: "Access",       status: "pass",    severity: "High",    actual: "installed",       expected: "installed" },
-  { ref: "CIS-6.1.2",   title: "Ensure /etc/passwd permissions 644",    category: "Permissions",  status: "pass",    severity: "Medium",  actual: "644",             expected: "644" },
-  { ref: "CIS-6.2.1",   title: "Ensure accounts in /etc/passwd valid",  category: "Accounts",     status: "fail",    severity: "High",    actual: "2 orphan found",  expected: "none" },
-];
 
-const FAILED_CHECKS = [
-  {
-    ref: "CIS-1.3.2",
-    title: "Ensure filesystem integrity checking is configured",
-    severity: "Medium",
-    remediation: "Install AIDE: `apt install aide aide-common`. Initialize: `aideinit`. Configure cron: add `0 5 * * * /usr/bin/aide --config /etc/aide/aide.conf --check` to root crontab.",
-  },
-  {
-    ref: "CIS-3.1.2",
-    title: "Ensure packet redirect sending is disabled",
-    severity: "Medium",
-    remediation: "Set `net.ipv4.conf.all.send_redirects = 0` and `net.ipv4.conf.default.send_redirects = 0` in `/etc/sysctl.d/60-netipv4_sysctl.conf`. Run `sysctl -w` to apply.",
-  },
-  {
-    ref: "CIS-5.2.11",
-    title: "Ensure only approved MAC algorithms are used",
-    severity: "High",
-    remediation: "Edit `/etc/ssh/sshd_config`. Set `MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256`. Restart sshd.",
-  },
-  {
-    ref: "CIS-6.2.1",
-    title: "Ensure no orphan UIDs/GIDs exist in /etc/passwd",
-    severity: "High",
-    remediation: "Run `awk -F: '{print $3}' /etc/passwd | sort -u` and cross-check against home directories. Remove stale accounts with `userdel -r <username>` or assign to valid groups.",
-  },
-  {
-    ref: "STIG-V-230221",
-    title: "RHEL 9 must use a DoD-approved virus protection",
-    severity: "High",
-    remediation: "Install ClamAV or approved AV solution. Enable `clamav-freshclam` and `clamav-daemon` services. Configure scheduled scans via systemd timer.",
-  },
-  {
-    ref: "STIG-V-230232",
-    title: "RHEL 9 must restrict access to /var/log/audit",
-    severity: "Medium",
-    remediation: "Run `chmod 0750 /var/log/audit` and `chown root:root /var/log/audit`. Verify with `ls -la /var/log/ | grep audit`.",
-  },
-  {
-    ref: "CIS-AWS-2.1.2",
-    title: "Ensure S3 bucket access logging is enabled",
-    severity: "Medium",
-    remediation: "Enable access logging on all S3 buckets via AWS CLI: `aws s3api put-bucket-logging --bucket <name> --bucket-logging-status ...` or use Terraform `aws_s3_bucket_logging` resource.",
-  },
-  {
-    ref: "CIS-K8S-4.2.6",
-    title: "Ensure that the --protect-kernel-defaults argument is set to true",
-    severity: "High",
-    remediation: "In the kubelet config file (`/var/lib/kubelet/config.yaml`), set `protectKernelDefaults: true`. Restart kubelet: `systemctl restart kubelet`.",
-  },
-];
 
-const SCORE_BY_STANDARD = [
-  { standard: "CIS",         score: 73.8, count: 4 },
-  { standard: "DISA STIG",   score: 59.0, count: 2 },
-  { standard: "NIST 800-53", score: 68.0, count: 1 },
-  { standard: "PCI DSS",     score: 74.0, count: 1 },
-  { standard: "Custom",      score: 61.0, count: 0 },
-];
 
 // ── Helpers ────────────────────────────────────────────────────
 

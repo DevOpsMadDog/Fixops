@@ -41,56 +41,9 @@ import { cn } from "@/lib/utils";
 
 // ── Mock data ───────────────────────────────────────────────────
 
-const FRAMEWORKS = [
-  { name: "SOC 2",      total: 64,  passing: 58, failing: 4,  passRate: 91, status: "pass" },
-  { name: "ISO 27001",  total: 93,  passing: 79, failing: 8,  passRate: 85, status: "warn" },
-  { name: "NIST CSF",   total: 108, passing: 88, failing: 12, passRate: 81, status: "warn" },
-  { name: "PCI DSS",    total: 78,  passing: 72, failing: 4,  passRate: 92, status: "pass" },
-  { name: "HIPAA",      total: 54,  passing: 43, failing: 7,  passRate: 80, status: "warn" },
-  { name: "CIS v8",     total: 153, passing: 138, failing: 9, passRate: 90, status: "pass" },
-];
 
-const CONTROLS = [
-  { ref: "CC6.1",   name: "Logical and physical access controls",    fw: "SOC 2",    type: "automated",       status: "pass", lastRun: "2026-04-16 08:00", nextRun: "2026-04-17 08:00" },
-  { ref: "CC7.2",   name: "System monitoring and anomaly detection",  fw: "SOC 2",    type: "automated",       status: "pass", lastRun: "2026-04-16 06:00", nextRun: "2026-04-17 06:00" },
-  { ref: "A.9.2.3", name: "Management of privileged access rights",   fw: "ISO 27001",type: "automated",       status: "fail", lastRun: "2026-04-16 04:00", nextRun: "2026-04-17 04:00" },
-  { ref: "PR.AC-1", name: "Identity and credential management",       fw: "NIST CSF", type: "automated",       status: "pass", lastRun: "2026-04-15 22:00", nextRun: "2026-04-16 22:00" },
-  { ref: "Req 8.3", name: "Authenticate all user access",             fw: "PCI DSS",  type: "automated",       status: "pass", lastRun: "2026-04-15 20:00", nextRun: "2026-04-16 20:00" },
-  { ref: "164.312", name: "PHI access audit controls",                fw: "HIPAA",    type: "automated",       status: "warn", lastRun: "2026-04-15 18:00", nextRun: "2026-04-16 18:00" },
-  { ref: "CIS 4.1", name: "Establish and maintain secure config",     fw: "CIS v8",   type: "automated",       status: "pass", lastRun: "2026-04-15 16:00", nextRun: "2026-04-16 16:00" },
-  { ref: "A.12.6",  name: "Management of technical vulnerabilities",  fw: "ISO 27001",type: "automated",       status: "fail", lastRun: "2026-04-15 14:00", nextRun: "2026-04-16 14:00" },
-  { ref: "CC9.2",   name: "Vendor and business partner risk mgmt",    fw: "SOC 2",    type: "manual",          status: "pass", lastRun: "2026-04-14 10:00", nextRun: "2026-05-14 10:00" },
-  { ref: "DE.CM-3", name: "Personnel activity monitoring",            fw: "NIST CSF", type: "automated",       status: "pass", lastRun: "2026-04-16 09:00", nextRun: "2026-04-17 09:00" },
-  { ref: "Req 10.3", name: "Protect audit logs from modification",      fw: "PCI DSS",  type: "automated",       status: "pass", lastRun: "2026-04-16 07:00", nextRun: "2026-04-17 07:00" },
-  { ref: "164.308", name: "Security awareness and training",          fw: "HIPAA",    type: "self_assessment", status: "pass", lastRun: "2026-04-01 09:00", nextRun: "2026-07-01 09:00" },
-  { ref: "CIS 12.1", name: "Ensure network infrastructure up-to-date", fw: "CIS v8",   type: "automated",       status: "fail", lastRun: "2026-04-16 05:00", nextRun: "2026-04-17 05:00" },
-  { ref: "A.18.2",  name: "Compliance with security policies",        fw: "ISO 27001",type: "manual",          status: "none", lastRun: "2026-03-15 10:00", nextRun: "2026-06-15 10:00" },
-  { ref: "PR.DS-5", name: "Protections against data leaks",           fw: "NIST CSF", type: "automated",       status: "warn", lastRun: "2026-04-16 03:00", nextRun: "2026-04-17 03:00" },
-];
 
-const FAILURES = [
-  { type: "regression",          severity: "critical", control: "A.9.2.3 — Privileged access rights",       detected: "2026-04-16 04:12" },
-  { type: "gap",                 severity: "high",     control: "A.12.6 — Technical vuln management",       detected: "2026-04-15 14:33" },
-  { type: "gap",                 severity: "high",     control: "CIS 12.1 — Network infra patching",        detected: "2026-04-16 05:07" },
-  { type: "exception",           severity: "medium",   control: "164.312 — PHI access audit controls",      detected: "2026-04-15 18:44" },
-  { type: "design_deficiency",   severity: "high",     control: "PR.DS-5 — Data leak protections",          detected: "2026-04-16 03:55" },
-  { type: "regression",          severity: "medium",   control: "CC7.2 — System monitoring (partial)",      detected: "2026-04-14 22:11" },
-  { type: "gap",                 severity: "critical",  control: "Req 8.6 — User account management",        detected: "2026-04-13 09:30" },
-  { type: "exception",           severity: "low",      control: "CC9.2 — Vendor risk assessment gap",       detected: "2026-04-12 16:00" },
-  { type: "design_deficiency",   severity: "medium",   control: "A.18.2 — Policy compliance self-assess",   detected: "2026-04-11 11:20" },
-  { type: "regression",          severity: "high",     control: "DE.CM-7 — Unauthorized device monitoring", detected: "2026-04-10 08:45" },
-];
 
-const TEST_HISTORY = [
-  { runId: "RUN-2026-0416-AM", time: "2026-04-16 08:00", passed: 71, failed: 4,  warned: 3, total: 78 },
-  { runId: "RUN-2026-0415-PM", time: "2026-04-15 20:00", passed: 70, failed: 5,  warned: 3, total: 78 },
-  { runId: "RUN-2026-0415-AM", time: "2026-04-15 08:00", passed: 69, failed: 6,  warned: 3, total: 78 },
-  { runId: "RUN-2026-0414-PM", time: "2026-04-14 20:00", passed: 68, failed: 7,  warned: 3, total: 78 },
-  { runId: "RUN-2026-0414-AM", time: "2026-04-14 08:00", passed: 67, failed: 8,  warned: 3, total: 78 },
-  { runId: "RUN-2026-0413-PM", time: "2026-04-13 20:00", passed: 66, failed: 9,  warned: 3, total: 78 },
-  { runId: "RUN-2026-0413-AM", time: "2026-04-13 08:00", passed: 65, failed: 10, warned: 3, total: 78 },
-  { runId: "RUN-2026-0412-PM", time: "2026-04-12 20:00", passed: 64, failed: 11, warned: 3, total: 78 },
-];
 
 // ── Helpers ─────────────────────────────────────────────────────
 

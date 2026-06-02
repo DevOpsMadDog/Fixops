@@ -42,45 +42,9 @@ import { cn } from "@/lib/utils";
 
 // ── Mock data ──────────────────────────────────────────────────
 
-const CAMPAIGNS = [
-  { id: "HNT-001", name: "Lateral Movement via SMB", hunt_type: "lateral_movement", mitre_tactic: "TA0008", analyst: "A. Torres", status: "active",    start: "2026-04-10", findings: 6 },
-  { id: "HNT-002", name: "PowerShell Encoded Cmds",  hunt_type: "behavior_pattern", mitre_tactic: "TA0002", analyst: "J. Park",   status: "active",    start: "2026-04-11", findings: 12 },
-  { id: "HNT-003", name: "C2 Beacon Detection",      hunt_type: "ioc_match",        mitre_tactic: "TA0011", analyst: "M. Chen",   status: "active",    start: "2026-04-12", findings: 3 },
-  { id: "HNT-004", name: "Data Exfil via DNS",        hunt_type: "exfiltration",     mitre_tactic: "TA0010", analyst: "S. Lee",    status: "paused",    start: "2026-04-09", findings: 7 },
-  { id: "HNT-005", name: "Anomalous Auth Patterns",  hunt_type: "anomaly_correlation", mitre_tactic: "TA0006", analyst: "R. Gupta", status: "active", start: "2026-04-13", findings: 9 },
-  { id: "HNT-006", name: "Ransomware Precursors",     hunt_type: "behavior_pattern", mitre_tactic: "TA0040", analyst: "A. Torres", status: "completed", start: "2026-04-08", findings: 4 },
-  { id: "HNT-007", name: "Supply Chain Implants",    hunt_type: "ioc_match",        mitre_tactic: "TA0001", analyst: "J. Park",   status: "active",    start: "2026-04-14", findings: 1 },
-  { id: "HNT-008", name: "Credential Dumping Signs", hunt_type: "behavior_pattern", mitre_tactic: "TA0006", analyst: "M. Chen",   status: "active",    start: "2026-04-15", findings: 1 },
-];
 
-const QUERIES = [
-  { id: "QRY-01", name: "Mimikatz Lsass Access",      query_type: "KQL",   data_source: "Windows Events", last_run: "5m ago",  hits: 3,  max_hits: 20 },
-  { id: "QRY-02", name: "SMB Lateral Spread Pattern", query_type: "SPL",   data_source: "NetFlow",        last_run: "12m ago", hits: 11, max_hits: 20 },
-  { id: "QRY-03", name: "YARA C2 Beacon Signatures",  query_type: "YARA",  data_source: "EDR Telemetry",  last_run: "1h ago",  hits: 7,  max_hits: 20 },
-  { id: "QRY-04", name: "EQL Process Injection",      query_type: "EQL",   data_source: "Sysmon",         last_run: "2h ago",  hits: 2,  max_hits: 20 },
-  { id: "QRY-05", name: "SIGMA Suspicious Reg Keys",  query_type: "SIGMA", data_source: "Windows Events", last_run: "4h ago",  hits: 5,  max_hits: 20 },
-  { id: "QRY-06", name: "DNS Exfil Entropy Check",    query_type: "KQL",   data_source: "DNS Logs",       last_run: "6h ago",  hits: 0,  max_hits: 20 },
-];
 
-const FINDINGS = [
-  { id: "FND-H001", sev: "Critical", title: "Lsass dumped via procdump",        campaign: "HNT-002", iocs: 4,  assets: 2,  escalated: true  },
-  { id: "FND-H002", sev: "Critical", title: "Encoded PS downloader detected",   campaign: "HNT-002", iocs: 6,  assets: 3,  escalated: true  },
-  { id: "FND-H003", sev: "High",     title: "SMB pass-the-hash attempt",        campaign: "HNT-001", iocs: 2,  assets: 5,  escalated: false },
-  { id: "FND-H004", sev: "High",     title: "Cobalt Strike beacon pattern",     campaign: "HNT-003", iocs: 8,  assets: 1,  escalated: true  },
-  { id: "FND-H005", sev: "High",     title: "Anomalous admin logon 03:00 UTC",  campaign: "HNT-005", iocs: 1,  assets: 4,  escalated: false },
-  { id: "FND-H006", sev: "High",     title: "Large DNS TXT record exfil",       campaign: "HNT-004", iocs: 3,  assets: 2,  escalated: false },
-  { id: "FND-H007", sev: "Medium",   title: "Unusual svchost network outbound", campaign: "HNT-005", iocs: 2,  assets: 6,  escalated: false },
-  { id: "FND-H008", sev: "Medium",   title: "Scheduled task persistence",       campaign: "HNT-006", iocs: 1,  assets: 3,  escalated: false },
-  { id: "FND-H009", sev: "Medium",   title: "WMI lateral movement to DC",       campaign: "HNT-001", iocs: 3,  assets: 1,  escalated: false },
-  { id: "FND-H010", sev: "Low",      title: "Dev tool proxy bypass attempt",    campaign: "HNT-007", iocs: 1,  assets: 1,  escalated: false },
-];
 
-const PLAYBOOKS = [
-  { id: "PB-01", hunt_type: "lateral_movement", title: "East-West Lateral Hunt", steps: 8,  techniques: ["T1021.002", "T1550.002", "T1076"] },
-  { id: "PB-02", hunt_type: "exfiltration",     title: "DNS Exfil Detection",    steps: 6,  techniques: ["T1048.003", "T1071.004"] },
-  { id: "PB-03", hunt_type: "behavior_pattern", title: "Living Off the Land",    steps: 10, techniques: ["T1059.001", "T1218", "T1047"] },
-  { id: "PB-04", hunt_type: "ioc_match",        title: "IOC Sweep & Enrich",     steps: 5,  techniques: ["T1566", "T1203", "T1190"] },
-];
 
 // ── Helpers ────────────────────────────────────────────────────
 

@@ -43,51 +43,9 @@ import { cn } from "@/lib/utils";
 
 const OVERALL_SCORE = 82;
 
-const DOMAINS = [
-  { name: "Network",     score: 88, status: "healthy",  last_checked: "2m ago" },
-  { name: "Endpoint",    score: 74, status: "degraded", last_checked: "5m ago" },
-  { name: "Identity",    score: 91, status: "healthy",  last_checked: "2m ago" },
-  { name: "Cloud",       score: 79, status: "degraded", last_checked: "3m ago" },
-  { name: "Data",        score: 85, status: "healthy",  last_checked: "4m ago" },
-  { name: "Application", score: 68, status: "degraded", last_checked: "6m ago" },
-  { name: "Compliance",  score: 78, status: "degraded", last_checked: "8m ago" },
-];
 
-const CHECKS = [
-  { name: "Firewall Rule Integrity",        category: "Network",     status: "pass", score: 94, last_checked: "2m ago",  interval: "5m" },
-  { name: "IDS/IPS Alert Rate",             category: "Network",     status: "pass", score: 87, last_checked: "2m ago",  interval: "5m" },
-  { name: "EDR Agent Coverage",             category: "Endpoint",    status: "warn", score: 74, last_checked: "5m ago",  interval: "10m" },
-  { name: "Patch Compliance Rate",          category: "Endpoint",    status: "warn", score: 71, last_checked: "5m ago",  interval: "1h" },
-  { name: "MFA Enrollment Rate",            category: "Identity",    status: "pass", score: 95, last_checked: "2m ago",  interval: "15m" },
-  { name: "Privileged Account Monitoring",  category: "Identity",    status: "pass", score: 91, last_checked: "2m ago",  interval: "5m" },
-  { name: "Cloud Config Drift",             category: "Cloud",       status: "warn", score: 78, last_checked: "3m ago",  interval: "15m" },
-  { name: "S3 Bucket ACL Hygiene",          category: "Cloud",       status: "fail", score: 52, last_checked: "3m ago",  interval: "1h" },
-  { name: "DLP Policy Enforcement",         category: "Data",        status: "pass", score: 86, last_checked: "4m ago",  interval: "10m" },
-  { name: "Encryption Key Rotation",        category: "Data",        status: "pass", score: 89, last_checked: "4m ago",  interval: "24h" },
-  { name: "SAST Scan Coverage",             category: "Application", status: "warn", score: 69, last_checked: "6m ago",  interval: "1h" },
-  { name: "API Rate Limit Violations",      category: "Application", status: "warn", score: 66, last_checked: "6m ago",  interval: "5m" },
-  { name: "DAST Last Run Age",              category: "Application", status: "fail", score: 44, last_checked: "6m ago",  interval: "24h" },
-  { name: "SOC2 Control Status",            category: "Compliance",  status: "pass", score: 84, last_checked: "8m ago",  interval: "1h" },
-  { name: "PCI DSS Scan Currency",          category: "Compliance",  status: "warn", score: 62, last_checked: "8m ago",  interval: "24h" },
-];
 
-const INCIDENTS = [
-  { id: "INC-081", sev: "High",   title: "S3 bucket ACL check failing — public read detected",   check: "S3 Bucket ACL Hygiene",    detected: "18m ago" },
-  { id: "INC-082", sev: "High",   title: "DAST scan not run in 72h — coverage gap",             check: "DAST Last Run Age",         detected: "2h ago" },
-  { id: "INC-083", sev: "Medium", title: "EDR agent offline on 12 endpoints",                   check: "EDR Agent Coverage",        detected: "34m ago" },
-  { id: "INC-084", sev: "Medium", title: "Cloud config drift detected — 4 resources",           check: "Cloud Config Drift",        detected: "1h ago" },
-  { id: "INC-085", sev: "Medium", title: "API abuse rate threshold breached on /v1/auth",       check: "API Rate Limit Violations", detected: "45m ago" },
-  { id: "INC-086", sev: "Low",    title: "SAST coverage dropped below 70% threshold",           check: "SAST Scan Coverage",        detected: "3h ago" },
-];
 
-const TREND = [
-  { week: "Mar 18", score: 71 },
-  { week: "Mar 25", score: 74 },
-  { week: "Apr 1",  score: 76 },
-  { week: "Apr 8",  score: 79 },
-  { week: "Apr 15", score: 80 },
-  { week: "Apr 16", score: 82 },
-];
 
 const TREND_MAX = 100;
 
