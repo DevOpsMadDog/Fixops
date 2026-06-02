@@ -103,283 +103,6 @@ const minsAgo = (m: number) => new Date(now.getTime() - m * 60_000);
 const hoursAgo = (h: number) => new Date(now.getTime() - h * 3_600_000);
 const daysAgo = (d: number) => new Date(now.getTime() - d * 86_400_000);
 
-const MOCK_ASSETS: Asset[] = [
-  {
-    id: "AST-001",
-    name: "api-gateway-prod.aldeci.io",
-    type: "host",
-    exposure: "internet",
-    riskScore: 94,
-    riskTier: "critical",
-    openPorts: [443, 80, 8443],
-    cveCount: 7,
-    lastSeen: minsAgo(3),
-    owner: "platform-team",
-    tags: ["production", "ingress", "tls-termination"],
-  },
-  {
-    id: "AST-002",
-    name: "s3://aldeci-prod-exports",
-    type: "cloud",
-    exposure: "internet",
-    riskScore: 88,
-    riskTier: "critical",
-    cveCount: 0,
-    lastSeen: minsAgo(12),
-    owner: "data-team",
-    cloudProvider: "AWS",
-    tags: ["s3", "public-acl", "pii"],
-  },
-  {
-    id: "AST-003",
-    name: "aldeci-api:v2.3.1",
-    type: "container",
-    exposure: "internal",
-    riskScore: 91,
-    riskTier: "critical",
-    openPorts: [8000],
-    cveCount: 3,
-    lastSeen: minsAgo(5),
-    owner: "platform-team",
-    tags: ["docker", "xz-backdoor", "supply-chain"],
-  },
-  {
-    id: "AST-004",
-    name: "suite-api/routers/findings_router.py",
-    type: "repo",
-    exposure: "internal",
-    riskScore: 82,
-    riskTier: "high",
-    cveCount: 2,
-    lastSeen: minsAgo(47),
-    owner: "backend-team",
-    tags: ["sqli", "injection", "api"],
-  },
-  {
-    id: "AST-005",
-    name: "postgres-prod-01.internal",
-    type: "database",
-    exposure: "internal",
-    riskScore: 76,
-    riskTier: "high",
-    openPorts: [5432],
-    cveCount: 1,
-    lastSeen: hoursAgo(1),
-    owner: "dba-team",
-    tags: ["postgresql", "sensitive-data"],
-  },
-  {
-    id: "AST-006",
-    name: "k8s-worker-node-07",
-    type: "host",
-    exposure: "internal",
-    riskScore: 71,
-    riskTier: "high",
-    openPorts: [9100, 10250, 6443],
-    cveCount: 4,
-    lastSeen: minsAgo(20),
-    owner: "infra-team",
-    tags: ["kubernetes", "node-exporter", "kubelet"],
-  },
-  {
-    id: "AST-007",
-    name: "auth-service-staging.internal",
-    type: "api",
-    exposure: "internal",
-    riskScore: 58,
-    riskTier: "medium",
-    openPorts: [8001],
-    cveCount: 1,
-    lastSeen: hoursAgo(2),
-    owner: "auth-team",
-    tags: ["oauth2", "jwt", "staging"],
-  },
-  {
-    id: "AST-008",
-    name: "redis-cache-01.internal",
-    type: "database",
-    exposure: "internal",
-    riskScore: 44,
-    riskTier: "medium",
-    openPorts: [6379],
-    cveCount: 0,
-    lastSeen: hoursAgo(3),
-    owner: "platform-team",
-    tags: ["redis", "session-store"],
-  },
-  {
-    id: "AST-009",
-    name: "ecr.aws/aldeci/scanner:latest",
-    type: "container",
-    exposure: "isolated",
-    riskScore: 38,
-    riskTier: "medium",
-    cveCount: 2,
-    lastSeen: daysAgo(1),
-    owner: "security-team",
-    cloudProvider: "AWS",
-    tags: ["ecr", "scanner", "batch"],
-  },
-  {
-    id: "AST-010",
-    name: "cdn-edge-cache.cloudfront.net",
-    type: "cloud",
-    exposure: "internet",
-    riskScore: 22,
-    riskTier: "low",
-    cveCount: 0,
-    lastSeen: minsAgo(8),
-    owner: "platform-team",
-    cloudProvider: "AWS",
-    tags: ["cloudfront", "cdn", "static"],
-  },
-  {
-    id: "AST-011",
-    name: "suite-ui/aldeci-ui-new",
-    type: "repo",
-    exposure: "isolated",
-    riskScore: 18,
-    riskTier: "low",
-    cveCount: 0,
-    lastSeen: minsAgo(2),
-    owner: "frontend-team",
-    tags: ["react", "vite", "spa"],
-  },
-  {
-    id: "AST-012",
-    name: "vault.internal:8200",
-    type: "api",
-    exposure: "isolated",
-    riskScore: 12,
-    riskTier: "low",
-    cveCount: 0,
-    lastSeen: minsAgo(15),
-    owner: "security-team",
-    tags: ["vault", "secrets-manager", "hardened"],
-  },
-];
-
-const MOCK_PATHS: ExposurePath[] = [
-  {
-    id: "PATH-001",
-    title: "Internet → API Gateway → XZ Backdoor → RCE",
-    severity: "critical",
-    chain: ["Internet", "api-gateway-prod.aldeci.io:443", "aldeci-api:v2.3.1", "liblzma.so RCE"],
-    technique: "T1190 — Exploit Public-Facing Application",
-    likelihood: 92,
-    impact: 98,
-    discovered: minsAgo(8),
-  },
-  {
-    id: "PATH-002",
-    title: "SQLi → Findings API → Postgres Lateral Move",
-    severity: "critical",
-    chain: ["Auth'd HTTP Request", "findings_router.py (SQLi)", "postgres-prod-01.internal", "Full DB Dump"],
-    technique: "T1190 + T1078 — Initial Access + Valid Accounts",
-    likelihood: 85,
-    impact: 94,
-    discovered: minsAgo(47),
-  },
-  {
-    id: "PATH-003",
-    title: "Public S3 Exfil → PII Extraction",
-    severity: "critical",
-    chain: ["Anonymous HTTP", "s3://aldeci-prod-exports (AllUsers READ)", "CSV exports", "PII exfiltration"],
-    technique: "T1530 — Data from Cloud Storage Object",
-    likelihood: 99,
-    impact: 82,
-    discovered: hoursAgo(5),
-  },
-  {
-    id: "PATH-004",
-    title: "Kubelet API → Node Exec → Cluster Takeover",
-    severity: "high",
-    chain: ["k8s-worker-node-07:10250", "Unauthenticated Kubelet", "Pod exec", "Cluster admin escalation"],
-    technique: "T1613 — Container and Resource Discovery",
-    likelihood: 67,
-    impact: 88,
-    discovered: hoursAgo(2),
-  },
-  {
-    id: "PATH-005",
-    title: "Prometheus Metrics → Internal Topology Leak",
-    severity: "high",
-    chain: ["k8s-worker-node-07:9100", "Node Exporter (no auth)", "Internal hostnames + ports", "Recon mapping"],
-    technique: "T1046 — Network Service Discovery",
-    likelihood: 95,
-    impact: 55,
-    discovered: hoursAgo(2),
-  },
-  {
-    id: "PATH-006",
-    title: "Staging Auth → Token Forge → Prod Access",
-    severity: "medium",
-    chain: ["auth-service-staging.internal", "Weak JWT secret (staging)", "Token forging", "Production API access"],
-    technique: "T1550.001 — Application Access Token",
-    likelihood: 42,
-    impact: 79,
-    discovered: daysAgo(1),
-  },
-];
-
-const MOCK_CHANGES: RecentChange[] = [
-  {
-    id: "CHG-001",
-    asset: "aldeci-api:v2.3.1",
-    changeType: "risk-change",
-    detail: "XZ backdoor CVE-2024-3094 detected — risk score +41",
-    timestamp: minsAgo(8),
-    riskDelta: 41,
-  },
-  {
-    id: "CHG-002",
-    asset: "s3://aldeci-prod-exports",
-    changeType: "modified",
-    detail: "Bucket ACL changed to AllUsers READ",
-    timestamp: hoursAgo(5),
-    riskDelta: 28,
-  },
-  {
-    id: "CHG-003",
-    asset: "api-gateway-prod.aldeci.io",
-    changeType: "added",
-    detail: "Port 8443 opened — TLS offload endpoint exposed",
-    timestamp: hoursAgo(6),
-    riskDelta: 12,
-  },
-  {
-    id: "CHG-004",
-    asset: "k8s-worker-node-07",
-    changeType: "added",
-    detail: "Node exporter deployed without NetworkPolicy",
-    timestamp: hoursAgo(8),
-    riskDelta: 18,
-  },
-  {
-    id: "CHG-005",
-    asset: "vault.internal:8200",
-    changeType: "modified",
-    detail: "TLS certificate renewed — mTLS enforced",
-    timestamp: daysAgo(1),
-    riskDelta: -8,
-  },
-  {
-    id: "CHG-006",
-    asset: "cdn-edge-cache.cloudfront.net",
-    changeType: "added",
-    detail: "New distribution created for static assets",
-    timestamp: daysAgo(1),
-    riskDelta: 4,
-  },
-  {
-    id: "CHG-007",
-    asset: "redis-cache-01.internal",
-    changeType: "modified",
-    detail: "AUTH command enabled — anonymous access removed",
-    timestamp: daysAgo(2),
-    riskDelta: -15,
-  },
-];
 
 // ═══════════════════════════════════════════════════════════
 // Constants
@@ -571,7 +294,7 @@ function mapApiAsset(raw: Record<string, unknown>, idx: number): Asset {
 }
 
 export default function AttackSurface() {
-  const [assets, setAssets] = useState<Asset[]>(MOCK_ASSETS);
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -582,7 +305,12 @@ export default function AttackSurface() {
   const [expandedPath, setExpandedPath] = useState<string | null>(null);
   const [showAllChanges, setShowAllChanges] = useState(false);
 
-  // Fetch assets from real API, fall back to MOCK_ASSETS
+  // NO MOCKS: exposure paths + recent changes show real data or honest empty until their
+  // API endpoints are wired — never fabricated.
+  const paths: ExposurePath[] = [];
+  const changes: RecentChange[] = [];
+
+  // Fetch assets from real API; on failure keep honest empty (NO MOCKS)
   useEffect(() => {
     let cancelled = false;
     async function fetchAssets() {
@@ -601,7 +329,7 @@ export default function AttackSurface() {
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load assets");
-          // Keep MOCK_ASSETS as fallback — already set as initial state
+          // NO MOCKS: assets stays empty on failure; error surfaced to the user
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -632,13 +360,13 @@ export default function AttackSurface() {
   // KPI derivations
   const totalAssets = assets.length;
   const externalAssets = assets.filter((a) => a.exposure === "internet").length;
-  const highRiskPaths = MOCK_PATHS.filter((p) => p.severity === "critical" || p.severity === "high").length;
+  const highRiskPaths = paths.filter((p) => p.severity === "critical" || p.severity === "high").length;
   const overallScore = surfaceScore(assets);
 
   const criticalCount = assets.filter((a) => a.riskTier === "critical").length;
   const highCount     = assets.filter((a) => a.riskTier === "high").length;
 
-  const visibleChanges = showAllChanges ? MOCK_CHANGES : MOCK_CHANGES.slice(0, 5);
+  const visibleChanges = showAllChanges ? changes : changes.slice(0, 5);
 
   return (
     <TooltipProvider>
@@ -674,7 +402,7 @@ export default function AttackSurface() {
             title="High-Risk Paths"
             value={highRiskPaths}
             icon={ShieldAlert}         trend="down"
-            trendLabel={`${MOCK_PATHS.filter((p) => p.severity === "critical").length} critical paths`}
+            trendLabel={`${paths.filter((p) => p.severity === "critical").length} critical paths`}
           />
           <div>
             <motion.div
@@ -931,13 +659,13 @@ export default function AttackSurface() {
                     </div>
                   ))}
                 </div>
-                {MOCK_CHANGES.length > 5 && (
+                {changes.length > 5 && (
                   <div className="px-5 py-2 border-t border-border/50">
                     <button
                       onClick={() => setShowAllChanges(!showAllChanges)}
                       className="text-xs text-primary hover:underline"
                     >
-                      {showAllChanges ? "Show less" : `Show ${MOCK_CHANGES.length - 5} more`}
+                      {showAllChanges ? "Show less" : `Show ${changes.length - 5} more`}
                     </button>
                   </div>
                 )}
@@ -994,11 +722,11 @@ export default function AttackSurface() {
               </p>
             </div>
             <Badge variant="destructive" className="font-mono text-xs">
-              {MOCK_PATHS.filter((p) => p.severity === "critical").length} CRITICAL
+              {paths.filter((p) => p.severity === "critical").length} CRITICAL
             </Badge>
           </div>
           <div className="space-y-3">
-            {MOCK_PATHS.map((path, idx) => {
+            {paths.map((path, idx) => {
               const isExpanded = expandedPath === path.id;
               const rm = RISK_META[path.severity];
               const score = Math.round((path.likelihood * path.impact) / 100);
