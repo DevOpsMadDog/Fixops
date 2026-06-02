@@ -259,7 +259,7 @@ function CreateDialog({ onClose, onCreated }: CreateDialogProps) {
     setSaving(true);
     setError(null);
     try {
-      const res = await api.post("/api/v1/webhooks/outbound", {
+      const res = await api.post("/api/v1/webhooks/outbound/", {
         url: form.url.trim(),
         topics: form.topics,
       });
@@ -377,7 +377,7 @@ export default function WebhooksOutboundPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/api/v1/webhooks/outbound");
+      const res = await api.get("/api/v1/webhooks/outbound/");
       setSubs(extractList(res.data).map(normalise));
     } catch (e) {
       setError((e as Error).message ?? "Failed to load subscriptions");
