@@ -17,8 +17,13 @@ from fastapi.testclient import TestClient
 @pytest.fixture(scope="module")
 def client():
     from apps.api.agentless_snapshot_scan_router import router
+    from apps.api.auth_deps import api_key_auth
     app = FastAPI()
     app.include_router(router)
+    # Bypass api_key_auth at the dependency layer — robust vs conftest setting
+    # FIXOPS_API_TOKEN to its own value (which made the module-level setdefault a
+    # no-op, so the "test-key" header 403'd). Matches the other router tests.
+    app.dependency_overrides[api_key_auth] = lambda: None
     return TestClient(app, raise_server_exceptions=True)
 
 
