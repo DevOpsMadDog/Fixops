@@ -550,16 +550,19 @@ function ArchGraphTab() {
   } = useQuery({
     queryKey: ["knowledge-graph"],
     queryFn: () =>
-      fetch("/api/v1/knowledge-graph/")
+      // GET /knowledge-graph/ (root) is 404; /export returns {graph:{nodes,edges}}.
+      fetch("/api/v1/knowledge-graph/export")
         .then((r) => (r.ok ? r.json() : Promise.reject(r)))
         .catch(() => null),
     retry: 1,
   });
 
-  // Normalise: backend may return {nodes,edges,stats} or an array directly
+  // Normalise: /export returns {graph:{nodes,edges}}; tolerate {nodes} or a bare array too.
   const nodes: KgNode[] = kgRaw
     ? toArray<KgNode>(
-        Array.isArray(kgRaw) ? kgRaw : (kgRaw as Record<string, unknown>).nodes
+        Array.isArray(kgRaw)
+          ? kgRaw
+          : ((kgRaw as Record<string, any>).graph?.nodes ?? (kgRaw as Record<string, unknown>).nodes)
       )
     : [];
 

@@ -24,7 +24,7 @@ interface ZTPCompliance {
 }
 
 interface ZTPolicy {
-  id: string;
+  policy_id: string; // API (/api/v1/zero-trust-policy/policies) returns policy_id, not id
   name: string;
   policy_type?: string;
   action?: string;
@@ -196,7 +196,7 @@ export function ZeroTrustPolicyPanel() {
             <div className="divide-y divide-border/30">
               {policies.slice(0, 10).map((p) => (
                 <div
-                  key={p.id}
+                  key={p.policy_id}
                   className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/20 transition-colors"
                 >
                   <div className="min-w-0 flex items-center gap-2">

@@ -1239,8 +1239,10 @@ export const threatBriefsApi = {
 export const threatResponseApi = {
   activeIncidents: (orgId = "default") =>
     api.get("/api/v1/threat-response/incidents/active", { params: { org_id: orgId } }),
+  // GET /playbooks doesn't exist; /playbooks/performance returns the playbook list
+  // (id/playbook_name/threat_type/...). The bare /playbooks path is POST-only (create).
   playbooks: (orgId = "default", status?: string) =>
-    api.get("/api/v1/threat-response/playbooks", { params: { org_id: orgId, status } }),
+    api.get("/api/v1/threat-response/playbooks/performance", { params: { org_id: orgId, status } }),
   stats: (orgId = "default") =>
     api.get("/api/v1/threat-response/summary", { params: { org_id: orgId } }),
 };
