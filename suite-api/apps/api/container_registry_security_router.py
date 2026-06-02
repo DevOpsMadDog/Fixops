@@ -148,6 +148,22 @@ def list_image_scans(
     return _get_engine().list_image_scans(org_id, registry_id=registry_id, severity=severity)
 
 
+@router.get("/images", dependencies=[Depends(api_key_auth)])
+def list_images(
+    org_id: str = Depends(get_org_id),
+    registry_id: Optional[str] = Query(default=None),
+    severity: Optional[str] = Query(default=None, description="Filter: critical|high|medium|low"),
+):
+    """List scanned registry images for the org.
+
+    Each scanned image is an image-scan record (image_name:tag + per-severity vuln
+    counts + scan score). Backed by the same real engine store as ``/scans``; no
+    fabricated data — honest empty list when nothing has been scanned yet.
+    """
+    images = _get_engine().list_image_scans(org_id, registry_id=registry_id, severity=severity)
+    return {"images": images, "total": len(images)}
+
+
 @router.get("/scans/{scan_id}", dependencies=[Depends(api_key_auth)])
 def get_scan(scan_id: str, org_id: str = Depends(get_org_id)):
     """Retrieve a single image scan by ID."""
