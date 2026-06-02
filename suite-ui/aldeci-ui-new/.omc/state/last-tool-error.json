@@ -1,7 +1,7 @@
 {
-  "tool_name": "mcp__playwright__browser_evaluate",
-  "tool_input_preview": "{\"function\":\"() => {\\n  // Check env vars exposed to Vite\\n  return {\\n    VITE_API_KEY: window.__VITE_API_KEY__ || import.meta?.env?.VITE_API_KEY || 'not found in window',\\n    envKeys: Object.keys(i...",
-  "error": "### Error\nSyntaxError: Cannot use 'import.meta' outside a module\n    at eval (eval at evaluate (:302:30), <anonymous>:2:38)\n    at UtilityScript.evaluate (<anonymous>:304:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n### Page\n- Page URL: http://localhost:5173/discover/network?tab=monitoring\n- Page Title: ALDECI | Enterprise Security Intelligence\n### Events\n- New console entries: .playwright-mcp/console-2026-06-01T06-17-53-810Z.log#L2-L22",
-  "timestamp": "2026-06-01T06:17:57.312Z",
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd /Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new\\necho \\\"=== source index.html (project root) references: ===\\\"; grep -oE '(src|href)=\\\"[^\\\"]*\\\"' index.html | head\\necho \\\"=== curl...",
+  "error": "Exit code 2\n=== source index.html (project root) references: ===\nhref=\"/favicon.svg\"\nsrc=\"/src/main.tsx\"\n=== curl / (root) references: ===\n=== does vite serve /src/main.tsx? ===\n200\n=== is there a public/index.html or stale built index in root? ===\n-rw-r--r--@ 1 devops.ai  staff  543  9 May 09:47 index.html",
+  "timestamp": "2026-06-02T02:29:55.728Z",
   "retry_count": 1
 }

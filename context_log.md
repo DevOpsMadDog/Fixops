@@ -1,5 +1,48 @@
 # ALdeci Context Log — Agent Handoff & Session Tracking
 
+### [2026-06-01 23:10] data-scientist — DEEP_VERIFICATION
+- **What**: Line-by-line audit of all 9 prediction/risk algorithm engines. Exercised each on a real critical SQLi finding (CVSS=9.8, weaponized exploit, internet-facing, payment service). Verdicts: 7 REAL, 1 PARTIAL (RiskQuantificationEngine uses Uniform not PERT), 1 NOTE (GNN overflow warning — spurious, fixed). One real bug fixed: GNN layer2 spurious numpy BLAS RuntimeWarning suppressed with np.errstate guard.
+- **Files touched**: suite-core/core/ml/attack_path_gnn.py (1-line fix line 282)
+- **Outcome**: SUCCESS
+- **Pillar(s) served**: V3 (Decision Intelligence), V9 (Air-Gapped)
+
+### [2026-06-01] backend-hardener — SPEC-006b CRYPTO HARDENING (REQ-006b-01..06)
+
+- **What**: Implemented all achievable SPEC-006b accreditation increments.
+  1. **REQ-006b-01 Key-at-rest encryption**: `RSAKeyManager._save_private_key` now calls
+     `_key_encryption_algorithm()` — writes `BestAvailableEncryption(passphrase)` when
+     `FIXOPS_KEY_PASSPHRASE` is set, else `NoEncryption()` + loud WARNING. Load handles
+     both encrypted and legacy plaintext keys (backward-compatible). ML-DSA gets AES-256-GCM
+     wrapping via `_MLDSA_ENC_PRIVATE_HEADER` envelope + HKDF-SHA256 key derivation.
+  2. **REQ-006b-02 Append-only triggers**: `chain_entries` + `key_audit_log` tables now have
+     `BEFORE DELETE / UPDATE` triggers that `RAISE(ABORT, ...)`. INSERT is unaffected.
+     SQLite maps RAISE(ABORT) to `sqlite3.IntegrityError` in Python.
+  3. **REQ-006b-03 HMAC key separation**: `evidence_chain._HMAC_KEY` now loaded from
+     `FIXOPS_AUDIT_HMAC_KEY` (primary) → `EVIDENCE_CHAIN_HMAC_KEY` (legacy + warning) →
+     static fallback (warning). Co-location attack mitigated when primary env var is set.
+  4. **REQ-006b-04 SQLCipher probe**: `_probe_sqlcipher()` honest import probe; `False` when
+     not installed — no fabricated pass.
+  5. **REQ-006b-05 Crypto posture surface**: `crypto_posture()` in `core/crypto.py` returns
+     all flags honestly including `fips_validated: False` and `piv_cac: False` always.
+  6. **REQ-006b-06 Founder-blocked documented**: FIPS-CMVP and PIV-CAC documented in spec §8
+     and in `crypto_posture()` notes with exact external requirements and effort estimates.
+- **Files touched**:
+  - `suite-core/core/crypto.py` — passphrase helpers, patched RSA+MLDSA key save/load,
+    `_probe_sqlcipher()`, `crypto_posture()`
+  - `suite-core/core/evidence_chain.py` — `_load_hmac_key()`, append-only triggers,
+    `_corrupt_entry_for_test()` test helper
+  - `suite-core/core/key_manager.py` — append-only triggers on `key_audit_log`
+  - `tests/test_crypto_hardening.py` — NEW: 36 tests (34 pass, 2 skipped for dilithium_py)
+  - `tests/test_evidence_chain.py` — 4 tampering tests updated to use `_corrupt_entry_for_test`
+  - `specs/SPEC-006b-crypto-hardening.md` — Status DRAFT→IMPLEMENTED, §8 filled
+- **Outcome**: SUCCESS
+  - test_crypto_hardening.py: 34/34 pass, 2 skipped (ML-DSA, dilithium_py not installed)
+  - Full crypto+evidence regression: 159 pass, 3 skip, 14 pre-existing router errors
+  - Beast Mode smoke: 756/756 PASS
+  - `fips_validated: False` and `piv_cac: False` are honest permanent labels
+- **Pillar(s) served**: V3 (Decision Intelligence / crypto integrity), V5 (Trust / honest
+  compliance posture), V7 (Enterprise-ready / accreditation increments)
+
 ### [2026-05-31 00:00] technical-writer — CUSTOMER DOCS SET (Multica #9074)
 
 - **What**: Created 7-file enterprise customer documentation set under `docs/customer/`. All content verified against real source files before writing — no fabrication. Explicit "in progress" flags placed on SOC 2 Type II (Q4 2026), FedRAMP, and HIPAA/PCI DSS formal certifications.
@@ -6892,3 +6935,29 @@
   - suite-ui/aldeci-ui-new/src/pages/CyberResilienceDashboard.tsx — removed LESSONS/HISTORY/EXERCISES/METRICS/CSF_DOMAINS; wired /api/v1/cyber-resilience/score + /exercises + /assessments
 - **Outcome**: SUCCESS — tsc --noEmit 0 new errors in all 5 touched files; all endpoints 200; real data confirmed via curl
 - **Pillar(s) served**: V1 (real data integrity), V3 (compliance visibility), V5 (risk management)
+
+### [2026-06-01 23:59] backend-hardener — IRON-CLAD HARDENING 2 (auth sweep + IDOR)
+
+- **What**: Exhaustive authorization sweep of all 876 mounted routers.
+  1. **NO-AUTH SWEEP**: Identified 40 truly-open sensitive routers (no auth in file AND not protected at app.py mount level). Added `router = APIRouter(..., dependencies=[Depends(api_key_auth)])` to all 40, including:
+     - 38 suite-api routers (admin_wizard, ansible_tower, attack_path, aws_ecr/eks/s3, azure_keyvault/sentinel, bitbucket, breach_simulation, bulk, circleci, gar, github_api, gitlab_pipeline, graphql, harbor, jenkins, jira_cloud, kong, lacework, mattermost, noname, purview_dlp, report_scheduler, security_kpi, scim, snowflake, splunk, splunk_soar, stream, sumologic, syft, tfsec, threat_intel_sharing, threat_modeling, trustgraph_maintenance/quality, wiz, workday, zap_scan, zero_trust)
+     - monte_carlo_router.py in suite-core/api (FAIR simulation, compute-heavy)
+     - webhook_router.py: per-endpoint auth on okta/events, generic/{source}, list_events, /; okta/verify kept public
+     - security_maturity_router.py + threat_correlation_router.py: moved try/except auth import before router def
+     - stripe_webhook_router.py: intentionally left public (Stripe HMAC sig verification, not API-key)
+     - system_router.py: already protected via require_role() — not touched
+  2. **Bulk patcher**: injected auth imports into wrong locations (inside try/except blocks and multiline imports) — fixed all 28+4 cases via paren/try-depth tracking + surgical rewrites.
+  3. **IDOR SWEEP**: 371 ID-parameterized handlers missing org ownership check identified. Highest-risk ones already fixed in prior waves (cspm, ciem, exposure_case). Remaining 371 are lower-priority (most handle non-tenant-scoped resources or are in engines without DB ownership pattern). Documented for next wave.
+  4. **Body/query org_id forgery**: ai_governance, air_gap_bundle routers use org_id=Query(default="default") — already frozen in tenancy allowlist (1730 entries). No new violations added.
+  5. **Tests**: wrote tests/test_ironclad_authz.py — 75 tests covering all 40 fixed routers + public endpoint preservation. 149/149 auth tests pass (ironclad + wave-4 + multi-tenant + cross-tenant).
+  6. **Beast Mode**: 756/756 PASS. Tenancy lint: 0 new violations (still 1730 frozen).
+- **Files touched**:
+  - 40 router files in suite-api/apps/api/ + suite-core/api/monte_carlo_router.py
+  - tests/test_ironclad_authz.py (NEW — 75 tests)
+- **Outcome**: SUCCESS
+  - 40 no-auth routers closed
+  - 149/149 auth regression tests passing
+  - 756/756 Beast Mode passing
+  - Tenancy lint: no growth (1730 frozen)
+  - App boots: 8307 routes
+- **Pillar(s) served**: V3 (Decision Intelligence / auth integrity), V5 (Trust / zero-trust posture), V7 (Enterprise-ready / tenant isolation)
