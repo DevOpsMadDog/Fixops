@@ -16,6 +16,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ScatterChart,
@@ -794,9 +795,11 @@ function IocFeed({ iocs }: { iocs: IocItem[] }) {
   const handleBlockAll = useCallback(async () => {
     setBlocking(true);
     try {
-      await fetch(`${API}/api/v1/threat-intel/block-iocs?org_id=default`, {
+      const _tok = getStoredAuthToken() ?? "";
+      const _org = encodeURIComponent(getStoredOrgId() ?? "default");
+      await fetch(`${API}/api/v1/threat-intel/block-iocs?org_id=${_org}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(_tok ? { "X-API-Key": _tok } : {}) },
         body: JSON.stringify({ ioc_ids: iocs.map(i => i.id) }),
       });
     } catch {
@@ -841,7 +844,9 @@ function IocFeed({ iocs }: { iocs: IocItem[] }) {
         <ScrollArea className="h-full px-4 pb-4">
           <div className="space-y-1 pt-2">
             {iocs.map((ioc, i) => {
-              const IocIcon = IOC_ICON[ioc.type];
+              // Fallback for IOC types from the real API beyond {ip,domain,hash,url}
+              // (undefined icon -> React 'Element type invalid' crash). NO MOCKS exposed this.
+              const IocIcon = IOC_ICON[ioc.type] ?? Hash;
               const isBlocked = blockedIds.has(ioc.id);
               return (
                 <motion.div
@@ -1008,9 +1013,13 @@ export default function ThreatIntelDashboard() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
+      // Authenticated (X-API-Key + stored org) so real CVEs/IOCs load — raw unauthed fetch 401'd.
+      const _tok = getStoredAuthToken() ?? "";
+      const _org = encodeURIComponent(getStoredOrgId() ?? "default");
+      const _h: HeadersInit = _tok ? { "X-API-Key": _tok } : {};
       const [cveRes, iocRes] = await Promise.allSettled([
-        fetch(`${API}/api/v1/cve/search?org_id=default&limit=20`).then(r => r.json()),
-        fetch(`${API}/api/v1/threat-intel/actors?org_id=default`).then(r => r.json()),
+        fetch(`${API}/api/v1/cve/search?org_id=${_org}&limit=20`, { headers: _h }).then(r => r.json()),
+        fetch(`${API}/api/v1/threat-intel/actors?org_id=${_org}`, { headers: _h }).then(r => r.json()),
       ]);
       // NO MOCKS: real API arrays or honest empty (EmptyState) — never fabricated CVEs/IOCs.
       setCves(cveRes.status === "fulfilled" && Array.isArray(cveRes.value) ? cveRes.value : []);
