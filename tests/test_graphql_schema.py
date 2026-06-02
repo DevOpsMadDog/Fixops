@@ -717,7 +717,11 @@ class TestGraphqlRouter:
 
         app = FastAPI()
         app.include_router(router)
-        self.client = TestClient(app)
+        # Router enforces Depends(api_key_auth); authenticate via the real path
+        # using the token set at module import (FIXOPS_API_TOKEN).
+        self.client = TestClient(
+            app, headers={"X-API-Key": os.environ["FIXOPS_API_TOKEN"]}
+        )
 
     def test_post_graphql_returns_200(self):
         resp = self.client.post(
