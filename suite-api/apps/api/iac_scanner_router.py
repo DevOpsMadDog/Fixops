@@ -11,14 +11,17 @@ Endpoints:
 
 from __future__ import annotations
 
-import logging
 from typing import Any, Dict, List, Optional
 
+import structlog
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-_logger = logging.getLogger(__name__)
+# structlog (not stdlib logging) — the handlers below log with structured
+# kwargs (policy_id=, fname=, error=); a stdlib Logger rejects those with
+# "Logger._log() got an unexpected keyword argument", 500-ing every call.
+_logger = structlog.get_logger(__name__)
 
 router = APIRouter(
     prefix="/api/v1/iac",
