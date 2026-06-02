@@ -3,6 +3,32 @@
 > Branch `chore/ui-prune-plan-2026-05-24` · all commits **LOCAL (unpushed)** · push blocked (VPN DNS + revoked PAT)
 > Session: `359b05e6 → HEAD` (~66 commits) · loop log `docs/ralph_progress.md`
 
+## ADDENDUM 5 — full automated route-sweep + every real failed-API/crash fixed (continued tick, 2026-06-02 late night)
+Enhanced the e2e/route-sweep harness (now captures error-boundary + SPA-404 DOM, not just
+console/network) and ran it across all top-level routes vs the live app + backend (real auth).
+0 crashes/404-DOM. Every REAL failed-API/runtime-crash it flagged is now fixed + live-verified:
+- **/brs-executive** 404 (/api/v1/risk/brs/bu/default): the `default` BU sentinel now yields
+  honest-empty BRS (engine's documented no-crash contract); explicit unknown BU still 404s.
+- **/findings, /cloud-findings, /drift-tracking** crash: null-safe sort comparator
+  (localeCompare-on-undefined when a finding lacks the sort field).
+- **/issues, /issue-queue, /material-changes** crash: null-safe AgeBadge (getTime-on-undefined
+  for findings with no discovered_at) + null-safe discovered_at sort.
+- **/hunting** 4×404: added 4 real /api/v1/threat-hunting endpoints (sessions/findings/timeline/
+  queries) delegating to the canonical engine; hardened get_all_queries (skip malformed rows);
+  fixed 2 latent frontend crashes the real data exposed (PredefinedQueryCard tags.map, TacticBadge
+  unknown-tactic). Live: 4 calls 200, 0 console errors.
+- **/org-hierarchy** 3×422→404: frontend now sends the required ?org_id= tenant param; backend
+  READ endpoints (children/ancestors/effective-policies) return honest-empty [] for unregistered
+  nodes (WRITES still raise). Live: 3 calls 200, 0 console errors.
+- Required 2 backend restarts (no --reload) to live-verify the new/changed endpoints.
+- **Gates after each**: create_app 8335; Beast smoke 756/756; tsc 0; vitest 135/0/53; build ~3.5s.
+- **Residual (cosmetic, deferred)**: ~12 routes show dev-only React "missing key" warnings
+  (ComplianceDashboard + 5 hub components). All `.map`s are keyed; the keyless source is a
+  fragment/array/sub-component that resists static pinpointing, and React 19 omits the component
+  stack from console args so the runtime interceptor adds nothing. Zero functional impact,
+  stripped from production builds. The pinpointable keyless-Fragment-as-map-child class WAS fixed
+  (CodeScanning, AttestationGraphPanel in addendum 4-era commits).
+
 ## ADDENDUM 4 — live-browser caught page crashes + nav 404 (continued tick, 2026-06-02 night)
 Continued the live-browser gate; surfaced real crashes/404s unit tests miss (they render
 components in isolation). 4 verified-local increments:
