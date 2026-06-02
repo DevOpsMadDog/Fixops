@@ -279,7 +279,12 @@ function RiskScore({ score }: { score: number }) {
   return <span className={cn("text-xs font-bold tabular-nums", color)}>{score}</span>;
 }
 
-function AgeBadge({ date }: { date: Date }) {
+function AgeBadge({ date }: { date?: Date | null }) {
+  // A finding may have no discovered_at (real data) — render an em-dash instead of
+  // calling .getTime() on undefined (which crashed the findings table).
+  if (!date || typeof date.getTime !== "function" || Number.isNaN(date.getTime())) {
+    return <span className="text-xs text-muted-foreground tabular-nums">—</span>;
+  }
   const diffMs = Date.now() - date.getTime();
   const diffMins = Math.floor(diffMs / 60_000);
   const diffHours = Math.floor(diffMs / 3_600_000);
@@ -766,7 +771,7 @@ export default function FindingsExplorer() {
         let av: number | string, bv: number | string;
         if (sortField === "risk_score") { av = a.risk_score; bv = b.risk_score; }
         else if (sortField === "cvss") { av = a.cvss ?? -1; bv = b.cvss ?? -1; }
-        else if (sortField === "discovered_at") { av = a.discovered_at.getTime(); bv = b.discovered_at.getTime(); }
+        else if (sortField === "discovered_at") { av = a.discovered_at?.getTime?.() ?? 0; bv = b.discovered_at?.getTime?.() ?? 0; }
         else if (sortField === "severity") {
           const order: Record<Severity, number> = { critical: 4, high: 3, medium: 2, low: 1, info: 0 };
           av = order[a.severity] ?? 0; bv = order[b.severity] ?? 0;
