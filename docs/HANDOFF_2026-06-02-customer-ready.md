@@ -887,3 +887,16 @@ All green: create_app 8345, Beast smoke 756/756 (ingest timing flake only).
 **Deferred — founder/arch:** council_adapter (consensus semantics + cost_usd=0.02-on-0-providers flag).
 **Founder-blocked/env-dep:** agent_memory_bridge (order-dependent test-infra pollution; product verified), abuseipdb/security_connectors_unit/sso_provider/cloud_runtime_unit (vendor creds/DNS/AWS), Stripe.
 All green: create_app 8345, Beast smoke 756/756 (lone ingest timing flake passes isolated). Swept ranges to date: d-m, t-v, q-s, a-c. Unswept: e-p (partial), w-z.
+
+---
+## Session addendum 2026-06-03 (ralph tick54–56)
+**UI NO-MOCKS: CLEAN.** Build OK (3.84s/3697 modules); no src/data|src/fixtures dirs or imports; sole mock-signature is a "John Doe" placeholder in SupportPage (POSTs /api/v1/support/ticket); 42 "no-API" pages = legit static (Landing/Pricing/Docs/Login/NotFound) + v2 S## shells delegating to fetching children (verified S09's 5 children each fire real /api/v1). No buildable UI mock-removal remains.
+**Real product fixes:**
+ - crypto.py RSAKeyManager._cache_key() now includes key_id — distinct key_ids no longer share cached metadata (explicit key_id was silently overwritten). In-memory only, no crypto weakening; honors documented param.
+ - evidence_router._derive_controls_from_findings: category was the control-id prefix → HIPAA collapsed to one "§164" bucket. Added _resolve_control_category() resolving real framework taxonomy (HIPAA Administrative/Physical/Technical) from the static catalog (§-robust); prefix fallback kept.
+**Honest test fixes (no weakening):**
+ - empty_endpoints_2026_04_27 CLASS-B: 6 import endpoints (kev/mitre/global/cis/dbir/sigma) were 501-stub asserts but are now REAL importers → assert_real_importer accepts 200 (real result) or 502 (honest source_unreachable), never 501/faked. 34/34.
+ - evidence_export_signed: SOC2 has_controls >=10 (assumed padded full catalog) → no-fabrication-ENFORCING assertion (every control evidence-backed); test_key_generation uses isolated tmp paths to truly exercise 2048 keygen (bare manager → persistent SCIF RSA-4096 = correct). 24/24.
+ - github_issues_real::test_gh_auth_status now skips when gh unauthenticated (founder-blocked credential, air-gapped) like its siblings; still asserts real login when authed. 38 passed/19 skipped.
+ - fixd_tier_and_sso "2 errors" + tip_index/semantic_analyzer "2 errors" were all --timeout=20 create_app-boot artifacts; pass clean at 90s (no fix).
+All green: create_app 8345 routes, Beast smoke 755 + the documented ingest timing flake, 187 crypto+evidence tests. Swept ranges add: e-h COMPLETE. i-r sweep in flight.
