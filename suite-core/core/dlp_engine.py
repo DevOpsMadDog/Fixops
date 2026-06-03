@@ -1,13 +1,60 @@
 """Data Loss Prevention engine — detect PII, PCI, and sensitive data patterns."""
 import json
+import os
 import re
 import sqlite3
+import tempfile
 import time
 import uuid
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import structlog
+
+# ---------------------------------------------------------------------------
+# Storage-root allowlist (SCIF hardening)
+# ---------------------------------------------------------------------------
+# scan_file() reads a caller-supplied file_path and returns matched sensitive
+# content — so an unguarded path is a direct info-disclosure (e.g.
+# file_path=/etc/passwd). Confine reads to an allowlisted base. Configure with
+# ``FIXOPS_DLP_ALLOWED_ROOTS`` (os.pathsep-separated absolute paths); default =
+# system scratch dir + fleet workspace (blocks /etc, /home, /root; permits
+# scratch/workspace). NO arbitrary filesystem read.
+_DLP_ALLOWED_ROOTS_ENV = "FIXOPS_DLP_ALLOWED_ROOTS"
+
+
+def _dlp_allowed_roots(extra: Optional[List[str]] = None) -> List[str]:
+    env = os.environ.get(_DLP_ALLOWED_ROOTS_ENV, "").strip()
+    if env:
+        roots = [
+            os.path.realpath(os.path.abspath(p))
+            for p in env.split(os.pathsep)
+            if p.strip()
+        ]
+    else:
+        roots = []
+        for c in (tempfile.gettempdir(), "/tmp/fixops-fleet", "/private/tmp/fixops-fleet"):
+            try:
+                roots.append(os.path.realpath(os.path.abspath(c)))
+            except OSError:
+                continue
+    if extra:
+        roots = roots + [os.path.realpath(os.path.abspath(p)) for p in extra if p]
+    return roots
+
+
+def _assert_dlp_path_allowed(file_path: str, extra: Optional[List[str]] = None) -> None:
+    """Raise ValueError if file_path is outside the storage-root allowlist."""
+    if not file_path:
+        raise ValueError("file_path is required")
+    real = os.path.realpath(os.path.abspath(file_path))
+    for base in _dlp_allowed_roots(extra):
+        if real == base or real.startswith(base + os.sep):
+            return
+    raise ValueError(
+        "file_path is not within an allowed storage root "
+        f"(set {_DLP_ALLOWED_ROOTS_ENV} to permit it)"
+    )
 
 try:
     from core.trustgraph_event_bus import get_event_bus as _get_tg_bus
@@ -124,9 +171,11 @@ class _NoCloseConn:
 
 
 class DLPEngine:
-    def __init__(self, db_path: str = "data/dlp.db"):
+    def __init__(self, db_path: str = "data/dlp.db", allowed_roots: Optional[List[str]] = None):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        # Extra storage-root allowlist entries (beyond FIXOPS_DLP_ALLOWED_ROOTS / defaults).
+        self._allowed_roots = list(allowed_roots) if allowed_roots else None
         # Persistent connection — opened once, reused for the engine lifetime.
         # WAL mode allows concurrent readers; check_same_thread=False is safe
         # because each engine instance is used from a single async worker.
@@ -276,6 +325,7 @@ class DLPEngine:
 
     def scan_file(self, file_path: str, org_id: str = "default") -> dict:
         """Read a file and scan its contents. Returns same shape as scan_text."""
+        _assert_dlp_path_allowed(file_path, self._allowed_roots)
         path = Path(file_path)
         try:
             text = path.read_text(encoding="utf-8", errors="replace")
