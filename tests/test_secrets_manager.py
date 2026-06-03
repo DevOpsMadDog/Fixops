@@ -331,8 +331,11 @@ class TestFilesystemScanning:
         result = mgr.scan_filesystem(str(tmp_path))
         assert result.files_scanned >= 2
 
-    def test_scan_nonexistent_path(self, mgr):
-        result = mgr.scan_filesystem("/nonexistent/path/that/does/not/exist")
+    def test_scan_nonexistent_path(self, mgr, tmp_path):
+        # Allowlisted base (under tempdir) but the subpath does not exist —
+        # exercises graceful missing-path handling without tripping the
+        # storage-root allowlist (which rejects out-of-allowlist roots).
+        result = mgr.scan_filesystem(str(tmp_path / "does-not-exist"))
         assert len(result.errors) > 0
         assert result.findings_count == 0
 

@@ -29,6 +29,7 @@ import os
 import re
 import sqlite3
 import subprocess  # nosec B404
+import tempfile
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -37,6 +38,44 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
+
+# ---------------------------------------------------------------------------
+# Storage-root allowlist (SCIF hardening)
+# ---------------------------------------------------------------------------
+# scan_filesystem/scan_git_history read caller-supplied paths and return matched
+# secrets — an unguarded path is direct info-disclosure (target_path=/etc reads
+# system files). Confine to an allowlisted base. Configure with
+# ``FIXOPS_SECRETS_ALLOWED_ROOTS`` (os.pathsep-separated); default = system
+# scratch dir + fleet workspace (blocks /etc, /home, /root). NO arbitrary read.
+_SECRETS_ALLOWED_ROOTS_ENV = "FIXOPS_SECRETS_ALLOWED_ROOTS"
+
+
+def _assert_secrets_path_allowed(target_path: str) -> None:
+    """Raise ValueError if target_path is outside the storage-root allowlist."""
+    if not target_path:
+        raise ValueError("target_path is required")
+    env = os.environ.get(_SECRETS_ALLOWED_ROOTS_ENV, "").strip()
+    if env:
+        bases = [
+            os.path.realpath(os.path.abspath(p))
+            for p in env.split(os.pathsep)
+            if p.strip()
+        ]
+    else:
+        bases = []
+        for c in (tempfile.gettempdir(), "/tmp/fixops-fleet", "/private/tmp/fixops-fleet"):
+            try:
+                bases.append(os.path.realpath(os.path.abspath(c)))
+            except OSError:
+                continue
+    real = os.path.realpath(os.path.abspath(target_path))
+    for base in bases:
+        if real == base or real.startswith(base + os.sep):
+            return
+    raise ValueError(
+        "target_path is not within an allowed storage root "
+        f"(set {_SECRETS_ALLOWED_ROOTS_ENV} to permit it)"
+    )
 from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
@@ -1153,6 +1192,7 @@ class SecretsManager:
 
     def scan_filesystem(self, target_path: str) -> ScanResult:
         """Recursively scan a directory or single file for secrets."""
+        _assert_secrets_path_allowed(target_path)
         _emit_event("finding.created", {"module": __name__, "action": "scan_filesystem"})
         result = ScanResult(scan_type=ScanType.FILESYSTEM, target_path=target_path)
         root = Path(target_path)
@@ -1187,6 +1227,7 @@ class SecretsManager:
 
     def scan_git_history(self, repo_path: str) -> ScanResult:
         """Scan all commits in a git repo for leaked secrets."""
+        _assert_secrets_path_allowed(repo_path)
         _emit_event("finding.created", {"module": __name__, "action": "scan_git_history"})
         result = ScanResult(scan_type=ScanType.GIT_HISTORY, target_path=repo_path)
         repo = Path(repo_path)
