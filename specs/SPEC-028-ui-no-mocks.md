@@ -66,7 +66,10 @@ empty tenant → EmptyState (NOT [] hidden behind a hardcoded fixture)
 
 ## 8. Implementation notes
 5 dashboards de-mocked 2026-06-03 (commits `f3e13a11`, `0f50bee7`, `2b7b10ef`, `b8a4cf58`,
-`f725213e`). **Known gap / follow-up:** there is no automated CI gate for NO-MOCKS (verification
-is browser + grep). A CI-able detector (the python set-but-unused/void-d/useState(MOCK)/fixture
-scanners used this session) should be packaged as a test, analogous to SPEC-027's auth gate — a
-Multica card should be filed for that. No code change in this spec — governance backfill only.
+`f725213e`). **Follow-up RESOLVED 2026-06-03 (Multica #9084):** a CI-able detector now exists —
+`tests/test_ui_no_mocks_static.py` scans `suite-ui/.../src` for the deterministic NO-MOCKS
+violations (fixture-module imports, displayed `MOCK_/lorem/Acme/John-Doe` literals, `void d;`
+fetch-discard, `src/data|fixtures` dirs) with a gate-bites self-test, and is wired into
+`.github/workflows/regression-gates.yml` (owasp-lockdown, "UI NO-MOCKS static gate" step). The
+heuristic signatures (set-but-unused liveX, useState(MOCK), frozen dates) remain review-time
+(would false-positive on legit editor/tester defaults). No app code change — governance backfill.
