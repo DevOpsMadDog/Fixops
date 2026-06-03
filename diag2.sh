@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-export PYTHONPATH=suite-api:suite-core:suite-evidence-risk:suite-attack:suite-feeds:suite-integrations:.
-python -m pytest tests/test_reports_router_unit.py tests/test_brain_pipeline.py --timeout=10 --tb=short -q 2>&1 | tail -30
-echo "EXIT=$?"
