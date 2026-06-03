@@ -1,6 +1,0 @@
-/Users/devops.ai/developement/fixops/Fixops/scripts/run-ctem-swarm.sh: line 131: declare: -A: invalid option
-declare: usage: declare [-afFirtx] [-p] [name[=value] ...]
-
-[0;31m[CRASH RECOVERY] Swarm interrupted (exit code: 2)[0m
-[1;33m[CRASH RECOVERY] Saving state to .claude/team-state/crash-state.json[0m
-[0;32m[CRASH RECOVERY] State saved. Resume with: ./scripts/run-ctem-swarm.sh --resume[0m

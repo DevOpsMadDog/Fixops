@@ -1,9 +1,0 @@
-## Fix Report Summary
-
-**Agent**: `sales-engineer`
-**Root Cause**: API usage quota exhaustion — `"You're out of extra usage · resets 12am (Australia/Sydney)"`
-**Status**: **CANNOT_FIX — External dependency**
-
-This is not a code defect. The agent hit the Claude API usage limit after only 34 seconds. The agent definition, referenced files, and all infrastructure are valid and working. No code changes were made because none are needed.
-
-**Resolution**: Re-run the sales-engineer agent after the API quota resets at midnight AEST. If cycle 3 is triggered before then, it will hit the same wall and should be skipped.

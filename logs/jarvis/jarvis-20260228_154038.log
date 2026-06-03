@@ -1,110 +1,0 @@
-[0;32m[JARVIS 15:40:38] ✔[0m  Bash version: 5.3.9(1)-release
-[1;33m[JARVIS 15:40:38] ⚠[0m  Auto-healing: debug() function missing || true guard
-[0;32m[JARVIS 15:40:38] ✔[0m  Patched debug() with || true
-[0;32m[JARVIS 15:40:39] ✔[0m  Self-healing pre-flight complete (5 checks passed)
-
-
-[1m[0;36m
-  ╔════════════════════════════════════════════════════════════╗
-  ║                                                            ║
-  ║       ██╗ █████╗ ██████╗ ██╗   ██╗██╗███████╗              ║
-  ║       ██║██╔══██╗██╔══██╗██║   ██║██║██╔════╝              ║
-  ║       ██║███████║██████╔╝██║   ██║██║███████╗              ║
-  ║  ██   ██║██╔══██║██╔══██╗╚██╗ ██╔╝██║╚════██║              ║
-  ║  ╚█████╔╝██║  ██║██║  ██║ ╚████╔╝ ██║███████║              ║
-  ║   ╚════╝ ╚═╝  ╚═╝╚═╝  ╚═╝  ╚═══╝  ╚═╝╚══════╝              ║
-  ║                                                            ║
-  ║           IMMORTAL AUTONOMOUS ENGINE                       ║
-  ║    Auto-Restart · Self-Heal · Never Stop · Never Ask       ║
-  ║                                                            ║
-  ╚════════════════════════════════════════════════════════════╝
-[0m
-
-[0;36m[JARVIS 15:40:39][0m Max restarts: 15
-[0;36m[JARVIS 15:40:39][0m Backoff: 10s base, 120s cap
-[0;36m[JARVIS 15:40:39][0m Heartbeat: /Users/devops.ai/developement/fixops/Fixops/.claude/team-state/jarvis-heartbeat.json (every 60s)
-[0;36m[JARVIS 15:40:39][0m Crash log: /Users/devops.ai/developement/fixops/Fixops/logs/jarvis/crash-history.log
-[0;36m[JARVIS 15:40:39][0m Lock: /Users/devops.ai/developement/fixops/Fixops/.claude/team-state/jarvis.lock (PID: 11986)
-
-[0;36m[JARVIS 15:40:39][0m ━━━ INITIAL LAUNCH ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[0;36m[JARVIS 15:40:39][0m Starting swarm (first run)...
-[0;35m[1m
-   ╔═══════════════════════════════════════════════════════════╗
-   ║                                                           ║
-   ║     █████╗ ██╗     ██████╗ ███████╗ ██████╗██╗            ║
-   ║    ██╔══██╗██║     ██╔══██╗██╔════╝██╔════╝██║            ║
-   ║    ███████║██║     ██║  ██║█████╗  ██║     ██║            ║
-   ║    ██╔══██║██║     ██║  ██║██╔══╝  ██║     ██║            ║
-   ║    ██║  ██║███████╗██████╔╝███████╗╚██████╗██║            ║
-   ║    ╚═╝  ╚═╝╚══════╝╚═════╝ ╚══════╝ ╚═════╝╚═╝            ║
-   ║                                                           ║
-   ║         CTEM+ AI SWARM — JARVIS Autonomous Engine        ║
-   ║     Decision Intelligence · MPTE · MCP-Native Platform    ║
-   ║         Full Autonomy · Self-Healing · No Human Gate      ║
-   ║                                                           ║
-   ╚═══════════════════════════════════════════════════════════╝
-[0m
-[0;34m[15:40:39][0m Pre-flight self-healing checks...
-[0;32m[✓][0m Agent Guardian loaded — 19 critical files + 5 frozen files protected
-[0;32m[✓][0m Self-healed 1 environment issue(s)
-[0;32m[✓][0m Claude CLI: 2.1.61 (Claude Code)
-[0;32m[✓][0m Project root: /Users/devops.ai/developement/fixops/Fixops
-[0;32m[✓][0m Agent files: 17 agents found
-[0;32m[✓][0m Timeout command: gtimeout
-[0;32m[✓][0m Pre-flight complete — all systems go
-
-[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
-[1m[0;35m  ✦ ITERATIVE SWARM — 1 iterations, 2h minimum ✦[0m
-[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
-
-  [0;35m✦ Iterations:    1[0m
-  [0;35m✦ Min runtime:   2 hours[0m
-  [0;35m✦ Newman gate:   85% pass rate to exit early[0m
-  [0;35m✦ Mode:          Build → Test → Fix → Retest (Convergence Loop)[0m
-
-[0;34m[15:40:40][0m CONTROLLER: Starting background health watchdog...
-[0;34m[15:40:40][0m CONTROLLER: Background watchdog started (PID: 12090)
-
-[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
-[1m[0;35m  ✦ ╔══════════════════════════════════════════════════╗ ✦[0m
-[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
-
-[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
-[1m[0;35m  ✦ ║  ITERATION 1/1 — BUILD          ║ ✦[0m
-[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
-
-[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
-[1m[0;35m  ✦ ╚══════════════════════════════════════════════════╝ ✦[0m
-[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
-[0;34m[15:40:40][0m Checking if API server is running on port 8000...
-[0;32m[✓][0m API server is live on port 8000
-
-[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
-[1m[0;35m  ✦ CTEM+ SWARM — Full Execution ✦[0m
-[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
-
-  [0;35m✦ Run ID:      swarm-2026-02-28_15-40-39[0m
-  [0;35m✦ Model:       claude-opus-4-6-fast[0m
-  [0;35m✦ Mode:        CTEM+ SWARM[0m
-  [0;35m✦ Agents:      17[0m
-  [0;35m✦ Timeout:     1800s (critical: 2700s)[0m
-  [0;35m✦ Max retries: 3[0m
-  [0;35m✦ Cascade:     ON (deps enforced)[0m
-  [0;35m✦ Fail limit:  10 agents before halt[0m
-  [0;35m✦ Parallel:    YES[0m
-  [0;35m✦ Free RAM:    10052MB[0m
-  [0;35m✦ Day:         Saturday 2026-02-28[0m
-
-
-[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
-[1m[0;35m  ✦ Phase 0 — Vision Agent (pre-flight) + Agent Doctor ✦[0m
-[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
-[1;33m[!][0m Phase 0: ALL agents failed (2/2) — marking FAILED
-[0;34m[15:40:45][0m [CLEANUP] Phase 0 complete — reclaiming resources...
-[0;34m[15:40:48][0m   Post-cleanup: 11347MB free RAM
-[1;33m[!][0m Phase 0 had issues — continuing (pre-flight is advisory)
-
-[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
-[1m[0;35m  ✦ Phase 1 — Context Engineer (codebase map) [CRITICAL] ✦[0m
-[1m[0;35m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
-[K[0;36m⠙ JARVIS [00:00:10] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠹ JARVIS [00:00:20] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠸ JARVIS [00:00:30] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠼ JARVIS [00:00:40] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠴ JARVIS [00:00:50] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠦ JARVIS [00:01:00] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠧ JARVIS [00:01:11] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠇ JARVIS [00:01:21] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠏ JARVIS [00:01:31] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠋ JARVIS [00:01:41] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠙ JARVIS [00:01:51] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠹ JARVIS [00:02:01] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠸ JARVIS [00:02:11] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠼ JARVIS [00:02:21] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠴ JARVIS [00:02:32] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠦ JARVIS [00:02:42] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠧ JARVIS [00:02:52] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠇ JARVIS [00:03:02] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠏ JARVIS [00:03:12] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠋ JARVIS [00:03:22] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠙ JARVIS [00:03:32] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠹ JARVIS [00:03:43] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠸ JARVIS [00:03:53] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠼ JARVIS [00:04:03] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠴ JARVIS [00:04:13] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠦ JARVIS [00:04:23] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠧ JARVIS [00:04:33] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠇ JARVIS [00:04:43] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠏ JARVIS [00:04:53] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠋ JARVIS [00:05:04] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠙ JARVIS [00:05:14] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠹ JARVIS [00:05:24] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠸ JARVIS [00:05:34] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠼ JARVIS [00:05:44] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠴ JARVIS [00:05:54] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠦ JARVIS [00:06:04] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠧ JARVIS [00:06:15] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠇ JARVIS [00:06:25] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠏ JARVIS [00:06:35] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠋ JARVIS [00:06:45] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠙ JARVIS [00:06:55] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠹ JARVIS [00:07:05] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠸ JARVIS [00:07:15] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠼ JARVIS [00:07:26] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠴ JARVIS [00:07:36] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠦ JARVIS [00:07:46] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠧ JARVIS [00:07:56] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠇ JARVIS [00:08:06] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠏ JARVIS [00:08:16] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠋ JARVIS [00:08:26] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠙ JARVIS [00:08:36] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠹ JARVIS [00:08:47] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠸ JARVIS [00:08:57] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠼ JARVIS [00:09:07] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠴ JARVIS [00:09:17] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠦ JARVIS [00:09:27] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠧ JARVIS [00:09:37] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠇ JARVIS [00:09:47] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠏ JARVIS [00:21:05] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠋ JARVIS [00:21:15] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠙ JARVIS [00:21:25] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠹ JARVIS [00:21:35] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠸ JARVIS [00:21:45] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠼ JARVIS [00:21:56] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠴ JARVIS [00:22:06] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠦ JARVIS [00:22:16] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠧ JARVIS [00:22:26] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠇ JARVIS [00:22:36] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠏ JARVIS [00:22:46] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠋ JARVIS [00:22:56] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m[K[0;36m⠙ JARVIS [00:23:07] │ Agent: context-engineer       │ Done: 3 │ Failed: 12 │ Restarts: 0 │ App files: 1799 changed[0m
