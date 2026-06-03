@@ -61,7 +61,7 @@ export default function ThreatHuntingPage() {
     try {
       const [h, i, c] = await Promise.allSettled([
         apiFetch<any>("/api/v1/hunting/sessions"),
-        apiFetch<any>("/api/v1/hunting/iocs"),
+        apiFetch<any>("/api/v1/threat-intel/iocs"),
         apiFetch<any>("/api/v1/hunting/coverage"),
       ]);
       if (h.status === "fulfilled") { const v = h.value as any; setHunts(Array.isArray(v) ? v : (v.sessions ?? v.hunts ?? v.items ?? [])); }
