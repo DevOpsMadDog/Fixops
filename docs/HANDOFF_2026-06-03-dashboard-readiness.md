@@ -142,5 +142,10 @@ Rate-limits: VERIFIED live (260 reqs → 25×429; global RateLimitMiddleware + a
 ### RED-TEAM FRONTIER STATUS: comprehensively audited (OWASP-class complete).
 Classes covered — storage-root/path-traversal (FIXED 11 engines), command-injection (clean), unsafe-deserialization (FIXED pickle integrity), XXE (clean/defusedxml), JWT/auth (clean), secrets-in-logs (clean), CORS (clean/env-driven/no-wildcard), security-headers (clean — CSP/HSTS/COOP/CORP/X-Frame/etc all set), rate-limits (verified live), egress/SSRF (fail-loud warning + founder fail-secure-default decision). 2-3 real gaps found+fixed; all subsequent audit angles return clean — the codebase is well-hardened. Further security work needs a founder decision (fail-secure airgap default) or a fundamentally novel angle.
 
+## EventBus correctness fixes (tick136-137) — RESOLVED (was a deferred "large pass")
+- **GC-dropped events FIXED**: emit() + ResponseInterceptorMiddleware used bare `asyncio.ensure_future` (weakly held) → tasks could be garbage-collected before running = silently dropped TrustGraph events. Added `EventBus._spawn` (instance `_bg_tasks` + done-callback discard) + module `_track_bg_task`. Bounded fix (one method + one helper), NOT the 100s-of-sites change I'd feared.
+- **Handler-coverage FIXED**: 18/29 declared event types had no default handler → emit() queued them forever; `evidence.collected` + `threat.detected` were actually emitted (silent queue bloat). Added generic drain-ack + `setdefault` loop keeping `_DEFAULT_HANDLERS` in lockstep with `ALL_EVENT_TYPES`. (Dedicated graph correlation for evidence/threat via TrustGraphBackbone = documented follow-up.)
+- **Bonus**: this also resolved the tick134 brain_pipeline `TestEdgeCases` capture flake (now 7/7) — same root cause.
+
 ## Founder-blocked (record + move on)
 push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
