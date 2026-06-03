@@ -1350,6 +1350,11 @@ class OnlineLearningStore:
         }
         with open(save_path, "wb") as f:
             _pickle.dump(state, f, protocol=4)  # nosemgrep: avoid-pickle
+        # Integrity sidecar: activates the SHA-256 verification on load (without it
+        # the load-path hash check silently no-ops — false tamper-protection).
+        import hashlib as _hl
+        sha256_path = save_path.with_suffix(save_path.suffix + ".sha256")
+        sha256_path.write_text(_hl.sha256(save_path.read_bytes()).hexdigest())
         logger.info("OnlineLearningStore: saved model '%s' to %s", model_id, save_path)
         return str(save_path)
 

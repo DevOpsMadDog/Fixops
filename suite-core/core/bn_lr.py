@@ -39,15 +39,24 @@ logger = logging.getLogger(__name__)
 
 
 def _persist_model(model: Any, path: Path) -> None:
-    """Persist a trained model while tolerating missing optional joblib."""
+    """Persist a trained model while tolerating missing optional joblib.
+
+    Also writes a ``.sha256`` integrity sidecar so the load-path verification is
+    actually active — without the sidecar the load's hash check silently no-ops,
+    giving a false sense of tamper-protection.
+    """
     if _joblib is not None:
         _joblib.dump(model, path)
-        return
+    else:
+        import pickle  # nosec B403 -- pickle used for ML model serialization only
 
-    import pickle  # nosec B403 -- pickle used for ML model serialization only
+        with path.open("wb") as handle:
+            pickle.dump(model, handle)  # nosemgrep: avoid-pickle
 
-    with path.open("wb") as handle:
-        pickle.dump(model, handle)  # nosemgrep: avoid-pickle
+    import hashlib
+
+    sha256_path = path.with_suffix(path.suffix + ".sha256")
+    sha256_path.write_text(hashlib.sha256(path.read_bytes()).hexdigest())
 
 
 def _restore_model(path: Path) -> Any:
