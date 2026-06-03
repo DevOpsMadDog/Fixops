@@ -326,3 +326,10 @@ exists only in the unmounted file. Corrected the spec's Routers/debate/impl + IN
 SOAR (`soar_router`) confirmed clean; all 8 ACs remain valid (200/401 verified live).
 Reinforced lesson: attribute routers via runtime `__module__`, never by filename. The
 playbooks collision is a concrete instance for the founder router-consolidation epic.
+
+### New governance spec — SPEC-024 Deception (tick158)
+Authored SPEC-024 (canaries/honeypots + decoy-asset analytics, honest-empty). Applied the
+SPEC-023 lesson — routers attributed via runtime `endpoint.__module__` from the start; both
+`deception_router` + `deception_analytics_router` are clean single-routers (no collision). 8 ACs
+grounded on live probes (all 200 honest-empty; no-key 401); deception suites 80 passed.
+**INDEX now 26/26 specs.** Remaining candidates: forensics, exec-reporting/evidence-export.
