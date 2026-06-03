@@ -233,3 +233,17 @@ fabricated data:
   (ctem/cycles, compliance/frameworks, compliance-scanner/results+profiles).
 - `/mission-control/threat-intel` → **ThreatIntelDashboard** — fixed tick146.
 `RiskRegister` / `SLADashboard` files exist but their routes redirect (`/compliance`).
+
+### Item (C) T3 hardening/lockdown slice — GREEN (tick150)
+
+Ran a fresh non-blast-radius T3 chunk validating the SCIF hardening surface:
+`storage_root_guard`, `trustgraph_backbone` + `event_bus`, dlp/secrets/deep-code/
+ide-backend engine hardening, `health`, `no_unsafe_asyncio_run`,
+`no_unawaited_coroutines_at_import`, `engine_router_import_sweep` (parametrized
+across all engines + routers), `owasp_regression_lockdown` (subprocess-timeout
+coverage, no hardcoded JWT secret, no credential in exception chain).
+**Result: 1769 passed / 0 failed (58s)** — prior ticks' hardening is live + guarded.
+
+UI NO-MOCKS confirmed clean by the directive's own grep: zero
+`src/data|fixtures|mock|sample|seed` imports, zero `MOCK_`/`lorem`/`Acme`/`John Doe`
+displayed values across `src/`.
