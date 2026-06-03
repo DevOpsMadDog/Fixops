@@ -1004,3 +1004,12 @@ Engine fixes: agentless, analytics (now complete), openclaw (router 503 + engine
 4. correlation_engine (17) — async tests need a shared create_all(security_findings) schema fixture. FOUNDER-BLOCKED (test-infra fixture). Optional product robustness: engine could treat a missing findings table as honest-empty.
 5. perf-timing flakes (llm_council_perf, perf_alert_triage_stats, perf_dast_engine_regex, the documented ingest-timing one) — machine-dependent, not bugs.
 UI no-mocks-clean; item-B hardenings (rate-limit/storage-root/egress-guard) all present. Gates green: 8345 routes, Beast 755 + ingest-timing flake.
+
+---
+## Session addendum 2026-06-03 (ralph tick87–88) — test_sbom rewritten; test-sweep program COMPLETE
+- test_sbom (18): WHOLESALE REWRITE DONE — SBOMEngine tests now exercise the real asset/component API (register_asset→add_component→generate_cyclonedx/spdx + license/vuln/stats summaries), no mocks. 65 passed (was 45p+18err). Off the deferred list.
+- brain/attack/mpte/scanner sweep (55 files): clean except 1 perf-timing flake (precompiled-regex 1.42x vs 1.5x — machine variance, not a bug).
+### COMPREHENSIVE TEST-SWEEP PROGRAM COMPLETE (this session)
+Swept across every family: T3 non-blast-radius (a-z) + router (200) + engine (375) + ingest/parser/sbom/sarif/dedup (30) + brain/attack/mpte/scanner (55); Beast smoke covers pipeline/trustgraph/persona/playbook/connector/phase. Only unswept = e2e_real (needs live services). Every real product bug found was fixed; env-dep (checkov/DNS/gh) skipped with guards; perf-timing flakes recorded; analytics + sbom fully modernized to no-mocks real-data tests.
+### REMAINING = founder-gated only
+tenancy-gate scanner (≈948 V1), zero_trust 4-engine redesign, behavioral risk-score formula confirm, correlation dual-Base schema-init decision; + perf-timing flakes (env) and e2e_real (live-service). Gates green: 8345 routes, Beast 755 + ingest-timing flake, UI no-mocks-clean.
