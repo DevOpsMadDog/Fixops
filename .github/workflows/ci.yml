@@ -535,8 +535,10 @@ jobs:
         run: npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts
       - name: TypeScript compile check
         working-directory: suite-ui/aldeci-ui-new
-        run: npx tsc --noEmit 2>&1 || true
-        continue-on-error: true
+        # SECURITY/QUALITY 2026-06-03: was `|| true` + continue-on-error (toothless — type
+        # errors never failed CI). UI is type-clean now (tsc -b exit 0); make it blocking to
+        # catch future type-shape regressions (the wrong-shape-API runtime-bug class).
+        run: npx tsc --noEmit
       - name: Build production bundle
         working-directory: suite-ui/aldeci-ui-new
         env:
