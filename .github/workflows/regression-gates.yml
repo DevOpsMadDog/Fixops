@@ -52,22 +52,19 @@ jobs:
           python -m pytest tests/test_engine_router_import_sweep.py \
             -x --tb=short --timeout=30 -q \
             --override-ini="addopts=" \
-            --override-ini="log_cli=false" \
-            || echo "import-sweep file may not exist yet -- skipping"
+            --override-ini="log_cli=false"
       - name: No unauthenticated /api/v1 endpoints (auth gate)
         run: |
           python -m pytest tests/test_no_unauthenticated_endpoints.py \
             -x --tb=short --timeout=300 -q \
             --override-ini="addopts=" \
-            --override-ini="log_cli=false" \
-            || echo "auth-gate file may not exist yet -- skipping"
+            --override-ini="log_cli=false"
       - name: UI NO-MOCKS static gate (SPEC-028)
         run: |
           python -m pytest tests/test_ui_no_mocks_static.py \
             -x --tb=short --timeout=30 -q \
             --override-ini="addopts=" \
-            --override-ini="log_cli=false" \
-            || echo "ui-no-mocks file may not exist yet -- skipping"
+            --override-ini="log_cli=false"
       - name: Perf lockdown (benchmarks/)
         run: |
           python -m pytest tests/benchmarks/ \
