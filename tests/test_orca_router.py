@@ -33,6 +33,15 @@ for _p in ("suite-core", "suite-api"):
     if _abs not in sys.path:
         sys.path.insert(0, _abs)
 
+# orca_router was archived as a confirmed-dead router (SPEC-010 REQ-010-03:
+# zero imports across all suites, git mv to archive/dead_routers/, boot
+# unchanged). Skip cleanly rather than erroring on the missing module; the
+# OrcaSecurityEngine still exists if the connector is ever re-mounted.
+pytest.importorskip(
+    "apps.api.orca_router",
+    reason="orca_router archived as a confirmed-dead router (SPEC-010 REQ-010-03)",
+)
+
 
 # ---------------------------------------------------------------------------
 # Fixtures

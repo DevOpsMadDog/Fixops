@@ -46,7 +46,7 @@ class TestAuthenticateWs:
     def test_dev_mode_no_creds_passes(self):
         with (
             patch("apps.api.ws_events_router._DEV_MODE", True),
-            patch("apps.api.ws_events_router._EXPECTED_TOKENS", ()),
+            patch("apps.api.ws_events_router._load_api_tokens", return_value=()),
             patch("apps.api.ws_events_router._HAS_JWT_AUTH", False),
         ):
             assert _authenticate_ws(None, None) is True
@@ -54,7 +54,7 @@ class TestAuthenticateWs:
     def test_valid_api_key_passes(self):
         with (
             patch("apps.api.ws_events_router._DEV_MODE", False),
-            patch("apps.api.ws_events_router._EXPECTED_TOKENS", ("secret-key",)),
+            patch("apps.api.ws_events_router._load_api_tokens", return_value=("secret-key",)),
             patch("apps.api.ws_events_router._HAS_JWT_AUTH", False),
         ):
             assert _authenticate_ws("secret-key", None) is True
@@ -62,7 +62,7 @@ class TestAuthenticateWs:
     def test_valid_token_alias_passes(self):
         with (
             patch("apps.api.ws_events_router._DEV_MODE", False),
-            patch("apps.api.ws_events_router._EXPECTED_TOKENS", ("tok123",)),
+            patch("apps.api.ws_events_router._load_api_tokens", return_value=("tok123",)),
             patch("apps.api.ws_events_router._HAS_JWT_AUTH", False),
         ):
             assert _authenticate_ws(None, "tok123") is True
@@ -70,7 +70,7 @@ class TestAuthenticateWs:
     def test_invalid_key_rejected(self):
         with (
             patch("apps.api.ws_events_router._DEV_MODE", False),
-            patch("apps.api.ws_events_router._EXPECTED_TOKENS", ("correct-key",)),
+            patch("apps.api.ws_events_router._load_api_tokens", return_value=("correct-key",)),
             patch("apps.api.ws_events_router._HAS_JWT_AUTH", False),
         ):
             assert _authenticate_ws("wrong-key", None) is False
@@ -78,7 +78,7 @@ class TestAuthenticateWs:
     def test_missing_credential_rejected_when_auth_required(self):
         with (
             patch("apps.api.ws_events_router._DEV_MODE", False),
-            patch("apps.api.ws_events_router._EXPECTED_TOKENS", ("real-token",)),
+            patch("apps.api.ws_events_router._load_api_tokens", return_value=("real-token",)),
             patch("apps.api.ws_events_router._HAS_JWT_AUTH", False),
         ):
             assert _authenticate_ws(None, None) is False
@@ -239,7 +239,7 @@ class TestWsEventsEndpoint:
 
         with (
             patch("apps.api.ws_events_router._DEV_MODE", False),
-            patch("apps.api.ws_events_router._EXPECTED_TOKENS", ("valid",)),
+            patch("apps.api.ws_events_router._load_api_tokens", return_value=("valid",)),
             patch("apps.api.ws_events_router._HAS_JWT_AUTH", False),
         ):
             client = TestClient(app)
@@ -256,7 +256,7 @@ class TestWsEventsEndpoint:
 
         with (
             patch("apps.api.ws_events_router._DEV_MODE", True),
-            patch("apps.api.ws_events_router._EXPECTED_TOKENS", ()),
+            patch("apps.api.ws_events_router._load_api_tokens", return_value=()),
             patch("apps.api.ws_events_router._HAS_JWT_AUTH", False),
             patch("apps.api.ws_events_router._get_broadcaster", return_value=broadcaster),
         ):
@@ -276,7 +276,7 @@ class TestWsEventsEndpoint:
 
         with (
             patch("apps.api.ws_events_router._DEV_MODE", True),
-            patch("apps.api.ws_events_router._EXPECTED_TOKENS", ()),
+            patch("apps.api.ws_events_router._load_api_tokens", return_value=()),
             patch("apps.api.ws_events_router._HAS_JWT_AUTH", False),
             patch("apps.api.ws_events_router._get_broadcaster", return_value=broadcaster),
         ):
@@ -304,7 +304,7 @@ class TestWsEventsEndpoint:
 
         with (
             patch("apps.api.ws_events_router._DEV_MODE", True),
-            patch("apps.api.ws_events_router._EXPECTED_TOKENS", ()),
+            patch("apps.api.ws_events_router._load_api_tokens", return_value=()),
             patch("apps.api.ws_events_router._HAS_JWT_AUTH", False),
             patch("apps.api.ws_events_router._get_broadcaster", return_value=broadcaster),
         ):
@@ -345,7 +345,7 @@ class TestWsEventsEndpoint:
 
         with (
             patch("apps.api.ws_events_router._DEV_MODE", True),
-            patch("apps.api.ws_events_router._EXPECTED_TOKENS", ()),
+            patch("apps.api.ws_events_router._load_api_tokens", return_value=()),
             patch("apps.api.ws_events_router._HAS_JWT_AUTH", False),
             patch("apps.api.ws_events_router._get_broadcaster", return_value=broadcaster),
         ):
