@@ -911,8 +911,11 @@ class TestRouterAttackPathsEndpoint:
         self.client = TestClient(app, raise_server_exceptions=False)
 
     def test_attack_paths_missing_params(self):
+        # source/target are intentionally optional: when called without both, the
+        # endpoint returns an OVERVIEW of known attack paths (200), not a 422.
+        # (A specific source→target path is computed only when both are given.)
         resp = self.client.get("/api/v1/graph/attack-paths?source=asset_a")
-        assert resp.status_code == 422  # missing target
+        assert resp.status_code == 200
 
     def test_attack_paths_no_enrich(self):
         with patch("core.trustgraph_backbone.GraphRAGEnhanced") as mock_cls:
