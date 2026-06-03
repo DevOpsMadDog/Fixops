@@ -118,3 +118,61 @@ def test_no_unauthenticated_api_v1_endpoints(client: TestClient):
         "Add router-level dependencies=[Depends(api_key_auth)] (or allowlist if intentionally "
         f"public):\n  " + "\n  ".join(gaps)
     )
+
+
+_DUMMY_ID = "00000000-0000-0000-0000-000000000000"
+
+
+def _path_param_routes(app):
+    """Path-param /api/v1 routes with {id} substituted by a dummy, non-allowlisted."""
+    out = set()
+    for r in app.routes:
+        p = getattr(r, "path", "")
+        if "{" not in p or not p.startswith("/api/v1/"):
+            continue
+        probe = re.sub(r"\{[^}]+\}", _DUMMY_ID, p)
+        if _ALLOWLIST.search(probe):
+            continue
+        for m in (getattr(r, "methods", None) or set()) - {"HEAD", "OPTIONS"}:
+            out.add((m, probe))
+    return out
+
+
+def test_no_unauthenticated_path_param_endpoints(client: TestClient):
+    """Companion to the no-path-param sweep: probe {id} routes with a dummy id.
+
+    Criterion is intentionally lenient (same _OK incl 404/405): with no key, a protected
+    route returns 401/403 BEFORE the handler; a bypass that reaches the handler returns the
+    handler's status (200 data / 422 validation / 500). A 404 is inconclusive (handler ran and
+    didn't find the dummy id, OR the substituted path didn't match a sub-app mount) — tolerated
+    to avoid false positives. This catches a path-param-only router shipped with no auth.
+    """
+    app = client.app
+    routes = _path_param_routes(app)
+    assert routes, "no path-param /api/v1 routes discovered — would be a false pass"
+
+    gaps = []
+    for method, path in sorted(routes):
+        try:
+            if method == "GET":
+                resp = client.get(path + "?org_id=zz")
+            elif method == "POST":
+                resp = client.post(path, json={})
+            elif method == "PUT":
+                resp = client.put(path, json={})
+            elif method == "DELETE":
+                resp = client.delete(path)
+            elif method == "PATCH":
+                resp = client.patch(path, json={})
+            else:
+                continue
+        except Exception:  # noqa: BLE001
+            continue
+        if resp.status_code not in _OK:
+            gaps.append(f"{resp.status_code} {method} {path}")
+
+    assert not gaps, (
+        "Unauthenticated path-param /api/v1 endpoints reached the handler without a key "
+        "(200/422/500 = auth bypassed). Add router-level dependencies=[Depends(api_key_auth)]:\n  "
+        + "\n  ".join(gaps)
+    )
