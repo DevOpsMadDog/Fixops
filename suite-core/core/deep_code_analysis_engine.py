@@ -18,13 +18,72 @@ from __future__ import annotations
 import ast
 import json
 import logging
+import os
 import re
 import sqlite3
+import tempfile
 import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+
+# ---------------------------------------------------------------------------
+# Storage-root allowlist (SCIF hardening)
+# ---------------------------------------------------------------------------
+# analyze_repo walks a caller-supplied root_path (rglob + read_text). file paths
+# stay relative to root, but root_path itself must be confined to an allowlisted
+# base — otherwise an authenticated caller could read arbitrary files (e.g.
+# /etc/passwd, ~/.ssh) by passing them as root_path. Configure with
+# ``FIXOPS_DCA_ALLOWED_ROOTS`` (os.pathsep-separated absolute paths). Default:
+# the system scratch dir + IDE-gateway fleet workspace (blocks /etc, /home,
+# /root, app source; permits scratch/workspace). NO arbitrary filesystem read.
+_DCA_ALLOWED_ROOTS_ENV = "FIXOPS_DCA_ALLOWED_ROOTS"
+
+
+def _default_dca_allowed_roots() -> List[str]:
+    candidates = [
+        tempfile.gettempdir(),
+        "/tmp/fixops-fleet",
+        "/private/tmp/fixops-fleet",
+    ]
+    out: List[str] = []
+    for c in candidates:
+        try:
+            out.append(os.path.realpath(os.path.abspath(c)))
+        except OSError:
+            continue
+    return out
+
+
+def _dca_allowed_roots(extra: Optional[List[str]] = None) -> List[str]:
+    env = os.environ.get(_DCA_ALLOWED_ROOTS_ENV, "").strip()
+    if env:
+        roots = [
+            os.path.realpath(os.path.abspath(p))
+            for p in env.split(os.pathsep)
+            if p.strip()
+        ]
+    else:
+        roots = _default_dca_allowed_roots()
+    if extra:
+        roots = roots + [os.path.realpath(os.path.abspath(p)) for p in extra if p]
+    return roots
+
+
+def _assert_dca_root_allowed(root_path: str, extra: Optional[List[str]] = None) -> None:
+    """Raise ValueError if root_path is outside the storage-root allowlist."""
+    if not root_path:
+        raise ValueError("root_path is required")
+    real = os.path.realpath(os.path.abspath(root_path))
+    for base in _dca_allowed_roots(extra):
+        if real == base or real.startswith(base + os.sep):
+            return
+    raise ValueError(
+        "root_path is not within an allowed storage root "
+        f"(set {_DCA_ALLOWED_ROOTS_ENV} to permit it)"
+    )
 
 # ---------------------------------------------------------------------------
 # Tree-sitter TypeScript — optional, imported lazily so the engine still
@@ -104,10 +163,16 @@ class DeepCodeAnalysisEngine:
     Thread-safe via RLock. Multi-tenant via org_id. Stdlib only.
     """
 
-    def __init__(self, data_dir: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        data_dir: Optional[str] = None,
+        allowed_roots: Optional[List[str]] = None,
+    ) -> None:
         self._data_dir = Path(data_dir) if data_dir else Path(_DEFAULT_DATA_DIR)
         self._data_dir.mkdir(parents=True, exist_ok=True)
         self._db_path = str(self._data_dir / "dca.db")
+        # Extra storage-root allowlist entries (beyond FIXOPS_DCA_ALLOWED_ROOTS / defaults).
+        self._allowed_roots = list(allowed_roots) if allowed_roots else None
         self._lock = threading.RLock()
         self._init_db()
 
@@ -1362,6 +1427,7 @@ class DeepCodeAnalysisEngine:
         Non-Python source files contribute only to language counts; their
         analyzers are stubs (NotImplementedError is trapped and logged).
         """
+        _assert_dca_root_allowed(root_path, self._allowed_roots)
         root = Path(root_path)
         if not root.exists() or not root.is_dir():
             raise ValueError(f"root_path not a directory: {root_path}")
