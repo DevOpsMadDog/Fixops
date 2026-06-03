@@ -85,6 +85,22 @@ class DatabaseManager:
             # Table creation failure must never prevent startup
             logger.warning("Enterprise table creation failed (non-fatal): %s", _exc)
 
+        # Also ensure the enterprise SECURITY models exist (security_findings,
+        # finding_correlations, security_incidents, policy_rules, vulnerability_
+        # intelligence, etc.). These live on a SEPARATE declarative Base
+        # (core.models.enterprise.base_sqlite.Base) that the create_all above
+        # does NOT cover, so on a fresh DB the correlation/findings engines hit
+        # "no such table: security_findings". The two Bases are table-disjoint
+        # and create_all is CREATE TABLE IF NOT EXISTS, so this is purely additive.
+        try:
+            from core.models.enterprise import security_sqlite as _sec  # noqa: F401,PLC0415  (registers models)
+            from core.models.enterprise.base_sqlite import Base as _SecBase  # noqa: PLC0415
+            async with cls._engine.begin() as _conn:
+                await _conn.run_sync(_SecBase.metadata.create_all)
+            logger.info("Enterprise security tables ensured (create_all)")
+        except Exception as _exc:  # noqa: BLE001
+            logger.warning("Enterprise security table creation failed (non-fatal): %s", _exc)
+
         # Set up connection event handlers
         cls._setup_event_handlers()
 

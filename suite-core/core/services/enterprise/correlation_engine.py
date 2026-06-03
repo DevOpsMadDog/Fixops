@@ -236,7 +236,9 @@ class CorrelationEngine:
             total_findings=len(finding_ids),
             correlated_findings=len(results),
             total_time_ms=total_time * 1000,
-            avg_time_per_finding_us=(total_time / len(finding_ids)) * 1_000_000,
+            avg_time_per_finding_us=(
+                (total_time / len(finding_ids)) * 1_000_000 if finding_ids else 0.0
+            ),
         )
 
         _emit_event("correlation_engine.batch_correlate_findings", {

@@ -501,6 +501,10 @@ class CacheService:
 
     async def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache performance statistics"""
+        # No Redis configured/connected (e.g. air-gapped or test env) → honest
+        # empty stats rather than crashing on None.info().
+        if self._redis_client is None:
+            return {}
         try:
             info = await self._redis_client.info()
             return {
