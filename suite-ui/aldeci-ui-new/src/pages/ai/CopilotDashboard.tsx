@@ -358,13 +358,9 @@ export default function CopilotDashboard() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1.5">Linked Findings</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {["CVE-2024-1234", "FIND-0042", "FIND-0078"].map((finding) => (
-                      <Badge key={finding} variant="outline" className="text-xs font-mono cursor-pointer hover:bg-muted/40">
-                        {finding}
-                      </Badge>
-                    ))}
-                  </div>
+                  {/* NO MOCKS: no conversation-linked-findings source is wired yet —
+                      show an honest empty state instead of fabricated CVE/FIND IDs. */}
+                  <p className="text-xs text-muted-foreground/70 italic">No findings linked to this conversation yet.</p>
                 </div>
                 <Separator />
                 <div className="text-xs text-muted-foreground space-y-1.5">
