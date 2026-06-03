@@ -43,7 +43,8 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { API_BASE_URL, API_KEY, getApiKey, DEFAULT_ORG_ID } from "@/lib/api-config";
+import { API_BASE_URL, API_KEY, getApiKey } from "@/lib/api-config";
+import { getStoredOrgId } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // Fetch helper
@@ -52,7 +53,7 @@ import { API_BASE_URL, API_KEY, getApiKey, DEFAULT_ORG_ID } from "@/lib/api-conf
 async function apiFetch<T>(path: string): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "X-Org-ID": DEFAULT_ORG_ID,
+    "X-Org-ID": getStoredOrgId(),
   };
   if (getApiKey()) headers["X-API-Key"] = getApiKey();
 
