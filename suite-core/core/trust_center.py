@@ -162,9 +162,9 @@ class TrustCenterManager:
     Usage::
 
         mgr = TrustCenterManager()
-        mgr.configure(TrustPageConfig(org_id="acme", org_name="Acme Corp"))
-        mgr.add_badge(ComplianceBadge(framework="SOC2", status="certified", org_id="acme"))
-        page = mgr.get_public_page("acme")
+        mgr.configure(TrustPageConfig(org_id="example-org", org_name="Example Org Inc"))
+        mgr.add_badge(ComplianceBadge(framework="SOC2", status="certified", org_id="example-org"))
+        page = mgr.get_public_page("example-org")
     """
 
     _instance: Optional[TrustCenterManager] = None
