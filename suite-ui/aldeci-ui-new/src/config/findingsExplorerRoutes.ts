@@ -137,7 +137,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Security baseline drift — findings that deviate from approved posture",
       apiPath: "/api/v1/findings/drift",
       itemsKey: "findings",
-      statsPath: "/api/v1/findings/drift/stats",
+      statsPath: "/api/v1/cloud-drift/stats",
       severityKey: "severity",
       columns: [
         { key: "asset",        label: "Asset",     className: "max-w-[220px]" },
@@ -158,7 +158,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Assets with outdated security baselines requiring re-evaluation",
       apiPath: "/api/v1/findings/drift",
       itemsKey: "findings",
-      statsPath: "/api/v1/findings/drift/stats",
+      statsPath: "/api/v1/cloud-drift/stats",
       severityKey: "severity",
       columns: [
         { key: "asset",       label: "Asset",      className: "max-w-[220px]" },
@@ -806,7 +806,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Historical security posture scores and improvement trends by domain",
       apiPath: "/api/v1/posture-history/snapshots",
       itemsKey: "domains",
-      statsPath: "/api/v1/posture-history/stats",
+      statsPath: "/api/v1/posture-history/summary",
       severityKey: null,
       filterOptions: [],
       columns: [
@@ -826,7 +826,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
     props: {
       title: "Risk Heatmap",
       description: "Business unit financial risk exposure heatmap",
-      apiPath: "/api/v1/risk/heatmap",
+      apiPath: "/api/v1/risk/top",
       itemsKey: "heatmap",
       statsPath: "/api/v1/risk/top",
       severityKey: "severity",
