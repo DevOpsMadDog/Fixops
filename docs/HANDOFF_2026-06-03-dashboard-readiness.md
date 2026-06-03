@@ -35,5 +35,16 @@ UI `npm run build` green (~3.8–4.5s) · `create_app()` boots 8353 routes · Be
 - `posture-history/domains` (apiPath, 807) + `posture-history/stats` (809) — has `/snapshots`/`/trends`/`/delta`/`/summary`. Pick the correct list + verify `/delta` as the stats dict.
 - `risk/heatmap` (apiPath, 829) — no heatmap route on `composite_risk_router`. Add a real risk-matrix endpoint.
 
+## Tick 2 (same day) — dashboard sweep closed + systemic shadowing fix (6 more commits)
+- **findings/summary + /sla** — fixed route shadowing (`/{finding_id}` swallowed them → 404) AND wrong data source (read empty in-memory store, not engine). Now real aggregation (1000 findings, 97.2% SLA). (`1a254487`)
+- Repointed `scoring/stats→risk-scoring/summary`, `posture-history/domains→/snapshots` (`fc54805d`); added real `threat-modeling-pipeline/stats` + `security-okrs/stats` (`86f199cf`); final 3 `findings/drift/stats→cloud-drift/stats`, `risk/heatmap→risk/top`, `posture-history/stats→/summary` (`2cf97d67`).
+- **MILESTONE**: full re-probe of all **208** dashboard endpoints (dashboardRoutes + findingsExplorerRoutes) → **0 remaining 404s**.
+- **SYSTEMIC route-shadowing fix** (`1cf9a368`): AST+TestClient sweep found 16 literal GET routes shadowed by an earlier `/{param}`. Shared `apps/api/_route_priority.prioritize_literal_routes(router)`. **Revived 15** across evidence-collector, webhook-subscriptions, exposure-cases, secrets-scanner (7!), findings.
+
+## REMAINING RUNWAY (next ticks)
+1. **policies/conflicts + /violations** — cross-router dup-prefix collision: `policies_router.py` AND `policy_router.py` both prefix `/api/v1/policies`; `/{id}` in one shadows `/conflicts` in the other at the app level. Needs the duplicate-prefix consolidation (see memory `project_duplicate_routes_2026-06-03`) or an app-level route reprioritization after all includes — NOT a per-router reorder.
+2. The earlier findingsExplorer follow-ups are now ALL DONE (closed this tick).
+3. (B) Red-team hardenings (storage-root allowlists, rate-limits) — investigate coverage next.
+
 ## Founder-blocked (record + move on)
 push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
