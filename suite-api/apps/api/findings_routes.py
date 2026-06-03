@@ -289,6 +289,24 @@ def _engine_findings_for_org(org_id: str) -> List[Dict[str, Any]]:
     return mirrored
 
 
+def _all_findings_for_org(org_id: str) -> List[Dict[str, Any]]:
+    """Union of in-memory (API-created) + engine-DB findings for the org, deduped by id.
+
+    The same set the list endpoint serves — used by /summary and /sla so KPI metrics
+    reflect REAL findings (engine DB), not just the in-memory store (which is empty in
+    a fresh deployment). NO MOCKS: honest zeros when nothing is ingested.
+    """
+    combined: Dict[str, Dict[str, Any]] = {}
+    for f in _findings_store.values():
+        if f.get("org_id") == org_id and f.get("id"):
+            combined[f["id"]] = f
+    for f in _engine_findings_for_org(org_id):
+        fid = f.get("id")
+        if fid and fid not in combined:
+            combined[fid] = f
+    return list(combined.values())
+
+
 @router.get("", response_model=Dict[str, Any])
 async def list_findings(
     severity: Optional[str] = Query(None),
@@ -639,7 +657,7 @@ async def get_findings_summary(org_id: str = Depends(get_org_id)) -> FindingSumm
     Returns:
         FindingSummary with key metrics and trends
     """
-    findings = [f for f in _findings_store.values() if f.get("org_id") == org_id]
+    findings = _all_findings_for_org(org_id)
 
     by_severity = {}
     by_status = {}
@@ -724,7 +742,7 @@ async def get_sla_status(org_id: str = Depends(get_org_id)) -> SLAStatus:
     Returns:
         SLAStatus with compliance metrics
     """
-    findings = [f for f in _findings_store.values() if f.get("org_id") == org_id]
+    findings = _all_findings_for_org(org_id)
 
     sla_map = {
         "critical": timedelta(days=1),
@@ -867,7 +885,7 @@ async def export_findings(
     Note:
         In production, would stream response as StreamingResponse
     """
-    findings = [f for f in _findings_store.values() if f.get("org_id") == org_id]
+    findings = _all_findings_for_org(org_id)
 
     # Apply filters from export_req.filters if provided
     if export_req.filters:
@@ -888,3 +906,24 @@ async def export_findings(
     else:  # csv
         logger.info(f"Export {export_id}: CSV with {len(findings)} findings")
         return {"export_id": export_id, "format": "csv", "status": "ready"}
+
+
+def _prioritize_literal_routes() -> None:
+    """Ensure literal sub-paths (e.g. /summary, /sla) are matched BEFORE the greedy
+    ``/{finding_id}`` param route.
+
+    Starlette matches routes in list order, and ``/{finding_id}`` (defined earlier in
+    this module) otherwise swallows ``GET /findings/summary`` and ``/findings/sla``
+    (resolving them as a finding_id → 404). Reordering once at import time, before the
+    router is mounted, fixes the shadowing without relocating handler bodies.
+    """
+    literal, param = [], []
+    for route in list(router.routes):
+        if "{finding_id}" in getattr(route, "path", ""):
+            param.append(route)
+        else:
+            literal.append(route)
+    router.routes[:] = literal + param
+
+
+_prioritize_literal_routes()

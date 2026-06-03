@@ -53,7 +53,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "New findings inbox — open findings awaiting triage",
       apiPath: "/api/v1/findings",
       itemsKey: "findings",
-      statsPath: "/api/v1/findings/stats",
+      statsPath: "/api/v1/findings/summary",
       severityKey: "severity",
       columns: [
         { key: "title",      label: "Title",    className: "max-w-[260px]" },
@@ -677,7 +677,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Personal data fields detected across data stores and APIs",
       apiPath: "/api/v1/findings",
       itemsKey: "findings",
-      statsPath: "/api/v1/findings/stats",
+      statsPath: "/api/v1/findings/summary",
       severityKey: "severity",
       filterOptions: ["critical", "high", "medium", "low"],
       columns: [
