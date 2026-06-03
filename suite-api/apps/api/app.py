@@ -2243,6 +2243,18 @@ def create_app() -> FastAPI:
                 "continuing with per-call-site guards only",
                 _eg_exc,
             )
+    else:
+        # SCIF posture (fail-loud): enforced air-gap is the secure deployment mode.
+        # When it is not set the socket-level egress guard (SPEC-005) is NOT installed
+        # and outbound network access is UNRESTRICTED (SSRF / data-exfil surface across
+        # the connector/feed/LLM layers). Surface this loudly so a SCIF operator cannot
+        # silently ship with egress open.
+        logging.getLogger(__name__).warning(
+            "airgap: FIXOPS_AIRGAP_MODE is not 'enforced' (got %r) — the socket-level "
+            "egress guard is NOT active and outbound network access is UNRESTRICTED. "
+            "For air-gapped / SCIF deployment set FIXOPS_AIRGAP_MODE=enforced.",
+            _airgap_mode or "<unset>",
+        )
 
     # ── Production observability: Sentry + StatsD (cred-gated, honest no-op) ─
     try:
