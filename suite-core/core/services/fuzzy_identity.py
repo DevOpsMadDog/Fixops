@@ -574,13 +574,29 @@ class FuzzyIdentityResolver:
             )
             for row in cursor:
                 by_strategy[row[0]] = row[1]
+
+            # Ingest-first: canonical/alias counts must be scoped to the org when one is
+            # given (the in-memory _canonical_names is global → would leak other orgs'
+            # assets to a fresh tenant). Count from the org-scoped DB tables instead.
+            if org_id:
+                canonical_assets = self._conn.execute(
+                    "SELECT COUNT(*) FROM canonical_assets WHERE org_id = ?", [org_id]
+                ).fetchone()[0]
+                total_aliases = self._conn.execute(
+                    "SELECT COUNT(*) FROM asset_aliases WHERE canonical_id IN "
+                    "(SELECT canonical_id FROM canonical_assets WHERE org_id = ?)",
+                    [org_id],
+                ).fetchone()[0]
+            else:
+                canonical_assets = len(self._canonical_names)
+                total_aliases = sum(len(a) for a in self._canonical_names.values())
         return {
             "total_resolutions": total,
             "successful": resolved,
             "resolution_rate": round(resolved / total, 4) if total else 0,
             "by_strategy": by_strategy,
-            "canonical_assets": len(self._canonical_names),
-            "total_aliases": sum(len(a) for a in self._canonical_names.values()),
+            "canonical_assets": canonical_assets,
+            "total_aliases": total_aliases,
         }
 
     def list_canonical(
