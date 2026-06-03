@@ -140,7 +140,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "SIEM Output",
       description: "SIEM forwarding targets, event throughput, and alert pipeline health",
-      apiPath: "/api/v1/siem-output/events",
+      apiPath: "/api/v1/siem-output/targets",
       itemsKey: "events",
       statsPath: "/api/v1/siem-output/stats",
     },
@@ -278,7 +278,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Awareness Program",
       description: "Full security awareness program overview and enrollment",
-      apiPath: "/api/v1/awareness-program/programs",
+      apiPath: "/api/v1/awareness-program/",
       itemsKey: "programs",
       statsPath: "/api/v1/awareness-program/summary",
     },
@@ -300,7 +300,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Capacity Planning",
       description: "Infrastructure capacity forecasts and resource utilization",
-      apiPath: "/api/v1/capacity-planning/plans",
+      apiPath: "/api/v1/capacity-planning/teams",
       itemsKey: "plans",
       statsPath: "/api/v1/capacity-planning/summary",
     },
@@ -311,7 +311,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Certificate Management",
       description: "TLS certificate inventory, expiry tracking, and CA hierarchy",
-      apiPath: "/api/v1/certificates/certificates",
+      apiPath: "/api/v1/certificates/",
       itemsKey: "certificates",
       statsPath: "/api/v1/certificates/stats",
     },
@@ -333,9 +333,9 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "CISO Report",
       description: "Executive-ready security posture summary for board reporting",
-      apiPath: "/api/v1/ciso-report/sections",
+      apiPath: "/api/v1/ciso-report/top-risks",
       itemsKey: "sections",
-      statsPath: "/api/v1/ciso-report/stats",
+      statsPath: "/api/v1/ciso-report/risk-delta",
     },
   },
   // ── Cloud Access Security ────────────────────────────────────────────────
@@ -357,7 +357,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
       description: "Multi-cloud account inventory, hygiene scores, and access reviews",
       apiPath: "/api/v1/cloud-accounts/accounts",
       itemsKey: "accounts",
-      statsPath: "/api/v1/cloud-accounts/stats",
+      statsPath: "/api/v1/cloud-accounts/risk-summary",
     },
   },
   // ── Cloud Compliance ─────────────────────────────────────────────────────
@@ -465,7 +465,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Crypto Key Management",
       description: "Key inventory, rotation schedules, and HSM integration status",
-      apiPath: "/api/v1/crypto-keys/keys",
+      apiPath: "/api/v1/crypto-keys/",
       itemsKey: "keys",
       statsPath: "/api/v1/crypto-keys/stats",
     },
@@ -487,7 +487,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Cyber Threat Modeling",
       description: "Threat model library, STRIDE analysis, and DFD-based risk scoring",
-      apiPath: "/api/v1/cyber-threat-models/models",
+      apiPath: "/api/v1/cyber-threat-models/unmitigated",
       itemsKey: "models",
       statsPath: "/api/v1/cyber-threat-models/summary",
     },
@@ -586,7 +586,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Exception Workflow",
       description: "Security exception requests, approvals, and expiry tracking",
-      apiPath: "/api/v1/exception-workflow/exceptions",
+      apiPath: "/api/v1/exception-workflow/requests",
       itemsKey: "exceptions",
       statsPath: "/api/v1/exception-workflow/summary",
     },
@@ -619,7 +619,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Incident Communications",
       description: "Stakeholder communication logs, status page updates, and notification history",
-      apiPath: "/api/v1/incident-comms/communications",
+      apiPath: "/api/v1/incident-comms/comms",
       itemsKey: "communications",
       statsPath: "/api/v1/incident-comms/stats",
     },
@@ -630,9 +630,9 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Incident Costs",
       description: "Financial impact tracking for security incidents and breaches",
-      apiPath: "/api/v1/incident-costs/costs",
+      apiPath: "/api/v1/incident-costs/summaries",
       itemsKey: "costs",
-      statsPath: "/api/v1/incident-costs/stats",
+      statsPath: "/api/v1/incident-costs/analytics",
     },
   },
   // ── Incident KB ──────────────────────────────────────────────────────────
@@ -641,7 +641,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Incident Knowledge Base",
       description: "Playbook articles, runbooks, and post-mortem documentation",
-      apiPath: "/api/v1/incident-kb/articles",
+      apiPath: "/api/v1/incident-kb/",
       itemsKey: "articles",
       statsPath: "/api/v1/incident-kb/stats",
     },
@@ -685,7 +685,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Alert Enrichment",
       description: "Contextual enrichment pipeline for SIEM and EDR alerts",
-      apiPath: "/api/v1/alert-enrichment/alerts",
+      apiPath: "/api/v1/alert-enrichment/queue",
       itemsKey: "alerts",
       statsPath: "/api/v1/alert-enrichment/summary",
     },
@@ -718,9 +718,9 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Attack Surface",
       description: "External exposure inventory, reachability, and attack surface reduction",
-      apiPath: "/api/v1/attack-surface/exposures",
+      apiPath: "/api/v1/attack-surface/exposed",
       itemsKey: "exposures",
-      statsPath: "/api/v1/attack-surface/stats",
+      statsPath: "/api/v1/attack-surface/score",
     },
   },
   // ── Cloud Posture ────────────────────────────────────────────────────────
@@ -751,7 +751,7 @@ export const DASHBOARD_ROUTES: DashboardRouteEntry[] = [
     props: {
       title: "Ransomware Protection",
       description: "Ransomware pattern detection, backup health, and recovery readiness",
-      apiPath: "/api/v1/ransomware-protection/patterns",
+      apiPath: "/api/v1/ransomware-protection/detections",
       itemsKey: "patterns",
       statsPath: "/api/v1/ransomware-protection/summary",
     },
