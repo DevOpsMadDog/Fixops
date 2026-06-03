@@ -217,3 +217,19 @@ input placeholders, `"CVE-0000"` sentinel fallbacks, editor/tester default input
 **Session NO-MOCKS total: 5 dashboards made real** (ArchReview, IdentityLifecycle,
 ComplianceCalendar, ThreatIntelDashboard, CopilotDashboard) + rate-limit coverage
 confirmed already-global (no router gap).
+
+### Mission-control / executive suite — NO-MOCKS verified clean (tick149)
+
+The highest customer/investor-visibility surface audited end-to-end. All active
+(non-redirect) routes confirmed firing real `/api/v1` calls on mount with no
+fabricated data:
+- `/executive` → **CISODashboard** — 6 real `apiFetch` endpoints; every fallback
+  is honest `?? 0` / `?? "—"`; no static data arrays. Gold standard.
+- `/mission-control/live-feed` → **LiveFeed** — react-query + WebSocket
+  `/ws/events` + EventSource SSE. Genuinely live.
+- `/mission-control/risk` → **RiskOverview** — `impactAreas` values from the `ov`
+  query (labels static, values live).
+- `/mission-control/ctem` → **ComplianceDashboard** — 4 react-query endpoints
+  (ctem/cycles, compliance/frameworks, compliance-scanner/results+profiles).
+- `/mission-control/threat-intel` → **ThreatIntelDashboard** — fixed tick146.
+`RiskRegister` / `SLADashboard` files exist but their routes redirect (`/compliance`).
