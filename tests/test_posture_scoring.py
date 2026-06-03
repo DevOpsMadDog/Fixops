@@ -400,14 +400,18 @@ class TestWeightedAggregate:
         result = scorer.calculate_score("org1")
         assert len(result.components) == 6
 
-    def test_calculate_score_grade_set(self, scorer: PostureScorer) -> None:
-        result = scorer.calculate_score("org1")
+    def test_calculate_score_grade_set(self, scorer_with_data: PostureScorer) -> None:
+        # An org WITH ingested data gets a real letter grade.
+        result = scorer_with_data.calculate_score("org1")
         assert result.grade in {"A", "B", "C", "D", "F"}
 
-    def test_no_data_yields_baseline_aggregate(self, scorer: PostureScorer) -> None:
+    def test_no_data_yields_honest_empty(self, scorer: PostureScorer) -> None:
+        # Ingest-first: an un-ingested org must read honest-empty (0.0 / "N/A"),
+        # NOT a fabricated baseline score. (Previously this returned ~50.)
         result = scorer.calculate_score("empty-org")
-        # All components at baseline → overall ≈ 50
-        assert abs(result.overall_score - _BASELINE_SCORE) < 0.01
+        assert result.overall_score == 0.0
+        assert result.grade == "N/A"
+        assert all(c.score == 0.0 for c in result.components)
 
     def test_component_weights_match_constants(self, scorer: PostureScorer) -> None:
         result = scorer.calculate_score("org1")

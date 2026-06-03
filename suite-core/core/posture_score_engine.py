@@ -264,6 +264,30 @@ class PostureScoreEngine:
     # Core scoring
     # ------------------------------------------------------------------
 
+    def _org_has_data(self, org_id: str) -> bool:
+        """True if the org has any operator-set components or any ingested findings.
+
+        Gates posture scoring so an un-ingested org reads honest-empty rather than a
+        fabricated baseline. Missing findings store ⇒ no findings signal.
+        """
+        if self._get_components_map(org_id):
+            return True
+        findings_path = Path(_FINDINGS_DB)
+        if not findings_path.exists():
+            return False
+        try:
+            conn = sqlite3.connect(str(findings_path), timeout=5)
+            try:
+                row = conn.execute(
+                    "SELECT 1 FROM security_findings WHERE org_id = ? LIMIT 1",
+                    (org_id,),
+                ).fetchone()
+                return row is not None
+            finally:
+                conn.close()
+        except sqlite3.Error:
+            return False
+
     def compute_posture_score(self, org_id: str) -> Dict[str, Any]:
         """Calculate overall security posture from weighted components.
 
@@ -279,7 +303,23 @@ class PostureScoreEngine:
         This change (2026-04-26) ensures fleet tenants whose only signal is
         scanner findings get a real, non-zero posture score instead of the
         previous 0.0 that surfaced through ``get_posture_stats``.
+
+        Ingest-first (2026-06-03): an org that has ingested NOTHING (no operator-set
+        components AND no findings) must read honest-empty (overall 0.0, grade "N/A")
+        rather than the fabricated baseline-50 posture. See ingest-first invariant /
+        SPEC-029.
         """
+        if not self._org_has_data(org_id):
+            return {
+                "overall_score": 0.0,
+                "grade": "N/A",
+                "components": {c: None for c in _COMPONENT_WEIGHTS},
+                "trend": "stable",
+                "computed_at": datetime.now(timezone.utc).isoformat(),
+                "has_data": False,
+                "note": "no ingested data for this org",
+            }
+
         components_map = self._get_components_map(org_id)
 
         # Lazily derive live components when no manual value is stored.
@@ -413,6 +453,10 @@ class PostureScoreEngine:
             ).fetchall()
         stored = {r["component"]: self._row_to_dict(r) for r in rows}
 
+        # Ingest-first: for an org with no ingested data, unstored components must read
+        # honest (score None / no_data) instead of a fabricated baseline 50.
+        has_data = self._org_has_data(org_id)
+
         result = []
         for comp, weight in _COMPONENT_WEIGHTS.items():
             if comp in stored:
@@ -422,9 +466,10 @@ class PostureScoreEngine:
                     "id": None,
                     "org_id": org_id,
                     "component": comp,
-                    "score": 50,
+                    "score": 50 if has_data else None,
                     "source": "",
                     "updated_at": None,
+                    "has_data": has_data,
                 }
             entry["weight"] = weight
             result.append(entry)

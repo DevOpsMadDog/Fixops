@@ -229,6 +229,33 @@ class PostureScorer:
         """Compute a fresh weighted posture score and persist it."""
         _logger.info("posture_scorer.calculate", org_id=org_id)
 
+        # Ingest-first: a fresh/un-ingested org must NOT show a fabricated mid-range
+        # posture. The per-component scorers default to _BASELINE_SCORE (50) when their
+        # backing store is empty, which would render a phantom ~60/grade-D for an org
+        # that has ingested nothing. Return an honest-empty score instead (overall 0.0,
+        # grade "N/A") and do NOT persist it. See SPEC-029 / ingest-first invariant.
+        if not self._org_has_data(org_id):
+            empty_components = [
+                PostureComponent(
+                    name=name,
+                    score=0.0,
+                    weight=weight,
+                    details={"has_data": False, "note": "no ingested data for this org"},
+                )
+                for name, weight in _WEIGHTS.items()
+            ]
+            empty_score = PostureScore(
+                org_id=org_id,
+                overall_score=0.0,
+                grade="N/A",
+                components=empty_components,
+                period=period,
+            )
+            # Persist so the "calculate always records an assessment" contract holds
+            # (history/trend reflect that the org was assessed and had no data).
+            self._db.save(empty_score)
+            return empty_score
+
         vuln_score, vuln_details = self._score_vulnerability_density(org_id)
         mttr_score, mttr_details = self._score_mttr(org_id)
         compliance_score, compliance_details = self._score_compliance(org_id)
@@ -679,6 +706,31 @@ class PostureScorer:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _org_has_data(self, org_id: str) -> bool:
+        """True if the org has ingested anything (findings or assets).
+
+        Used to gate posture scoring so an un-ingested org reads honest-empty
+        rather than a fabricated baseline. Missing stores ⇒ no data ⇒ False.
+        """
+        try:
+            analytics_path = Path(self._analytics_db)
+            if analytics_path.exists():
+                conn = sqlite3.connect(str(analytics_path))
+                try:
+                    row = conn.execute(
+                        "SELECT 1 FROM finding_events WHERE org_id = ? LIMIT 1",
+                        (org_id,),
+                    ).fetchone()
+                    if row:
+                        return True
+                except sqlite3.Error:
+                    pass
+                finally:
+                    conn.close()
+        except Exception as exc:  # pragma: no cover - defensive
+            _logger.warning("posture.has_data.error", error=str(exc))
+        return self._get_asset_count(org_id) > 0
 
     def _get_asset_count(self, org_id: str) -> int:
         """Return total asset count from attack surface db."""
