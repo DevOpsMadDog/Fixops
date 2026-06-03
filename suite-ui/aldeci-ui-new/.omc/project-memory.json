@@ -271,9 +271,27 @@
       "type": "file"
     },
     {
+      "path": "src/pages/ai/CopilotDashboard.tsx",
+      "accessCount": 13,
+      "lastAccessed": 1780493215018,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/comply/ComplianceDashboard.tsx",
+      "accessCount": 12,
+      "lastAccessed": 1780493020437,
+      "type": "file"
+    },
+    {
       "path": "src/pages/mission-control/ThreatIntelDashboard.tsx",
       "accessCount": 9,
       "lastAccessed": 1780472393853,
+      "type": "file"
+    },
+    {
+      "path": "src/lib/api.ts",
+      "accessCount": 8,
+      "lastAccessed": 1780493150211,
       "type": "file"
     },
     {
@@ -283,21 +301,9 @@
       "type": "file"
     },
     {
-      "path": "src/lib/api.ts",
-      "accessCount": 6,
-      "lastAccessed": 1780398223071,
-      "type": "file"
-    },
-    {
       "path": "e2e/tab-panel-sweep.spec.ts",
       "accessCount": 6,
       "lastAccessed": 1780401941793,
-      "type": "file"
-    },
-    {
-      "path": "src/pages/comply/ComplianceDashboard.tsx",
-      "accessCount": 5,
-      "lastAccessed": 1780394734224,
       "type": "file"
     },
     {
@@ -310,12 +316,6 @@
       "path": "src/pages/discover/ContainerSecurity.tsx",
       "accessCount": 5,
       "lastAccessed": 1780412605494,
-      "type": "file"
-    },
-    {
-      "path": "src/pages/ai/CopilotDashboard.tsx",
-      "accessCount": 5,
-      "lastAccessed": 1780472695465,
       "type": "file"
     },
     {
@@ -406,6 +406,18 @@
       "path": "src/pages/ArchReviewDashboard.tsx",
       "accessCount": 2,
       "lastAccessed": 1780470326815,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/ThreatIntelConfidenceDashboard.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780493039712,
+      "type": "file"
+    },
+    {
+      "path": "src/hooks/use-api.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780493161994,
       "type": "file"
     },
     {

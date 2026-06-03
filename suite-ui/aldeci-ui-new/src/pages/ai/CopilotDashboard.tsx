@@ -22,7 +22,7 @@ import {
   Bookmark, Copy, ThumbsUp, ThumbsDown, RotateCcw, Trash2,
   Mic, Paperclip, Globe, Lock, Cpu
 } from "lucide-react";
-import { useCopilotAgents, useCopilotChat, useSystemHealth } from "@/hooks/use-api";
+import { useCopilotAgents, useCopilotChat, useCopilotSessions, useSystemHealth } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -123,6 +123,7 @@ function ChatMessage({ message }: { message: Message }) {
 
 export default function CopilotDashboard() {
   const agentsQuery = useCopilotAgents();
+  const sessionsQuery = useCopilotSessions();
   const chatMutation = useCopilotChat();
 
   const refetch = useCallback(() => agentsQuery.refetch(), [agentsQuery]);
@@ -411,11 +412,20 @@ export default function CopilotDashboard() {
               Past Sessions
             </h3>
             <div className="space-y-2">
-              {([
-                { id: "s1", title: "Log4Shell triage", messageCount: 12, lastActive: new Date(Date.now() - 86400000) },
-                { id: "s2", title: "SOC2 evidence review", messageCount: 8, lastActive: new Date(Date.now() - 172800000) },
-                { id: "s3", title: "MPTE scan analysis", messageCount: 15, lastActive: new Date(Date.now() - 259200000) },
-              ] as ConversationSession[]).map((session) => (
+              {/* NO MOCKS: real sessions from GET /api/v1/copilot/sessions; honest empty otherwise. */}
+              {(() => {
+                const realSessions: ConversationSession[] = (Array.isArray(sessionsQuery.data) ? sessionsQuery.data : []).map((s: any) => ({
+                  id: s.id,
+                  title: s.name ?? s.title ?? "Untitled session",
+                  messageCount: s.message_count ?? 0,
+                  lastActive: new Date(s.updated_at ?? s.created_at ?? Date.now()),
+                }));
+                if (realSessions.length === 0) {
+                  return (
+                    <p className="text-xs text-muted-foreground py-2">No past sessions yet.</p>
+                  );
+                }
+                return realSessions.map((session) => (
                 <Card key={session.id} className="cursor-pointer hover:bg-muted/20 transition-colors">
                   <CardContent className="p-3">
                     <p className="text-xs font-medium truncate">{session.title}</p>
@@ -426,7 +436,8 @@ export default function CopilotDashboard() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                ));
+              })()}
             </div>
           </div>
 

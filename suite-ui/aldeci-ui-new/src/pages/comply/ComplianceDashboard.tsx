@@ -354,7 +354,7 @@ function EvidenceSection({
   const overdueCount = items.filter((i) => i.status === "overdue").length;
   const dueThisWeek = items.filter((i) => {
     const due = new Date(i.dueDate);
-    const now = new Date("2026-04-12");
+    const now = new Date();
     const diff = (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
     return diff >= 0 && diff <= 7 && i.status !== "collected";
   }).length;
@@ -465,7 +465,7 @@ function EvidenceSection({
                   pendingItems.map((item) => {
                     const isOverdue = item.status === "overdue";
                     const dueDate = new Date(item.dueDate);
-                    const now = new Date("2026-04-12");
+                    const now = new Date();
                     const daysUntil = Math.round((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
                     return (
                       <TableRow
@@ -802,9 +802,18 @@ export default function ComplianceDashboard() {
   const passedControls = frameworks.reduce((sum, f) => sum + f.controlsPassed, 0);
   const overdueEvidence = evidenceItems.filter((i) => i.status === "overdue").length;
 
-  const lastScan = new Date("2026-04-12T08:00:00").toLocaleString("en-US", {
-    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-  });
+  // NO MOCKS: derive "last assessed" from the most recent REAL per-framework
+  // last_audit (was a hardcoded 2026-04-12 constant). Honest "—" when none.
+  const auditTimes = frameworks
+    .map((f) => f.lastAudit)
+    .filter((d) => d && d !== "—")
+    .map((d) => new Date(d).getTime())
+    .filter((t) => !Number.isNaN(t));
+  const lastScan = auditTimes.length
+    ? new Date(Math.max(...auditTimes)).toLocaleString("en-US", {
+        month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+      })
+    : "—";
 
   const handleExport = () => {
     const exportData = {

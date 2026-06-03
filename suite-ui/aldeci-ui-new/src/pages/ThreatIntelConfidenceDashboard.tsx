@@ -189,7 +189,7 @@ export default function ThreatIntelConfidenceDashboard() {
     setExpiring(true);
     setTimeout(() => {
       setIocs(prev => prev.map(i => {
-        const exp = new Date(i.expires_at) < new Date("2026-04-16");
+        const exp = new Date(i.expires_at) < new Date();
         return exp && i.status === "active" ? { ...i, status: "expired" } : i;
       }));
       setExpiring(false);

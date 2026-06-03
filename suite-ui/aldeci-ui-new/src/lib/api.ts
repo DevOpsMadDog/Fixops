@@ -406,6 +406,7 @@ export const copilotApi = {
   suggest: (context: unknown) => api.post("/api/v1/copilot/suggest", context),
   agents: () => api.get("/api/v1/copilot/agents"),
   agentRun: (name: string, data: unknown) => api.post(`/api/v1/copilot/agents/${name}/run`, data),
+  sessions: () => api.get("/api/v1/copilot/sessions"),
 };
 
 export const integrationsApi = {

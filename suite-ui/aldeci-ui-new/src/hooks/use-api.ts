@@ -535,6 +535,16 @@ export function useCopilotAgents() {
   });
 }
 
+export function useCopilotSessions() {
+  return useQuery({
+    queryKey: ["copilot", "sessions"],
+    queryFn: async () => {
+      const { data } = await copilotApi.sessions();
+      return data;
+    },
+  });
+}
+
 export function useCopilotChat() {
   return useMutation({
     mutationFn: async (payload: unknown) => {
