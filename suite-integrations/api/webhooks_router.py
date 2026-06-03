@@ -73,7 +73,16 @@ def _validate_external_url(url: str) -> str:
     return url
 
 # Management endpoints - requires API key authentication
-router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks"])
+# SECURITY 2026-06-03: management endpoints (mappings / drift / events / outbox — incl
+# POST /outbox/{id}/execute which triggers OUTBOUND webhooks — / alm) were unauthenticated.
+# Enforce api_key at the router level. (receiver_router below stays public — it is
+# signature-verified inbound, per its own design.)
+try:
+    from apps.api.auth_deps import api_key_auth as _api_key_auth
+    _MGMT_AUTH = [Depends(_api_key_auth)]
+except Exception:  # pragma: no cover
+    _MGMT_AUTH = []
+router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks"], dependencies=_MGMT_AUTH)
 
 # Receiver endpoints - uses signature verification only, no API key required
 receiver_router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks-receivers"])

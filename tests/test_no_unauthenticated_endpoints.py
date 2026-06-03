@@ -49,7 +49,16 @@ _ALLOWLIST = re.compile(
     # model wants these behind auth (they expose audit-entry counts + HSM key labels).
     r"|^/api/v1/scif/(boot|audit-chain/verify|hsm/)"
     r"|/openapi\.json$"
-    r"|/(healthz|readyz?|ready|metrics|version|ping|status|docs|openapi|redoc)$"
+    # Auth flow is the pre-authentication surface (login/signup/forgot/reset/refresh/SSO).
+    r"|^/api/v1/auth/"
+    r"|^/api/v1/users/login$"
+    # Inbound provider webhooks (receiver_router): authenticated by the provider's signature,
+    # not an API key — same model as slack. Management webhook endpoints (mappings/outbox/etc.)
+    # are a SEPARATE router and DO require api_key (fixed 2026-06-03).
+    r"|^/api/v1/webhooks/(github|gitlab|jira|azure-devops|servicenow|okta)"
+    r"|^/api/v1/billing/(stripe-)?webhook$"
+    r"|^/api/v1/servicenow-sync/webhooks$"
+    r"|/(health|healthz|readyz?|ready|metrics|version|ping|status|docs|openapi|redoc)$"
 )
 
 # Acceptable "rejected" statuses for a no-key request.
@@ -62,9 +71,13 @@ def client() -> TestClient:
     return TestClient(create_app())
 
 
-def _representative_routes(app):
-    """One no-path-param route per (top-level prefix, method)."""
-    seen = {}
+def _all_candidate_routes(app):
+    """EXHAUSTIVE: every no-path-param, non-allowlisted /api/v1 (method, path).
+
+    Path-param routes ({id}) are skipped (can't probe without a valid id); router-level auth
+    protects them anyway, and their no-path-param siblings here reveal a missing dep.
+    """
+    out = set()
     for r in app.routes:
         p = getattr(r, "path", "")
         methods = (getattr(r, "methods", None) or set()) - {"HEAD", "OPTIONS"}
@@ -72,19 +85,18 @@ def _representative_routes(app):
             continue
         if _ALLOWLIST.search(p):
             continue
-        prefix = "/".join(p.split("/")[:4])
         for m in methods:
-            seen.setdefault((prefix, m), p)
-    return seen
+            out.add((m, p))
+    return out
 
 
 def test_no_unauthenticated_api_v1_endpoints(client: TestClient):
     app = client.app
-    routes = _representative_routes(app)
+    routes = _all_candidate_routes(app)
     assert routes, "no /api/v1 routes discovered — sweep would be a false pass"
 
     gaps = []
-    for (prefix, method), path in sorted(routes.items()):
+    for method, path in sorted(routes):
         try:
             if method == "GET":
                 resp = client.get(path + "?org_id=zz")

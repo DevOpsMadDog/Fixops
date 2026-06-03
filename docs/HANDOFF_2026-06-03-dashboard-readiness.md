@@ -393,3 +393,13 @@ comments (NOT silently passed). FOUNDER-DECISION noted in-test: scif posture end
 audit-entry counts + HSM key labels unauthed — review for the SCIF threat model. Test PASSES (40s);
 smoke 755+1-flake. **Session auth total: 23 endpoints closed + a permanent regression guard so
 they can't silently revert.**
+
+### Exhaustive auth guard + webhooks-management fix (tick165)
+Upgraded the regression test to probe EVERY no-path-param endpoint (4975, not one per prefix).
+This caught the webhooks MANAGEMENT router (mappings/drift/events/outbox/alm — incl
+`POST /outbox/{id}/execute` triggering OUTBOUND webhooks unauthenticated) — fixed with a
+router-level dep on the management `router` only (the `receiver_router` inbound webhooks stay
+public/signature-verified, per their own design). Allowlist now covers the intentional-public
+categories (auth-flow, inbound provider webhooks, billing/servicenow webhooks, */health).
+**Exhaustive test PASSES (88s, 0 gaps); smoke 755+1-flake.** Auth epic complete + exhaustively
+guarded — 24 router/surface fixes this session.
