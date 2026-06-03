@@ -70,5 +70,21 @@ UI `npm run build` green (~3.8–4.5s) · `create_app()` boots 8353 routes · Be
 3. **skills/install** (POST) — `/skills/uninstall` exists (wave_c_router, loader.skills + skills_dir); install needs an air-gap install-SOURCE (bundled-skill catalog) design.
 4. **hunting/coverage** — DONE (tick116): repointed to `/mitre-attack-coverage/coverage` + transform `tactic_breakdown` DICT → `[{name,covered}]` array (shape from engine code). Real data.
 
+## ⚠️ DUPLICATE ROUTER FILES gotcha (found tick118 — important for ALL future route work)
+Some routers exist in MULTIPLE suite dirs (`suite-attack/api/`, `suite-core/api/`, `suite-api/apps/api/`).
+`app.py` mounts many via `from api.X import router` — which resolves (via sitecustomize sys.path) to
+the **suite-attack/ or suite-core/** copy, NOT `suite-api/apps/api/`. ALWAYS confirm the mounted file at
+runtime before editing: `python -c "import api.<name> as m; print(m.__file__)"`. tick109's secrets/cases
+shadow-fix initially edited the wrong (apps.api) duplicates; the mounted suite-attack/suite-core copies
+were fixed in tick118 (verified). This is part of the duplicate-prefix/duplicate-file debt
+(see memory `project_duplicate_routes_2026-06-03`).
+
+## Page-gap frontier status (tick113-118)
+DONE: hunting/iocs→threat-intel/iocs, collaboration/activity (enum+/activities), hunting/coverage
+(→mitre-attack-coverage + transform), vendor-risk/assessments+risk-domains, secrets/cases shadow-fix
+on mounted files. CONFIRMED-NOT-A-BUG: local-store/init (501-tolerant). BLOCKED (3): llm/estimate
+(no per-model pricing — founder data), threat-intel/block-iocs (no stable IOC id — model redesign),
+skills/install (air-gap install-source design).
+
 ## Founder-blocked (record + move on)
 push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
