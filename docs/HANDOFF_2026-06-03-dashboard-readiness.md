@@ -113,11 +113,15 @@ Safe (content-based, no FS read): secret_scanner_router /scan.
 Rate-limits: VERIFIED live (260 reqs → 25×429; global RateLimitMiddleware + auth brute-force guard).
 **LIVE arbitrary-file-read API surface now fully closed.**
 
-### Scoped follow-up epic (lower risk / cleanup):
-- Shared `core/storage_root_guard.py` util to replace the 4 per-engine copies (DRY).
-- Audit remaining engines: secret_scanner.scan_file/scan_directory, malware_detector.scan_files,
-  sast_engine.scan_files, trivy/semgrep integrations (mostly shell-out to absent tools → findings not raw content, lower risk).
-- 20 scanner routers (bandit/checkov/semgrep/gitleaks/compliance-scanner/config-benchmark) take target_path → apply a shared path-allowlist dependency.
+### tick128 — shared util + shell-out scanners DONE:
+- Created **`core/storage_root_guard.py`** (reusable `assert_path_allowed`); default scratch = tempdir+/tmp+/private/tmp + fleet, blocks /etc,/home,/root.
+- Guarded **semgrep/bandit/checkov/gitleaks** `queue_scan` (FIXOPS_SCANNER_ALLOWED_ROOTS) — shell-out scanners on caller target_path. All block /etc; tests green.
+- Audited safe: secret_scanner (content-based), malware_detector/sast_engine (content dicts), error_audit (fixed internal dirs), ide_router (content).
+- **8 path-handling engines now guarded** (4 native-read tick123-127 + 4 shell-out tick128); local_file_store + evidence_chain pre-existing.
+
+### Remaining epic tail (low priority):
+- DRY: migrate the 4 per-engine copies (ide_backend/deep_code/dlp/secrets_manager) to the shared util (cleanup; working+secure as-is, so non-urgent).
+- Spot-audit config_benchmark / compliance_scanner / security_dependency_mapping / function_reachability engines for caller-path reads (likely shell-out/checkov-family or gated).
 
 ## Founder-blocked (record + move on)
 push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
