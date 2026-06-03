@@ -749,9 +749,11 @@ export default function ThreatHunting() {
     });
   }, [tacticFilter, severityFilter, querySearch, predefinedQueries]);
 
-  useEffect(() => {
+  // NO MOCKS: the real threat-hunting endpoints are the only data source; re-query
+  // them (e.g. after running a query) instead of fabricating session metrics.
+  const loadData = useCallback(() => {
     const headers = { "X-API-Key": API_KEY };
-    Promise.allSettled([
+    return Promise.allSettled([
       fetch(`${API_BASE}/api/v1/threat-hunting/sessions?org_id=${ORG_ID}`, { headers })
         .then(r => r.ok ? r.json() : Promise.reject()),
       fetch(`${API_BASE}/api/v1/threat-hunting/findings?org_id=${ORG_ID}`, { headers })
@@ -765,7 +767,7 @@ export default function ThreatHunting() {
         const d = sessRes.value;
         const list = Array.isArray(d) ? d : (d?.sessions ?? []);
         setSessions(list);
-        if (list.length > 0) setSelectedSessionId(list[0].id);
+        setSelectedSessionId((prev) => prev || (list[0]?.id ?? ""));
       }
       if (findRes.status === "fulfilled") {
         const d = findRes.value;
@@ -796,6 +798,10 @@ export default function ThreatHunting() {
     });
   }, []);
 
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   const handleStartSession = useCallback((name: string, tactic: MitreTactic) => {
     const newSession: HuntSession = {
       id: `HS-${String(sessions.length + 10).padStart(4, "0")}`,
@@ -812,16 +818,13 @@ export default function ThreatHunting() {
     setSelectedSessionId(newSession.id);
   }, [sessions.length]);
 
+  // NO MOCKS: no real run-query endpoint exists yet (threat-hunting is GET-only), so
+  // re-fetch the REAL session data rather than fabricating queriesRun/assetsScanned.
   const handleRunQuery = useCallback((queryId: string) => {
     setRunningQueryId(queryId);
-    setTimeout(() => setRunningQueryId(null), 2000);
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === selectedSessionId ? { ...s, queriesRun: s.queriesRun + 1, assetsScanned: s.assetsScanned + Math.floor(Math.random() * 200 + 50) } : s
-      )
-    );
+    loadData().finally(() => setRunningQueryId(null));
     setActiveTab("results");
-  }, [selectedSessionId]);
+  }, [loadData]);
 
   const handleEndSession = useCallback(() => {
     setSessions((prev) =>

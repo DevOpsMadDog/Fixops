@@ -517,9 +517,10 @@ export default function IntegrationHealth() {
   const [filterType, setFilterType] = useState<FilterType>("ALL");
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
-  useEffect(() => {
+  // NO MOCKS: re-querying this real endpoint is the ONLY source of health/responseMs.
+  const loadHealth = useCallback(() => {
     const headers = { "X-API-Key": API_KEY };
-    Promise.allSettled([
+    return Promise.allSettled([
       fetch(`${API_BASE}/api/v1/integration-health/integrations?org_id=${ORG_ID}`, { headers })
         .then(r => r.ok ? r.json() : Promise.reject()),
       fetch(`${API_BASE}/api/v1/integration-health/alerts?org_id=${ORG_ID}`, { headers })
@@ -536,6 +537,10 @@ export default function IntegrationHealth() {
       setLastRefresh(new Date());
     });
   }, []);
+
+  useEffect(() => {
+    loadHealth();
+  }, [loadHealth]);
 
   // KPI derivations
   const total = integrations.length;
@@ -564,64 +569,26 @@ export default function IntegrationHealth() {
     return a.name.localeCompare(b.name);
   });
 
+  // NO MOCKS: re-fetch the REAL health endpoint instead of fabricating jittered metrics.
   const runCheck = useCallback((id: string) => {
     setCheckingIds((prev) => new Set([...prev, id]));
-    // Simulate 800–1500ms check
-    const delay = 800 + Math.random() * 700;
-    setTimeout(() => {
-      setIntegrations((prev) =>
-        prev.map((ig) => {
-          if (ig.id !== id) return ig;
-          const newEntry: HealthCheckEntry = {
-            timestamp: new Date(),
-            status: ig.status,
-            responseMs: ig.status === "HEALTHY"
-              ? ig.responseMs + Math.floor(Math.random() * 40) - 20
-              : ig.status === "DEGRADED"
-                ? ig.responseMs + Math.floor(Math.random() * 200) - 100
-                : 0,
-          };
-          return {
-            ...ig,
-            lastChecked: new Date(),
-            history: [...ig.history.slice(-11), newEntry],
-          };
-        })
-      );
+    loadHealth().finally(() => {
       setCheckingIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
       });
-    }, delay);
-  }, []);
+    });
+  }, [loadHealth]);
 
   const runAllChecks = useCallback(() => {
     setCheckingAll(true);
-    const ids = integrations.map((i) => i.id);
-    setCheckingIds(new Set(ids));
-    setTimeout(() => {
-      setIntegrations((prev) =>
-        prev.map((ig) => ({
-          ...ig,
-          lastChecked: new Date(),
-          history: [
-            ...ig.history.slice(-11),
-            {
-              timestamp: new Date(),
-              status: ig.status,
-              responseMs: ig.status === "HEALTHY"
-                ? ig.responseMs + Math.floor(Math.random() * 30) - 15
-                : ig.responseMs,
-            },
-          ],
-        }))
-      );
+    setCheckingIds(new Set(integrations.map((i) => i.id)));
+    loadHealth().finally(() => {
       setCheckingIds(new Set());
       setCheckingAll(false);
-      setLastRefresh(new Date());
-    }, 1800);
-  }, [integrations]);
+    });
+  }, [loadHealth, integrations]);
 
   const acknowledgeAlert = useCallback((id: string) => {
     setAlerts((prev) => prev.map((a) => a.id === id ? { ...a, acknowledged: true } : a));

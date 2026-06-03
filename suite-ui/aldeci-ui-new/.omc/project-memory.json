@@ -319,6 +319,12 @@
       "type": "file"
     },
     {
+      "path": "src/pages/integrations/IntegrationHealth.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1780493386003,
+      "type": "file"
+    },
+    {
       "path": "src/pages/admin/WebhooksOutboundPage.tsx",
       "accessCount": 4,
       "lastAccessed": 1780393732358,
@@ -442,6 +448,18 @@
       "path": "src/pages/ComplianceCalendarDashboard.tsx",
       "accessCount": 1,
       "lastAccessed": 1780471271920,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/mission-control/RiskOverview.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1780493312570,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/hunting/ThreatHunting.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1780493395438,
       "type": "file"
     }
   ],
