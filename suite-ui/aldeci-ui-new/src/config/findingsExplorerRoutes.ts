@@ -74,7 +74,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "CSPM snapshot scan findings across cloud resources",
       apiPath: "/api/v1/cspm/findings",
       itemsKey: "findings",
-      statsPath: "/api/v1/cspm/stats",
+      statsPath: "/api/v1/cspm/posture",
       severityKey: "severity",
       columns: [
         { key: "resource",   label: "Resource",  className: "max-w-[220px]" },
@@ -200,7 +200,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Age distribution of open vulnerabilities and SLA compliance tracking",
       apiPath: "/api/v1/vuln-age/distribution",
       itemsKey: "vulnerabilities",
-      statsPath: "/api/v1/vuln-age/stats",
+      statsPath: "/api/v1/vuln-age/distribution",
       severityKey: "severity",
       columns: [
         { key: "cve_id",       label: "CVE",       className: "font-mono" },
@@ -248,7 +248,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Baseline compliance status across all monitored assets",
       apiPath: "/api/v1/security-baselines/baselines",
       itemsKey: "baselines",
-      statsPath: "/api/v1/security-baselines/stats",
+      statsPath: "/api/v1/security-baselines/",
       severityKey: "severity",
       columns: [
         { key: "baseline_name", label: "Baseline",   className: "max-w-[220px]" },
@@ -423,7 +423,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Security-relevant code and infrastructure changes requiring review",
       apiPath: "/api/v1/changes/material",
       itemsKey: "changes",
-      statsPath: "/api/v1/changes/stats",
+      statsPath: "/api/v1/changes/metrics/summary",
       severityKey: "severity",
       columns: [
         { key: "change_title", label: "Change",      className: "max-w-[240px]" },
@@ -486,7 +486,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Domain-level security health scores and improvement tracking",
       apiPath: "/api/v1/health-scorecard/domains",
       itemsKey: "domains",
-      statsPath: "/api/v1/health-scorecard/stats",
+      statsPath: "/api/v1/health-scorecard/current",
       severityKey: "severity",
       columns: [
         { key: "domain",      label: "Domain",    className: "max-w-[200px]" },
@@ -720,7 +720,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "CTEM maturity model assessment across security domains",
       apiPath: "/api/v1/posture-maturity/overview",
       itemsKey: "domains",
-      statsPath: "/api/v1/posture-maturity/stats",
+      statsPath: "/api/v1/posture-maturity/overview",
       severityKey: "severity",
       columns: [
         { key: "domain",       label: "Domain",    className: "max-w-[200px]" },
@@ -782,7 +782,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
     props: {
       title: "Metrics Aggregator",
       description: "Aggregated security metrics across all domains and time windows",
-      apiPath: "/api/v1/metrics-aggregator/all",
+      apiPath: "/api/v1/metrics-aggregator/metrics",
       itemsKey: "metrics",
       statsPath: "/api/v1/metrics-aggregator/stats",
       severityKey: null,
@@ -828,7 +828,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Business unit financial risk exposure heatmap",
       apiPath: "/api/v1/risk/heatmap",
       itemsKey: "heatmap",
-      statsPath: "/api/v1/risk/stats",
+      statsPath: "/api/v1/risk/top",
       severityKey: "severity",
       columns: [
         { key: "business_unit", label: "Business Unit", className: "max-w-[200px]" },
