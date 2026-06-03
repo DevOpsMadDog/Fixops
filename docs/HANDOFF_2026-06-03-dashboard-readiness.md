@@ -159,3 +159,36 @@ flood the graph or just drain-ack; per-event correlation handlers need design. A
 
 ## Founder-blocked (record + move on)
 push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
+
+---
+
+## NO-MOCKS UI sweep (tick140–144, 2026-06-03 — appended)
+
+**Outcome:** 3 genuine NO-MOCKS violations found + fixed + browser-verified; UI confirmed clean.
+
+The CLAUDE.md "every page fires a real /api/v1 call on mount, no fixtures" rule had
+3 dashboards that *looked* wired (they had a fetch) but rendered hardcoded module
+fixtures while ignoring (or discarding) the API response. A plain `MOCK_` grep missed
+them because the arrays were named plainly (`reviews`, `accounts`, `EVENTS`).
+
+| Page | Was | Now | Commit |
+|------|-----|-----|--------|
+| `ArchReviewDashboard` | 3 mock arrays (rev-001/Alice Chen/JWTValidator) rendered; liveReviews/liveFindings set-but-unused | live /reviews+/summary+/control-gaps + per-review detail fan-out; real POST add/complete; EmptyStates | `f3e13a11` |
+| `IdentityLifecycleDashboard` | 3 mock arrays; loadData did `void d`; frozen `daysSince(2026-04-16)`; no-op buttons | live /accounts+/orphans+/summary + per-account fan-out (active_entitlements+events); real Date.now(); all lifecycle buttons real POSTs | `0f50bee7` |
+| `ComplianceCalendar` | EVENTS fixture rendered; calEvents set-but-unused; /overdue discarded; pinned April-2026 calendar | live /upcoming+/overdue+/reminders.due+/summary merged; real current month; real POST add | `2b7b10ef` |
+
+**Verification (all live, not self-report):**
+- TestClient on fresh `create_app()`: full CRUD on all 3 routers returns 200 with response
+  keys matching every render reference (note: arch detail nests `findings`/`controls`;
+  identity detail key is `active_entitlements` not `entitlements`; calendar field is `owner`).
+- `npm run build` green after each (3.7–4.1s).
+- Playwright MCP (vite:5173 + api:8000): each page fires its real /api/v1 calls (all 200)
+  on mount with **zero** mock signatures in the DOM; compliance calendar shows the real
+  current month (June 2026). Browser proof commit `1b3ddf9d`.
+- Exhaustive sweep proving no other violations: 0 pure-static feature pages, 0 lowercase
+  module data-arrays in render, 0 fetch-then-discard, 0 fallback-to-mock (`data || CONST`);
+  remaining `MOCK_`/`example.com` hits are form placeholders + editor/tester defaults (legit).
+- Beast smoke 756/756 green (backend untouched).
+
+**Open (founder-blocked, unchanged):** push (VPN DNS + revoked PAT), org-precedence,
+TrustGraph correlation-allowlist scope, duplicate-prefix consolidation epic, FIPS/PIV/GPU/Stripe.
