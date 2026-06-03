@@ -397,9 +397,19 @@ async def get_compliance_status(
         if f.severity == FindingSeverity.CRITICAL and f.status == FindingStatus.OPEN
     )
 
-    compliance_score = 100.0
-    if total > 0:
-        compliance_score = max(0.0, 100.0 - (open_count / total * 100.0))
+    # Ingest-first: do NOT claim 100% compliance with zero evidence. An org that has
+    # ingested no findings has no compliance baseline (None), not a fabricated perfect score.
+    if total == 0:
+        return {
+            "compliance_score": None,
+            "status": "no_baseline",
+            "total_findings": 0,
+            "open_findings": 0,
+            "critical_findings": 0,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+    compliance_score = max(0.0, 100.0 - (open_count / total * 100.0))
 
     return {
         "compliance_score": round(compliance_score, 2),

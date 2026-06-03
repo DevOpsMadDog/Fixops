@@ -2211,7 +2211,7 @@ async def get_framework_controls(
 
 
 @router.get("/compliance/dashboard")
-async def get_compliance_dashboard() -> Dict[str, Any]:
+async def get_compliance_dashboard(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get compliance dashboard overview.
 
     When ComplianceEngine is available, shows baseline posture for all
@@ -2219,11 +2219,12 @@ async def get_compliance_dashboard() -> Dict[str, Any]:
     """
     if _COMPLIANCE_ENGINE_AVAILABLE and compliance_engine is not None:
         supported = list(compliance_engine.framework_thresholds.keys())
-        # Pull real findings for accurate posture
+        # Pull real findings for accurate posture — scoped to the caller's org so an
+        # un-ingested tenant reads "no_findings_uploaded", not all orgs' findings.
         analytics = _get_analytics_db()
         finding_dicts = []
         if analytics:
-            findings = analytics.list_findings(limit=1000, offset=0)
+            findings = analytics.list_findings(org_id=org_id, limit=1000, offset=0)
             finding_dicts = [f.to_dict() for f in findings]
 
         framework_status = []
