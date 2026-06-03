@@ -1,0 +1,39 @@
+# HANDOFF — 2026-06-03 — UI customer-readiness + dashboard endpoint sweep
+
+Branch: `chore/ui-prune-plan-2026-05-24` (commit locally; push founder-blocked).
+
+## What shipped this session (11 commits, all verified)
+
+### UI NO-MOCKS + cross-tenant (verified clean)
+- **CopilotDashboard.tsx** — removed `DEFAULT_AGENTS` hardcoded 4-agent mock-fallback; agents now come ONLY from `/api/v1/copilot/agents`, empty → branded EmptyState. (`f58fb431`)
+- **TrainingCultureHub.tsx** — was the only page hardcoding `X-Org-ID: DEFAULT_ORG_ID`; swapped to `getStoredOrgId()` (authenticated tenant). (`6f0c98ad`)
+- **AutomationOrchestrationHub / PolicyLifecycleHub / FindingsExplorer** — 3 more pages used `DEFAULT_ORG_ID` as THE org; swapped to `getStoredOrgId()`. (`7844567b`)
+- Static scan now clean: 290 pages all fire an API call; 0 fixture dirs/imports; 0 `?? [{` fabrication fallbacks; 126/126 local apiFetch helpers send X-Org-ID; 0 DEFAULT_ORG_ID misuse.
+
+### LIVE Playwright verification (dev 5173 + backend 8000 up)
+- Authenticated tenant = `org-5f4bcda1-e979-4490-85be-2575ccc8e552` (real org).
+- training-culture / automation / findings / executive all fire real `/api/v1` on mount, 200, **real tenant org propagating** (proves the org-id fix), 0 console errors.
+- `/api/v1/findings` returned real dogfood data (sample: `code-string-concat`, severity high, real uuid).
+
+### Broken dashboard endpoints — found via live dogfood, fixed (code = source of truth; running :8000 was STALE, so verified via TestClient on fresh create_app)
+- **sbom_router**: added real `GET /api/v1/sbom/components` (org-wide `engine.list_components`, `{components,count}`, honest empty). (`7cebc04c`)
+- **dashboardRoutes.ts**: repointed 18 broken endpoints across 15 domains to real LIST/stats paths (each verified 200+shape). (`197fa904`)
+- **upgrade_path_router** `GET /recent` (engine.list_queries) + **servicenow_router** `GET /incidents`+`/stats` (real incidents/counts, honest 503 unconfigured). (`08784f85`)
+- All 137 GenericDashboard endpoints now resolve (200 / honest 503), 0 remaining 404.
+- **findingsExplorerRoutes.ts**: repointed 8 more verified-shape stats endpoints. (`f90760d8`)
+
+## Gates (every increment)
+UI `npm run build` green (~3.8–4.5s) · `create_app()` boots 8353 routes · Beast smoke **756/756** · live API verified.
+
+## PRECISE REMAINING RUNWAY (buildable, not founder-blocked) — for next tick
+8 `findingsExplorerRoutes.ts` statsPath/apiPath entries have **no real backend equivalent** — they need NEW real endpoints (do NOT repoint to a wrong-domain path; that shows wrong data). Each: confirm engine has the data → add a real `/stats` (honest empty when none) → verify 200+shape via TestClient → repoint config → build:
+- `findings/stats` (lines 56, 680) — findings router (`findings_routes.py`) has no stats GET; `/findings` list works. Add severity/status counts endpoint.
+- `findings/drift/stats` (140, 161) — only `cspm/drift` exists (503 unconfigured). Decide: repoint to cspm/drift or add findings-drift stats.
+- `security-okrs/stats` (532) — engine in `core/security_metrics.py`; only `/objectives`+`/velocity` lists. Add OKR counts (on-track/at-risk/avg-progress).
+- `threat-modeling-pipeline/stats` (744) — engine `threat_modeling_pipeline_engine`; root+`/models`+`/unmitigated`. Add model/threat counts.
+- `scoring/stats` (765) — NO `/api/v1/scoring` router (risk-scoring is at `/api/v1/risk-scoring`). Either fix UI path to risk-scoring or add scoring stats.
+- `posture-history/domains` (apiPath, 807) + `posture-history/stats` (809) — has `/snapshots`/`/trends`/`/delta`/`/summary`. Pick the correct list + verify `/delta` as the stats dict.
+- `risk/heatmap` (apiPath, 829) — no heatmap route on `composite_risk_router`. Add a real risk-matrix endpoint.
+
+## Founder-blocked (record + move on)
+push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
