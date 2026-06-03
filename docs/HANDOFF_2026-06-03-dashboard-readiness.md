@@ -192,3 +192,28 @@ them because the arrays were named plainly (`reviews`, `accounts`, `EVENTS`).
 
 **Open (founder-blocked, unchanged):** push (VPN DNS + revoked PAT), org-precedence,
 TrustGraph correlation-allowlist scope, duplicate-prefix consolidation epic, FIPS/PIV/GPU/Stripe.
+
+### NO-MOCKS sweep — round 2 (tick146–147, components + deep variants)
+
+A second sweep targeted patterns the first round structurally couldn't see:
+in-component (not module-level) data arrays in files that DO call an API, and
+hub child components. Found + fixed 2 more:
+
+| Page | Was | Now | Commit |
+|------|-----|-----|--------|
+| `mission-control/ThreatIntelDashboard` | hardcoded `THREAT_ACTORS` (APT28/REvil + fabricated campaigns) rendered by child `ThreatActorProfiles`; **3 endpoint bugs**: CVEs hit `/cve/search` (dict→always empty), IOCs hit `/threat-intel/actors` (wrong) never unwrapped | live `/threat-intel/{cves/recent,actors,iocs}` normalized onto view models; actors passed as prop; EmptyState | `b8a4cf58` |
+| `ai/CopilotDashboard` | hardcoded "Linked Findings" chips `[CVE-2024-1234, FIND-0042, FIND-0078]` | branded EmptyState (no conversation-linked-findings source exists); page already fires real `/api/v1/agents` | `f725213e` |
+
+Browser-verified ThreatIntelDashboard live: all 3 corrected endpoints 200 on
+mount, real actors render (APT29/APT28/Lazarus/Cozy Bear/FIN7), old fixture gone,
+0 console errors (caught+fixed a ReferenceError — `actors` state was in the main
+component but rendered in child `ThreatActorProfiles`; passed as a prop).
+
+Cleared as legit in the deep sweep: hub `TABS`/`COLS`/`TIERS` configs,
+`BinaryFingerprintPanel` (uses typed `binaryFpApi.stats()` + EmptyState),
+`RiskOverview.impactAreas` (values from the `ov` query), MITRE technique catalogs,
+input placeholders, `"CVE-0000"` sentinel fallbacks, editor/tester default inputs.
+
+**Session NO-MOCKS total: 5 dashboards made real** (ArchReview, IdentityLifecycle,
+ComplianceCalendar, ThreatIntelDashboard, CopilotDashboard) + rate-limit coverage
+confirmed already-global (no router gap).
