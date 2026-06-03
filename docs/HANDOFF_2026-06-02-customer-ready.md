@@ -1028,3 +1028,16 @@ ALL REMAINING WORK IS FOUNDER-GATED (needs a decision, cannot proceed autonomous
  4. correlation_engine dual-Base schema-init decision.
  5. perf-timing flakes (record-and-move-on per directive); e2e_real (live services); + standing founder-blocked list (push, Postgres, FIPS, PIV, GPU, Stripe, org-precedence).
 NEXT SESSION: restart /loop with a decision on items 1-4 to resume productive work.
+
+---
+## Session addendum 2026-06-03 (ralph tick89) — correlation_engine FIXED (was mis-labeled founder-blocked)
+Re-examined the "founder-gated" items; correlation turned out to be 3 REAL, safely-fixable product robustness bugs (NOT founder-blocked — prior classification was over-cautious):
+ 1. DatabaseManager.initialize() created only core.db.models.Base (4 tables), missing the 9 enterprise security_sqlite tables (security_findings, finding_correlations, security_incidents, policy_rules, vulnerability_intelligence, ...). Added an additive create_all for base_sqlite.Base (disjoint Bases, idempotent, non-fatal) → completes enterprise schema init; fresh DBs now have security_findings.
+ 2. batch_correlate_findings ZeroDivisionError on empty batch → guarded.
+ 3. cache_service.get_cache_stats crashed (NoneType.info()) when Redis absent (air-gapped) → honest {} when _redis_client is None.
+ + test-rot: calculate_noise_reduction now DB-derived (time_window_hours); ai_enhanced_correlation honestly returns {error: LLM not initialized} when no LLM.
+correlation_engine 32/32 (was 17 errors). Verified boot 8345, Beast 756/756. correlation OFF the founder-gated list.
+REMAINING founder-gated (re-confirmed genuinely gated this tick):
+ - behavioral risk_score: ML-based scoring (synthetic-bootstrap, provenance DISCLOSED via baseline_source) vs old count fallback — domain call on whether low-data users should get ML scores (~53) vs count-based (0/20).
+ - tenancy-gate scanner: accurate AST scanner ready, but adopting it surfaces ~948 real Query("default") debt → freeze-vs-fix + the "tenancy clean→948" posture claim is a founder decision.
+ - zero_trust: 4-engine + legacy/new-router architecture decision.
