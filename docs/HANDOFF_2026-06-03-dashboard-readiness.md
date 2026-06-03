@@ -278,3 +278,18 @@ was only 8/22 specs registered and carried stale statuses. Synced to **22/22**:
 standalone effort like SPEC-011..020 — read router+engine, write intent/scope/
 contracts/acceptance-criteria). Best done one-per-tick with fresh context to avoid
 PRD-theater.
+
+### New governance spec — SPEC-021 MPTE (tick154)
+
+Authored SPEC-021-mpte (Multi-Phase Test & Exploitability Validation — the
+FP-reduction moat), the first of the next-candidate groups. Grounded in the real
+mounted surface (`suite-attack/api/mpte_router` /api/v1/mpte +
+`mpte_orchestrator_router` /api/v1/mpte-orchestrator, verified via runtime
+`__file__`): 20+ endpoints, contracts, REQs/NFRs, and 7 **executable** acceptance
+criteria all verified live (health=builtin/self-contained, requests=200 items,
+no-key=401, stats real counts, orchestrator TI sources {NVD,CISA-KEV,EPSS,...},
+210 mpte tests pass). Caught + corrected a self-introduced inaccuracy pre-commit
+(ExploitabilityLevel enum is 6 members, not 3). **INDEX now 23/23 specs.**
+
+Remaining next-candidate groups (each a standalone one-per-tick authoring effort):
+threat-intel feeds + IOC, SOAR/playbooks, deception, forensics, exec-reporting.
