@@ -130,6 +130,22 @@ def list_components(
     return _get_engine().list_components(org_id, asset_id=asset_id, has_vulns=has_vulns)
 
 
+@router.get("/components", dependencies=[Depends(api_key_auth)])
+def list_all_components(
+    org_id: str = Depends(get_org_id),
+    has_vulns: Optional[bool] = Query(None),
+    limit: int = Query(500, ge=1, le=5000),
+):
+    """List ALL components across the org's assets (flattened inventory).
+
+    Backs the SBOM dashboard component table (GET /api/v1/sbom/components,
+    itemsKey="components"). Org-scoped; real data only — returns an empty list
+    when no SBOMs have been ingested (NO MOCKS, no fabricated components).
+    """
+    components = _get_engine().list_components(org_id, has_vulns=has_vulns)
+    return {"components": components[:limit], "count": len(components)}
+
+
 # ---------------------------------------------------------------------------
 # Export routes
 # ---------------------------------------------------------------------------
