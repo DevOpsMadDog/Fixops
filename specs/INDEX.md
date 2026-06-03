@@ -30,9 +30,14 @@
 | [SPEC-020](SPEC-020-council-verdict.md) | Council Verdict API — multi-LLM 3-stage decision + honest cost/escalation | Council/Decision | BACKFILL | council_router, LLMCouncilEngine, CouncilVerdict |
 
 ## Backfill backlog (existing API groups needing specs — extend over time)
-ASPM ingest+findings · CTEM exposure-cases+prioritization · CSPM posture+compliance · Auth/tenancy ·
-Connectors · Evidence/SOC2 · Risk-aggregator · Council verdict. One spec per group, authored as we
-touch each, so the whole surface becomes spec-governed for Augment Code intent IDE.
+DONE (2026-06-03): the original backlog is fully authored — ASPM ingest+findings (SPEC-011),
+CTEM exposure (SPEC-012), CSPM posture+compliance (SPEC-013), Auth/tenancy (SPEC-014),
+Connectors (SPEC-015), Evidence/SOC2 (SPEC-019), Risk-aggregator (SPEC-018), Council verdict
+(SPEC-020). All registered in the table above.
+
+Next candidate groups (not yet spec-governed — author one per group as touched, so the whole
+surface stays spec-governed for the Augment Code intent IDE): MPTE / attack-simulation,
+threat-intel feeds + IOC, SOAR / playbooks, deception, forensics, exec-reporting / evidence-export.
 
 ## Pre-mortem-driven de-risk specs (SCIF $100K, added 2026-06-01)
 | ID | Title | Priority | Effort | Kills failure |
