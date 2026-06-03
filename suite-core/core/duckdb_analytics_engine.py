@@ -127,7 +127,8 @@ class AnalyticsEngine:
         so the response is always complete.
 
         Args:
-            org_id: Organisation identifier for future multi-tenant filtering.
+            org_id: Organisation identifier — all domain aggregates are scoped to it,
+                so an un-ingested org reads honest-empty (no cross-tenant counts).
 
         Returns:
             Dict with fields: current_score, grade, total_risks, critical_risks,
@@ -145,11 +146,21 @@ class AnalyticsEngine:
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
 
-        # Posture score
-        rows = self._try_scan("posture_score", "posture_scores", limit=1)
-        if rows:
-            result["current_score"] = rows[0].get("current_score")
-            result["grade"] = rows[0].get("grade")
+        # Posture score (scoped to org — was unscoped, returned another org's row)
+        posture_path = self.get_db_path("posture_score")
+        if posture_path is not None:
+            try:
+                sql = (
+                    f"SELECT current_score, grade "  # nosec B608
+                    f"FROM sqlite_scan('{posture_path}', 'posture_scores') "
+                    f"WHERE org_id = ? LIMIT 1"
+                )
+                prow = self._conn.execute(sql, [org_id]).fetchone()
+                if prow:
+                    result["current_score"] = prow[0]
+                    result["grade"] = prow[1]
+            except Exception as exc:  # noqa: BLE001
+                _logger.debug("posture_score aggregate failed: %s", exc)
 
         # Risk register — push COUNT aggregates into DuckDB, no Python row materialisation
         risk_path = self.get_db_path("risk_register")
@@ -158,9 +169,10 @@ class AnalyticsEngine:
                 sql = (
                     f"SELECT COUNT(*), "  # nosec B608
                     f"COUNT(*) FILTER (WHERE lower(severity) = 'critical') "
-                    f"FROM sqlite_scan('{risk_path}', 'risks')"
+                    f"FROM sqlite_scan('{risk_path}', 'risks') "
+                    f"WHERE org_id = ?"
                 )
-                total, critical = self._conn.execute(sql).fetchone()  # type: ignore[misc]
+                total, critical = self._conn.execute(sql, [org_id]).fetchone()  # type: ignore[misc]
                 result["total_risks"] = total or 0
                 result["critical_risks"] = critical or 0
             except Exception as exc:  # noqa: BLE001
@@ -172,9 +184,10 @@ class AnalyticsEngine:
             try:
                 sql = (
                     f"SELECT COUNT(*) FILTER (WHERE lower(status) != 'closed') "  # nosec B608
-                    f"FROM sqlite_scan('{forensics_path}', 'forensic_cases')"
+                    f"FROM sqlite_scan('{forensics_path}', 'forensic_cases') "
+                    f"WHERE org_id = ?"
                 )
-                result["open_cases"] = self._conn.execute(sql).fetchone()[0] or 0  # type: ignore[index]
+                result["open_cases"] = self._conn.execute(sql, [org_id]).fetchone()[0] or 0  # type: ignore[index]
             except Exception as exc:  # noqa: BLE001
                 _logger.debug("digital_forensics aggregate failed: %s", exc)
 
@@ -185,9 +198,10 @@ class AnalyticsEngine:
                 sql = (
                     f"SELECT COUNT(*), "  # nosec B608
                     f"COUNT(*) FILTER (WHERE lower(severity) = 'critical') "
-                    f"FROM sqlite_scan('{hunt_path}', 'hunt_findings')"
+                    f"FROM sqlite_scan('{hunt_path}', 'hunt_findings') "
+                    f"WHERE org_id = ?"
                 )
-                total, critical = self._conn.execute(sql).fetchone()  # type: ignore[misc]
+                total, critical = self._conn.execute(sql, [org_id]).fetchone()  # type: ignore[misc]
                 result["total_findings"] = total or 0
                 result["critical_findings"] = critical or 0
             except Exception as exc:  # noqa: BLE001
