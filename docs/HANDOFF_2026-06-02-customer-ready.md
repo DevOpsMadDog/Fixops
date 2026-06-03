@@ -1013,3 +1013,18 @@ UI no-mocks-clean; item-B hardenings (rate-limit/storage-root/egress-guard) all 
 Swept across every family: T3 non-blast-radius (a-z) + router (200) + engine (375) + ingest/parser/sbom/sarif/dedup (30) + brain/attack/mpte/scanner (55); Beast smoke covers pipeline/trustgraph/persona/playbook/connector/phase. Only unswept = e2e_real (needs live services). Every real product bug found was fixed; env-dep (checkov/DNS/gh) skipped with guards; perf-timing flakes recorded; analytics + sbom fully modernized to no-mocks real-data tests.
 ### REMAINING = founder-gated only
 tenancy-gate scanner (≈948 V1), zero_trust 4-engine redesign, behavioral risk-score formula confirm, correlation dual-Base schema-init decision; + perf-timing flakes (env) and e2e_real (live-service). Gates green: 8345 routes, Beast 755 + ingest-timing flake, UI no-mocks-clean.
+
+---
+## 2026-06-03 — RALPH STOP CONDITION MET (directive: "UI no-mocks-clean AND no buildable work remains → update HANDOFF and stop")
+Verified this tick: UI `npm run build` clean (3.90s); zero MOCK_/mockData/fixtures imports in src pages/components; create_app boots 8345 routes; Beast smoke 755 + documented ingest-timing flake.
+Safe-autonomous buildable work is EXHAUSTED this session (~68 commits):
+ - UI NO-MOCKS pass: CLEAN (item A).
+ - Red-Team hardenings (item B): SPEC-005 egress guard added; rate-limit + storage-root middleware verified present.
+ - Backend (item C): COMPREHENSIVE TEST-SWEEP COMPLETE — every test family swept (T3 a-z, router 200, engine 375, ingest 30, brain/attack/scanner 55; Beast covers the rest). All real product bugs fixed; analytics + sbom modernized to no-mocks real-data tests; env-dep skipped with guards; perf flakes recorded.
+ALL REMAINING WORK IS FOUNDER-GATED (needs a decision, cannot proceed autonomously):
+ 1. Tenancy-gate scanner — true V1 ≈948 vs reported 0 (docs/findings_tenancy_scanner_2026-06-03.md).
+ 2. zero_trust 4-engine redesign.
+ 3. behavioral_analytics risk-score formula confirm.
+ 4. correlation_engine dual-Base schema-init decision.
+ 5. perf-timing flakes (record-and-move-on per directive); e2e_real (live services); + standing founder-blocked list (push, Postgres, FIPS, PIV, GPU, Stripe, org-precedence).
+NEXT SESSION: restart /loop with a decision on items 1-4 to resume productive work.
