@@ -749,3 +749,8 @@ def get_all_patterns() -> Dict[str, Any]:
             "compliance": p.get("compliance", []),
         })
     return {"total_patterns": len(SECRET_PATTERNS), "by_category": by_category}
+
+
+# Fix GET /{param}-before-literal route shadowing (see _route_priority).
+from apps.api._route_priority import prioritize_literal_routes as _prioritize_literal_routes  # noqa: E402
+_prioritize_literal_routes(router)

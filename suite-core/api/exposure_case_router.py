@@ -242,3 +242,8 @@ async def exposure_case_health():
 async def exposure_case_status():
     """Exposure case status (alias for /health)."""
     return await exposure_case_health()
+
+
+# Fix GET /{param}-before-literal route shadowing (see _route_priority).
+from apps.api._route_priority import prioritize_literal_routes as _prioritize_literal_routes  # noqa: E402
+_prioritize_literal_routes(router)
