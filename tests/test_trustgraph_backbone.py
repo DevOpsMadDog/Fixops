@@ -348,6 +348,43 @@ class TestIndexComplianceControl:
 
 
 # ============================================================================
+# index_evidence (SPEC-019 chain-of-custody)
+# ============================================================================
+
+
+class TestIndexEvidence:
+    """Tests for index_evidence() — evidence chain-of-custody (SPEC-019)."""
+
+    def test_index_evidence_returns_entity_id(self, backbone):
+        eid = backbone.index_evidence({
+            "evidence_id": "ev1",
+            "control_id": "AC-2",
+            "framework": "NIST 800-53",
+        })
+        assert eid.startswith("evidence_")
+
+    def test_index_evidence_in_core_3(self, backbone):
+        eid = backbone.index_evidence({"evidence_id": "ev2", "framework": "soc2"})
+        entity = backbone._store.get_entity(eid)
+        assert entity is not None
+        assert entity.core_id == 3  # CORE_COMPLIANCE
+        assert entity.entity_type == "Evidence"
+
+    def test_index_evidence_links_control(self, backbone):
+        eid = backbone.index_evidence({"evidence_id": "ev3", "control_id": "AC-3"})
+        rels = backbone._store.get_relationships(eid)
+        targets = [r.target_id if hasattr(r, "target_id") else getattr(r, "to_id", None) for r in rels]
+        assert any(str(t).startswith("control_") for t in targets), \
+            f"evidence should link to its control; rels={rels}"
+
+    def test_index_evidence_drops_empty_control(self, backbone):
+        # No control_id → no control edge, but still a valid evidence node.
+        eid = backbone.index_evidence({"evidence_id": "ev4"})
+        assert eid.startswith("evidence_")
+        assert backbone._store.get_entity(eid) is not None
+
+
+# ============================================================================
 # index_vendor
 # ============================================================================
 
