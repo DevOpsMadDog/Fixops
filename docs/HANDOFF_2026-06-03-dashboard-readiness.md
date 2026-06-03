@@ -403,3 +403,34 @@ public/signature-verified, per their own design). Allowlist now covers the inten
 categories (auth-flow, inbound provider webhooks, billing/servicenow webhooks, */health).
 **Exhaustive test PASSES (88s, 0 gaps); smoke 755+1-flake.** Auth epic complete + exhaustively
 guarded — 24 router/surface fixes this session.
+
+---
+
+## SESSION CAPSTONE (2026-06-03) — customer-ready loop, ticks 140–166
+
+**Security — auth-hardening epic COMPLETE + exhaustively guarded (the session's headline):**
+- 24 router/surface auth fixes — endpoints that returned data to UNAUTHENTICATED callers,
+  incl `POST /secrets-management/secrets` (created secrets unauthed) and webhooks
+  `POST /outbox/{id}/execute` (triggered outbound webhooks unauthed).
+- 3 root causes: missing router-level dep; placeholder `api_key_auth(): return True`;
+  circular-import NO-OP fallback. One boot-crash caught+fixed mid-flight (UnboundLocalError).
+- Found via systematic no-key sweeps (a code read missed them — docstrings *claimed* auth).
+- Locked behind `tests/test_no_unauthenticated_endpoints.py` (4975-endpoint exhaustive probe,
+  passing). Path-param endpoints separately verified clean (1101 probed, 0 real gaps).
+
+**UI NO-MOCKS — frontier exhausted:** 5 dashboards made real + browser-verified (ArchReview,
+IdentityLifecycle, ComplianceCalendar, ThreatIntelDashboard [+3 endpoint bugs], CopilotDashboard);
+mission-control/executive suite audited clean; two static-detector rounds + component sweep;
+directive grep clean.
+
+**Governance — spec backfill COMPLETE:** INDEX 8/22 → 28/28; 6 net-new specs authored &
+live-verified (SPEC-021 MPTE, 022 threat-intel, 023 SOAR, 024 deception, 025 forensics,
+026 exec-reporting). Surfaced the `/api/v1/playbooks` shadow-collision (founder consolidation epic).
+
+**Quality:** T3 cumulative ~2500+ tests green (hardening + ingest slices); Beast smoke green
+every tick (755 + 1 documented flake = 0 regressions throughout).
+
+**Remaining (next sessions):** wire the auth regression test into the T2/T3 CI gate; the
+router-consolidation epic (740-dup-route debt, `/api/v1/playbooks` collision). Founder-blocked:
+push (VPN DNS + revoked PAT), Postgres, org-precedence, FIPS/PIV/GPU/Stripe, the scif-posture
+auth founder-decision.
