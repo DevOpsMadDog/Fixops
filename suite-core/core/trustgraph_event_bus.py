@@ -686,6 +686,26 @@ _DEFAULT_HANDLERS: Dict[str, Callable[[Dict[str, Any]], Coroutine]] = {
 }
 
 
+async def _handle_generic_ack(data: Dict[str, Any]) -> bool:
+    """Acknowledge/drain an event type that has no dedicated correlation handler.
+
+    Without a handler, emit() enqueues the event to the offline queue forever
+    (unbounded growth, never processed). This drain-ack consumes it. Emitted types
+    that warrant real graph correlation (e.g. evidence.collected, threat.detected)
+    can later get dedicated TrustGraphBackbone handlers; until then they are at
+    least drained rather than accumulating.
+    """
+    return True
+
+
+# Guarantee EVERY declared event type has a default handler so no emitted event is
+# silently queued forever. Specific handlers above take precedence; all remaining
+# ALL_EVENT_TYPES get the drain-ack. Keeps _DEFAULT_HANDLERS in lockstep with
+# ALL_EVENT_TYPES as new types are added.
+for _et in ALL_EVENT_TYPES:
+    _DEFAULT_HANDLERS.setdefault(_et, _handle_generic_ack)
+
+
 # ---------------------------------------------------------------------------
 # EventBus
 # ---------------------------------------------------------------------------
