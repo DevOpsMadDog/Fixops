@@ -247,3 +247,16 @@ coverage, no hardcoded JWT secret, no credential in exception chain).
 UI NO-MOCKS confirmed clean by the directive's own grep: zero
 `src/data|fixtures|mock|sample|seed` imports, zero `MOCK_`/`lorem`/`Acme`/`John Doe`
 displayed values across `src/`.
+
+### Item (C) T3 ingest/normalizer slice — GREEN (tick151)
+
+Second non-blast-radius T3 chunk validating the ingest-first core (FixOps' primary
+value prop): commercial DAST parsers, connector unit/coverage/router, cross-scanner
+dedup, container/DAST/dep/AI/CLI scanners, CSPM connector, design-doc ingest
+(real `/api/v1/design-doc` ingest+extract+stride+auto-model with 401-on-missing-key
++ org isolation). **Result: 723 passed / 0 failed (38s).** Non-live slice (`*_live.py`
+excluded — those need founder-blocked external creds).
+
+**Session T3 cumulative: 2492 tests green** (1769 hardening + 723 ingest) + Beast
+smoke 755 + 1 known flake. Zero regressions. UI component layer also confirmed
+NO-MOCKS clean (0 void-discard, 0 useState(MOCK), 0 no-api module data arrays).
