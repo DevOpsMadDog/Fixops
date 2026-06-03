@@ -37,7 +37,8 @@ import {
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { API_BASE_URL, API_KEY, getApiKey, DEFAULT_ORG_ID } from "@/lib/api-config";
+import { API_BASE_URL, API_KEY, getApiKey  } from "@/lib/api-config";
+import { getStoredOrgId } from "@/lib/api";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared fetch helper
@@ -224,7 +225,7 @@ function PatchManagementPanel() {
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    const org = DEFAULT_ORG_ID;
+    const org = getStoredOrgId();
     Promise.all([
       apiFetch<{ patches?: PatchRecord[]; items?: PatchRecord[] } | PatchRecord[]>(
         `/api/v1/patch-management/patches?org_id=${org}&limit=50`
@@ -313,7 +314,7 @@ function PatchPrioritizerPanel() {
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    const org = DEFAULT_ORG_ID;
+    const org = getStoredOrgId();
     Promise.all([
       apiFetch<PrioritySummary>(`/api/v1/patch-priority/stats?org_id=${org}`),
       apiFetch<PatchPlan[]>(`/api/v1/patch-priority/plans?org_id=${org}`),
@@ -398,7 +399,7 @@ function SOARPanel() {
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    const org = DEFAULT_ORG_ID;
+    const org = getStoredOrgId();
     Promise.all([
       apiFetch<{ playbooks?: SOARPlaybook[]; items?: SOARPlaybook[] } | SOARPlaybook[]>(
         `/api/v1/soar/playbooks?org_id=${org}`

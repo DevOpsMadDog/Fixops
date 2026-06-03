@@ -40,7 +40,8 @@ import {
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { API_BASE_URL, API_KEY, getApiKey, DEFAULT_ORG_ID } from "@/lib/api-config";
+import { API_BASE_URL, API_KEY, getApiKey  } from "@/lib/api-config";
+import { getStoredOrgId } from "@/lib/api";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared fetch helper
@@ -118,8 +119,8 @@ function PolicyLibraryPanel() {
     setError(null);
     try {
       const [pols, st] = await Promise.all([
-        apiFetch<Policy[]>(`/api/v1/policies?org_id=${DEFAULT_ORG_ID}`),
-        apiFetch<PolicyStats>(`/api/v1/policies/stats?org_id=${DEFAULT_ORG_ID}`),
+        apiFetch<Policy[]>(`/api/v1/policies?org_id=${getStoredOrgId()}`),
+        apiFetch<PolicyStats>(`/api/v1/policies/stats?org_id=${getStoredOrgId()}`),
       ]);
       setPolicies(Array.isArray(pols) ? pols : []);
       setStats(st);
@@ -389,7 +390,7 @@ function PolicyInheritancePanel() {
     try {
       const [orgsRaw, policiesRaw] = await Promise.all([
         apiFetch<Org[] | { orgs: Org[] }>("/api/v1/orgs"),
-        apiFetch<Policy[]>(`/api/v1/policies?org_id=${DEFAULT_ORG_ID}`),
+        apiFetch<Policy[]>(`/api/v1/policies?org_id=${getStoredOrgId()}`),
       ]);
       const orgs = Array.isArray(orgsRaw)
         ? orgsRaw
@@ -491,7 +492,7 @@ function PolicyStageEditorPanel() {
     setLoadingList(true);
     setError(null);
     try {
-      const pols = await apiFetch<Policy[]>(`/api/v1/policies?org_id=${DEFAULT_ORG_ID}`);
+      const pols = await apiFetch<Policy[]>(`/api/v1/policies?org_id=${getStoredOrgId()}`);
       const list = Array.isArray(pols) ? pols : [];
       setPolicies(list);
       if (list.length > 0 && !selectedId) {

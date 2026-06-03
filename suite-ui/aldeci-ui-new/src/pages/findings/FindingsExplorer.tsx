@@ -61,7 +61,8 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { API_BASE_URL, API_KEY, getApiKey, DEFAULT_ORG_ID } from "@/lib/api-config";
+import { API_BASE_URL, API_KEY, getApiKey  } from "@/lib/api-config";
+import { getStoredOrgId } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -337,11 +338,11 @@ function TrustGraphRelatedPanel({
 
     const url = `${API_BASE_URL.replace(/\/$/, "")}/api/v1/graph/related/${encodeURIComponent(
       findingId
-    )}?depth=2&org_id=${encodeURIComponent(DEFAULT_ORG_ID)}`;
+    )}?depth=2&org_id=${encodeURIComponent(getStoredOrgId())}`;
 
     const headers: Record<string, string> = { Accept: "application/json" };
     if (getApiKey()) headers["X-API-Key"] = getApiKey();
-    if (DEFAULT_ORG_ID) headers["X-Org-ID"] = DEFAULT_ORG_ID;
+    if (getStoredOrgId()) headers["X-Org-ID"] = getStoredOrgId();
 
     fetch(url, { headers })
       .then(async (res) => {
@@ -722,8 +723,8 @@ export default function FindingsExplorer() {
   useEffect(() => {
     const headers: Record<string, string> = { Accept: "application/json" };
     if (getApiKey()) headers["X-API-Key"] = getApiKey();
-    if (DEFAULT_ORG_ID) headers["X-Org-ID"] = DEFAULT_ORG_ID;
-    const url = `${API_BASE_URL.replace(/\/$/, "")}/api/v1/findings?org_id=${encodeURIComponent(DEFAULT_ORG_ID)}&limit=100`;
+    if (getStoredOrgId()) headers["X-Org-ID"] = getStoredOrgId();
+    const url = `${API_BASE_URL.replace(/\/$/, "")}/api/v1/findings?org_id=${encodeURIComponent(getStoredOrgId())}&limit=100`;
     fetch(url, { headers })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
       .then(d => {
