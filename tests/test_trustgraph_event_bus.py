@@ -916,3 +916,51 @@ async def test_emit_sync_handler():
     await bus.emit("finding.created", {"id": "f_sync"})
     await asyncio.sleep(0.1)
     assert len(received) == 1
+
+
+# ---------------------------------------------------------------------------
+# Correctness-fix regression guards (tick136/138/139)
+# ---------------------------------------------------------------------------
+
+
+def test_threat_detected_routes_to_finding_handler():
+    """tick138: GNN attack paths (threat.detected) must index as findings, not drain-ack."""
+    from core.trustgraph_event_bus import _DEFAULT_HANDLERS, _handle_finding_created
+    assert _DEFAULT_HANDLERS.get("threat.detected") is _handle_finding_created
+
+
+def test_evidence_collected_routes_to_evidence_handler():
+    """tick139: evidence.collected must index as a chain-of-custody node, not drain-ack."""
+    from core.trustgraph_event_bus import _DEFAULT_HANDLERS, _handle_evidence_collected
+    assert _DEFAULT_HANDLERS.get("evidence.collected") is _handle_evidence_collected
+
+
+@pytest.mark.asyncio
+async def test_emit_holds_strong_refs_to_dispatch_tasks():
+    """tick136: emit() must keep strong refs to dispatch tasks so asyncio cannot GC
+    them before they run (untracked ensure_future = silently dropped events)."""
+    from core.trustgraph_event_bus import EventBus
+    bus = EventBus()
+
+    # _spawn holds a strong ref while in-flight, then the done-callback discards it
+    # (deterministic via a trivial coro — no agentdb/broadcast background noise).
+    async def _noop():
+        return None
+
+    bus._spawn(_noop())
+    assert len(bus._bg_tasks) == 1   # strong ref held while in-flight
+    await asyncio.sleep(0.05)
+    assert len(bus._bg_tasks) == 0   # done-callback discarded the completed task
+
+    # emit() likewise tracks its dispatch task(s) so events are not GC-dropped.
+    bus.enabled = True
+    bus._enabled_types.add("finding.created")
+
+    async def slow_handler(data):
+        await asyncio.sleep(0.05)
+        return True
+
+    bus.on("finding.created", slow_handler)
+    await bus.emit("finding.created", {"id": "f_ref"})
+    assert len(bus._bg_tasks) >= 1   # dispatch task tracked (not GC'd) while in-flight
+    await asyncio.sleep(0.2)
