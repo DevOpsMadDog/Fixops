@@ -293,3 +293,16 @@ no-key=401, stats real counts, orchestrator TI sources {NVD,CISA-KEV,EPSS,...},
 
 Remaining next-candidate groups (each a standalone one-per-tick authoring effort):
 threat-intel feeds + IOC, SOAR/playbooks, deception, forensics, exec-reporting.
+
+### New governance spec — SPEC-022 Threat Intelligence Layer (tick155)
+
+Authored SPEC-022-threat-intel (feeds + actors + IOC enrichment, ingest-first /
+honest-empty), the second next-candidate group. Grounded in live TestClient
+probes (threat-intel/actors = 10 real, /iocs = {total,iocs[]}, feeds/status +
+nvd/recent honest-empty count:0, ioc-enrichment stats zeroed, no-key = 401).
+7 executable ACs; feed+ioc suites 428 passed / 1 skipped (org-isolation included).
+Per no-fabrication, guessed feed paths that 404'd (`/feeds/epss/scores`,
+`/feeds/mitre/techniques`) were EXCLUDED. **INDEX now 24/24 specs.**
+
+Remaining next-candidate groups: SOAR/playbooks, deception, forensics,
+exec-reporting/evidence-export (one verified spec per tick).
