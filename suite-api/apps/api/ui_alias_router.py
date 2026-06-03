@@ -36,12 +36,19 @@ from fastapi.responses import JSONResponse
 # ---------------------------------------------------------------------------
 # Auth helper — same pattern as everywhere else in the app
 # ---------------------------------------------------------------------------
+# SECURITY 2026-06-03: prefer the real request-based enforcer (auth_deps.api_key_auth);
+# the previous primary (apps.api.app._verify_api_key) hit a circular import at app-load and
+# fell back to a NO-OP (`return None`), silently disabling auth on the alias routes. Fail CLOSED.
 try:
-    from apps.api.app import _verify_api_key  # type: ignore[attr-defined]
-except Exception:
-    # Fallback for standalone import / test contexts
-    async def _verify_api_key() -> None:  # type: ignore[misc]
-        return None
+    from apps.api.auth_deps import api_key_auth as _verify_api_key  # real enforcer
+except Exception:  # pragma: no cover
+    try:
+        from apps.api.app import _verify_api_key  # type: ignore[attr-defined]
+    except Exception:
+        from fastapi import HTTPException, Request
+
+        async def _verify_api_key(request: Request) -> None:  # type: ignore[misc]
+            raise HTTPException(status_code=401, detail="Authentication required")
 
 
 _AUTH = [Depends(_verify_api_key)]

@@ -30,9 +30,15 @@ from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
 
+try:  # SECURITY 2026-06-03: enforce api_key auth at router level (was missing → unauthenticated 200s)
+    from apps.api.auth_deps import api_key_auth as _api_key_auth
+    _AUTH_DEP = [Depends(_api_key_auth)]
+except Exception:  # pragma: no cover
+    _AUTH_DEP = []
 router = APIRouter(
     prefix="/api/v1/container-runtime",
     tags=["Container Runtime Security"],
+    dependencies=_AUTH_DEP,
 )
 
 _engine = None

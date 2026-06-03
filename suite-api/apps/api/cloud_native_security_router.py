@@ -15,7 +15,16 @@ from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/cloud-native", tags=["cloud-native"])
+# SECURITY 2026-06-03: the module-level api_key_auth() below is a placeholder that returns
+# True (no enforcement). Enforce the REAL request-based api_key_auth at the router level so
+# every endpoint requires X-API-Key (401 without) — was returning 200 unauthenticated.
+try:
+    from apps.api.auth_deps import api_key_auth as _real_api_key_auth
+    _AUTH_DEP = [Depends(_real_api_key_auth)]
+except Exception:  # pragma: no cover
+    _AUTH_DEP = []
+
+router = APIRouter(prefix="/api/v1/cloud-native", tags=["cloud-native"], dependencies=_AUTH_DEP)
 
 
 # ---------------------------------------------------------------------------

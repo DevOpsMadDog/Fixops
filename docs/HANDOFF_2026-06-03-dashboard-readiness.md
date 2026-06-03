@@ -353,3 +353,13 @@ MPTE, threat-intel, SOAR, deception, forensics, exec-reporting).
 Next threads (no named backlog left): (1) audit other routers for the same missing-router-auth
 pattern; (2) router-consolidation epic (`/api/v1/playbooks` collision + 740-dup-route debt);
 (3) new specs as the API surface grows. All other backlog founder-blocked.
+
+### Systematic auth-gap sweep — 8 unauthenticated routers fixed (tick161)
+The exec-reporting finding (tick160) generalized: swept all 692 mounted `/api/v1` GET prefixes
+no-key → 8 returned 2xx unauthenticated (api-discovery, asset-inventory, autonomous-remediation,
+cloud-native, container-runtime, container-security, data-classification, vuln-correlation —
+sensitive tenant data). 3 root causes fixed across 6 files: missing router-level `dependencies=`
+(4 routers); a `def api_key_auth(): return True` placeholder (cloud_native); and a circular-import
+NO-OP fallback that silently disabled auth (ui_alias, 3 alias prefixes — now fail-CLOSED).
+Re-swept → **GAPS=0**; all 8 verified no-key=401/with-key=200; create_app 8357; Beast smoke 756/756.
+Reusable detector + pattern saved to memory (feedback_router_auth_gap_pattern).
