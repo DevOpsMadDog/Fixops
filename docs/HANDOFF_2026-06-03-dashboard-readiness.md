@@ -86,5 +86,17 @@ on mounted files. CONFIRMED-NOT-A-BUG: local-store/init (501-tolerant). BLOCKED 
 (no per-model pricing — founder data), threat-intel/block-iocs (no stable IOC id — model redesign),
 skills/install (air-gap install-source design).
 
+## FRONTIER STATUS (end of 2026-06-03 multi-tick session — ~22 commits)
+- **UI NO-MOCKS (item A): COMPLETE + verified** — no fixtures/fabrication; all pages fire real /api/v1; live Playwright-confirmed real tenant data.
+- **Dashboard + page endpoints: COMPLETE** — all 208 GenericDashboard/FindingsExplorer endpoints resolve; broad page sweep 339/348 routed; remaining 9 fixed or triaged.
+- **Route-shadowing bug class: VERIFIED CLEAN codebase-wide** (tick119: all 4 remaining candidates false positives; 15+ revived earlier).
+- **Hardenings (item B): no gap** — all 22 specs IMPLEMENTED/BACKFILL (egress-guard, crypto, airgap, tenancy all done).
+- **T3 (item C): healthy** — hardening slice 133/134; lone failure = stale-:8000 env artifact (current code all 200).
+
+### Remaining = founder-blocked / architectural-epic only (NOT in-context buildable):
+- 3 page-gaps: llm/estimate (per-model pricing data), threat-intel/block-iocs (IOC-id model), skills/install (air-gap install-source).
+- Restart the stale dev :8000 server (env).
+- Duplicate-prefix/duplicate-router-file consolidation (architectural epic; see tick118 gotcha + memory project_duplicate_routes_2026-06-03).
+
 ## Founder-blocked (record + move on)
 push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
