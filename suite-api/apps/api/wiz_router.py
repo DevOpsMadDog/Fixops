@@ -81,6 +81,7 @@ def _split_csv(value: Optional[str]) -> Optional[List[str]]:
 
 
 @router.get("/")
+@router.get("/capability")  # SPEC-016 data contract: GET /api/v1/wiz/capability
 def capability_summary() -> Dict[str, Any]:
     """Return capability/health summary for the Wiz integration."""
     eng = _engine()

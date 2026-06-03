@@ -1,6 +1,16 @@
 # SPEC-016 — SCIF Stack-Fit: Correlate Existing Tools + Close the Loop
 
-- **Status**: DRAFT
+- **Status**: IMPLEMENTED (verified 2026-06-03 — all 7 endpoints live + honest-503)
+
+> **Verification 2026-06-03 (ralph):** all 7 SPEC-016 endpoints exist and respond
+> honestly (no 500s, no fabrication). GET /api/v1/wiz/capability → 200 "unavailable",
+> GET /api/v1/prisma/capability → 200 "not_configured" (added this tick — the
+> capability summary was previously only at the router index "/"). POST /wiz/ingest,
+> /prisma/ingest, /design-context/confluence/import → honest 503 when creds unset;
+> POST /closed-loop/decide → verdict shape (404 when finding absent); GET
+> /closed-loop/status → 200. Connectors (wiz_cnapp_engine, PrismaCloudConnector,
+> ConfluenceConnector) are real; honest-503 contract holds with creds unset.
+> create_app boots 8347 routes; Beast smoke 755 + documented ingest-timing flake.
 - **Owner family**: Connectors / TrustGraph / Orchestration
 - **Routers**: `wiz_router.py`, `prisma_router.py` (NEW), `confluence_*` (via `connectors.py`), `jira_cloud_router.py`, `servicenow_router.py`, `splunk_router.py`, `github_api_router.py`, `scanner_ingest_router.py`
 - **Engines**: `wiz_cnapp_engine.py`, `security_connectors.py:PrismaCloudConnector`, `connectors.py:ConfluenceConnector`, `pipeline_orchestrator.py`, `knowledge_brain` (Store B), `_index_findings_into_brain`

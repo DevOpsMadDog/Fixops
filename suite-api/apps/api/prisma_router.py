@@ -81,6 +81,7 @@ def _norm_prisma_alert(a: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @router.get("/")
+@router.get("/capability")  # SPEC-016 data contract: GET /api/v1/prisma/capability
 def capability_summary() -> Dict[str, Any]:
     """Honest configured / not_configured status (no outbound call)."""
     conn = _connector()
