@@ -148,5 +148,14 @@ Classes covered — storage-root/path-traversal (FIXED 11 engines), command-inje
 - **Real correlation for the 2 emitted types (tick138-139)**: `threat.detected` (GNN attack paths, finding-shaped) → `_handle_finding_created`; `evidence.collected` → new `TrustGraphBackbone.index_evidence` (Evidence node + `supports`→control + `part_of`→framework edges = SPEC-019 chain-of-custody). Both now index into TrustGraph instead of drain-acking. (16 remaining drain-ack types are declared-but-unemitted future types — correct.)
 - **Bonus**: this also resolved the tick134 brain_pipeline `TestEdgeCases` capture flake (now 7/7) — same root cause.
 
+## Architect decision (tick141): TrustGraph correlation-event allowlist scope
+116 distinct event-type strings are emitted across the codebase; only 29 are in `ALL_EVENT_TYPES`
+(the bus's curated correlation allowlist) — the other 110 are recorded as dropped. This is a
+deliberate design (curated correlation set + best-effort `engine.action` telemetry via `_emit_event`,
+metric-tracked, no crash/data-loss), NOT a bug. DECISION NEEDED: which granular engine events
+(e.g. `self_scan.completed`, `pipeline_orchestrator.finding_processed`, `vendor_risk.assessed`)
+should be promoted to canonical TrustGraph correlation vs remain telemetry. Mass-promotion would
+flood the graph or just drain-ack; per-event correlation handlers need design. Architect/founder call.
+
 ## Founder-blocked (record + move on)
 push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
