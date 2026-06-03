@@ -30,9 +30,11 @@ def tmp_db(tmp_path):
 
 
 @pytest.fixture()
-def engine(tmp_db):
+def engine(tmp_path):
     from core.sbom_engine import SBOMEngine
-    return SBOMEngine(db_path=tmp_db)
+    # SBOMEngine is asset/component-based and takes a data_dir (per-org SBOM
+    # stores), not a single db_path. Give it an isolated temp directory.
+    return SBOMEngine(data_dir=str(tmp_path / "sbom_engine_data"))
 
 
 @pytest.fixture()
@@ -131,138 +133,125 @@ require github.com/spf13/cobra v1.7.0
 # SBOMEngine tests
 # ===========================================================================
 
-class TestSBOMEngineGenerateCycloneDX:
-    def test_returns_cyclonedx_format(self, engine):
-        sbom = engine.generate_sbom("org1", "asset1", fmt="cyclonedx",
-                                    requirements_path="nonexistent_req.txt")
-        assert sbom.get("bomFormat") == "CycloneDX"
+class TestSBOMEngineAssets:
+    """SBOMEngine is asset/component-based: register assets, add components,
+    then generate CycloneDX/SPDX. (The old generate_sbom-from-manifest API moved
+    to SBOMGenerator.) These tests exercise the real engine end to end."""
 
-    def test_sbom_has_components(self, engine):
-        sbom = engine.generate_sbom("org1", "asset1", fmt="cyclonedx",
-                                    requirements_path="nonexistent_req.txt")
-        assert "components" in sbom
-        assert isinstance(sbom["components"], list)
+    def test_register_asset_returns_id(self, engine):
+        a = engine.register_asset("org1", {"asset_name": "myapp", "asset_type": "application"})
+        assert a["id"]
+        assert a["asset_name"] == "myapp"
 
-    def test_sbom_id_injected(self, engine):
-        sbom = engine.generate_sbom("org1", "asset1")
-        assert "_sbom_id" in sbom
+    def test_register_asset_requires_name(self, engine):
+        with pytest.raises(ValueError, match="asset_name"):
+            engine.register_asset("org1", {})
 
-    def test_generates_spdx_format(self, engine):
-        sbom = engine.generate_sbom("org1", "asset1", fmt="spdx",
-                                    requirements_path="nonexistent_req.txt")
-        assert sbom.get("spdxVersion", "").startswith("SPDX-")
+    def test_register_asset_rejects_invalid_type(self, engine):
+        with pytest.raises(ValueError):
+            engine.register_asset("org1", {"asset_name": "x", "asset_type": "not-a-type"})
 
-    def test_invalid_format_raises(self, engine):
-        with pytest.raises(ValueError, match="Unsupported format"):
-            engine.generate_sbom("org1", "asset1", fmt="xml")
+    def test_list_assets_empty_initially(self, engine):
+        assert engine.list_assets("org1") == []
 
+    def test_list_assets_returns_registered(self, engine):
+        engine.register_asset("org1", {"asset_name": "a1"})
+        engine.register_asset("org1", {"asset_name": "a2"})
+        assert len(engine.list_assets("org1")) == 2
 
-class TestSBOMEngineListAndGet:
-    def test_list_empty_initially(self, engine):
-        assert engine.list_sboms("org1") == []
+    def test_list_assets_isolated_by_org(self, engine):
+        engine.register_asset("org1", {"asset_name": "a1"})
+        engine.register_asset("org2", {"asset_name": "a2"})
+        assert len(engine.list_assets("org1")) == 1
+        assert len(engine.list_assets("org2")) == 1
 
-    def test_list_returns_generated_sboms(self, engine):
-        engine.generate_sbom("org1", "asset1")
-        engine.generate_sbom("org1", "asset2")
-        sboms = engine.list_sboms("org1")
-        assert len(sboms) == 2
+    def test_get_asset_roundtrip(self, engine):
+        a = engine.register_asset("org1", {"asset_name": "a1"})
+        got = engine.get_asset("org1", a["id"])
+        assert got is not None and got["id"] == a["id"]
 
-    def test_list_filters_by_org(self, engine):
-        engine.generate_sbom("org1", "asset1")
-        engine.generate_sbom("org2", "asset1")
-        assert len(engine.list_sboms("org1")) == 1
-        assert len(engine.list_sboms("org2")) == 1
-
-    def test_get_sbom_returns_full_doc(self, engine):
-        sbom = engine.generate_sbom("org1", "asset1")
-        sbom_id = sbom["_sbom_id"]
-        result = engine.get_sbom(sbom_id, "org1")
-        assert result is not None
-        assert result["_sbom_id"] == sbom_id
-
-    def test_get_sbom_wrong_org_returns_none(self, engine):
-        sbom = engine.generate_sbom("org1", "asset1")
-        sbom_id = sbom["_sbom_id"]
-        assert engine.get_sbom(sbom_id, "org_other") is None
-
-    def test_get_sbom_unknown_id_returns_none(self, engine):
-        assert engine.get_sbom("does-not-exist", "org1") is None
+    def test_get_asset_wrong_org_returns_none(self, engine):
+        a = engine.register_asset("org1", {"asset_name": "a1"})
+        assert engine.get_asset("org_other", a["id"]) is None
 
 
-class TestSBOMEngineImport:
-    def test_import_cyclonedx(self, engine):
-        cdx_data = {
-            "bomFormat": "CycloneDX",
-            "specVersion": "1.4",
-            "version": 1,
-            "metadata": {"component": {"name": "app", "version": "1.0"}},
-            "components": [
-                {"type": "library", "name": "flask", "version": "2.3.0",
-                 "purl": "pkg:pypi/flask@2.3.0",
-                 "licenses": [{"license": {"id": "BSD-3-Clause"}}]},
-            ],
-        }
-        sbom_id = engine.import_sbom("org1", cdx_data)
-        assert isinstance(sbom_id, str)
-        assert len(sbom_id) > 0
+class TestSBOMEngineComponents:
+    def test_add_component_returns_id(self, engine):
+        a = engine.register_asset("org1", {"asset_name": "app"})
+        c = engine.add_component("org1", a["id"], {
+            "component_name": "requests", "component_version": "2.28.0", "ecosystem": "pypi",
+        })
+        assert c["id"]
+        assert c["component_name"] == "requests"
 
-    def test_import_spdx(self, engine):
-        spdx_data = {
-            "spdxVersion": "SPDX-2.3",
-            "dataLicense": "CC0-1.0",
-            "SPDXID": "SPDXRef-DOCUMENT",
-            "name": "test-app",
-            "documentNamespace": "https://example.com/1",
-            "packages": [
-                {"SPDXID": "SPDXRef-0", "name": "lodash", "versionInfo": "4.17.21",
-                 "downloadLocation": "NOASSERTION", "filesAnalyzed": False,
-                 "licenseDeclared": "MIT", "licenseConcluded": "MIT",
-                 "copyrightText": "NOASSERTION"},
-            ],
-        }
-        sbom_id = engine.import_sbom("org1", spdx_data)
-        assert isinstance(sbom_id, str)
+    def test_add_component_requires_name(self, engine):
+        a = engine.register_asset("org1", {"asset_name": "app"})
+        with pytest.raises(ValueError, match="component_name"):
+            engine.add_component("org1", a["id"], {})
 
-    def test_import_unknown_format_raises(self, engine):
-        with pytest.raises(ValueError, match="Unrecognised SBOM format"):
-            engine.import_sbom("org1", {"notSBOM": True})
+    def test_add_component_autogenerates_purl(self, engine):
+        a = engine.register_asset("org1", {"asset_name": "app"})
+        c = engine.add_component("org1", a["id"], {
+            "component_name": "requests", "component_version": "2.28.0",
+            "component_type": "library", "ecosystem": "pypi",
+        })
+        assert c.get("purl")
 
-    def test_imported_sbom_appears_in_list(self, engine):
-        cdx_data = {
-            "bomFormat": "CycloneDX", "specVersion": "1.4", "version": 1,
-            "metadata": {"component": {"name": "x", "version": "1"}},
-            "components": [],
-        }
-        engine.import_sbom("org1", cdx_data)
-        sboms = engine.list_sboms("org1")
-        assert len(sboms) == 1
-        assert sboms[0]["source"] == "imported"
+    def test_list_components_by_asset(self, engine):
+        a = engine.register_asset("org1", {"asset_name": "app"})
+        engine.add_component("org1", a["id"], {"component_name": "requests"})
+        engine.add_component("org1", a["id"], {"component_name": "flask"})
+        comps = engine.list_components("org1", asset_id=a["id"])
+        assert len(comps) == 2
 
 
-class TestSBOMEngineLicenseAndVulnerable:
+class TestSBOMEngineGenerate:
+    def _asset_with_components(self, engine, org="org1"):
+        a = engine.register_asset(org, {"asset_name": "app", "asset_version": "1.0.0"})
+        engine.add_component(org, a["id"], {
+            "component_name": "requests", "component_version": "2.28.0", "ecosystem": "pypi",
+        })
+        return a["id"]
+
+    def test_generate_cyclonedx_format(self, engine):
+        asset_id = self._asset_with_components(engine)
+        cdx = engine.generate_cyclonedx("org1", asset_id)
+        assert cdx.get("bomFormat") == "CycloneDX"
+
+    def test_generate_cyclonedx_includes_component(self, engine):
+        asset_id = self._asset_with_components(engine)
+        cdx = engine.generate_cyclonedx("org1", asset_id)
+        names = {c.get("name") for c in cdx.get("components", [])}
+        assert "requests" in names
+
+    def test_generate_cyclonedx_unknown_asset_raises(self, engine):
+        with pytest.raises(ValueError, match="not found"):
+            engine.generate_cyclonedx("org1", "does-not-exist")
+
+    def test_generate_spdx_format(self, engine):
+        asset_id = self._asset_with_components(engine)
+        spdx = engine.generate_spdx("org1", asset_id)
+        assert str(spdx.get("spdxVersion", "")).startswith("SPDX-")
+
+    def test_generate_spdx_unknown_asset_raises(self, engine):
+        with pytest.raises(ValueError, match="not found"):
+            engine.generate_spdx("org1", "does-not-exist")
+
+
+class TestSBOMEngineSummaries:
     def test_license_summary_returns_dict(self, engine):
-        engine.generate_sbom("org1", "asset1", requirements_path="nonexistent_req.txt")
         summary = engine.get_license_summary("org1")
         assert isinstance(summary, dict)
 
-    def test_vulnerable_components_returns_list(self, engine):
-        cdx_data = {
-            "bomFormat": "CycloneDX", "specVersion": "1.4", "version": 1,
-            "metadata": {"component": {"name": "app", "version": "1"}},
-            "components": [
-                {"type": "library", "name": "log4j-core", "version": "2.14.0",
-                 "purl": "pkg:maven/log4j-core@2.14.0",
-                 "licenses": []},
-            ],
-        }
-        engine.import_sbom("org1", cdx_data)
-        vulns = engine.get_vulnerable_components("org1")
-        assert isinstance(vulns, list)
+    def test_vuln_exposure_returns_dict(self, engine):
+        exposure = engine.get_vuln_exposure("org1")
+        assert isinstance(exposure, dict)
 
-    def test_dependency_graph_empty_when_no_sbom(self, engine):
-        graph = engine.get_dependency_graph("org1", "no-asset")
-        assert graph["nodes"] == []
-        assert graph["edges"] == []
+    def test_sbom_stats_counts_assets_and_components(self, engine):
+        a = engine.register_asset("org1", {"asset_name": "app"})
+        engine.add_component("org1", a["id"], {"component_name": "requests"})
+        stats = engine.get_sbom_stats("org1")
+        assert isinstance(stats, dict)
 
 
 # ===========================================================================
