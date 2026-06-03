@@ -62,11 +62,20 @@ export default function ThreatHuntingPage() {
       const [h, i, c] = await Promise.allSettled([
         apiFetch<any>("/api/v1/hunting/sessions"),
         apiFetch<any>("/api/v1/threat-intel/iocs"),
-        apiFetch<any>("/api/v1/hunting/coverage"),
+        apiFetch<any>("/api/v1/mitre-attack-coverage/coverage"),
       ]);
       if (h.status === "fulfilled") { const v = h.value as any; setHunts(Array.isArray(v) ? v : (v.sessions ?? v.hunts ?? v.items ?? [])); }
       if (i.status === "fulfilled") { const v = i.value as any; setIocs(Array.isArray(v) ? v : (v.iocs ?? v.items ?? [])); }
-      if (c.status === "fulfilled") { const v = c.value as any; setCoverage(Array.isArray(v) ? v : (v.tactics ?? v.coverage ?? v.items ?? [])); }
+      if (c.status === "fulfilled") {
+        const v = c.value as any;
+        const tb = v?.tactic_breakdown;
+        if (tb && typeof tb === "object" && !Array.isArray(tb)) {
+          // Real MITRE coverage: {tactic_name: {covered, total, coverage_pct}} → [{name, covered}]
+          setCoverage(Object.entries(tb).map(([name, d]: [string, any]) => ({ name, covered: (d?.covered ?? 0) > 0 })));
+        } else {
+          setCoverage(Array.isArray(v) ? v : (v.tactics ?? v.coverage ?? v.items ?? []));
+        }
+      }
     } catch (e) { setError((e as Error).message); }
     finally { setLoading(false); }
   };
