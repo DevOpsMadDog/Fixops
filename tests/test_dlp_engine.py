@@ -601,3 +601,10 @@ def test_org_isolation_incidents(engine):
     # orgS has no policies, so no incidents
     incidents_s = engine.list_incidents("orgS")
     assert len(incidents_s) == 0
+
+
+def test_scan_file_blocks_path_outside_storage_root(engine):
+    """Regression guard (tick126): scan_file must reject a path outside the storage-root
+    allowlist (e.g. /etc/passwd) — arbitrary-file-read / info-disclosure defense."""
+    with pytest.raises(ValueError, match="allowed storage root"):
+        engine.scan_file("/etc/passwd")

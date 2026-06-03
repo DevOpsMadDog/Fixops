@@ -159,3 +159,11 @@ class TestStats:
         eng.analyze_repo("org-stats", "r", "c", str(mini_repo))
         s = eng.stats("org-stats")
         assert isinstance(s, dict)
+
+
+def test_analyze_repo_blocks_path_outside_storage_root():
+    """Regression guard (tick124): analyze_repo must reject a root outside the
+    storage-root allowlist (e.g. /etc) — arbitrary filesystem-read defense."""
+    eng = _engine()
+    with pytest.raises(ValueError, match="allowed storage root"):
+        eng.analyze_repo("org-x", "r", "c", "/etc")

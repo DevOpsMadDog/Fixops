@@ -786,3 +786,10 @@ class TestSecretsRouter:
         if resp.status_code == 200:
             data = resp.json()
             assert data["files_scanned"] >= 1
+
+
+def test_scan_filesystem_blocks_path_outside_storage_root(mgr):
+    """Regression guard (tick127): scan_filesystem must reject a path outside the
+    storage-root allowlist (e.g. /etc) — arbitrary-file-read / secrets-disclosure defense."""
+    with pytest.raises(ValueError, match="allowed storage root"):
+        mgr.scan_filesystem("/etc")

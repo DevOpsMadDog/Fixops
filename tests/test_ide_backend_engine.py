@@ -660,3 +660,10 @@ def test_endpoint_build_and_diff(engine: IDEBackendEngine, repo_root: Path):
         "/api/v1/ide/tree", params={"org_id": "org-x", "repo_ref": "ghost"}
     )
     assert r.status_code == 404
+
+
+def test_build_repo_tree_blocks_path_outside_storage_root(engine):
+    """Regression guard (tick123): build_repo_tree must reject a root outside the
+    storage-root allowlist (e.g. /etc) — arbitrary filesystem-read defense."""
+    with pytest.raises(ValueError, match="allowed storage root"):
+        engine.build_repo_tree("org-x", "repo/a", "/etc")
