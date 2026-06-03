@@ -532,7 +532,13 @@ class CloudPostureEngine:
                 ).fetchone()
 
                 total_accounts = scalar["total_accounts"] or 0
-                avg_posture_score = round(scalar["avg_score"] or 100.0, 2)
+                # Ingest-first: no accounts ingested → no posture baseline (None),
+                # NOT a fabricated 100.0 ("100% secure with nothing ingested").
+                avg_posture_score = (
+                    round(scalar["avg_score"], 2)
+                    if total_accounts and scalar["avg_score"] is not None
+                    else None
+                )
                 total_findings = scalar["total_findings"] or 0
                 open_findings = scalar["open_findings"] or 0
                 critical_findings = scalar["critical_findings"] or 0

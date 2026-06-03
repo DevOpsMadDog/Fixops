@@ -368,8 +368,13 @@ class CloudGovernanceEngine:
             if row["status"] == "remediated":
                 remediated_violations += cnt
 
-        raw_score = 100 - (open_violations / (total_violations or 1) * 100)
-        compliance_score = round(max(0.0, min(100.0, raw_score)), 2)
+        # Ingest-first: no policies AND no violations ingested → no governance
+        # baseline (None), NOT a fabricated 100.0 ("100% compliant with no data").
+        if total_policies == 0 and total_violations == 0:
+            compliance_score = None
+        else:
+            raw_score = 100 - (open_violations / (total_violations or 1) * 100)
+            compliance_score = round(max(0.0, min(100.0, raw_score)), 2)
 
         return {
             "total_policies": total_policies,

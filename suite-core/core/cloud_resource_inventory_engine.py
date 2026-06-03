@@ -393,7 +393,13 @@ class CloudResourceInventoryEngine:
                 avg_score_row = conn.execute(
                     "SELECT AVG(security_score) FROM cri_resources WHERE org_id = ?", (org_id,)
                 ).fetchone()
-                avg_security_score = round(float(avg_score_row[0] or 100.0), 2)
+                # Ingest-first: no resources ingested → no security baseline (None),
+                # NOT a fabricated 100.0 ("100% secure with nothing ingested").
+                avg_security_score = (
+                    round(float(avg_score_row[0]), 2)
+                    if total_resources and avg_score_row[0] is not None
+                    else None
+                )
 
                 critical_resources = conn.execute(
                     "SELECT COUNT(*) FROM cri_resources WHERE org_id = ? AND security_score < 60",
