@@ -1,10 +1,17 @@
 # SPEC-009 — Reproducible Build: lockfile + dependabot + SBOM
 
-- **Status**: DRAFT
+- **Status**: IMPLEMENTED (verified 2026-06-03 — status was stale DRAFT)
 - **Owner family**: Supply Chain / Build
 - **Files**: `requirements.txt`, new `requirements.lock` (or constraints), `.github/dependabot.yml`, CI
 - **Depends on**: PM-5
-- **Last updated**: 2026-06-01
+- **Last updated**: 2026-06-03
+
+> **Verification 2026-06-03 (ralph):** all acceptance criteria pass.
+> AC-009-01 `requirements.lock` exists — 444 pinned (`==`), 0 unbounded ranges.
+> AC-009-02 `.github/dependabot.yml` declares pip + npm + github-actions; `grep 'package-ecosystem: ""'` → 0.
+> AC-009-03 `pip-audit` output captured at `docs/sbom/pip-audit-2026-06-01.txt`.
+> AC-009-04 CycloneDX Python SBOM at `docs/sbom/python-sbom-2026-06-01.json` (513 KB); CI `pip-audit` gate in `.github/workflows/ci.yml`.
+> AC-009-05 `create_app()` boots (8345 routes).
 
 ## 1. Intent
 PM-5: there is **no Python lockfile** and `.github/dependabot.yml` has `package-ecosystem: ""` (vuln
