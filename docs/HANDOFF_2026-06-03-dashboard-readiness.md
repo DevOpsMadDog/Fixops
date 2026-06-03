@@ -65,10 +65,10 @@ UI `npm run build` green (~3.8–4.5s) · `create_app()` boots 8353 routes · Be
 - **local-store/init** — confirmed NOT a bug (page is intentionally 501-tolerant).
 
 ## REMAINING 4 page-gaps — all feature-build w/ design (pages handle absence gracefully; LOW impact). Real-backing notes for next tick:
-1. **threat-intel/block-iocs** (POST `{ioc_ids}`, fire-and-forget/optimistic) — real blocklist exists: `ip_reputation_engine.add_to_blocklist(org_id, ip, reason)` + `/ip-reputation/blocklist`. Build: resolve ioc_ids→values via /iocs source, block IP-type via ip_reputation; non-IP IOC types need a generic IOC-blocklist store (design decision). 
+1. **threat-intel/block-iocs** (POST `{ioc_ids}`, fire-and-forget/optimistic) — DESIGN-BLOCKED: `/threat-intel/iocs` reads `feodo_c2_cache` which has NO stable `id` (keyed by `ip_address`) → the page's `iocs.map(i=>i.id)` sends `undefined`s. A real block-by-id needs an IOC-identity model (add ids to the feed) OR redesign to block-by-value. Real blocklist target exists when resolved: `ip_reputation_engine.add_to_blocklist(org_id, ip, reason)`. Page is optimistic (handles absence).
 2. **llm/estimate** (POST `{prompt,model,max_output_tokens}`) — INVESTIGATED: `ai_governance_engine.estimate_llm_cost` exists but is rules/TIER-based (`_TIER_COST_PER_1M_USD` is per-tier, NOT per-model); `openrouter_provider` cost is an explicit `# Placeholder`. NO real per-MODEL price table exists. Blocked on real per-model pricing data (founder/config input) — do NOT guess model prices (fabrication on a cost-estimate feature). Page handles absence (shows err).
 3. **skills/install** (POST) — `/skills/uninstall` exists (wave_c_router, loader.skills + skills_dir); install needs an air-gap install-SOURCE (bundled-skill catalog) design.
-4. **hunting/coverage** (GET) — `/mitre-attack-coverage/coverage` returns `{tactic_breakdown:{}, overall_pct,...}` (DICT); page renders `coverage.map(t=>{t.name,t.covered})` (ARRAY). Fix = transform tactic_breakdown→[{name,covered}] in the page's coverage handler (verify inner shape on a tenant WITH data first).
+4. **hunting/coverage** — DONE (tick116): repointed to `/mitre-attack-coverage/coverage` + transform `tactic_breakdown` DICT → `[{name,covered}]` array (shape from engine code). Real data.
 
 ## Founder-blocked (record + move on)
 push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
