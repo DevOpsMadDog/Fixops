@@ -257,3 +257,6 @@ suite-feeds/feeds/tor_exit_nodes/
 # Leaked GitHub PAT — untracked 2026-05-27; token must be REVOKED on GitHub (in history 794b71a1)
 mytoken.txt
 docs/openapi_*.json
+
+# OMC plugin local tooling state (not source — aldeci-core does not track it)
+.omc/
