@@ -762,7 +762,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
       description: "Risk scoring factor weights and formula configuration",
       apiPath: "/api/v1/scoring/formula",
       itemsKey: "factors",
-      statsPath: "/api/v1/scoring/stats",
+      statsPath: "/api/v1/risk-scoring/summary",
       severityKey: null,
       filterOptions: [],
       columns: [
@@ -804,7 +804,7 @@ export const FINDINGS_EXPLORER_ROUTES: FindingsExplorerRouteEntry[] = [
     props: {
       title: "Posture History",
       description: "Historical security posture scores and improvement trends by domain",
-      apiPath: "/api/v1/posture-history/domains",
+      apiPath: "/api/v1/posture-history/snapshots",
       itemsKey: "domains",
       statsPath: "/api/v1/posture-history/stats",
       severityKey: null,
