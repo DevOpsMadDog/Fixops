@@ -683,6 +683,10 @@ _DEFAULT_HANDLERS: Dict[str, Callable[[Dict[str, Any]], Coroutine]] = {
     EVENT_SCAN_COMPLETED: _handle_scan_completed,
     # session.created — acknowledged no-op; sessions are not graph-relevant
     EVENT_SESSION_CREATED: _handle_session_created,
+    # threat.detected — GNN-detected attack paths are finding-shaped
+    # (id/title/severity/engine/entity_type=attack_path) → index as findings so
+    # they correlate in TrustGraph rather than only drain-acking.
+    EVENT_THREAT_DETECTED: _handle_finding_created,
 }
 
 
