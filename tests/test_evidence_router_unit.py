@@ -220,13 +220,19 @@ class TestEvidenceBundles:
         assert bundles_by_id["release-v2.0"]["signature_valid"] is False
 
     def test_bundles_from_default_app(self, client, auth_headers):
-        """Default app returns bundles (either from disk or demo data)."""
+        """Default app returns the bundles contract — real data or honest-empty.
+
+        NO-MOCKS (CLAUDE.md): a fresh/empty app must NOT fabricate demo bundles; it returns
+        total=0 + an empty list. Assert the contract shape (not a non-empty count), and that
+        any bundles present carry the required fields.
+        """
         resp = client.get(f"{BASE}/bundles", headers=auth_headers)
         assert resp.status_code == 200
         data = resp.json()
-        assert "bundles" in data
-        assert data["total"] > 0
-        # Each bundle should have required fields
+        assert "bundles" in data and isinstance(data["bundles"], list)
+        assert isinstance(data["total"], int) and data["total"] >= 0
+        assert data["total"] == len(data["bundles"])
+        # Each bundle (if any) should have required fields
         for bundle in data["bundles"]:
             assert "id" in bundle
             assert "framework" in bundle
