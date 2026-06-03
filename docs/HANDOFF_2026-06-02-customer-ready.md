@@ -1041,3 +1041,15 @@ REMAINING founder-gated (re-confirmed genuinely gated this tick):
  - behavioral risk_score: ML-based scoring (synthetic-bootstrap, provenance DISCLOSED via baseline_source) vs old count fallback — domain call on whether low-data users should get ML scores (~53) vs count-based (0/20).
  - tenancy-gate scanner: accurate AST scanner ready, but adopting it surfaces ~948 real Query("default") debt → freeze-vs-fix + the "tenancy clean→948" posture claim is a founder decision.
  - zero_trust: 4-engine + legacy/new-router architecture decision.
+
+---
+## Session addendum 2026-06-03 (ralph tick90-91) — SPEC-016 completed; ALL specs IMPLEMENTED
+- SPEC-009 (supplychain-lockfile): was stale DRAFT, fully done → status corrected (lock 444-pinned, dependabot, SBOM, pip-audit, CI gate).
+- SPEC-016 (scif-stack-fit closed-loop): COMPLETED. Was 5/7 endpoints already built (my earlier "all missing" was a false-negative literal-string grep — routes are prefix+path). Added the 2 missing data-contract paths /api/v1/wiz/capability + /api/v1/prisma/capability (alias of the existing capability_summary handler). All 7 endpoints live + honest (capability→200 unavailable/not_configured; ingests→503 when creds unset; decide→verdict/404; status→200) — no 500s, no fabrication. boot 8347, Beast 755+flake. Flipped DRAFT→IMPLEMENTED.
+SPEC AUDIT COMPLETE: SPEC-001..020 all IMPLEMENTED/BACKFILL (no DRAFT remaining).
+LESSON (3x this session — correlation, SPEC-009, SPEC-016): items labeled "founder-gated/big-feature" were actually mostly-done or clear bugs; verify against REAL routes/behavior + dig in, don't reflexively defer on a literal grep.
+REMAINING = genuinely founder-gated (each needs a CHOICE, not an implementation; re-verified with the dig-in lens):
+ - behavioral risk_score: ML-vs-count scoring for low-data users (domain decision; provenance already disclosed via baseline_source).
+ - tenancy-gate scanner: adopt accurate AST scanner → surfaces ~948 real Query("default") debt → freeze-vs-fix + "tenancy clean→948" posture claim (founder decision).
+ - zero_trust: which of 4 engines / legacy-vs-new router is canonical (architecture decision).
+All gates green: create_app 8347 routes, Beast 755 + documented ingest-timing flake, UI no-mocks-clean, full test suite swept, all specs implemented.
