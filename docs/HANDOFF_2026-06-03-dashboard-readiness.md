@@ -306,3 +306,12 @@ Per no-fabrication, guessed feed paths that 404'd (`/feeds/epss/scores`,
 
 Remaining next-candidate groups: SOAR/playbooks, deception, forensics,
 exec-reporting/evidence-export (one verified spec per tick).
+
+### New governance spec — SPEC-023 SOAR/Playbooks (tick156)
+Authored SPEC-023 (IR automation: playbooks, execute, trigger, MTTR/stats; honest-empty).
+Grounded in live probes (soar/ + soar/playbooks + soar/stats + soar/mttr + playbooks/ +
+playbooks/executions all 200, honest zeros/empties; no-key 401). 8 ACs; playbook+SOAR
+suites 125 passed. Per no-fabrication, found+recorded a minor route-shadow
+(`/playbooks/builtin` 404s, shadowed by `GET /{playbook_id}`) — excluded from ACs, logged
+as a follow-up. **INDEX now 25/25 specs.** Remaining candidates: deception, forensics,
+exec-reporting/evidence-export.
