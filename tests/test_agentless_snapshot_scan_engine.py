@@ -27,7 +27,10 @@ from core.agentless_snapshot_scan_engine import (
 @pytest.fixture
 def tmp_engine(tmp_path: Path) -> AgentlessSnapshotScanEngine:
     db = tmp_path / "agentless_snapshot_scan.db"
-    return AgentlessSnapshotScanEngine(db_path=str(db))
+    # Inject the built-in mock adapter: the engine now defaults to a REAL cloud
+    # adapter (correct for production — no mock data), which returns nothing /
+    # "cloud API unavailable" in tests, so enqueue would persist 0 rows.
+    return AgentlessSnapshotScanEngine(db_path=str(db), adapter=MockAWSAdapter())
 
 
 class StubAdapter:
