@@ -952,3 +952,13 @@ redefines the security gate 0→948; remediation = founder-blocked org-precedenc
 at 185-file scale). DECISION NEEDED: (1) adopt AST scanner, (2) schedule tenancy
 wave 17 (Query("default")→Depends(get_org_id)), (3) interim allowlist-freeze of
 948 vs keep "tenancy 0" claim. This is a real founder-blocker — yielding here.
+
+---
+## Session addendum 2026-06-03 (ralph tick74–76) — router-tests swept, engine-tests started
+ROUTER-TEST FAMILY FULLY SWEPT (200 files, a-z): a-f 1 test-rot fixed (connectors org-namespacing "<org>::name" filter); g-m 100% clean; n-z 2 fixed (orca_router → importorskip [archived dead router SPEC-010 REQ-010-03]; ws_events_router → _load_api_tokens patch replacing removed _EXPECTED_TOKENS). All test-only.
+ENGINE-TEST SWEEP STARTED (375 files): a-f slice (140) done — agentless_snapshot_scan FIXED (20→0, fixture inject MockAWSAdapter; engine correctly defaults to real cloud adapter). ~38 failures remain in a-f (NEXT FOCUSED PASS, see docs/ralph_progress.md tick76 for per-file classification):
+  - analytics_engine (4): TEST-ROT, ready recipe — repoint mocks from _try_scan(rows) to get_db_path()+_count_agg(int); threat_intel_correlation/cross_domain/executive were refactored to the COUNT-pushdown seam.
+  - behavioral_analytics_engine (3): risk_score formula-vs-isolation — verify.
+  - compliance_scanner_engine (9), config_benchmark_engine (5), correlation_engine (17): unclassified, need per-file read (correlation's 17 = highest real-change signal).
+  - g-z engine-test slices (~235 files): UNSWEPT.
+All gates green: create_app 8345 routes, Beast smoke 756/756, UI no-mocks-clean. Open founder items unchanged: tenancy-gate scanner decision (docs/findings_tenancy_scanner_2026-06-03.md), zero_trust redesign.
