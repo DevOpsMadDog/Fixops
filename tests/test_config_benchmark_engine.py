@@ -25,6 +25,32 @@ import pytest
 
 from core.config_benchmark_engine import ConfigBenchmarkEngine, ConfigBenchmarkError
 
+import subprocess as _sp
+
+
+def _checkov_functional() -> bool:
+    """True only if the checkov binary is installed AND runnable.
+
+    The real-scan tests need a working checkov; some environments have a
+    checkov that crashes on import (dependency conflict), producing no output.
+    Skip (not fail) those tests there — the engine itself correctly raises an
+    honest error when checkov yields nothing."""
+    exe = shutil.which("checkov")
+    if not exe:
+        return False
+    try:
+        r = _sp.run([exe, "--version"], capture_output=True, text=True, timeout=20)
+        return r.returncode == 0 and bool(r.stdout.strip())
+    except Exception:
+        return False
+
+
+_REQUIRES_CHECKOV = pytest.mark.skipif(
+    not _checkov_functional(),
+    reason="checkov binary non-functional (not installed or crashes on import)",
+)
+
+
 # ---------------------------------------------------------------------------
 # Fixture path — a real IaC directory with both pass and fail checkov results
 # ---------------------------------------------------------------------------
@@ -267,6 +293,7 @@ class TestChecks:
 # ---------------------------------------------------------------------------
 
 
+@_REQUIRES_CHECKOV
 class TestRunAssessmentRealCheckov:
     """Integration tests that run actual checkov against the fixture directory.
 
@@ -637,6 +664,7 @@ class TestConfigBenchmarkRouter:
         shutil.which("checkov") is None,
         reason="checkov not installed — skipping real router integration test",
     )
+    @_REQUIRES_CHECKOV
     def test_router_201_on_real_run(self, client):
         """POST /assess returns 200 with real data when checkov is present."""
         r = client.post(
