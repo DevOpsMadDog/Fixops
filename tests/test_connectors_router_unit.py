@@ -254,8 +254,8 @@ class TestConnectorsAPI:
         """Mock the lazy-loaded UniversalConnector for every test."""
         mock_uc = MagicMock()
         mock_uc.list_connectors.return_value = [
-            {"name": "jira-prod", "type": "jira", "configured": True},
-            {"name": "slack-sec", "type": "slack", "configured": True},
+            {"name": "default::jira-prod", "type": "jira", "configured": True},
+            {"name": "default::slack-sec", "type": "slack", "configured": True},
         ]
         mock_uc.get_connector.return_value = None  # Default: not found
         mock_uc.test_all = AsyncMock(return_value={"jira-prod": {"ok": True}})
@@ -357,7 +357,7 @@ class TestConnectorsAPI:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "removed"
-        mock_universal.unregister.assert_called_once_with("jira-prod")
+        mock_universal.unregister.assert_called_once_with("default::jira-prod")
 
     def test_create_ticket_no_connectors_registered(self, client, mock_universal):
         mock_universal.list_connectors.return_value = []  # Empty
@@ -469,14 +469,14 @@ class TestConnectorsAPI:
         resp = client.post("/api/v1/connectors/MyConnector/test")
         assert resp.status_code == 404
         # Verify the lookup was done with lowercase
-        mock_universal.get_connector.assert_called_with("myconnector")
+        mock_universal.get_connector.assert_called_with("default::myconnector")
 
     def test_remove_connector_name_normalized(self, client, mock_universal):
         """Delete endpoint normalizes name to lowercase."""
         mock_universal.get_connector.return_value = None
         resp = client.delete("/api/v1/connectors/MyConn")
         assert resp.status_code == 404
-        mock_universal.get_connector.assert_called_with("myconn")
+        mock_universal.get_connector.assert_called_with("default::myconn")
 
     def test_health_with_no_connectors(self, client, mock_universal):
         """Health when no connectors registered."""
@@ -490,8 +490,10 @@ class TestConnectorsAPI:
 
     def test_health_with_unconfigured_connectors(self, client, mock_universal):
         """Health reports unconfigured connectors correctly."""
+        # Name must carry the per-org prefix or the endpoint's tenancy filter
+        # excludes it (connectors are namespaced as "<org>::name").
         mock_universal.list_connectors.return_value = [
-            {"name": "broken-jira", "type": "jira", "configured": False},
+            {"name": "default::broken-jira", "type": "jira", "configured": False},
         ]
         resp = client.get("/api/v1/connectors/health")
         data = resp.json()
