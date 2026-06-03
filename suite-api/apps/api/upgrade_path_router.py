@@ -17,6 +17,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -102,4 +103,23 @@ def stats(org_id: Optional[str] = Query(None, description="Filter stats by org")
         return _get_engine().stats(org_id=org_id)
     except Exception as exc:
         _logger.exception("stats failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/recent", summary="Recently computed upgrade-path queries")
+def recent(
+    org_id: str = Depends(get_org_id),
+    limit: int = Query(50, ge=1, le=500),
+) -> Dict[str, Any]:
+    """List the org's most recently computed upgrade queries (DESC by computed_at).
+
+    Backs the upgrade-path dashboard list (GET /api/v1/upgrade-path/recent).
+    Org-scoped; real data only — empty list when nothing has been resolved yet
+    (NO MOCKS, no fabricated rows).
+    """
+    try:
+        rows = _get_engine().list_queries(org_id, limit=limit)
+        return {"items": rows, "count": len(rows)}
+    except Exception as exc:
+        _logger.exception("recent failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc

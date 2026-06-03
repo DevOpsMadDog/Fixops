@@ -223,6 +223,52 @@ def list_incidents(
         raise _map_servicenow_error(exc) from exc
 
 
+# --------------------------------------------------- dashboard convenience
+
+
+def _incident_rows(engine, limit: int) -> List[Dict[str, Any]]:
+    """Fetch incidents and normalize to a plain list (ServiceNow returns {result: [...]})."""
+    out = engine.list_incidents(sysparm_limit=limit)
+    rows = out.get("result", out) if isinstance(out, dict) else out
+    return rows if isinstance(rows, list) else []
+
+
+@router.get("/incidents", summary="List ServiceNow incidents (dashboard list shape)")
+def dashboard_incidents(limit: int = Query(100, ge=1, le=1000)) -> Dict[str, Any]:
+    """Dashboard-shaped incident list ({items, count}).
+
+    Honest 503 when ServiceNow is not configured — NO MOCKS, never fabricated incidents.
+    """
+    engine = _get_engine()
+    if not engine.configured:
+        _raise_unavailable()
+    try:
+        rows = _incident_rows(engine, limit)
+    except Exception as exc:
+        raise _map_servicenow_error(exc) from exc
+    return {"items": rows, "count": len(rows)}
+
+
+@router.get("/stats", summary="ServiceNow incident statistics (dashboard KPIs)")
+def dashboard_stats(limit: int = Query(1000, ge=1, le=10000)) -> Dict[str, Any]:
+    """Incident counts by state, derived from real incidents.
+
+    Honest 503 when ServiceNow is not configured — NO MOCKS, no fabricated counts.
+    """
+    engine = _get_engine()
+    if not engine.configured:
+        _raise_unavailable()
+    try:
+        rows = _incident_rows(engine, limit)
+    except Exception as exc:
+        raise _map_servicenow_error(exc) from exc
+    by_state: Dict[str, int] = {}
+    for it in rows:
+        st = str((it or {}).get("state") or "unknown")
+        by_state[st] = by_state.get(st, 0) + 1
+    return {"total": len(rows), "by_state": by_state}
+
+
 @router.post(
     "/api/now/table/incident",
     summary="Create a ServiceNow incident",
