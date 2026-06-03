@@ -1,44 +1,33 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getStoredOrgId } from "@/lib/api";
 
 const API_BASE = "/api/v1/arch-review";
-const getHeaders = () => ({ "X-API-Key": localStorage.getItem("aldeci.authToken") || "" });
+const getHeaders = () => ({
+  "X-API-Key": localStorage.getItem("aldeci.authToken") || "",
+  "Content-Type": "application/json",
+});
 
-const reviews = [
-  { id: "rev-001", review_name: "Payment Service Architecture Review", system_name: "payment-svc", review_type: "threat_model", reviewer: "Alice Chen", finding_count: 8, critical_count: 2, overall_score: 62, risk_level: "high", status: "completed" },
-  { id: "rev-002", review_name: "API Gateway Security Review", system_name: "api-gateway", review_type: "security_design", reviewer: "Bob Martinez", finding_count: 5, critical_count: 0, overall_score: 81, risk_level: "medium", status: "completed" },
-  { id: "rev-003", review_name: "Auth Service Review", system_name: "auth-svc", review_type: "code_review", reviewer: "Carol Patel", finding_count: 12, critical_count: 3, overall_score: 48, risk_level: "critical", status: "in_progress" },
-  { id: "rev-004", review_name: "Data Lake Architecture Review", system_name: "data-lake", review_type: "compliance_review", reviewer: "Dan Kim", finding_count: 3, critical_count: 0, overall_score: 90, risk_level: "low", status: "completed" },
-  { id: "rev-005", review_name: "Microservices Mesh Review", system_name: "service-mesh", review_type: "threat_model", reviewer: "Eva Singh", finding_count: 7, critical_count: 1, overall_score: 70, risk_level: "high", status: "draft" },
-];
+// NO-MOCKS (CLAUDE.md): all reviews/findings/controls below are loaded from the
+// live /api/v1/arch-review API on mount — there is no hardcoded fixture data.
 
-const findings = [
-  { id: "f-001", review_id: "rev-001", component: "TokenProcessor", finding_type: "injection", title: "SQL injection in token validation", severity: "critical", recommendation: "Use parameterized queries for all DB calls.", status: "open" },
-  { id: "f-002", review_id: "rev-001", component: "SessionHandler", finding_type: "auth_bypass", title: "Session fixation vulnerability", severity: "high", recommendation: "Regenerate session ID on privilege escalation.", status: "open" },
-  { id: "f-003", review_id: "rev-002", component: "RateLimiter", finding_type: "misconfiguration", title: "Rate limiting too permissive", severity: "medium", recommendation: "Reduce threshold to 100 req/min per IP.", status: "remediated" },
-  { id: "f-004", review_id: "rev-003", component: "JWTValidator", finding_type: "crypto_weakness", title: "Algorithm confusion attack possible", severity: "critical", recommendation: "Pin algorithm to RS256, reject none/HS256.", status: "open" },
-  { id: "f-005", review_id: "rev-003", component: "UserStore", finding_type: "data_exposure", title: "PII returned in error messages", severity: "high", recommendation: "Strip sensitive fields from error payloads.", status: "open" },
-  { id: "f-006", review_id: "rev-005", component: "ServiceMesh", finding_type: "missing_control", title: "mTLS not enforced on all east-west traffic", severity: "medium", recommendation: "Enable strict mTLS in Istio PeerAuthentication.", status: "open" },
-];
-
-const controls = [
-  { id: "c-001", review_id: "rev-001", control_name: "Input Validation", domain: "application_security", implementation_status: "partial", effectiveness: 55, gaps: "Missing validation on 3 API endpoints" },
-  { id: "c-002", review_id: "rev-001", control_name: "Encryption at Rest", domain: "data_protection", implementation_status: "implemented", effectiveness: 90, gaps: "" },
-  { id: "c-003", review_id: "rev-002", control_name: "API Authentication", domain: "identity", implementation_status: "implemented", effectiveness: 85, gaps: "" },
-  { id: "c-004", review_id: "rev-003", control_name: "Secrets Management", domain: "key_management", implementation_status: "not_implemented", effectiveness: 20, gaps: "Hardcoded secrets found in 4 config files" },
-  { id: "c-005", review_id: "rev-003", control_name: "Audit Logging", domain: "logging", implementation_status: "partial", effectiveness: 60, gaps: "Auth events not logged" },
-  { id: "c-006", review_id: "rev-004", control_name: "Data Classification", domain: "data_protection", implementation_status: "compensating", effectiveness: 75, gaps: "Manual tagging instead of automated" },
-  { id: "c-007", review_id: "rev-005", control_name: "Network Segmentation", domain: "network_security", implementation_status: "not_implemented", effectiveness: 15, gaps: "All services in flat network" },
+const REVIEW_TYPES = ["full", "partial", "threat-model", "compliance", "vendor"];
+const FINDING_TYPES = [
+  "design-flaw",
+  "missing-control",
+  "weak-implementation",
+  "configuration",
+  "dependency-risk",
+  "data-exposure",
 ];
 
 const riskBadge = (level: string) => {
   const map: Record<string, string> = { critical: "bg-red-600", high: "bg-orange-500", medium: "bg-yellow-500", low: "bg-green-600" };
-  return <span className={`${map[level] || "bg-gray-600"} text-white text-xs px-2 py-0.5 rounded-full`}>{level}</span>;
+  return <span className={`${map[level] || "bg-gray-600"} text-white text-xs px-2 py-0.5 rounded-full`}>{level || "—"}</span>;
 };
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = { draft: "bg-gray-600", in_progress: "bg-blue-600", completed: "bg-green-600", open: "bg-red-500", remediated: "bg-green-600" };
-  return <span className={`${map[s] || "bg-gray-600"} text-white text-xs px-2 py-0.5 rounded`}>{s.replace("_", " ")}</span>;
+  return <span className={`${map[s] || "bg-gray-600"} text-white text-xs px-2 py-0.5 rounded`}>{(s || "").replace("_", " ")}</span>;
 };
 
 const severityBadge = (s: string) => {
@@ -48,8 +37,15 @@ const severityBadge = (s: string) => {
 
 const implBadge = (s: string) => {
   const map: Record<string, string> = { implemented: "bg-green-600", partial: "bg-yellow-500", not_implemented: "bg-red-600", compensating: "bg-blue-500" };
-  return <span className={`${map[s] || "bg-gray-600"} text-white text-xs px-2 py-0.5 rounded`}>{s.replace("_", " ")}</span>;
+  return <span className={`${map[s] || "bg-gray-600"} text-white text-xs px-2 py-0.5 rounded`}>{(s || "").replace("_", " ")}</span>;
 };
+
+const EmptyState = ({ title, hint }: { title: string; hint: string }) => (
+  <div className="p-12 text-center">
+    <p className="text-gray-300 font-medium">{title}</p>
+    <p className="text-gray-500 text-sm mt-1">{hint}</p>
+  </div>
+);
 
 const ORG_ID = (getStoredOrgId() ?? "default");
 export default function ArchReviewDashboard() {
@@ -58,36 +54,131 @@ export default function ArchReviewDashboard() {
   const [filterReview, setFilterReview] = useState("all");
   const [showAddReview, setShowAddReview] = useState(false);
   const [showAddFinding, setShowAddFinding] = useState(false);
-  const [newReview, setNewReview] = useState({ review_name: "", system_name: "", review_type: "threat_model", reviewer: "" });
-  const [newFinding, setNewFinding] = useState({ review_id: "rev-001", component: "", finding_type: "injection", title: "", severity: "high", recommendation: "" });
-  const [liveReviews, setLiveReviews] = useState(reviews);
-  const [liveFindings, setLiveFindings] = useState(findings);
+  const [newReview, setNewReview] = useState({ review_name: "", system_name: "", review_type: "threat-model", reviewer: "" });
+  const [newFinding, setNewFinding] = useState({ review_id: "", component: "", finding_type: "design-flaw", title: "", severity: "high", recommendation: "" });
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [findings, setFindings] = useState<any[]>([]);
+  const [controls, setControls] = useState<any[]>([]);
+  const [gaps, setGaps] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    fetch(`${API_BASE}/reviews?org_id=${ORG_ID}`, { headers: getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setLiveReviews(d); })
-      .catch((e) => setError(e?.message || 'Failed to load data'));
-    fetch(`${API_BASE}/control-gaps?org_id=${ORG_ID}`, { headers: getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setLiveFindings(d); })
-      .catch((e) => setError(e?.message || 'Failed to load data'));
-    setLoading(false);
+  const loadData = useCallback(async () => {
+    setError(null);
+    try {
+      const [reviewsRes, summaryRes, gapsRes] = await Promise.all([
+        fetch(`${API_BASE}/reviews?org_id=${ORG_ID}`, { headers: getHeaders() }),
+        fetch(`${API_BASE}/summary?org_id=${ORG_ID}`, { headers: getHeaders() }),
+        fetch(`${API_BASE}/control-gaps?org_id=${ORG_ID}`, { headers: getHeaders() }),
+      ]);
+      const reviewList = reviewsRes.ok ? await reviewsRes.json() : [];
+      setReviews(Array.isArray(reviewList) ? reviewList : []);
+      if (summaryRes.ok) setSummary(await summaryRes.json());
+      if (gapsRes.ok) {
+        const g = await gapsRes.json();
+        setGaps(Array.isArray(g) ? g : []);
+      }
+
+      // Reviews list endpoint returns summaries only; the per-review detail
+      // endpoint carries the nested findings + controls. Fan out and flatten.
+      const details = await Promise.all(
+        (Array.isArray(reviewList) ? reviewList : []).map((r: any) =>
+          fetch(`${API_BASE}/reviews/${r.id}?org_id=${ORG_ID}`, { headers: getHeaders() })
+            .then((d) => (d.ok ? d.json() : null))
+            .catch(() => null)
+        )
+      );
+      const allFindings: any[] = [];
+      const allControls: any[] = [];
+      details.filter(Boolean).forEach((d: any) => {
+        (d.findings || []).forEach((f: any) => allFindings.push({ ...f, review_id: f.review_id || d.id }));
+        (d.controls || []).forEach((c: any) => allControls.push({ ...c, review_id: c.review_id || d.id }));
+      });
+      setFindings(allFindings);
+      setControls(allControls);
+    } catch (e: any) {
+      setError(e?.message || "Failed to load architecture reviews");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const totalReviews = reviews.length;
-  const criticalFindings = findings.filter(f => f.severity === "critical").length;
-  const avgScore = Math.round(reviews.reduce((a, r) => a + r.overall_score, 0) / reviews.length);
-  const openControls = controls.filter(c => c.implementation_status !== "implemented").length;
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-  const filteredFindings = filterReview === "all" ? findings : findings.filter(f => f.review_id === filterReview);
-  const filteredControls = filterReview === "all" ? controls : controls.filter(c => c.review_id === filterReview);
-  const gapControls = controls.filter(c => c.implementation_status === "not_implemented").sort((a, b) => a.effectiveness - b.effectiveness);
+  const saveReview = async () => {
+    if (!newReview.review_name || !newReview.system_name) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/reviews?org_id=${ORG_ID}`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(newReview),
+      });
+      if (!res.ok) throw new Error(`Create failed (${res.status})`);
+      setShowAddReview(false);
+      setNewReview({ review_name: "", system_name: "", review_type: "threat-model", reviewer: "" });
+      await loadData();
+    } catch (e: any) {
+      setError(e?.message || "Failed to create review");
+    } finally {
+      setSaving(false);
+    }
+  };
 
+  const saveFinding = async () => {
+    if (!newFinding.review_id || !newFinding.title || !newFinding.component) {
+      setError("Select a review and provide a component + title for the finding");
+      return;
+    }
+    setSaving(true);
+    try {
+      const { review_id, ...body } = newFinding;
+      const res = await fetch(`${API_BASE}/reviews/${review_id}/findings?org_id=${ORG_ID}`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`Add finding failed (${res.status})`);
+      setShowAddFinding(false);
+      setNewFinding({ review_id: "", component: "", finding_type: "design-flaw", title: "", severity: "high", recommendation: "" });
+      await loadData();
+    } catch (e: any) {
+      setError(e?.message || "Failed to add finding");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const completeReview = async (reviewId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/reviews/${reviewId}/complete?org_id=${ORG_ID}`, {
+        method: "POST",
+        headers: getHeaders(),
+      });
+      if (!res.ok) throw new Error(`Complete failed (${res.status})`);
+      await loadData();
+    } catch (e: any) {
+      setError(e?.message || "Failed to complete review");
+    }
+  };
+
+  const totalReviews = summary?.total_reviews ?? reviews.length;
+  const criticalFindings = summary?.critical_finding_count ?? findings.filter((f) => f.severity === "critical").length;
+  const avgScore = summary?.avg_score != null
+    ? Math.round(summary.avg_score)
+    : (reviews.length ? Math.round(reviews.reduce((a, r) => a + (r.overall_score || 0), 0) / reviews.length) : 0);
+  const openControls = controls.filter((c) => c.implementation_status !== "implemented").length;
+
+  const filteredFindings = filterReview === "all" ? findings : findings.filter((f) => f.review_id === filterReview);
+  const filteredControls = filterReview === "all" ? controls : controls.filter((c) => c.review_id === filterReview);
+  const gapControls = (gaps.length ? gaps : controls.filter((c) => c.implementation_status === "not_implemented"))
+    .slice()
+    .sort((a, b) => (a.effectiveness || 0) - (b.effectiveness || 0));
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6">
@@ -96,6 +187,10 @@ export default function ArchReviewDashboard() {
           <h1 className="text-2xl font-bold text-white">Architecture Security Reviews</h1>
           <p className="text-gray-400 text-sm mt-1">System design reviews, security findings, and control assessments</p>
         </div>
+
+        {error && (
+          <div className="mb-4 bg-red-900/40 border border-red-700 text-red-200 text-sm rounded px-4 py-2">{error}</div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -134,18 +229,18 @@ export default function ArchReviewDashboard() {
                 <input className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" placeholder="Review name" value={newReview.review_name} onChange={e => setNewReview({ ...newReview, review_name: e.target.value })} />
                 <input className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" placeholder="System name" value={newReview.system_name} onChange={e => setNewReview({ ...newReview, system_name: e.target.value })} />
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newReview.review_type} onChange={e => setNewReview({ ...newReview, review_type: e.target.value })}>
-                  <option value="threat_model">Threat Model</option>
-                  <option value="security_design">Security Design</option>
-                  <option value="code_review">Code Review</option>
-                  <option value="compliance_review">Compliance Review</option>
+                  {REVIEW_TYPES.map(t => <option key={t} value={t}>{t.replace("-", " ")}</option>)}
                 </select>
                 <input className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" placeholder="Reviewer" value={newReview.reviewer} onChange={e => setNewReview({ ...newReview, reviewer: e.target.value })} />
                 <div className="col-span-2 flex gap-2">
-                  <button className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-1.5 rounded" onClick={() => setShowAddReview(false)}>Save Review</button>
+                  <button disabled={saving} className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded" onClick={saveReview}>{saving ? "Saving…" : "Save Review"}</button>
                   <button className="bg-gray-600 hover:bg-gray-700 text-white text-sm px-4 py-1.5 rounded" onClick={() => setShowAddReview(false)}>Cancel</button>
                 </div>
               </div>
             )}
+            {reviews.length === 0 ? (
+              <EmptyState title="No architecture reviews yet" hint="Create your first review to start tracking security findings and control assessments." />
+            ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-900 text-gray-400">
@@ -156,26 +251,27 @@ export default function ArchReviewDashboard() {
                     <tr key={r.id} className="hover:bg-gray-750">
                       <td className="px-4 py-3 font-medium">{r.review_name}</td>
                       <td className="px-4 py-3 text-gray-400 font-mono text-xs">{r.system_name}</td>
-                      <td className="px-4 py-3"><span className="bg-purple-700 text-purple-100 text-xs px-2 py-0.5 rounded">{r.review_type.replace("_", " ")}</span></td>
-                      <td className="px-4 py-3 text-gray-300">{r.reviewer}</td>
-                      <td className="px-4 py-3"><span className="bg-gray-700 text-white text-xs px-2 py-0.5 rounded-full">{r.finding_count}</span></td>
-                      <td className="px-4 py-3">{r.critical_count > 0 ? <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">{r.critical_count}</span> : <span className="text-gray-500">—</span>}</td>
+                      <td className="px-4 py-3"><span className="bg-purple-700 text-purple-100 text-xs px-2 py-0.5 rounded">{(r.review_type || "").replace("-", " ")}</span></td>
+                      <td className="px-4 py-3 text-gray-300">{r.reviewer || "—"}</td>
+                      <td className="px-4 py-3"><span className="bg-gray-700 text-white text-xs px-2 py-0.5 rounded-full">{r.finding_count ?? 0}</span></td>
+                      <td className="px-4 py-3">{(r.critical_count ?? 0) > 0 ? <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">{r.critical_count}</span> : <span className="text-gray-500">—</span>}</td>
                       <td className="px-4 py-3 min-w-[120px]">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 bg-gray-700 rounded-full h-2">
-                            <div className={`h-2 rounded-full ${r.overall_score >= 80 ? "bg-green-500" : r.overall_score >= 60 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${r.overall_score}%` }} />
+                            <div className={`h-2 rounded-full ${(r.overall_score || 0) >= 80 ? "bg-green-500" : (r.overall_score || 0) >= 60 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${r.overall_score || 0}%` }} />
                           </div>
-                          <span className="text-xs text-gray-400 w-8">{r.overall_score}</span>
+                          <span className="text-xs text-gray-400 w-8">{r.overall_score ?? 0}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">{riskBadge(r.risk_level)}</td>
                       <td className="px-4 py-3">{statusBadge(r.status)}</td>
-                      <td className="px-4 py-3">{r.status !== "completed" && <button className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded">Complete</button>}</td>
+                      <td className="px-4 py-3">{r.status !== "completed" && <button onClick={() => completeReview(r.id)} className="bg-green-700 hover:bg-green-600 text-white text-xs px-2 py-1 rounded">Complete</button>}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         )}
 
@@ -195,20 +291,27 @@ export default function ArchReviewDashboard() {
             {showAddFinding && (
               <div className="p-4 bg-gray-900 border-b border-gray-700 grid grid-cols-2 gap-3">
                 <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newFinding.review_id} onChange={e => setNewFinding({ ...newFinding, review_id: e.target.value })}>
+                  <option value="">Select review…</option>
                   {reviews.map(r => <option key={r.id} value={r.id}>{r.review_name}</option>)}
                 </select>
                 <input className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" placeholder="Component" value={newFinding.component} onChange={e => setNewFinding({ ...newFinding, component: e.target.value })} />
                 <input className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm col-span-2" placeholder="Finding title" value={newFinding.title} onChange={e => setNewFinding({ ...newFinding, title: e.target.value })} />
-                <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newFinding.severity} onChange={e => setNewFinding({ ...newFinding, severity: e.target.value })}>
-                  {["critical", "high", "medium", "low"].map(s => <option key={s} value={s}>{s}</option>)}
+                <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newFinding.finding_type} onChange={e => setNewFinding({ ...newFinding, finding_type: e.target.value })}>
+                  {FINDING_TYPES.map(s => <option key={s} value={s}>{s.replace("-", " ")}</option>)}
                 </select>
-                <input className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" placeholder="Recommendation" value={newFinding.recommendation} onChange={e => setNewFinding({ ...newFinding, recommendation: e.target.value })} />
+                <select className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm" value={newFinding.severity} onChange={e => setNewFinding({ ...newFinding, severity: e.target.value })}>
+                  {["critical", "high", "medium", "low", "info"].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <input className="bg-gray-800 border border-gray-600 rounded px-3 py-1.5 text-sm col-span-2" placeholder="Recommendation" value={newFinding.recommendation} onChange={e => setNewFinding({ ...newFinding, recommendation: e.target.value })} />
                 <div className="col-span-2 flex gap-2">
-                  <button className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-1.5 rounded" onClick={() => setShowAddFinding(false)}>Save Finding</button>
+                  <button disabled={saving} className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded" onClick={saveFinding}>{saving ? "Saving…" : "Save Finding"}</button>
                   <button className="bg-gray-600 hover:bg-gray-700 text-white text-sm px-4 py-1.5 rounded" onClick={() => setShowAddFinding(false)}>Cancel</button>
                 </div>
               </div>
             )}
+            {filteredFindings.length === 0 ? (
+              <EmptyState title="No findings recorded" hint="Findings appear here once they are added to a review, or run a review to surface them." />
+            ) : (
             <div className="divide-y divide-gray-700">
               {filteredFindings.map(f => (
                 <div key={f.id} className="p-4 hover:bg-gray-750">
@@ -216,17 +319,18 @@ export default function ArchReviewDashboard() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-mono text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">{f.component}</span>
-                        <span className="bg-indigo-700 text-indigo-100 text-xs px-2 py-0.5 rounded">{f.finding_type.replace("_", " ")}</span>
+                        <span className="bg-indigo-700 text-indigo-100 text-xs px-2 py-0.5 rounded">{(f.finding_type || "").replace("-", " ")}</span>
                         {severityBadge(f.severity)}
                       </div>
                       <p className="font-medium text-sm">{f.title}</p>
-                      <p className="text-gray-400 text-xs mt-1">Recommendation: {f.recommendation}</p>
+                      {f.recommendation && <p className="text-gray-400 text-xs mt-1">Recommendation: {f.recommendation}</p>}
                     </div>
                     <div>{statusBadge(f.status)}</div>
                   </div>
                 </div>
               ))}
             </div>
+            )}
           </div>
         )}
 
@@ -240,6 +344,9 @@ export default function ArchReviewDashboard() {
                 {reviews.map(r => <option key={r.id} value={r.id}>{r.review_name}</option>)}
               </select>
             </div>
+            {filteredControls.length === 0 ? (
+              <EmptyState title="No control assessments yet" hint="Control assessments are captured during a review and listed here once added." />
+            ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-900 text-gray-400">
@@ -249,14 +356,14 @@ export default function ArchReviewDashboard() {
                   {filteredControls.map(c => (
                     <tr key={c.id} className="hover:bg-gray-750">
                       <td className="px-4 py-3 font-medium">{c.control_name}</td>
-                      <td className="px-4 py-3"><span className="bg-teal-700 text-teal-100 text-xs px-2 py-0.5 rounded">{c.domain.replace("_", " ")}</span></td>
+                      <td className="px-4 py-3"><span className="bg-teal-700 text-teal-100 text-xs px-2 py-0.5 rounded">{(c.domain || "").replace("_", " ")}</span></td>
                       <td className="px-4 py-3">{implBadge(c.implementation_status)}</td>
                       <td className="px-4 py-3 min-w-[140px]">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 bg-gray-700 rounded-full h-2">
-                            <div className={`h-2 rounded-full ${c.effectiveness >= 80 ? "bg-green-500" : c.effectiveness >= 60 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${c.effectiveness}%` }} />
+                            <div className={`h-2 rounded-full ${(c.effectiveness || 0) >= 80 ? "bg-green-500" : (c.effectiveness || 0) >= 60 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${c.effectiveness || 0}%` }} />
                           </div>
-                          <span className="text-xs text-gray-400 w-8">{c.effectiveness}</span>
+                          <span className="text-xs text-gray-400 w-8">{c.effectiveness ?? 0}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-gray-400 text-xs">{c.gaps || <span className="text-green-500">None</span>}</td>
@@ -265,6 +372,7 @@ export default function ArchReviewDashboard() {
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         )}
 
@@ -274,13 +382,16 @@ export default function ArchReviewDashboard() {
             <div className="p-4 border-b border-gray-700">
               <h2 className="font-semibold">Control Gaps — Not Implemented (sorted by effectiveness asc)</h2>
             </div>
+            {gapControls.length === 0 ? (
+              <EmptyState title="No control gaps" hint="No not-implemented controls were found across your reviews." />
+            ) : (
             <div className="divide-y divide-gray-700">
               {gapControls.map(c => (
                 <div key={c.id} className="p-4 flex items-center gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium">{c.control_name}</span>
-                      <span className="bg-teal-700 text-teal-100 text-xs px-2 py-0.5 rounded">{c.domain.replace("_", " ")}</span>
+                      <span className="bg-teal-700 text-teal-100 text-xs px-2 py-0.5 rounded">{(c.domain || "").replace("_", " ")}</span>
                       {implBadge(c.implementation_status)}
                     </div>
                     <p className="text-red-400 text-xs">{c.gaps}</p>
@@ -289,14 +400,15 @@ export default function ArchReviewDashboard() {
                     <div className="text-xs text-gray-400 mb-1">Effectiveness</div>
                     <div className="flex items-center gap-2">
                       <div className="w-24 bg-gray-700 rounded-full h-2">
-                        <div className="h-2 rounded-full bg-red-500" style={{ width: `${c.effectiveness}%` }} />
+                        <div className="h-2 rounded-full bg-red-500" style={{ width: `${c.effectiveness || 0}%` }} />
                       </div>
-                      <span className="text-red-400 font-bold text-sm">{c.effectiveness}</span>
+                      <span className="text-red-400 font-bold text-sm">{c.effectiveness ?? 0}</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+            )}
           </div>
         )}
       </div>
