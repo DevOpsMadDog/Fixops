@@ -47,6 +47,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/api/v1/nuclei",
     tags=["Nuclei", "DAST"],
+    # SECURITY 2026-06-03: router-level auth — POST /scan (+ path-param endpoints) lacked the
+    # per-endpoint dep its siblings had, returning 422 (not 401) to unauthenticated callers.
+    dependencies=[Depends(api_key_auth)],
 )
 
 

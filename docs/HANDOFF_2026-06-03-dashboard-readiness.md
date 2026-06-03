@@ -372,3 +372,13 @@ threat-intel-fusion/sources, tour/start) — all verified no-key=401/with-key=20
 755+1-flake (0 regressions). EXCLUDED intentional-public: oauth2/token, slack/commands.
 DEFERRED partial-auth (per-endpoint fix needed): nuclei/scan, threat-modeling-pipeline/models,
 vuln-remediation/tasks. **Session auth-hardening total: 17 endpoints/routers closed.**
+
+### Auth sweep COMPLETE (tick163) — 21 endpoints/routers closed this session
+Fixed the 3 deferred partial-auth routers (nuclei/scan, threat-modeling-pipeline/models,
+vuln-remediation/tasks — router-level dep covers flagged + path-param endpoints) + the inline
+app.py POST /system/openapi-refresh (admin action, was unauthed). Caught + fixed a boot-crash
+mid-fix (referenced a create_app local defined later → UnboundLocalError; switched to a guarded
+inline import). Verified all 4 no-key=401/with-key=200; create_app 8357; smoke 755+1-flake.
+**Both sweeps now GAPS=0** except oauth2/token + slack/commands (verified intentional-public —
+token issuance + Slack signing-secret auth). **Session total: 21 unauthenticated endpoints
+closed** (1 exec-reporting + 8 GET routers + 8 mutating routers + 3 partial-auth + 1 inline).

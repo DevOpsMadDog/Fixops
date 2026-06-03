@@ -2510,7 +2510,16 @@ def create_app() -> FastAPI:
             "version": app.version,
         }
 
-    @app.post("/api/v1/system/openapi-refresh", include_in_schema=False)
+    # SECURITY 2026-06-03: require auth — this admin action (invalidate OpenAPI cache) was
+    # callable unauthenticated. (_verify_api_key is a create_app local defined later, so import
+    # the real enforcer here to avoid an UnboundLocalError at route-definition time.)
+    try:
+        from apps.api.auth_deps import api_key_auth as _oapi_auth
+        _oapi_dep = [Depends(_oapi_auth)]
+    except Exception:  # pragma: no cover
+        _oapi_dep = []
+
+    @app.post("/api/v1/system/openapi-refresh", include_in_schema=False, dependencies=_oapi_dep)
     async def _system_openapi_refresh() -> Dict[str, Any]:
         """Invalidate the cached OpenAPI schema; next /openapi.json regenerates
         from the live route table. Useful when a router was hot-reloaded but

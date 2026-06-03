@@ -30,6 +30,9 @@ _logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/api/v1/threat-modeling-pipeline",
     tags=["Threat Modeling Pipeline"],
+    # SECURITY 2026-06-03: router-level auth — POST /models (+ path-param endpoints) lacked the
+    # per-endpoint dep its GET siblings had, returning 422 (not 401) to unauthenticated callers.
+    dependencies=[Depends(api_key_auth)],
 )
 
 _engine = None
