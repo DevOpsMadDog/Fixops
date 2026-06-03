@@ -98,5 +98,26 @@ skills/install (air-gap install-source design).
 - Restart the stale dev :8000 server (env).
 - Duplicate-prefix/duplicate-router-file consolidation (architectural epic; see tick118 gotcha + memory project_duplicate_routes_2026-06-03).
 
+## (B) RED-TEAM HARDENING SWEEP (tick123-127) — 4 real arbitrary-file-read defenses + rate-limit verified
+The "exhaustion" calls were premature: a storage-root audit of path-handling engines found 4 real
+arbitrary-file-read vulns (caller-supplied root_path/file_path → os.listdir/rglob/read_text with
+file-within-root containment but NO bound on the root itself → read /etc/passwd, ~/.ssh, secrets):
+- **ide_backend_engine** (build_repo_tree/get_file_content) — gated (GAP-014). FIXED tick123.
+- **deep_code_analysis_engine** (analyze_repo) — gated. FIXED tick124.
+- **DLP /scan-file** (dlp_engine.scan_file) — **LIVE/mounted, info-disclosure** (returns matched sensitive content). FIXED tick126.
+- **secrets_manager** (scan_filesystem/scan_git_history via mounted secrets-scanner /scan) — **LIVE/mounted, secrets disclosure**. FIXED tick127.
+Each: per-engine storage-root allowlist (FIXOPS_<X>_ALLOWED_ROOTS env + tempdir/fleet defaults),
+verified /etc blocked + tmp works + tests green + Beast 756/756.
+Already-covered: local_file_store (FIXOPS_LOCAL_STORE_ALLOWED_ROOTS), evidence_chain (is_relative_to).
+Safe (content-based, no FS read): secret_scanner_router /scan.
+Rate-limits: VERIFIED live (260 reqs → 25×429; global RateLimitMiddleware + auth brute-force guard).
+**LIVE arbitrary-file-read API surface now fully closed.**
+
+### Scoped follow-up epic (lower risk / cleanup):
+- Shared `core/storage_root_guard.py` util to replace the 4 per-engine copies (DRY).
+- Audit remaining engines: secret_scanner.scan_file/scan_directory, malware_detector.scan_files,
+  sast_engine.scan_files, trivy/semgrep integrations (mostly shell-out to absent tools → findings not raw content, lower risk).
+- 20 scanner routers (bandit/checkov/semgrep/gitleaks/compliance-scanner/config-benchmark) take target_path → apply a shared path-allowlist dependency.
+
 ## Founder-blocked (record + move on)
 push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
