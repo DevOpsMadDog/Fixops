@@ -340,3 +340,16 @@ honest-empty). Routers attributed via runtime `endpoint.__module__` — both cle
 single-routers. 6 ACs grounded on live probes (200 honest-empty zeroed stats; no-key 401);
 forensics suites 120 passed. Custody endpoints share the SPEC-019 chain-of-custody model.
 **INDEX now 27/27 specs.** Named next-candidate backlog down to ONE: exec-reporting/evidence-export.
+
+### SPEC-026 + AUTH-GAP FIX — named backlog COMPLETE (tick160)
+Authoring SPEC-026 (exec-reporting + evidence-export) surfaced a **live auth gap**: all 5
+exec-reporting GET endpoints returned 200 unauthenticated (report/KPI/board-data leak). Root
+cause: `executive_reporting_router` lacked the router-level `dependencies=[Depends(api_key_auth)]`
+that peers (deception_router) have. **Fixed** (guarded import + router-level dep); verified
+no-key→401 / with-key→200 on all 5, create_app 8357, CISODashboard unaffected, **Beast smoke
+756/756**. INDEX now **28/28** — the named spec-backfill backlog is COMPLETE (SPEC-021..026:
+MPTE, threat-intel, SOAR, deception, forensics, exec-reporting).
+
+Next threads (no named backlog left): (1) audit other routers for the same missing-router-auth
+pattern; (2) router-consolidation epic (`/api/v1/playbooks` collision + 740-dup-route debt);
+(3) new specs as the API surface grows. All other backlog founder-blocked.

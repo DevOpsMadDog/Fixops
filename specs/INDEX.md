@@ -33,6 +33,7 @@
 | [SPEC-023](SPEC-023-soar-playbooks.md) | SOAR / Playbooks — incident-response automation (playbooks, execute, MTTR/stats, honest-empty) | SOAR/Response | BACKFILL | soar_router (/api/v1/soar, clean); /api/v1/playbooks = shadow-collision zone (gap_router/playbook_routes/playbook_router/ir_playbook_runner_router — consolidation epic) |
 | [SPEC-024](SPEC-024-deception.md) | Deception — canaries / honeypots + decoy-asset analytics (honest-empty, clean routers) | Deception/Active Defense | BACKFILL | deception_router (/api/v1/deception), deception_analytics_router (/api/v1/deception-analytics) |
 | [SPEC-025](SPEC-025-forensics.md) | Forensics — digital-forensics cases + evidence custody + forensic readiness (honest-empty, clean routers) | Forensics/IR | BACKFILL | digital_forensics_router (/api/v1/digital-forensics), forensics_readiness_router (/api/v1/forensics-readiness) |
+| [SPEC-026](SPEC-026-exec-reporting.md) | Executive Reporting + Evidence Export — reports/KPIs/board/summary + signed evidence bundle (auth-gap FIXED) | Reporting/Evidence | BACKFILL | executive_reporting_router (/api/v1/exec-reporting), evidence_router (/api/v1/evidence/export) |
 
 ## Backfill backlog (existing API groups needing specs — extend over time)
 DONE (2026-06-03): the original backlog is fully authored — ASPM ingest+findings (SPEC-011),
@@ -40,10 +41,11 @@ CTEM exposure (SPEC-012), CSPM posture+compliance (SPEC-013), Auth/tenancy (SPEC
 Connectors (SPEC-015), Evidence/SOC2 (SPEC-019), Risk-aggregator (SPEC-018), Council verdict
 (SPEC-020). All registered in the table above.
 
-Next candidate groups (not yet spec-governed — author one per group as touched, so the whole
-surface stays spec-governed for the Augment Code intent IDE): exec-reporting / evidence-export.
+Next-candidate backlog (2026-06-03): COMPLETE — all named groups now spec-governed
 (MPTE → SPEC-021; threat-intel → SPEC-022; SOAR/playbooks → SPEC-023; deception → SPEC-024;
-forensics → SPEC-025; all 2026-06-03.)
+forensics → SPEC-025; exec-reporting/evidence-export → SPEC-026). Future specs: author one per
+new API group as the surface grows, plus the router-consolidation epic for the `/api/v1/playbooks`
+shadow-collision zone (SPEC-023) and the broader duplicate-route debt.
 
 ## Pre-mortem-driven de-risk specs (SCIF $100K, added 2026-06-01)
 | ID | Title | Priority | Effort | Kills failure |

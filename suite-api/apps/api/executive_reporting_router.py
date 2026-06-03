@@ -38,7 +38,19 @@ from apps.api.billing_router import requires_tier
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/exec-reporting", tags=["exec-reporting"])
+# SECURITY (2026-06-03): the GET endpoints (reports/kpis/summary/board-presentations/
+# index) previously had NO auth dependency and returned 200 to unauthenticated callers —
+# an exec-data leak. Enforce api_key auth at the router level (mirrors deception_router),
+# so every endpoint requires X-API-Key (401 without). The POST routes additionally gate by
+# tier via requires_tier(...).
+try:  # pragma: no cover - import guard
+    from apps.api.auth_deps import api_key_auth as _api_key_auth
+
+    _AUTH_DEP: list = [Depends(_api_key_auth)]
+except Exception:  # pragma: no cover
+    _AUTH_DEP = []
+
+router = APIRouter(prefix="/api/v1/exec-reporting", tags=["exec-reporting"], dependencies=_AUTH_DEP)
 
 _engine = None
 
