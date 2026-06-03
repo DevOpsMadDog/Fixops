@@ -554,7 +554,7 @@ export default function App() {
             <Route path="/mission-control/compliance" element={<Navigate to="/compliance" replace />} />
             {/* DoD #5 — CTEM Cycles surface lives in mission-control compliance variant */}
             <Route path="/mission-control/ctem" element={<MissionControlComplianceDashboard />} />
-            <Route path="/mission-control/dev-security" element={<Navigate to="/?view=dev" replace />} />
+            <Route path="/mission-control/dev-security" element={<Navigate to="/developer" replace />} />
             <Route path="/mission-control/threat-intel" element={<ThreatIntelDashboard />} />
             <Route path="/mission-control/risk-register" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
 
@@ -782,7 +782,7 @@ export default function App() {
             <Route path="/incident-timeline" element={<IncidentTimeline />} />
             <Route path="/discover/identity-governance" element={<IdentityGovernanceHub />} />
             <Route path="/identity-governance" element={<Navigate to="/discover/identity-governance?tab=governance" replace />} />
-            <Route path="/executive-report" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/executive-report" element={<Navigate to="/executive" replace />} />
             <Route path="/network-analysis" element={<NetworkAnalysis />} />
             <Route path="/vuln-heatmap" element={<VulnHeatmap />} />
             <Route path="/audit-log" element={<AuditLog />} />
@@ -854,7 +854,7 @@ export default function App() {
             {/* S2 Finance hub — folded 2026-05-02. Old route redirects below. */}
             <Route path="/cyber-insurance" element={<Navigate to="/mission-control/finance?tab=cyber-insur" replace />} />
             <Route path="/cyber-insurance-legacy" element={<CyberInsurance />} />
-            <Route path="/executive-reporting" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/executive-reporting" element={<Navigate to="/executive" replace />} />
             <Route path="/vuln-scanner" element={<VulnerabilityScanner />} />
             <Route path="/risk-quantification" element={<Navigate to="/comply/risk-quant?tab=fair" replace />} />
             {/* Canonical Risk Quant hub route */}
@@ -863,7 +863,7 @@ export default function App() {
             {/* Phase 3 Strategic Posture hub — Comply space (2026-05-02): 3 pages folded */}
             <Route path="/comply/strategic-posture" element={<StrategicPostureHub />} />
             <Route path="/security-posture" element={<Navigate to="/comply/strategic-posture?tab=posture" replace />} />
-            <Route path="/executive-briefing" element={<Navigate to="/?view=executive" replace />} />
+            <Route path="/executive-briefing" element={<Navigate to="/executive" replace />} />
             <Route path="/threat-feeds" element={<Navigate to="/issues?tab=threat-feed" replace />} />
             <Route path="/cwpp" element={<Navigate to="/discover/cloud-posture?tab=platform" replace />} />
             {/* S22 fold 2026-05-02: /digital-forensics → ForensicsHub#digital (canonical mounted later) */}
@@ -1211,7 +1211,7 @@ export default function App() {
             <Route path="/mission-control/executive" element={<Navigate to="/executive" replace />} />
             <Route path="/mission-control/soc" element={<Navigate to="/incidents" replace />} />
             <Route path="/mission-control/soc-t1" element={<Navigate to="/incidents" replace />} />
-            <Route path="/mission-control/dev-security" element={<Navigate to="/?view=dev" replace />} />
+            <Route path="/mission-control/dev-security" element={<Navigate to="/developer" replace />} />
 
             {/* 90-day muscle-memory redirects → real pages (the tabbed Admin hero was
                 never built; /admin?tab= dead-ends at audit-log — repoint to real pages). */}
