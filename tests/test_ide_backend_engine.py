@@ -162,7 +162,10 @@ def _build_repo(root: Path) -> None:
 def engine(tmp_path: Path) -> IDEBackendEngine:
     db = _mk_tmp_db(tmp_path, "ide_backend_test.db")
     findings_db = _mk_tmp_db(tmp_path, "findings_test.db")
-    return IDEBackendEngine(db_path=db, findings_db_path=findings_db)
+    # Permit the test's tmp workspace through the storage-root allowlist (SCIF hardening).
+    return IDEBackendEngine(
+        db_path=db, findings_db_path=findings_db, allowed_roots=[str(tmp_path)]
+    )
 
 
 @pytest.fixture()

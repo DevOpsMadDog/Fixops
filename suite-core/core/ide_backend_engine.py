@@ -106,6 +106,70 @@ _EXCLUDED_DIRS: Set[str] = {
 # Max bytes to return for a single file via ``get_file_content``.
 _MAX_CONTENT_BYTES = 2 * 1024 * 1024  # 2 MiB safety cap
 
+# ---------------------------------------------------------------------------
+# Storage-root allowlist (SCIF hardening)
+# ---------------------------------------------------------------------------
+# build_repo_tree / get_file_content read the filesystem at a caller-supplied
+# ``root_path``. file_path-within-root containment is enforced separately, but
+# root_path itself must be confined to an allowlisted workspace base — otherwise
+# an authenticated caller could enumerate/read arbitrary paths (e.g. /etc,
+# ~/.ssh) by passing them as root_path. Configure with
+# ``FIXOPS_IDE_ALLOWED_ROOTS`` (os.pathsep-separated absolute paths); default to
+# the IDE-gateway fleet/temp workspace bases. NO arbitrary filesystem read.
+_IDE_ALLOWED_ROOTS_ENV = "FIXOPS_IDE_ALLOWED_ROOTS"
+
+
+def _default_ide_allowed_roots() -> List[str]:
+    import tempfile
+
+    candidates = [
+        os.path.join(tempfile.gettempdir(), "fixops-fleet"),
+        "/tmp/fixops-fleet",
+        "/private/tmp/fixops-fleet",
+        str(Path(_DEFAULT_DB).resolve().parent / "ide-workspaces"),
+    ]
+    out: List[str] = []
+    for c in candidates:
+        try:
+            out.append(os.path.realpath(os.path.abspath(c)))
+        except OSError:
+            continue
+    return out
+
+
+def _ide_allowed_roots(extra: Optional[List[str]] = None) -> List[str]:
+    roots: List[str] = []
+    env = os.environ.get(_IDE_ALLOWED_ROOTS_ENV, "").strip()
+    if env:
+        roots = [
+            os.path.realpath(os.path.abspath(p))
+            for p in env.split(os.pathsep)
+            if p.strip()
+        ]
+    else:
+        roots = _default_ide_allowed_roots()
+    if extra:
+        roots = roots + [os.path.realpath(os.path.abspath(p)) for p in extra if p]
+    return roots
+
+
+def _assert_root_allowed(root_path: str, extra: Optional[List[str]] = None) -> None:
+    """Raise ValueError if root_path is outside the storage-root allowlist.
+
+    Defence-in-depth against arbitrary filesystem read via a caller-supplied
+    root_path (file_path-within-root containment is enforced separately).
+    """
+    if not root_path:
+        raise ValueError("root_path is required")
+    real = os.path.realpath(os.path.abspath(root_path))
+    for base in _ide_allowed_roots(extra):
+        if real == base or real.startswith(base + os.sep):
+            return
+    raise ValueError(
+        "root_path is not within an allowed storage root "
+        f"(set {_IDE_ALLOWED_ROOTS_ENV} to permit it)"
+    )
+
 # Language guess from extension (best-effort; front-end may override).
 _LANG_BY_EXT: Dict[str, str] = {
     ".py": "python",
@@ -196,9 +260,13 @@ class IDEBackendEngine:
         self,
         db_path: str = _DEFAULT_DB,
         findings_db_path: str = _FINDINGS_DB,
+        allowed_roots: Optional[List[str]] = None,
     ) -> None:
         self.db_path = db_path
         self.findings_db_path = findings_db_path
+        # Extra storage-root allowlist entries (beyond FIXOPS_IDE_ALLOWED_ROOTS /
+        # the fleet defaults). Used by tests to permit their tmp workspace.
+        self._allowed_roots = list(allowed_roots) if allowed_roots else None
         self._lock = threading.RLock()
         self._init_db()
 
@@ -445,6 +513,7 @@ class IDEBackendEngine:
             raise ValueError("org_id is required")
         if not repo_ref:
             raise ValueError("repo_ref is required")
+        _assert_root_allowed(root_path, self._allowed_roots)
         if not root_path or not os.path.isdir(root_path):
             raise ValueError(f"root_path does not exist or is not a directory: {root_path}")
 
@@ -548,6 +617,7 @@ class IDEBackendEngine:
 
         # 1) Prefer disk read.
         if root_path and os.path.isdir(root_path):
+            _assert_root_allowed(root_path, self._allowed_roots)
             abs_root = os.path.abspath(root_path)
             candidate = os.path.abspath(os.path.join(abs_root, normalised))
             if not (candidate == abs_root or candidate.startswith(abs_root + os.sep)):
