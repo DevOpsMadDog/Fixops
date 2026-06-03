@@ -434,3 +434,13 @@ every tick (755 + 1 documented flake = 0 regressions throughout).
 router-consolidation epic (740-dup-route debt, `/api/v1/playbooks` collision). Founder-blocked:
 push (VPN DNS + revoked PAT), Postgres, org-precedence, FIPS/PIV/GPU/Stripe, the scif-posture
 auth founder-decision.
+
+### Tenancy-lint gate finding (tick171) — FOUNDER DECISION needed
+A tenancy/isolation T3 slice surfaced that the SPEC-007 lint gate is RED: `specs/tenancy_allowlist.txt`
+is empty but the scanner finds 100 V1 `org_id="default"` param-defaults (99 suite-api + 1 suite-core).
+**Verified NOT a live leak** — `test_multi_tenant_isolation` passes 19/19 alone (cross-tenant lookups→404);
+it's defense-in-depth hygiene debt. NOT auto-fixed (allowlist policy = "only shrink, never add manually" +
+org-precedence is founder-blocked). Founder choice (see docs/tenancy_lint_gate_finding_2026-06-03.md):
+**A)** `python scripts/tenancy_lint.py --generate-allowlist` to freeze the baseline + restore the gate, or
+**B)** convert the 100 to `Depends(get_org_id)` (org-precedence work). The 61 batch ERRORs in the slice were
+TestClient-pollution (each file passes alone), not real failures.
