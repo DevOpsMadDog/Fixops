@@ -382,3 +382,14 @@ inline import). Verified all 4 no-key=401/with-key=200; create_app 8357; smoke 7
 **Both sweeps now GAPS=0** except oauth2/token + slack/commands (verified intentional-public —
 token issuance + Slack signing-secret auth). **Session total: 21 unauthenticated endpoints
 closed** (1 exec-reporting + 8 GET routers + 8 mutating routers + 3 partial-auth + 1 inline).
+
+### Permanent auth regression guard + 2 final gaps (tick164)
+Added `tests/test_no_unauthenticated_endpoints.py` — probes one endpoint per (prefix,method)
+no-key, asserts 401/403, with a documented allowlist (oauth2/token, slack, health, trust-center
+public spec, scif posture, git-sha, openapi, generic probes). Writing it surfaced 2 more gaps the
+per-prefix sweeps missed (malware-analysis + network-forensics root GET) — fixed. Iterated the
+allowlist via direct gap-probe (7→0), confirming each remaining 200 intentional-public per source
+comments (NOT silently passed). FOUNDER-DECISION noted in-test: scif posture endpoints expose
+audit-entry counts + HSM key labels unauthed — review for the SCIF threat model. Test PASSES (40s);
+smoke 755+1-flake. **Session auth total: 23 endpoints closed + a permanent regression guard so
+they can't silently revert.**
