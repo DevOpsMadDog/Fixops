@@ -315,3 +315,14 @@ suites 125 passed. Per no-fabrication, found+recorded a minor route-shadow
 (`/playbooks/builtin` 404s, shadowed by `GET /{playbook_id}`) — excluded from ACs, logged
 as a follow-up. **INDEX now 25/25 specs.** Remaining candidates: deception, forensics,
 exec-reporting/evidence-export.
+
+### SPEC-023 self-correction (tick157) — no-fabrication catch
+Chained a self-red-team on SPEC-023 and caught a fabricated diagnosis. Runtime
+`endpoint.__module__` attribution revealed: app mounts `playbook_routes.py` (not
+`playbook_router.py`), and `/api/v1/playbooks` is a **live shadow-collision zone** —
+`gap_router` (list), `ir_playbook_runner_router` + `playbook_router` (both register
+`/executions`), `playbook_routes.py` (CRUD). `/playbooks/builtin` 404s because `/builtin`
+exists only in the unmounted file. Corrected the spec's Routers/debate/impl + INDEX row;
+SOAR (`soar_router`) confirmed clean; all 8 ACs remain valid (200/401 verified live).
+Reinforced lesson: attribute routers via runtime `__module__`, never by filename. The
+playbooks collision is a concrete instance for the founder router-consolidation epic.
