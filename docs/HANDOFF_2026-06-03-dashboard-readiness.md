@@ -363,3 +363,12 @@ sensitive tenant data). 3 root causes fixed across 6 files: missing router-level
 NO-OP fallback that silently disabled auth (ui_alias, 3 alias prefixes — now fail-CLOSED).
 Re-swept → **GAPS=0**; all 8 verified no-key=401/with-key=200; create_app 8357; Beast smoke 756/756.
 Reusable detector + pattern saved to memory (feedback_router_auth_gap_pattern).
+
+### Mutating-endpoint auth sweep — 8 more fixed (tick162)
+Swept 701 POST/PUT/DELETE endpoints no-key → 14 candidates. FIXED 8 zero-auth data/action
+routers with the router-level dep (secrets-management [created secrets unauthed — critical],
+secrets/scan, k8s/scan, deployment/initialize, event-correlation/events, log-management/sources,
+threat-intel-fusion/sources, tour/start) — all verified no-key=401/with-key=200|422; smoke
+755+1-flake (0 regressions). EXCLUDED intentional-public: oauth2/token, slack/commands.
+DEFERRED partial-auth (per-endpoint fix needed): nuclei/scan, threat-modeling-pipeline/models,
+vuln-remediation/tasks. **Session auth-hardening total: 17 endpoints/routers closed.**

@@ -40,7 +40,13 @@ from pydantic import BaseModel, field_validator
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/tour", tags=["tour"])
+try:  # SECURITY 2026-06-03: was unauthenticated (POST /start with no API key)
+    from fastapi import Depends as _Depends
+    from apps.api.auth_deps import api_key_auth as _api_key_auth
+    _AUTH_DEP = [_Depends(_api_key_auth)]
+except Exception:  # pragma: no cover
+    _AUTH_DEP = []
+router = APIRouter(prefix="/api/v1/tour", tags=["tour"], dependencies=_AUTH_DEP)
 
 # ---------------------------------------------------------------------------
 # In-memory store for active tours (keyed by tour_id → asyncio.Queue)

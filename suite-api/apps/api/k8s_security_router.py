@@ -25,7 +25,13 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/k8s", tags=["Kubernetes Security"])
+try:  # SECURITY 2026-06-03: was unauthenticated (POST /scan with no API key)
+    from fastapi import Depends as _Depends
+    from apps.api.auth_deps import api_key_auth as _api_key_auth
+    _AUTH_DEP = [_Depends(_api_key_auth)]
+except Exception:  # pragma: no cover
+    _AUTH_DEP = []
+router = APIRouter(prefix="/api/v1/k8s", tags=["Kubernetes Security"], dependencies=_AUTH_DEP)
 
 
 # ---------------------------------------------------------------------------
