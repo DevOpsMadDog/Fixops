@@ -61,6 +61,35 @@ def engine_with_dbs(data_dir_with_dbs: Path) -> AnalyticsEngine:
     return AnalyticsEngine(data_dir=data_dir_with_dbs)
 
 
+@pytest.fixture()
+def engine_seeded(tmp_path: Path) -> AnalyticsEngine:
+    """AnalyticsEngine pointed at a data_dir with REAL seeded domain DBs.
+
+    No mocks: the engine reads these via DuckDB sqlite_scan exactly as in
+    production, exercising the real COUNT/AVG-pushdown query paths (these methods
+    no longer route everything through _try_scan, so mocking it is insufficient).
+    """
+
+    def _seed(name: str, table: str, columns: str, rows: list) -> None:
+        conn = sqlite3.connect(str(tmp_path / f"{name}.db"))
+        conn.execute(f"CREATE TABLE {table} ({columns})")  # nosec B608 - test schema
+        placeholders = ",".join("?" for _ in rows[0])
+        conn.executemany(f"INSERT INTO {table} VALUES ({placeholders})", rows)  # nosec B608
+        conn.commit()
+        conn.close()
+
+    _seed("posture_score", "posture_scores", "current_score REAL, grade TEXT", [(78.5, "B")])
+    _seed("risk_register", "risks", "severity TEXT",
+          [("critical",), ("high",), ("critical",)])  # 3 total, 2 critical
+    _seed("digital_forensics", "forensic_cases", "status TEXT",
+          [("open",), ("closed",)])  # 1 open
+    _seed("threat_hunting", "hunt_findings", "severity TEXT",
+          [("critical",), ("medium",)])  # 2 total, 1 critical
+    _seed("compliance_scanner", "scan_results", "score REAL, scan_completed TEXT",
+          [(80, "2026-06-01"), (90, "2026-06-02"), (70, "2026-06-03")])  # avg 80
+    return AnalyticsEngine(data_dir=tmp_path)
+
+
 # ---------------------------------------------------------------------------
 # Initialisation tests
 # ---------------------------------------------------------------------------
@@ -181,30 +210,10 @@ class TestCrossDomainRiskSummary:
         dt = datetime.fromisoformat(result["generated_at"])
         assert dt is not None
 
-    def test_with_mocked_posture_data(self, engine_empty: AnalyticsEngine) -> None:
-        """Mocked _try_scan returns posture data correctly."""
-        mock_rows: Dict[str, List] = {
-            ("posture_score", "posture_scores"): [{"current_score": 78.5, "grade": "B"}],
-            ("risk_register", "risks"): [
-                {"severity": "critical"},
-                {"severity": "high"},
-                {"severity": "critical"},
-            ],
-            ("digital_forensics", "forensic_cases"): [
-                {"status": "open"},
-                {"status": "closed"},
-            ],
-            ("threat_hunting", "hunt_findings"): [
-                {"severity": "critical"},
-                {"severity": "medium"},
-            ],
-        }
-
-        def mock_try_scan(db_name, table, where="", limit=None):
-            return mock_rows.get((db_name, table))
-
-        with patch.object(engine_empty, "_try_scan", side_effect=mock_try_scan):
-            result = engine_empty.cross_domain_risk_summary("default")
+    def test_with_mocked_posture_data(self, engine_seeded: AnalyticsEngine) -> None:
+        """Real seeded domain DBs (no mocks): cross_domain_risk_summary reads
+        them via DuckDB sqlite_scan and computes the unified risk picture."""
+        result = engine_seeded.cross_domain_risk_summary("default")
 
         assert result["current_score"] == 78.5
         assert result["grade"] == "B"
@@ -247,19 +256,10 @@ class TestExecutiveDashboardData:
         result = engine_empty.executive_dashboard_data("tenant-x")
         assert result["org_id"] == "tenant-x"
 
-    def test_compliance_avg_computed_from_mocked_data(self, engine_empty: AnalyticsEngine) -> None:
-        def mock_list():
-            return [{"name": "compliance_scanner", "path": "/fake/compliance_scanner.db", "size_mb": 0.1}]
-
-        def mock_try_scan(db_name, table, where="", limit=None):
-            if db_name == "compliance_scanner" and table == "scan_results":
-                return [{"score": 80}, {"score": 90}, {"score": 70}]
-            return None
-
-        with patch.object(engine_empty, "list_available_domains", side_effect=mock_list):
-            with patch.object(engine_empty, "_try_scan", side_effect=mock_try_scan):
-                result = engine_empty.executive_dashboard_data("default")
-
+    def test_compliance_avg_computed_from_mocked_data(self, engine_seeded: AnalyticsEngine) -> None:
+        """Real seeded compliance_scanner.db (scores 80/90/70): executive
+        dashboard computes the average (80.0) via the real DuckDB AVG pushdown."""
+        result = engine_seeded.executive_dashboard_data("default")
         assert result["compliance_score_avg"] == 80.0
 
 
