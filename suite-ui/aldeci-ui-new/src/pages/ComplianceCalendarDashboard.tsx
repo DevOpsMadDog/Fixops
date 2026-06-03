@@ -5,13 +5,20 @@
  * reminders panel, recurring event badges, framework filter tabs, add-event form,
  * and summary stats.
  *
+ * NO-MOCKS (CLAUDE.md): all events / overdue / reminders / summary below are
+ * loaded from the live /api/v1/compliance-calendar API on mount — there is no
+ * hardcoded fixture data and no frozen "today".
+ *
  * Route: /compliance-calendar
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getStoredOrgId } from "@/lib/api";
 const _API_BASE = "/api/v1/compliance-calendar";
-const _getHeaders = () => ({ "X-API-Key": localStorage.getItem("aldeci.authToken") || "" });
+const _getHeaders = () => ({
+  "X-API-Key": localStorage.getItem("aldeci.authToken") || "",
+  "Content-Type": "application/json",
+});
 
 import {
   CalendarDays,
@@ -26,50 +33,30 @@ import {
 // ── Types ──────────────────────────────────────────────────────
 
 type Framework = "ALL" | "SOC2" | "ISO27001" | "PCI-DSS" | "HIPAA" | "NIST" | "GDPR" | "FedRAMP" | "CIS";
-type Priority = "critical" | "high" | "medium" | "low";
-type Recurrence = "none" | "weekly" | "monthly" | "quarterly" | "annual";
 
 interface CalEvent {
   id: string;
   event_name: string;
-  framework: Exclude<Framework, "ALL">;
+  framework: string;
   due_date: string; // YYYY-MM-DD
-  priority: Priority;
-  assigned_to: string;
-  recurrence: Recurrence;
+  priority: string;
+  owner?: string;
+  recurrence?: string;
+  status?: string;
   overdue?: boolean;
   reminder_due?: boolean;
 }
 
-// ── Mock data ──────────────────────────────────────────────────
-
-const TODAY = "2026-04-16";
-const YEAR = 2026;
-const MONTH = 3; // 0-indexed → April
-
-const EVENTS: CalEvent[] = [
-  { id: "e01", event_name: "SOC2 Type II Evidence Collection", framework: "SOC2", due_date: "2026-04-02", priority: "critical", assigned_to: "Audit Team", recurrence: "annual", overdue: true },
-  { id: "e02", event_name: "PCI-DSS Quarterly SAQ Review", framework: "PCI-DSS", due_date: "2026-04-05", priority: "high", assigned_to: "Compliance Lead", recurrence: "quarterly", overdue: true },
-  { id: "e03", event_name: "GDPR DPIA Review", framework: "GDPR", due_date: "2026-04-10", priority: "high", assigned_to: "Privacy Officer", recurrence: "annual", overdue: true },
-  { id: "e04", event_name: "ISO 27001 Internal Audit", framework: "ISO27001", due_date: "2026-04-18", priority: "critical", assigned_to: "CISO", recurrence: "annual", reminder_due: true },
-  { id: "e05", event_name: "NIST CSF Maturity Assessment", framework: "NIST", due_date: "2026-04-22", priority: "medium", assigned_to: "Security Team", recurrence: "quarterly", reminder_due: true },
-  { id: "e06", event_name: "HIPAA Risk Analysis Update", framework: "HIPAA", due_date: "2026-04-25", priority: "high", assigned_to: "Risk Manager", recurrence: "annual" },
-  { id: "e07", event_name: "FedRAMP Continuous Monitoring", framework: "FedRAMP", due_date: "2026-04-28", priority: "critical", assigned_to: "Fed Team", recurrence: "monthly" },
-  { id: "e08", event_name: "CIS Benchmark Scan", framework: "CIS", due_date: "2026-04-30", priority: "medium", assigned_to: "SecOps", recurrence: "monthly" },
-  { id: "e09", event_name: "SOC2 User Access Review", framework: "SOC2", due_date: "2026-05-05", priority: "high", assigned_to: "IAM Team", recurrence: "quarterly" },
-  { id: "e10", event_name: "GDPR Consent Audit", framework: "GDPR", due_date: "2026-05-12", priority: "medium", assigned_to: "Privacy Officer", recurrence: "annual" },
-];
-
 // ── Helpers ────────────────────────────────────────────────────
 
-function priorityBadge(p: Priority) {
-  const map: Record<Priority, string> = {
+function priorityBadge(p: string) {
+  const map: Record<string, string> = {
     critical: "bg-red-500/20 text-red-300 border border-red-500/40",
     high: "bg-orange-500/20 text-orange-300 border border-orange-500/40",
     medium: "bg-yellow-500/20 text-yellow-300 border border-yellow-500/40",
     low: "bg-gray-600/40 text-gray-300",
   };
-  return <span className={`px-2 py-0.5 rounded text-xs font-medium ${map[p]}`}>{p}</span>;
+  return <span className={`px-2 py-0.5 rounded text-xs font-medium ${map[p] ?? "bg-gray-600/40 text-gray-300"}`}>{p}</span>;
 }
 
 function frameworkBadge(f: string) {
@@ -90,8 +77,8 @@ function frameworkBadge(f: string) {
   );
 }
 
-function recurrenceBadge(r: Recurrence) {
-  if (r === "none") return null;
+function recurrenceBadge(r?: string) {
+  if (!r || r === "none") return null;
   const map: Record<string, string> = {
     weekly: "bg-sky-500/20 text-sky-300",
     monthly: "bg-violet-500/20 text-violet-300",
@@ -99,16 +86,23 @@ function recurrenceBadge(r: Recurrence) {
     annual: "bg-rose-500/20 text-rose-300",
   };
   return (
-    <span className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs ${map[r]}`}>
+    <span className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs ${map[r] ?? "bg-gray-600/40 text-gray-300"}`}>
       <RefreshCw size={10} /> {r}
     </span>
   );
 }
 
+const NOW = new Date();
+const TODAY = NOW.toISOString().slice(0, 10);
+const YEAR = NOW.getFullYear();
+const MONTH = NOW.getMonth();
+const TODAY_DATE = NOW.getDate();
+
 function daysRemaining(dateStr: string): number {
+  if (!dateStr) return 0;
   const due = new Date(dateStr);
-  const today = new Date(TODAY);
-  return Math.round((due.getTime() - today.getTime()) / 86400000);
+  if (isNaN(due.getTime())) return 0;
+  return Math.round((due.getTime() - new Date(TODAY).getTime()) / 86400000);
 }
 
 function buildCalendar(year: number, month: number): (number | null)[][] {
@@ -122,7 +116,7 @@ function buildCalendar(year: number, month: number): (number | null)[][] {
   return weeks;
 }
 
-const PRIORITY_DOT: Record<Priority, string> = {
+const PRIORITY_DOT: Record<string, string> = {
   critical: "bg-red-500",
   high: "bg-orange-400",
   medium: "bg-yellow-400",
@@ -135,35 +129,84 @@ const FRAMEWORKS: Framework[] = ["ALL", "SOC2", "ISO27001", "PCI-DSS", "HIPAA", 
 
 const ORG_ID = (getStoredOrgId() ?? "default");
 export default function ComplianceCalendarDashboard() {
-  const [calEvents, setCalEvents] = useState(EVENTS);
+  const [calEvents, setCalEvents] = useState<CalEvent[]>([]);
+  const [reminders, setReminders] = useState<CalEvent[]>([]);
+  const [summary, setSummary] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(`${_API_BASE}/upcoming?org_id=${ORG_ID}`, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => { if (Array.isArray(d)) setCalEvents(d); })
-      .catch((e) => setError(e?.message || 'Failed to load data'));
-  }, []);
-
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [activeFramework, setActiveFramework] = useState<Framework>("ALL");
-  useEffect(() => {
-    fetch(`${_API_BASE}/overdue?org_id=${ORG_ID}`, { headers: _getHeaders() })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => {
-        // live data loaded — components read from API response
-        void d;
-      })
-      .catch((e) => setError(e?.message || 'Failed to load data'))
-      .finally(() => setLoading(false));
-  }, []);
-
   const [showAddForm, setShowAddForm] = useState(false);
   const [newEvent, setNewEvent] = useState({ name: "", framework: "SOC2", due_date: "", priority: "medium" });
-  const [error, setError] = useState<string | null>(null);
 
-  const filtered = activeFramework === "ALL" ? EVENTS : EVENTS.filter((e) => e.framework === activeFramework);
-  const overdue = EVENTS.filter((e) => e.overdue);
-  const reminders = EVENTS.filter((e) => e.reminder_due);
+  const loadData = useCallback(async () => {
+    setError(null);
+    const q = `?org_id=${ORG_ID}`;
+    try {
+      const [upRes, ovRes, remRes, sumRes] = await Promise.all([
+        fetch(`${_API_BASE}/upcoming${q}`, { headers: _getHeaders() }),
+        fetch(`${_API_BASE}/overdue${q}`, { headers: _getHeaders() }),
+        fetch(`${_API_BASE}/reminders/due${q}`, { headers: _getHeaders() }),
+        fetch(`${_API_BASE}/summary${q}`, { headers: _getHeaders() }),
+      ]);
+      const upcoming = upRes.ok ? await upRes.json() : [];
+      const overdue = ovRes.ok ? await ovRes.json() : [];
+      const rem = remRes.ok ? await remRes.json() : [];
+      if (sumRes.ok) setSummary(await sumRes.json());
+
+      const remIds = new Set((Array.isArray(rem) ? rem : []).map((r: any) => r.id));
+      const merged: Record<string, CalEvent> = {};
+      (Array.isArray(upcoming) ? upcoming : []).forEach((e: any) => {
+        merged[e.id] = { ...e, overdue: false, reminder_due: remIds.has(e.id) };
+      });
+      (Array.isArray(overdue) ? overdue : []).forEach((e: any) => {
+        merged[e.id] = { ...e, overdue: true, reminder_due: remIds.has(e.id) };
+      });
+      setCalEvents(Object.values(merged));
+      setReminders(Array.isArray(rem) ? rem : []);
+    } catch (e: any) {
+      setError(e?.message || "Failed to load compliance calendar");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const saveEvent = async () => {
+    if (!newEvent.name || !newEvent.due_date) { setError("Event name and due date are required"); return; }
+    setSaving(true);
+    try {
+      const res = await fetch(`${_API_BASE}/events?org_id=${ORG_ID}`, {
+        method: "POST",
+        headers: _getHeaders(),
+        body: JSON.stringify({
+          event_name: newEvent.name,
+          event_type: "review",
+          framework: newEvent.framework,
+          due_date: newEvent.due_date,
+          recurrence: "none",
+          owner: "",
+          priority: newEvent.priority,
+          reminder: 7,
+          notes: "",
+        }),
+      });
+      if (!res.ok) throw new Error(`Create failed (${res.status})`);
+      setShowAddForm(false);
+      setNewEvent({ name: "", framework: "SOC2", due_date: "", priority: "medium" });
+      await loadData();
+    } catch (e: any) {
+      setError(e?.message || "Failed to create event");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const filtered = activeFramework === "ALL" ? calEvents : calEvents.filter((e) => e.framework === activeFramework);
+  const overdueEvents = calEvents.filter((e) => e.overdue);
   const upcoming = filtered
     .filter((e) => !e.overdue)
     .sort((a, b) => a.due_date.localeCompare(b.due_date))
@@ -172,9 +215,9 @@ export default function ComplianceCalendarDashboard() {
   const weeks = buildCalendar(YEAR, MONTH);
   const monthName = new Date(YEAR, MONTH, 1).toLocaleString("default", { month: "long", year: "numeric" });
 
-  // map day → events for this month
+  // map day → events for the current month
   const dayEventMap: Record<number, CalEvent[]> = {};
-  EVENTS.forEach((ev) => {
+  calEvents.forEach((ev) => {
     const d = new Date(ev.due_date);
     if (d.getFullYear() === YEAR && d.getMonth() === MONTH) {
       const day = d.getDate();
@@ -183,14 +226,16 @@ export default function ComplianceCalendarDashboard() {
     }
   });
 
-  const thisWeekCount = EVENTS.filter((e) => {
+  const thisWeekCount = calEvents.filter((e) => {
     const days = daysRemaining(e.due_date);
     return days >= 0 && days <= 7;
   }).length;
-  const thisMonthCount = EVENTS.filter((e) => {
+  const thisMonthCount = calEvents.filter((e) => {
     const days = daysRemaining(e.due_date);
     return days >= 0 && days <= 30;
   }).length;
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-gray-100 p-6 space-y-6">
@@ -211,11 +256,19 @@ export default function ComplianceCalendarDashboard() {
         </button>
       </div>
 
+      {/* Error banner */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span className="text-sm">Failed to load live data: {error}</span>
+          <button onClick={loadData} className="ml-4 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors">Retry</button>
+        </div>
+      )}
+
       {/* Summary stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Total Events", value: EVENTS.length, color: "text-indigo-400" },
-          { label: "Overdue", value: overdue.length, color: "text-red-400" },
+          { label: "Total Events", value: summary?.upcoming_count != null && summary?.overdue_count != null ? summary.upcoming_count + summary.overdue_count : calEvents.length, color: "text-indigo-400" },
+          { label: "Overdue", value: summary?.overdue_count ?? overdueEvents.length, color: "text-red-400" },
           { label: "This Week", value: thisWeekCount, color: "text-yellow-400" },
           { label: "This Month", value: thisMonthCount, color: "text-teal-400" },
         ].map((s) => (
@@ -227,12 +280,12 @@ export default function ComplianceCalendarDashboard() {
       </div>
 
       {/* Overdue alert banner */}
-      {overdue.length > 0 && (
+      {overdueEvents.length > 0 && (
         <div className="bg-red-900/30 border border-red-500/40 rounded-lg px-4 py-3 flex items-center gap-3">
           <AlertTriangle className="text-red-400 shrink-0" size={20} />
           <div>
-            <span className="text-red-300 font-semibold">{overdue.length} overdue event{overdue.length > 1 ? "s" : ""}: </span>
-            <span className="text-red-200 text-sm">{overdue.map((e) => e.event_name).join(" · ")}</span>
+            <span className="text-red-300 font-semibold">{overdueEvents.length} overdue event{overdueEvents.length > 1 ? "s" : ""}: </span>
+            <span className="text-red-200 text-sm">{overdueEvents.map((e) => e.event_name).join(" · ")}</span>
           </div>
         </div>
       )}
@@ -261,13 +314,21 @@ export default function ComplianceCalendarDashboard() {
               value={newEvent.due_date}
               onChange={(e) => setNewEvent({ ...newEvent, due_date: e.target.value })}
             />
+            <select
+              className="bg-gray-700 rounded px-3 py-2 text-sm text-gray-200"
+              value={newEvent.priority}
+              onChange={(e) => setNewEvent({ ...newEvent, priority: e.target.value })}
+            >
+              {["critical", "high", "medium", "low"].map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
           </div>
           <div className="flex gap-3 mt-4">
             <button
-              onClick={() => setShowAddForm(false)}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded text-sm font-medium"
+              disabled={saving}
+              onClick={saveEvent}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded text-sm font-medium"
             >
-              Save Event
+              {saving ? "Saving…" : "Save Event"}
             </button>
             <button
               onClick={() => setShowAddForm(false)}
@@ -309,7 +370,7 @@ export default function ComplianceCalendarDashboard() {
           {weeks.map((week, wi) => (
             <div key={wi} className="grid grid-cols-7 gap-1 mb-1">
               {week.map((day, di) => {
-                const isToday = day === 16;
+                const isToday = day === TODAY_DATE;
                 const evts = day ? (dayEventMap[day] ?? []) : [];
                 return (
                   <div
@@ -325,7 +386,7 @@ export default function ComplianceCalendarDashboard() {
                           {evts.slice(0, 3).map((ev) => (
                             <span
                               key={ev.id}
-                              className={`inline-block w-2 h-2 rounded-full ${PRIORITY_DOT[ev.priority]}`}
+                              className={`inline-block w-2 h-2 rounded-full ${PRIORITY_DOT[ev.priority] ?? "bg-gray-500"}`}
                               title={ev.event_name}
                             />
                           ))}
@@ -339,7 +400,7 @@ export default function ComplianceCalendarDashboard() {
             </div>
           ))}
           <div className="flex gap-4 mt-3 text-xs text-gray-400">
-            {(["critical", "high", "medium", "low"] as Priority[]).map((p) => (
+            {(["critical", "high", "medium", "low"]).map((p) => (
               <div key={p} className="flex items-center gap-1">
                 <span className={`w-2 h-2 rounded-full ${PRIORITY_DOT[p]}`} /> {p}
               </div>
@@ -353,12 +414,12 @@ export default function ComplianceCalendarDashboard() {
             <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
               <Clock size={16} className="text-indigo-400" /> Upcoming Events
             </h2>
+            {upcoming.length === 0 ? (
+              <p className="text-gray-400 text-xs">No upcoming events.</p>
+            ) : (
             <div className="space-y-3">
               {upcoming.map((ev) => {
                 const days = daysRemaining(ev.due_date);
-
-                if (loading) return <div key={ev.id} className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div></div>;
-
                 return (
                   <div key={ev.id} className="border-b border-gray-700/50 pb-3 last:border-0 last:pb-0">
                     <div className="flex items-start justify-between gap-2">
@@ -370,7 +431,7 @@ export default function ComplianceCalendarDashboard() {
                       {recurrenceBadge(ev.recurrence)}
                     </div>
                     <div className="flex items-center justify-between mt-1 text-xs text-gray-400">
-                      <span>{ev.assigned_to}</span>
+                      <span>{ev.owner || "unassigned"}</span>
                       <span className={days <= 3 ? "text-red-400 font-medium" : "text-gray-400"}>
                         {days >= 0 ? `${days}d remaining` : `${Math.abs(days)}d overdue`}
                       </span>
@@ -379,6 +440,7 @@ export default function ComplianceCalendarDashboard() {
                 );
               })}
             </div>
+            )}
           </div>
 
           <div className="bg-gray-800 rounded-lg p-6">
