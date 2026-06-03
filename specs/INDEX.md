@@ -35,6 +35,7 @@
 | [SPEC-025](SPEC-025-forensics.md) | Forensics — digital-forensics cases + evidence custody + forensic readiness (honest-empty, clean routers) | Forensics/IR | BACKFILL | digital_forensics_router (/api/v1/digital-forensics), forensics_readiness_router (/api/v1/forensics-readiness) |
 | [SPEC-026](SPEC-026-exec-reporting.md) | Executive Reporting + Evidence Export — reports/KPIs/board/summary + signed evidence bundle (auth-gap FIXED) | Reporting/Evidence | BACKFILL | executive_reporting_router (/api/v1/exec-reporting), evidence_router (/api/v1/evidence/export) |
 | [SPEC-027](SPEC-027-auth-hardening.md) | Auth Hardening — every /api/v1 endpoint requires api_key (24-fix epic + exhaustive CI gate) | Platform/Auth/Red-Team | IMPLEMENTED | cross-cutting (router-level Depends(api_key_auth)); auth_deps.api_key_auth; tests/test_no_unauthenticated_endpoints.py |
+| [SPEC-028](SPEC-028-ui-no-mocks.md) | UI NO-MOCKS — every page fires a real /api/v1 call on mount (5 dashboards de-mocked; CI detector = follow-up) | UI/Customer-Readiness | IMPLEMENTED | suite-ui/aldeci-ui-new/src/pages/* (consumes /api/v1) |
 
 ## Backfill backlog (existing API groups needing specs — extend over time)
 DONE (2026-06-03): the original backlog is fully authored — ASPM ingest+findings (SPEC-011),
