@@ -46,5 +46,18 @@ UI `npm run build` green (~3.8–4.5s) · `create_app()` boots 8353 routes · Be
 2. The earlier findingsExplorer follow-ups are now ALL DONE (closed this tick).
 3. (B) Red-team hardenings (storage-root allowlists, rate-limits) — investigate coverage next.
 
+## Tick 3 (same day) — page-endpoint sweep + vendor-risk endpoints
+- **Broad page-endpoint dogfood**: extracted real-fetch `/api/v1` from all 290 pages EXCLUDING doc-comments (the bulk of apparent 404s were stale `* API stubs:` header comments). True result: 348 real-call concrete paths, **339 well-routed**, only 9 genuinely unrouted.
+- **policies/conflicts+/violations** investigated → cross-router dup-prefix debt (2 non-UI endpoints) → deferred to consolidation epic.
+- **Built 2 real vendor-risk endpoints** (`1bcdc37f`): `/vendor-risk/assessments` (from `get_risk_register`) + `/vendor-risk/risk-domains` (from `VendorScorecard` dimension averages) — fixed 2 dead VendorRiskDashboard mount calls. Real data, honest empty, 0-100 higher=safer.
+
+## REMAINING PAGE-GAP RUNWAY (7 — each a real feature endpoint, NOT a clean repoint; needs per-feature design, verify-shape, no fabrication)
+1. `llm/estimate` (POST) — prompt token-cost estimate (`{prompt,model,max_output_tokens}`). Existing `/ai-orchestrator/preflight-estimate` is RULES-based (different). Needs a model-pricing table + token counter — find/confirm a real pricing source (do NOT guess prices).
+2. `threat-intel/block-iocs` (POST) — IOC-block action endpoint (threat_intel_router has lookup/refresh, no block).
+3. `skills/install` (POST) — `/skills/uninstall` exists; install needs an air-gap install-source design.
+4. `local-store/init` (POST, ZeroSetupOnboarding) — `/local-store` has config/acquire-lock; confirm whether `/init` maps to an existing setup or is new.
+5-6. `hunting/coverage` + `hunting/iocs` (GET, ThreatHunting) — `/hunting` lacks them; `iocs` may map to `/threat-intel/iocs` (verify shape).
+7. `collaboration/activity` (POST) — low value (fire-and-forget, page catches); needs `EntityType.WAR_ROOM` + `ActivityType.CREATED` enum additions + repoint `/activity→/activities`.
+
 ## Founder-blocked (record + move on)
 push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
