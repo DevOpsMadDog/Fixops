@@ -388,7 +388,7 @@ class TestStartScan:
         with pytest.raises(ComplianceScanError, match="target path not found"):
             engine.start_scan(
                 org_a, profile_soc2["profile_id"],
-                target_path="/nonexistent/path/that/does/not/exist"
+                target_path="/tmp/fixops-nonexistent/that/does/not/exist"
             )
 
     def test_raises_when_target_path_not_provided(self, engine, org_a, profile_soc2):

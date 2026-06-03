@@ -661,6 +661,9 @@ class FunctionReachabilityEngine:
         if not root_path:
             raise ValueError("root_path is required")
 
+        # SCIF hardening: confine repo root to the storage-root allowlist.
+        from core.storage_root_guard import assert_path_allowed
+        assert_path_allowed(root_path, "FIXOPS_REACHABILITY_ALLOWED_ROOTS", label="root_path")
         root = Path(root_path)
         if not root.exists():
             raise ValueError(f"root_path '{root_path}' does not exist")
@@ -926,6 +929,9 @@ class FunctionReachabilityEngine:
                 "pip install tree-sitter tree-sitter-typescript",
             ) from _ts_err
 
+        # SCIF hardening: confine repo root to the storage-root allowlist.
+        from core.storage_root_guard import assert_path_allowed
+        assert_path_allowed(root_path, "FIXOPS_REACHABILITY_ALLOWED_ROOTS", label="root_path")
         root = Path(root_path)
         if not root.exists():
             raise ValueError(f"root_path '{root_path}' does not exist")
@@ -1036,6 +1042,9 @@ class FunctionReachabilityEngine:
                 "pip install tree-sitter tree-sitter-java",
             ) from _java_err
 
+        # SCIF hardening: confine repo root to the storage-root allowlist.
+        from core.storage_root_guard import assert_path_allowed
+        assert_path_allowed(root_path, "FIXOPS_REACHABILITY_ALLOWED_ROOTS", label="root_path")
         root = Path(root_path)
         if not root.exists():
             raise ValueError(f"root_path '{root_path}' does not exist")
@@ -1130,6 +1139,9 @@ class FunctionReachabilityEngine:
                 "pip install tree-sitter tree-sitter-go",
             ) from _go_err
 
+        # SCIF hardening: confine repo root to the storage-root allowlist.
+        from core.storage_root_guard import assert_path_allowed
+        assert_path_allowed(root_path, "FIXOPS_REACHABILITY_ALLOWED_ROOTS", label="root_path")
         root = Path(root_path)
         if not root.exists():
             raise ValueError(f"root_path '{root_path}' does not exist")

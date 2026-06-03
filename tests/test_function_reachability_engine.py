@@ -216,7 +216,7 @@ def test_parse_python_repo_requires_repo_ref(engine, tmp_path):
 
 def test_parse_python_repo_nonexistent_root(engine):
     with pytest.raises(ValueError, match="does not exist"):
-        engine.parse_python_repo("org1", "r@main", "/nonexistent/path/xyz")
+        engine.parse_python_repo("org1", "r@main", "/tmp/fixops-nonexistent/xyz")
 
 
 def test_parse_python_repo_single_file_mode(engine, tmp_path):

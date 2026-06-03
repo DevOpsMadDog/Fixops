@@ -614,6 +614,9 @@ class ComplianceScannerEngine:
             raise ComplianceScanError(
                 "target_path is required — provide the directory or file to scan"
             )
+        # SCIF hardening: confine scan target to the storage-root allowlist.
+        from core.storage_root_guard import assert_path_allowed
+        assert_path_allowed(target_path, "FIXOPS_SCANNER_ALLOWED_ROOTS", label="target_path")
         tp = Path(target_path)
         if not tp.exists():
             raise ComplianceScanError(

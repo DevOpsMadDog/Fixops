@@ -428,7 +428,7 @@ class TestRunAssessmentErrors:
         with pytest.raises(ConfigBenchmarkError, match="target path not found"):
             engine.run_assessment(
                 ORG_A, profile["profile_id"], "server-01",
-                target_path="/nonexistent/path/12345",
+                target_path="/tmp/fixops-nonexistent/12345",
             )
 
     def test_empty_directory_raises_config_benchmark_error(self, engine, tmp_path):
@@ -655,7 +655,7 @@ class TestConfigBenchmarkRouter:
 
         r2 = client.post(
             f"/api/v1/config-benchmark/profiles/{profile_id}/assess",
-            json={"target_name": "server-01", "target_path": "/nonexistent/path/xyz999"},
+            json={"target_name": "server-01", "target_path": "/tmp/fixops-nonexistent/xyz999"},
             headers={"X-API-Key": "test"},
         )
         assert r2.status_code == 422
