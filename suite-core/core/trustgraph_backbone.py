@@ -744,6 +744,69 @@ class TrustGraphBackbone:
         logger.debug("TrustGraphBackbone.index_compliance_control: %s", entity_id)
         return entity_id
 
+    def index_evidence(self, evidence: Dict[str, Any]) -> str:
+        """Index compliance evidence into Core 3 (chain-of-custody, SPEC-019).
+
+        Creates an Evidence entity and links it to the control it supports and its
+        framework, so collected evidence is queryable/correlatable in TrustGraph.
+
+        Args:
+            evidence: Dict with keys: evidence_id (or id), control_id (optional),
+                      framework (optional), org_id (optional).
+
+        Returns:
+            entity_id used for the evidence in TrustGraph.
+        """
+        ev_id = (
+            evidence.get("evidence_id")
+            or evidence.get("id")
+            or f"evidence_{uuid.uuid4().hex[:8]}"
+        )
+        entity_id = (
+            f"evidence_{ev_id}"
+            if not str(ev_id).startswith("evidence_")
+            else str(ev_id)
+        )
+        framework = evidence.get("framework", "unknown")
+        control_id = evidence.get("control_id")
+
+        props: Dict[str, Any] = {
+            "framework": framework,
+            "control_id": control_id or "",
+            "indexed_at": _now_iso(),
+        }
+        props = {k: v for k, v in props.items() if v is not None}
+
+        entity = self._make_entity(
+            entity_id=entity_id,
+            core_id=CORE_COMPLIANCE,
+            entity_type="Evidence",
+            name=f"Evidence: {ev_id}",
+            properties=props,
+        )
+        self._safe_ingest(entity)
+
+        # Link evidence -> the control it supports (chain-of-custody)
+        if control_id:
+            ctrl_entity_id = (
+                f"control_{control_id}"
+                if not str(control_id).startswith("control_")
+                else str(control_id)
+            )
+            self._safe_relate(self._make_rel(
+                entity_id, ctrl_entity_id, "supports", confidence=1.0
+            ))
+
+        # Link evidence -> framework
+        if framework and framework != "unknown":
+            fw_entity_id = f"framework_{framework.lower().replace(' ', '_')}"
+            self._safe_relate(self._make_rel(
+                entity_id, fw_entity_id, "part_of", confidence=1.0
+            ))
+
+        logger.debug("TrustGraphBackbone.index_evidence: %s", entity_id)
+        return entity_id
+
     def index_vendor(self, vendor: Dict[str, Any]) -> str:
         """Index a vendor into Core 5 (External Intelligence).
 

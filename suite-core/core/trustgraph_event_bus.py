@@ -668,6 +668,21 @@ async def _handle_session_created(data: Dict[str, Any]) -> bool:
     return True
 
 
+async def _handle_evidence_collected(data: Dict[str, Any]) -> bool:
+    """Route evidence.collected to TrustGraphBackbone.index_evidence (SPEC-019).
+
+    Indexes collected compliance evidence as a graph node linked to the control
+    it supports (chain-of-custody), so evidence is queryable/correlatable.
+    """
+    try:
+        backbone = _get_backbone(org_id=_payload_org_id(data))
+        entity_id = backbone.index_evidence(data)
+        logger.debug("event_bus: indexed evidence", entity_id=entity_id)
+    except Exception as exc:  # noqa: BLE001 — handlers must never raise
+        logger.warning("event_bus: evidence index failed", error=str(exc))
+    return True
+
+
 # Default handler registry
 _DEFAULT_HANDLERS: Dict[str, Callable[[Dict[str, Any]], Coroutine]] = {
     EVENT_FINDING_CREATED: _handle_finding_created,
@@ -687,6 +702,9 @@ _DEFAULT_HANDLERS: Dict[str, Callable[[Dict[str, Any]], Coroutine]] = {
     # (id/title/severity/engine/entity_type=attack_path) → index as findings so
     # they correlate in TrustGraph rather than only drain-acking.
     EVENT_THREAT_DETECTED: _handle_finding_created,
+    # evidence.collected — index as an Evidence node linked to its control
+    # (chain-of-custody, SPEC-019) rather than drain-acking.
+    EVENT_EVIDENCE_COLLECTED: _handle_evidence_collected,
 }
 
 
