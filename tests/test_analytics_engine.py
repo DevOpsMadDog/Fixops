@@ -341,14 +341,18 @@ class TestThreatIntelCorrelation:
         assert result["sources"] == []
 
     def test_correlated_when_feed_has_hit(self, engine_empty: AnalyticsEngine) -> None:
-        def mock_try_scan(db_name, table, where="", limit=None):
-            if db_name == "threat_feed_aggregator":
-                return [{"iocs": "1.2.3.4", "source": "feodo"}]
-            if db_name == "threat_hunting":
-                return []
-            return None
+        # threat_intel_correlation now uses get_db_path()+_count_agg() (COUNT
+        # pushed into DuckDB) rather than _try_scan(rows). Mock that seam.
+        def mock_get_db_path(db_name):
+            return "/tmp/feed.db" if db_name == "threat_feed_aggregator" else None
 
-        with patch.object(engine_empty, "_try_scan", side_effect=mock_try_scan):
+        def mock_count_agg(db_path, table, where=""):
+            return 1
+
+        with (
+            patch.object(engine_empty, "get_db_path", side_effect=mock_get_db_path),
+            patch.object(engine_empty, "_count_agg", side_effect=mock_count_agg),
+        ):
             result = engine_empty.threat_intel_correlation("default", "1.2.3.4")
 
         assert result["feed_hits"] == 1
@@ -356,14 +360,16 @@ class TestThreatIntelCorrelation:
         assert "threat_feed_aggregator" in result["sources"]
 
     def test_correlated_when_hunt_has_hit(self, engine_empty: AnalyticsEngine) -> None:
-        def mock_try_scan(db_name, table, where="", limit=None):
-            if db_name == "threat_feed_aggregator":
-                return []
-            if db_name == "threat_hunting":
-                return [{"iocs_found": "1.2.3.4"}]
-            return None
+        def mock_get_db_path(db_name):
+            return "/tmp/hunt.db" if db_name == "threat_hunting" else None
 
-        with patch.object(engine_empty, "_try_scan", side_effect=mock_try_scan):
+        def mock_count_agg(db_path, table, where=""):
+            return 1
+
+        with (
+            patch.object(engine_empty, "get_db_path", side_effect=mock_get_db_path),
+            patch.object(engine_empty, "_count_agg", side_effect=mock_count_agg),
+        ):
             result = engine_empty.threat_intel_correlation("default", "1.2.3.4")
 
         assert result["hunt_hits"] == 1
