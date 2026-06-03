@@ -28,6 +28,7 @@
 | [SPEC-018](SPEC-018-risk-aggregator.md) | Risk Aggregator — composite org risk score (0-100) + heatmap + thresholds | Risk/CTEM | BACKFILL | risk_aggregator_router, RiskAggregatorEngine |
 | [SPEC-019](SPEC-019-evidence-chain-of-custody.md) | Evidence Chain-of-Custody — cases/custody/seal + REAL re-hash integrity | Evidence/Forensics | BACKFILL | evidence_chain_router, EvidenceChainEngine |
 | [SPEC-020](SPEC-020-council-verdict.md) | Council Verdict API — multi-LLM 3-stage decision + honest cost/escalation | Council/Decision | BACKFILL | council_router, LLMCouncilEngine, CouncilVerdict |
+| [SPEC-021](SPEC-021-mpte.md) | MPTE — Multi-Phase Test & Exploitability Validation (FP-reduction moat) | Pentest/Offensive Validation | BACKFILL | mpte_router (/api/v1/mpte), mpte_orchestrator_router (/api/v1/mpte-orchestrator), mpte_advanced, mpte_models (ExploitabilityLevel), mpte_db |
 
 ## Backfill backlog (existing API groups needing specs — extend over time)
 DONE (2026-06-03): the original backlog is fully authored — ASPM ingest+findings (SPEC-011),
@@ -36,8 +37,9 @@ Connectors (SPEC-015), Evidence/SOC2 (SPEC-019), Risk-aggregator (SPEC-018), Cou
 (SPEC-020). All registered in the table above.
 
 Next candidate groups (not yet spec-governed — author one per group as touched, so the whole
-surface stays spec-governed for the Augment Code intent IDE): MPTE / attack-simulation,
-threat-intel feeds + IOC, SOAR / playbooks, deception, forensics, exec-reporting / evidence-export.
+surface stays spec-governed for the Augment Code intent IDE): threat-intel feeds + IOC,
+SOAR / playbooks, deception, forensics, exec-reporting / evidence-export.
+(MPTE / attack-simulation authored 2026-06-03 → SPEC-021.)
 
 ## Pre-mortem-driven de-risk specs (SCIF $100K, added 2026-06-01)
 | ID | Title | Priority | Effort | Kills failure |
