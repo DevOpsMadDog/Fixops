@@ -1,0 +1,437 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1780393492711,
+  "projectRoot": "/Users/devops.ai/fixops/Fixops/suite-ui/aldeci-ui-new",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "react",
+        "version": "19.0.0",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.0.0",
+        "category": "frontend"
+      },
+      {
+        "name": "@playwright/test",
+        "version": "1.58.2",
+        "category": "testing"
+      },
+      {
+        "name": "vite",
+        "version": "6.0.0",
+        "category": "build"
+      },
+      {
+        "name": "vitest",
+        "version": "4.1.0",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": "npm test",
+    "lintCommand": null,
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "vite",
+      "build": "vite build",
+      "preview": "vite preview",
+      "typecheck": "tsc -b",
+      "test": "vitest run",
+      "test:watch": "vitest",
+      "test:coverage": "vitest run --coverage",
+      "test:e2e": "playwright test",
+      "e2e": "playwright test",
+      "e2e:golden": "playwright test e2e/golden-paths.spec.ts",
+      "test:e2e:ui": "playwright test --ui",
+      "test:e2e:personas": "playwright test e2e/persona-api-workflows.spec.ts e2e/persona-rbac-enforcement.spec.ts e2e/persona-cross-role-workflows.spec.ts",
+      "test:e2e:allure": "playwright test && npx allure generate allure-results --clean -o allure-report && npx allure open allure-report",
+      "test:e2e:allure:generate": "npx allure generate allure-results --clean -o allure-report",
+      "test:e2e:allure:open": "npx allure open allure-report",
+      "test:e2e:newman": "bash e2e/run-newman.sh",
+      "test:e2e:newman:ci": "npx newman run e2e/postman/ALdeci-CTEM-25-Personas.postman_collection.json --reporters cli,htmlextra --reporter-htmlextra-export newman-reports/newman-report.html --delay-request 100 --timeout-request 10000",
+      "test:e2e:full": "npm run test:e2e && npm run test:e2e:newman",
+      "test:e2e:5space": "playwright test e2e/ctem-5-space-ui.spec.ts"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": "type-based"
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "public",
+      "scripts",
+      "src"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "allure-results": {
+      "path": "allure-results",
+      "purpose": null,
+      "fileCount": 10,
+      "lastAccessed": 1780393492703,
+      "keyFiles": [
+        "04422cc2-1af4-4c01-91ae-7b199d7b2814-result.json",
+        "1db11c03-6ba5-4c43-87f0-39dd6234876c-result.json",
+        "5d0fca40-465b-4105-8f68-ef6b64e5066a-result.json",
+        "6b232d46-f595-4fb5-8618-5e0ee5310f76-result.json",
+        "8bf42403-7b2f-485a-b56f-2cfa667bba91-result.json"
+      ]
+    },
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 2,
+      "lastAccessed": 1780393492706,
+      "keyFiles": [
+        "favicon.svg",
+        "index.html"
+      ]
+    },
+    "e2e": {
+      "path": "e2e",
+      "purpose": null,
+      "fileCount": 17,
+      "lastAccessed": 1780393492706,
+      "keyFiles": [
+        "all_heroes_walkthrough.spec.ts",
+        "ctem-5-space-ui.spec.ts",
+        "demo_juice_shop.spec.ts",
+        "detection-to-remediation.spec.ts",
+        "global-setup.ts"
+      ]
+    },
+    "playwright-report": {
+      "path": "playwright-report",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1780393492707,
+      "keyFiles": [
+        "index.html"
+      ]
+    },
+    "public": {
+      "path": "public",
+      "purpose": "Public files",
+      "fileCount": 1,
+      "lastAccessed": 1780393492707,
+      "keyFiles": [
+        "favicon.svg"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 1,
+      "lastAccessed": 1780393492707,
+      "keyFiles": [
+        "fix_a11y.py"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 3,
+      "lastAccessed": 1780393492708,
+      "keyFiles": [
+        "App.tsx",
+        "main.tsx",
+        "vite-env.d.ts"
+      ]
+    },
+    "test-results": {
+      "path": "test-results",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1780393492708,
+      "keyFiles": []
+    },
+    "dist/assets": {
+      "path": "dist/assets",
+      "purpose": "Static assets",
+      "fileCount": 337,
+      "lastAccessed": 1780393492708,
+      "keyFiles": [
+        "AIAttackPathView-C-AQ5_0d.js",
+        "AICopilotAgentsHub-N86Bi5Bh.js",
+        "AISecurityAdvisor-CMhJaEp3.js"
+      ]
+    },
+    "e2e/helpers": {
+      "path": "e2e/helpers",
+      "purpose": "Helper functions",
+      "fileCount": 2,
+      "lastAccessed": 1780393492709,
+      "keyFiles": [
+        "auth.ts",
+        "endpoints.ts"
+      ]
+    },
+    "src/__tests__": {
+      "path": "src/__tests__",
+      "purpose": "Test files",
+      "fileCount": 9,
+      "lastAccessed": 1780393492709,
+      "keyFiles": [
+        "ai.test.tsx",
+        "comply.test.tsx",
+        "discover.test.tsx"
+      ]
+    },
+    "src/api": {
+      "path": "src/api",
+      "purpose": "API routes",
+      "fileCount": 5,
+      "lastAccessed": 1780393492709,
+      "keyFiles": [
+        "client.ts",
+        "endpoints.ts",
+        "hooks.ts"
+      ]
+    },
+    "src/assets": {
+      "path": "src/assets",
+      "purpose": "Static assets",
+      "fileCount": 0,
+      "lastAccessed": 1780393492709,
+      "keyFiles": []
+    },
+    "src/components": {
+      "path": "src/components",
+      "purpose": "UI components",
+      "fileCount": 7,
+      "lastAccessed": 1780393492709,
+      "keyFiles": [
+        "EntityLink.tsx",
+        "ExportButton.tsx",
+        "FindingsExplorerView.tsx"
+      ]
+    },
+    "src/config": {
+      "path": "src/config",
+      "purpose": "Configuration files",
+      "fileCount": 2,
+      "lastAccessed": 1780393492709,
+      "keyFiles": [
+        "dashboardRoutes.ts",
+        "findingsExplorerRoutes.ts"
+      ]
+    },
+    "src/lib": {
+      "path": "src/lib",
+      "purpose": "Library code",
+      "fileCount": 10,
+      "lastAccessed": 1780393492710,
+      "keyFiles": [
+        "api-client.ts",
+        "api-config.ts",
+        "api-hooks.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/App.tsx",
+      "accessCount": 17,
+      "lastAccessed": 1780411953965,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/mission-control/ThreatIntelDashboard.tsx",
+      "accessCount": 9,
+      "lastAccessed": 1780472393853,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/discover/ArchitectWorkspaceHub.tsx",
+      "accessCount": 7,
+      "lastAccessed": 1780399836884,
+      "type": "file"
+    },
+    {
+      "path": "src/lib/api.ts",
+      "accessCount": 6,
+      "lastAccessed": 1780398223071,
+      "type": "file"
+    },
+    {
+      "path": "e2e/tab-panel-sweep.spec.ts",
+      "accessCount": 6,
+      "lastAccessed": 1780401941793,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/comply/ComplianceDashboard.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1780394734224,
+      "type": "file"
+    },
+    {
+      "path": "src/components/finance/CyberInsurancePanel.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1780397155996,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/discover/ContainerSecurity.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1780412605494,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/ai/CopilotDashboard.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1780472695465,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/admin/WebhooksOutboundPage.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1780393732358,
+      "type": "file"
+    },
+    {
+      "path": "src/components/container/ContainerImagePanel.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1780397204672,
+      "type": "file"
+    },
+    {
+      "path": "src/components/maturity/ProgramMaturityPanel.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1780398037034,
+      "type": "file"
+    },
+    {
+      "path": "src/components/risk-quant/FAIRQuantPanel.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1780396085489,
+      "type": "file"
+    },
+    {
+      "path": "src/components/posture/PostureTrendsPanel.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1780398014994,
+      "type": "file"
+    },
+    {
+      "path": "src/components/network/ZeroTrustPolicyPanel.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1780398211358,
+      "type": "file"
+    },
+    {
+      "path": "src/components/finance/InvestmentPanel.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1780403067057,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/OrgHierarchyExplorer.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1780411626268,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/TrainingCultureHub.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1780456197844,
+      "type": "file"
+    },
+    {
+      "path": "src/config/findingsExplorerRoutes.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780393753490,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/ThreatActorsHub.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780395090851,
+      "type": "file"
+    },
+    {
+      "path": "src/components/strategic-posture/PostureScorePanel.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780396176762,
+      "type": "file"
+    },
+    {
+      "path": "src/lib/api-client.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780397122214,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/CapacityPlanningDashboard.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780411192206,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/ArchReviewDashboard.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1780470326815,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/SecretsHub.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1780394874111,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/SecurityQuestionnaireDashboard.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1780428227877,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/IdentityLifecycleDashboard.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1780471005040,
+      "type": "file"
+    },
+    {
+      "path": "src/pages/ComplianceCalendarDashboard.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1780471271920,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

@@ -331,15 +331,22 @@ class RiskPostureEngine:
                 comp_score = min(comp_score, 100.0)
                 category_scores[RiskCategory.COMPLIANCE] = comp_score
 
-                # Configuration score (default to 20)
-                category_scores[RiskCategory.CONFIGURATION] = 20.0
-                factors.append("Configuration review recommended")
-
-                # Threat score (default to 15)
-                category_scores[RiskCategory.THREAT] = 15.0
-
-                # Supply chain score (default to 10)
-                category_scores[RiskCategory.SUPPLY_CHAIN] = 10.0
+                # Ingest-first: only apply baseline category scores when the org has
+                # actually ingested data. A fresh/un-ingested org must read honest-empty
+                # (0.0) rather than fabricated constants (was 20/15/10 → a phantom 6.5).
+                has_data = bool(findings) or bool(gaps)
+                if has_data:
+                    # Configuration score (baseline pending a real config-posture source)
+                    category_scores[RiskCategory.CONFIGURATION] = 20.0
+                    factors.append("Configuration review recommended")
+                    # Threat score (baseline pending a real threat-intel source)
+                    category_scores[RiskCategory.THREAT] = 15.0
+                    # Supply chain score (baseline pending a real SCA source)
+                    category_scores[RiskCategory.SUPPLY_CHAIN] = 10.0
+                else:
+                    category_scores[RiskCategory.CONFIGURATION] = 0.0
+                    category_scores[RiskCategory.THREAT] = 0.0
+                    category_scores[RiskCategory.SUPPLY_CHAIN] = 0.0
 
             finally:
                 conn.close()

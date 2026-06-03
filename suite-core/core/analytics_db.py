@@ -302,8 +302,14 @@ class AnalyticsDB:
                 query += " AND org_id = ?"
                 params.append(org_id)
             elif org_id is not None and not has_org:
-                import logging as _l
-                _l.getLogger(__name__).warning("analytics_db: decisions.org_id column missing — returning all decisions")
+                # decisions table has no org_id column — scope via finding_id → findings.org_id
+                fcols = {row[1] for row in conn.execute("PRAGMA table_info(findings)").fetchall()}
+                if "org_id" in fcols:
+                    query += " AND finding_id IN (SELECT id FROM findings WHERE org_id = ?)"
+                    params.append(org_id)
+                else:
+                    import logging as _l
+                    _l.getLogger(__name__).warning("analytics_db: decisions+findings lack org_id — returning all decisions")
 
             if finding_id:
                 query += " AND finding_id = ?"
@@ -440,14 +446,18 @@ class AnalyticsDB:
         finally:
             conn.close()
 
-    def calculate_mttr(self) -> Optional[float]:
-        """Calculate mean time to remediation in hours."""
+    def calculate_mttr(self, org_id: Optional[str] = None) -> Optional[float]:
+        """Calculate mean time to remediation in hours, optionally scoped to org_id."""
         conn = self._get_connection()
         try:
-            rows = conn.execute(
-                """SELECT created_at, resolved_at FROM findings
-                   WHERE resolved_at IS NOT NULL"""
-            ).fetchall()
+            query = "SELECT created_at, resolved_at FROM findings WHERE resolved_at IS NOT NULL"
+            params: List[Any] = []
+            if org_id is not None:
+                cols = {row[1] for row in conn.execute("PRAGMA table_info(findings)").fetchall()}
+                if "org_id" in cols:
+                    query += " AND org_id = ?"
+                    params.append(org_id)
+            rows = conn.execute(query, params).fetchall()
 
             if not rows:
                 return None

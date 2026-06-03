@@ -327,8 +327,8 @@ async def get_dashboard_trends(
             "metrics": [m.to_dict() for m in metrics],
         }
 
-    # Compute trends directly from findings table
-    findings = db.list_findings(limit=50000)
+    # Compute trends directly from findings table (scoped to caller's org)
+    findings = db.list_findings(org_id=org_id, limit=50000)
     daily: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
     for f in findings:
         if f.source == "test":
@@ -378,7 +378,7 @@ async def get_top_risks(
     limit: int = Query(10, ge=1, le=100),
 ):
     """Get top security risks by severity and exploitability."""
-    risks = db.get_top_risks(limit=limit)
+    risks = db.get_top_risks(limit=limit, org_id=org_id)
     return {"org_id": org_id, "risks": risks, "total": len(risks)}
 
 
@@ -561,21 +561,21 @@ async def create_decision(decision_data: DecisionCreate):
 
 
 @router.get("/mttr")
-async def get_mttr():
+async def get_mttr(org_id: str = Depends(get_org_id)):
     """Get mean time to remediation metrics computed from findings and SLA data."""
-    mttr_hours = db.calculate_mttr()
+    mttr_hours = db.calculate_mttr(org_id=org_id)
 
     if mttr_hours is not None:
         return {
             "mttr_hours": round(mttr_hours, 2),
             "mttr_days": round(mttr_hours / 24, 2),
-            "resolved_count": len([f for f in db.list_findings(limit=10000) if getattr(f, "resolved_at", None)]),
+            "resolved_count": len([f for f in db.list_findings(org_id=org_id, limit=10000) if getattr(f, "resolved_at", None)]),
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "source": "resolved_findings",
         }
 
     # No resolved findings — compute projected MTTR from SLA targets and finding severity
-    findings = db.list_findings(limit=10000)
+    findings = db.list_findings(org_id=org_id, limit=10000)
     real_findings = [f for f in findings if getattr(f, "source", "") != "test"]
     if not real_findings:
         return {
@@ -611,9 +611,9 @@ async def get_mttr():
 
 
 @router.get("/coverage")
-async def get_coverage():
+async def get_coverage(org_id: str = Depends(get_org_id)):
     """Get security coverage metrics."""
-    findings = db.list_findings(limit=10000)
+    findings = db.list_findings(org_id=org_id, limit=10000)
 
     total_findings = len(findings)
     scanned_apps = len(set(f.application_id for f in findings if f.application_id))
@@ -633,9 +633,9 @@ async def get_coverage():
 
 
 @router.get("/roi")
-async def get_roi():
+async def get_roi(org_id: str = Depends(get_org_id)):
     """Get ROI calculations."""
-    findings = db.list_findings(limit=10000)
+    findings = db.list_findings(org_id=org_id, limit=10000)
 
     total_findings = len(findings)
     critical_blocked = sum(
@@ -659,10 +659,10 @@ async def get_roi():
 
 
 @router.get("/noise-reduction")
-async def get_noise_reduction():
+async def get_noise_reduction(org_id: str = Depends(get_org_id)):
     """Get noise reduction metrics."""
-    findings = db.list_findings(limit=10000)
-    decisions = db.list_decisions(limit=10000)
+    findings = db.list_findings(org_id=org_id, limit=10000)
+    decisions = db.list_decisions(org_id=org_id, limit=10000)
 
     total_findings = len(findings)
     false_positives = sum(
@@ -687,13 +687,14 @@ async def get_noise_reduction():
 
 
 @router.post("/custom-query")
-async def run_custom_query(query: Dict[str, Any]):
+async def run_custom_query(query: Dict[str, Any], org_id: str = Depends(get_org_id)):
     """Run custom analytics query."""
     query_type = query.get("type", "findings")
     filters = query.get("filters", {})
 
     if query_type == "findings":
         findings = db.list_findings(
+            org_id=org_id,
             severity=filters.get("severity"),
             status=filters.get("status"),
             limit=filters.get("limit", 100),
@@ -703,6 +704,7 @@ async def run_custom_query(query: Dict[str, Any]):
 
     elif query_type == "decisions":
         decisions = db.list_decisions(
+            org_id=org_id,
             finding_id=filters.get("finding_id"),
             limit=filters.get("limit", 100),
             offset=filters.get("offset", 0),
@@ -719,13 +721,14 @@ async def run_custom_query(query: Dict[str, Any]):
 async def export_analytics(
     format: str = Query("json", pattern="^(json|csv)$"),
     data_type: str = Query("findings", pattern="^(findings|decisions|metrics)$"),
+    org_id: str = Depends(get_org_id),
 ):
-    """Export analytics data in specified format."""
+    """Export analytics data in specified format (scoped to caller's org)."""
     if data_type == "findings":
-        findings = db.list_findings(limit=10000)
+        findings = db.list_findings(org_id=org_id, limit=10000)
         data = [f.to_dict() for f in findings]
     elif data_type == "decisions":
-        decisions = db.list_decisions(limit=10000)
+        decisions = db.list_decisions(org_id=org_id, limit=10000)
         data = [d.to_dict() for d in decisions]
     elif data_type == "metrics":
         metrics = db.list_metrics(limit=10000)
@@ -758,8 +761,8 @@ async def export_analytics(
 @router.get("/stats")
 async def get_analytics_stats(org_id: str = Depends(get_org_id)):
     """Get aggregate analytics statistics."""
-    findings = db.list_findings(limit=10000)
-    decisions = db.list_decisions(limit=10000)
+    findings = db.list_findings(org_id=org_id, limit=10000)
+    decisions = db.list_decisions(org_id=org_id, limit=10000)
 
     severity_counts = {}
     status_counts = {}
@@ -801,7 +804,7 @@ async def severity_over_time(
     Returns daily/weekly/monthly counts per severity with a 7-period
     moving average for trend analysis.
     """
-    findings = db.list_findings(limit=50000)
+    findings = db.list_findings(org_id=org_id, limit=50000)
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(days=days)
 
@@ -854,7 +857,7 @@ async def detect_anomalies(
 
     Flags days where the z-score exceeds the given threshold (default 2σ).
     """
-    findings = db.list_findings(limit=50000)
+    findings = db.list_findings(org_id=org_id, limit=50000)
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(days=days)
 
@@ -906,7 +909,7 @@ async def compare_periods(
 
     Returns absolute and percentage change for key security KPIs.
     """
-    findings = db.list_findings(limit=50000)
+    findings = db.list_findings(org_id=org_id, limit=50000)
     now = datetime.now(timezone.utc)
     current_start = now - timedelta(days=current_days)
     prev_start = current_start - timedelta(days=current_days)
@@ -995,7 +998,7 @@ async def triage_funnel(
     risk-prioritized exposure cases. All numbers are computed from real data.
     Returns zeros when no data exists rather than fabricated demo numbers.
     """
-    findings = db.list_findings(limit=50000)
+    findings = db.list_findings(org_id=org_id, limit=50000)
 
     total_raw = len(findings)
 
@@ -1078,7 +1081,7 @@ async def risk_velocity(
 
     Positive velocity = risk increasing. Negative = risk decreasing.
     """
-    findings = db.list_findings(limit=50000)
+    findings = db.list_findings(org_id=org_id, limit=50000)
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(days=days)
 
@@ -1132,9 +1135,9 @@ async def risk_velocity(
 
 
 @router.get("/executive")
-async def executive_summary(request: Request) -> Dict[str, Any]:
+async def executive_summary(request: Request, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Executive summary — CISO/CTO-level KPIs, risk posture, compliance."""
-    findings = db.list_findings(limit=5000)
+    findings = db.list_findings(org_id=org_id, limit=5000)
 
     total = len(findings)
     by_severity: Dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
@@ -1174,9 +1177,9 @@ async def executive_summary(request: Request) -> Dict[str, Any]:
 
 
 @router.get("/risk-overview")
-async def analytics_risk_overview(request: Request) -> Dict[str, Any]:
+async def analytics_risk_overview(request: Request, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Risk overview from analytics data."""
-    findings = db.list_findings(limit=2000)
+    findings = db.list_findings(org_id=org_id, limit=2000)
 
     by_severity: Dict[str, int] = {"critical": 0, "high": 0, "medium": 0, "low": 0}
     for f in findings:
@@ -1197,9 +1200,9 @@ async def analytics_risk_overview(request: Request) -> Dict[str, Any]:
 
 
 @router.get("/sla")
-async def analytics_sla(request: Request) -> Dict[str, Any]:
+async def analytics_sla(request: Request, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """SLA compliance analytics from findings data."""
-    findings = db.list_findings(limit=2000)
+    findings = db.list_findings(org_id=org_id, limit=2000)
 
     total = len(findings)
     resolved = sum(1 for f in findings if (f.status.value if hasattr(f.status, "value") else str(f.status)).lower() in ("resolved", "false_positive"))
@@ -1214,9 +1217,9 @@ async def analytics_sla(request: Request) -> Dict[str, Any]:
 
 
 @router.get("/live-feed")
-async def analytics_live_feed(request: Request) -> Dict[str, Any]:
+async def analytics_live_feed(request: Request, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Live feed of recent findings/events."""
-    findings = db.list_findings(limit=50)
+    findings = db.list_findings(org_id=org_id, limit=50)
 
     events = []
     for f in findings[:30]:
