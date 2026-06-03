@@ -39,6 +39,13 @@ import apps.api.bandit_router as _router_mod
 from apps.api.bandit_router import router
 
 
+@pytest.fixture(autouse=True)
+def _allow_test_scan_roots(monkeypatch):
+    # Storage-root allowlist (SCIF hardening) confines scan targets; declare the
+    # synthetic test roots so queue/persist-mechanics tests can use them.
+    monkeypatch.setenv("FIXOPS_SCANNER_ALLOWED_ROOTS", "/repos:/some:/tmp:/private/tmp")
+
+
 @pytest.fixture
 def engine(tmp_path):
     return BanditScanEngine(db_path=str(tmp_path / "bandit_test.db"))

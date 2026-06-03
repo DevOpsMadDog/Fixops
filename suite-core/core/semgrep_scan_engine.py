@@ -307,6 +307,9 @@ class SemgrepScanEngine:
         """Queue a scan, run inline (NO-MOCKS — record-only when binary absent)."""
         if not isinstance(target_path, str) or not target_path.strip():
             raise ValueError("target_path must be a non-empty string")
+        # SCIF hardening: confine scan target to the storage-root allowlist.
+        from core.storage_root_guard import assert_path_allowed
+        assert_path_allowed(target_path, "FIXOPS_SCANNER_ALLOWED_ROOTS", label="target_path")
 
         normalized_packs = self._normalize_rule_packs(rule_packs)
         threshold = self._normalize_severity_threshold(severity_threshold)

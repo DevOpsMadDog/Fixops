@@ -274,6 +274,9 @@ class GitleaksScanEngine:
         """
         if not isinstance(repo_path, str) or not repo_path.strip():
             raise ValueError("repo_path must be a non-empty string")
+        # SCIF hardening: confine scan target to the storage-root allowlist.
+        from core.storage_root_guard import assert_path_allowed
+        assert_path_allowed(repo_path, "FIXOPS_SCANNER_ALLOWED_ROOTS", label="repo_path")
         if branch is not None and not isinstance(branch, str):
             raise ValueError("branch must be a string when provided")
         if exclude_paths is not None and not isinstance(exclude_paths, list):

@@ -203,6 +203,9 @@ class BanditScanEngine:
         Persist a queued scan record. Returns the scan stub. The scanner
         worker is responsible for advancing status and writing findings.
         """
+        # SCIF hardening: confine scan target to the storage-root allowlist.
+        from core.storage_root_guard import assert_path_allowed
+        assert_path_allowed(target_path, "FIXOPS_SCANNER_ALLOWED_ROOTS", label="target_path")
         scan_id = str(uuid.uuid4())
         started_at = datetime.now(timezone.utc).isoformat()
         sev_counts: Dict[str, int] = {s: 0 for s in SEVERITY_LEVELS}

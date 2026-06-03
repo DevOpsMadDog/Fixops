@@ -179,6 +179,9 @@ class CheckovScanEngine:
         with status ``unavailable`` and an error field — no mock data."""
         if not target_path or not isinstance(target_path, str):
             raise ValueError("target_path must be a non-empty string")
+        # SCIF hardening: confine scan target to the storage-root allowlist.
+        from core.storage_root_guard import assert_path_allowed
+        assert_path_allowed(target_path, "FIXOPS_SCANNER_ALLOWED_ROOTS", label="target_path")
         if frameworks:
             unknown = [f for f in frameworks if f not in ALL_FRAMEWORKS]
             if unknown:

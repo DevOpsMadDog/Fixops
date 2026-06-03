@@ -39,6 +39,13 @@ import apps.api.checkov_router as _router_mod  # noqa: E402
 from apps.api.checkov_router import router  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _allow_test_scan_roots(monkeypatch):
+    # Storage-root allowlist (SCIF hardening) confines scan targets; declare the
+    # synthetic test roots so queue/persist-mechanics tests can use them.
+    monkeypatch.setenv("FIXOPS_SCANNER_ALLOWED_ROOTS", "/repos:/some:/tmp:/private/tmp")
+
+
 @pytest.fixture
 def engine(tmp_path):
     # Use a binary name guaranteed not to exist so is_available() = False
