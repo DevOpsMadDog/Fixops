@@ -32,6 +32,7 @@
 | [SPEC-022](SPEC-022-threat-intel.md) | Threat Intelligence Layer — feeds + actors + IOC enrichment (ingest-first, honest-empty) | Threat Intelligence | BACKFILL | threat_intel_router (/api/v1/threat-intel), feeds_router (/api/v1/feeds, 28+ sources), ioc_enrichment_router (/api/v1/ioc-enrichment), suite-feeds/* |
 | [SPEC-023](SPEC-023-soar-playbooks.md) | SOAR / Playbooks — incident-response automation (playbooks, execute, MTTR/stats, honest-empty) | SOAR/Response | BACKFILL | soar_router (/api/v1/soar, clean); /api/v1/playbooks = shadow-collision zone (gap_router/playbook_routes/playbook_router/ir_playbook_runner_router — consolidation epic) |
 | [SPEC-024](SPEC-024-deception.md) | Deception — canaries / honeypots + decoy-asset analytics (honest-empty, clean routers) | Deception/Active Defense | BACKFILL | deception_router (/api/v1/deception), deception_analytics_router (/api/v1/deception-analytics) |
+| [SPEC-025](SPEC-025-forensics.md) | Forensics — digital-forensics cases + evidence custody + forensic readiness (honest-empty, clean routers) | Forensics/IR | BACKFILL | digital_forensics_router (/api/v1/digital-forensics), forensics_readiness_router (/api/v1/forensics-readiness) |
 
 ## Backfill backlog (existing API groups needing specs — extend over time)
 DONE (2026-06-03): the original backlog is fully authored — ASPM ingest+findings (SPEC-011),
@@ -40,9 +41,9 @@ Connectors (SPEC-015), Evidence/SOC2 (SPEC-019), Risk-aggregator (SPEC-018), Cou
 (SPEC-020). All registered in the table above.
 
 Next candidate groups (not yet spec-governed — author one per group as touched, so the whole
-surface stays spec-governed for the Augment Code intent IDE): forensics (digital-forensics +
-forensics-readiness), exec-reporting / evidence-export.
-(MPTE → SPEC-021; threat-intel → SPEC-022; SOAR/playbooks → SPEC-023; deception → SPEC-024; all 2026-06-03.)
+surface stays spec-governed for the Augment Code intent IDE): exec-reporting / evidence-export.
+(MPTE → SPEC-021; threat-intel → SPEC-022; SOAR/playbooks → SPEC-023; deception → SPEC-024;
+forensics → SPEC-025; all 2026-06-03.)
 
 ## Pre-mortem-driven de-risk specs (SCIF $100K, added 2026-06-01)
 | ID | Title | Priority | Effort | Kills failure |

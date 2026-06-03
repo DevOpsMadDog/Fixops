@@ -333,3 +333,10 @@ SPEC-023 lesson — routers attributed via runtime `endpoint.__module__` from th
 `deception_router` + `deception_analytics_router` are clean single-routers (no collision). 8 ACs
 grounded on live probes (all 200 honest-empty; no-key 401); deception suites 80 passed.
 **INDEX now 26/26 specs.** Remaining candidates: forensics, exec-reporting/evidence-export.
+
+### New governance spec — SPEC-025 Forensics (tick159)
+Authored SPEC-025 (digital-forensics cases + evidence custody + forensic readiness,
+honest-empty). Routers attributed via runtime `endpoint.__module__` — both clean
+single-routers. 6 ACs grounded on live probes (200 honest-empty zeroed stats; no-key 401);
+forensics suites 120 passed. Custody endpoints share the SPEC-019 chain-of-custody model.
+**INDEX now 27/27 specs.** Named next-candidate backlog down to ONE: exec-reporting/evidence-export.
