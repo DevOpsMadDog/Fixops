@@ -268,21 +268,28 @@ class TestPythonParser:
 # ---------------------------------------------------------------------------
 
 class TestLanguageStubs:
+    # These languages/ORMs are now IMPLEMENTED (were NotImplementedError stubs).
+    # Parsing a python repo finds no TS/Java/Go/Drizzle files → an honest-empty
+    # real result dict (no fabrication), not a raised stub.
     def test_typescript_stub(self, engine, py_repo):
-        with pytest.raises(NotImplementedError):
-            engine.parse_typescript_semantic("fake", str(py_repo))
+        result = engine.parse_typescript_semantic("fake", str(py_repo))
+        assert isinstance(result, dict)
+        assert "symbols_inserted" in result and "files_scanned" in result
 
     def test_java_stub(self, engine, py_repo):
-        with pytest.raises(NotImplementedError):
-            engine.parse_java_semantic("fake", str(py_repo))
+        result = engine.parse_java_semantic("fake", str(py_repo))
+        assert isinstance(result, dict)
+        assert "symbols_inserted" in result and "files_scanned" in result
 
     def test_go_stub(self, engine, py_repo):
-        with pytest.raises(NotImplementedError):
-            engine.parse_go_semantic("fake", str(py_repo))
+        result = engine.parse_go_semantic("fake", str(py_repo))
+        assert isinstance(result, dict)
+        assert "symbols_inserted" in result and "files_scanned" in result
 
     def test_drizzle_stub(self, engine, py_repo):
-        with pytest.raises(NotImplementedError):
-            engine.parse_drizzle_schema("fake", str(py_repo))
+        result = engine.parse_drizzle_schema("fake", str(py_repo))
+        assert isinstance(result, dict)
+        assert "models_inserted" in result
 
     def test_parse_repo_rejects_unknown_language(self, engine, py_repo):
         with pytest.raises(ValueError):
@@ -509,6 +516,8 @@ class TestRouter:
         assert r.json()["symbols_inserted"] > 0
 
     def test_parse_repo_typescript_returns_501(self, api_client, py_repo):
+        # typescript parsing is now implemented → real 200 (honest-empty for a
+        # python repo), no longer a 501 stub.
         r = api_client.post(
             "/api/v1/semantic/parse-repo",
             json={
@@ -516,7 +525,7 @@ class TestRouter:
                 "root_path": str(py_repo), "language": "typescript",
             },
         )
-        assert r.status_code == 501
+        assert r.status_code == 200
 
     def test_symbols_endpoint(self, api_client, py_repo):
         api_client.post(
@@ -568,6 +577,8 @@ class TestRouter:
         assert r.json()["models_inserted"] == 2
 
     def test_orm_schema_drizzle_501(self, api_client, py_repo):
+        # drizzle ORM schema parsing is now implemented → real 200 (honest-empty
+        # for a python repo), no longer a 501 stub.
         r = api_client.post(
             "/api/v1/semantic/orm-schema",
             json={
@@ -575,7 +586,7 @@ class TestRouter:
                 "root_path": str(py_repo), "orm_framework": "drizzle",
             },
         )
-        assert r.status_code == 501
+        assert r.status_code == 200
 
     def test_erd_endpoint(self, api_client, sqla_repo):
         api_client.post(
