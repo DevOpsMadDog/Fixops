@@ -24,3 +24,11 @@ data-integrity issue, or security gap.
   (product decision; would add API surface). Do not silently delete the test.
 - This also touches the `/api/v1/audit/` + `/api/v1/compliance/` shadow-collision zone (#9080) —
   resolving consolidation should include confirming the canonical create/read owners here.
+
+## Update — the 8th failure confirmed (test_evidence_router_unit)
+`test_evidence_router_unit.py` alone: **48 passed, 1 failed**. The 1 failure
+(`TestEvidenceBundles::test_bundles_from_default_app`) asserts `data["total"] > 0` on an unseeded
+default app, which honestly returns 0 — a **seed-dependent stale assertion** (expects pre-existing
+bundles without creating one), same class as the audit-API stale tests. The evidence router itself
+works (48/49). So all 8 slice failures = stale/seed-dependent test assumptions, NOT code/security
+bugs. Triage = update the tests to seed-then-assert (or mark seed-dependent); founder/triage call.
