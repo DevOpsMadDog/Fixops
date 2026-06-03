@@ -2,8 +2,8 @@
 
 - **Status**: BACKFILL
 - **Owner family**: SOAR / Response
-- **Routers**: `suite-api/apps/api/soar_router.py` (prefix `/api/v1/soar`), `suite-api/apps/api/playbook_router.py` (prefix `/api/v1/playbooks`)
-- **Engines**: SOAR playbook engine (playbook CRUD + execution + MTTR/stats), playbook execution store
+- **Routers**: `suite-api/apps/api/soar_router.py` (prefix `/api/v1/soar`) — clean, single-router. The `/api/v1/playbooks` prefix is a **shadow-collision zone** (verified via runtime `endpoint.__module__`): the list `GET /playbooks/` is served by `gap_router`, `GET /playbooks/executions` by BOTH `ir_playbook_runner_router` and `playbook_router` (duplicate registration), and CRUD `GET·POST /playbooks` + `/playbooks/{id}` by the mounted `playbook_routes.py` (prefix `/api/v1`). See [[project_duplicate_routes_2026-06-03]] — consolidation is a founder epic.
+- **Engines**: SOAR playbook engine (`soar_router` — playbook CRUD + execution + MTTR/stats), SecurityPlaybookEngine (`playbook_routes.py`), playbook execution store
 - **Stores**: SOAR SQLite (playbooks / executions), per-org scoped
 - **Depends on**: SPEC-019 (evidence chain — execution artifacts), SPEC-001 (TrustGraph — emits `playbook.executed`); env: none required
 - **Last updated**: 2026-06-03
@@ -74,11 +74,16 @@ GET /api/v1/playbooks/executions?org_id=O → 200 [...]                     (emp
 ## 7. Debate log (Mysti)
 | Date | Mode | Verdict / change |
 |------|------|------------------|
-| 2026-06-03 | Backfill-author | Documented existing SOAR + playbook surface; ACs grounded on live TestClient probes. Found `/api/v1/playbooks/builtin` 404s — shadowed by `GET /{playbook_id}` route ordering (id="builtin"); recorded as a minor route-ordering observation, NOT claimed as a working endpoint. |
+| 2026-06-03 | Backfill-author | Documented existing SOAR + playbook surface; ACs grounded on live TestClient probes (all 200). |
+| 2026-06-03 | Red-Team (self) | Corrected a fabricated diagnosis: first draft claimed `/playbooks/builtin` 404 was a one-file route-ordering shadow. Re-verified via runtime `endpoint.__module__` — the `/api/v1/playbooks` prefix is served by FOUR overlapping routers (gap_router/playbook_routes/playbook_router/ir_playbook_runner_router). `/builtin` exists only in the UNMOUNTED `playbook_router.py`; the live surface resolves `/playbooks/builtin` to `GET /playbooks/{playbook_id}` → 404. Real fix = consolidate the collision (founder epic), not a one-line reorder. SOAR side (`soar_router`) is clean. |
 
 ## 8. Implementation notes
 Already implemented; this spec backfills governance over the SOAR/playbook surface for the
-Augment Code intent-IDE map (specs/INDEX.md). Observed minor route-shadow: in `playbook_router`
-the parametric `GET /{playbook_id}` precedes `GET /builtin`, so `/playbooks/builtin` resolves to
-the param route and 404s — a low-severity ordering fix (move `/builtin` above `/{playbook_id}`),
-left as a follow-up; not claimed in ACs. No code change introduced by this spec.
+Augment Code intent-IDE map (specs/INDEX.md). `/api/v1/soar` is clean (single `soar_router`).
+`/api/v1/playbooks` is a verified shadow-collision zone (4 routers register overlapping paths —
+gap_router/playbook_routes/playbook_router/ir_playbook_runner_router); `/playbooks/builtin` 404s
+because `/builtin` lives only in the UNMOUNTED `playbook_router.py` while the live surface
+resolves to `GET /playbooks/{playbook_id}`. The real remediation is router consolidation (a
+founder epic — see [[project_duplicate_routes_2026-06-03]]), not a single-file reorder. No code
+change introduced by this spec; the collision is recorded, not silently re-attributed. All
+ACs above were verified live (200/401) regardless of which router serves each path.

@@ -30,7 +30,7 @@
 | [SPEC-020](SPEC-020-council-verdict.md) | Council Verdict API — multi-LLM 3-stage decision + honest cost/escalation | Council/Decision | BACKFILL | council_router, LLMCouncilEngine, CouncilVerdict |
 | [SPEC-021](SPEC-021-mpte.md) | MPTE — Multi-Phase Test & Exploitability Validation (FP-reduction moat) | Pentest/Offensive Validation | BACKFILL | mpte_router (/api/v1/mpte), mpte_orchestrator_router (/api/v1/mpte-orchestrator), mpte_advanced, mpte_models (ExploitabilityLevel), mpte_db |
 | [SPEC-022](SPEC-022-threat-intel.md) | Threat Intelligence Layer — feeds + actors + IOC enrichment (ingest-first, honest-empty) | Threat Intelligence | BACKFILL | threat_intel_router (/api/v1/threat-intel), feeds_router (/api/v1/feeds, 28+ sources), ioc_enrichment_router (/api/v1/ioc-enrichment), suite-feeds/* |
-| [SPEC-023](SPEC-023-soar-playbooks.md) | SOAR / Playbooks — incident-response automation (playbooks, execute, MTTR/stats, honest-empty) | SOAR/Response | BACKFILL | soar_router (/api/v1/soar), playbook_router (/api/v1/playbooks), SOAR playbook engine |
+| [SPEC-023](SPEC-023-soar-playbooks.md) | SOAR / Playbooks — incident-response automation (playbooks, execute, MTTR/stats, honest-empty) | SOAR/Response | BACKFILL | soar_router (/api/v1/soar, clean); /api/v1/playbooks = shadow-collision zone (gap_router/playbook_routes/playbook_router/ir_playbook_runner_router — consolidation epic) |
 
 ## Backfill backlog (existing API groups needing specs — extend over time)
 DONE (2026-06-03): the original backlog is fully authored — ASPM ingest+findings (SPEC-011),
