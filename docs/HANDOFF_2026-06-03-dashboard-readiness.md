@@ -144,7 +144,8 @@ Classes covered — storage-root/path-traversal (FIXED 11 engines), command-inje
 
 ## EventBus correctness fixes (tick136-137) — RESOLVED (was a deferred "large pass")
 - **GC-dropped events FIXED**: emit() + ResponseInterceptorMiddleware used bare `asyncio.ensure_future` (weakly held) → tasks could be garbage-collected before running = silently dropped TrustGraph events. Added `EventBus._spawn` (instance `_bg_tasks` + done-callback discard) + module `_track_bg_task`. Bounded fix (one method + one helper), NOT the 100s-of-sites change I'd feared.
-- **Handler-coverage FIXED**: 18/29 declared event types had no default handler → emit() queued them forever; `evidence.collected` + `threat.detected` were actually emitted (silent queue bloat). Added generic drain-ack + `setdefault` loop keeping `_DEFAULT_HANDLERS` in lockstep with `ALL_EVENT_TYPES`. (Dedicated graph correlation for evidence/threat via TrustGraphBackbone = documented follow-up.)
+- **Handler-coverage FIXED**: 18/29 declared event types had no default handler → emit() queued them forever; `evidence.collected` + `threat.detected` were actually emitted (silent queue bloat). Added generic drain-ack + `setdefault` loop keeping `_DEFAULT_HANDLERS` in lockstep with `ALL_EVENT_TYPES`.
+- **Real correlation for the 2 emitted types (tick138-139)**: `threat.detected` (GNN attack paths, finding-shaped) → `_handle_finding_created`; `evidence.collected` → new `TrustGraphBackbone.index_evidence` (Evidence node + `supports`→control + `part_of`→framework edges = SPEC-019 chain-of-custody). Both now index into TrustGraph instead of drain-acking. (16 remaining drain-ack types are declared-but-unemitted future types — correct.)
 - **Bonus**: this also resolved the tick134 brain_pipeline `TestEdgeCases` capture flake (now 7/7) — same root cause.
 
 ## Founder-blocked (record + move on)
