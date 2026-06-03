@@ -179,53 +179,23 @@ function mitreAttackTaxonomy() {
   return { tactics, techniques: neutral, coverage_pct: 0, detected: 0, partial: 0, none: neutral.length };
 }
 
-const THREAT_ACTORS: ThreatActor[] = [
-  {
-    name: "APT28",
-    origin: "Russia",
-    sophistication: "nation-state",
-    techniques: ["T1566", "T1059", "T1071", "T1078", "T1190"],
-    recent_campaign: "Operation RoundPress — targeting Roundcube webmail",
-    target_sectors: ["Government", "Defense", "Energy"],
-    active: true,
-  },
-  {
-    name: "APT41",
-    origin: "China",
-    sophistication: "nation-state",
-    techniques: ["T1190", "T1059", "T1055", "T1003", "T1021"],
-    recent_campaign: "Targeting software supply chain via compromised build systems",
-    target_sectors: ["Technology", "Healthcare", "Finance"],
-    active: true,
-  },
-  {
-    name: "Lazarus Group",
-    origin: "North Korea",
-    sophistication: "nation-state",
-    techniques: ["T1566", "T1059", "T1486", "T1041", "T1078"],
-    recent_campaign: "TraderTraitor — targeting crypto exchanges and DeFi protocols",
-    target_sectors: ["Financial", "Cryptocurrency", "Defense"],
-    active: true,
-  },
-  {
-    name: "Carbanak",
-    origin: "Eastern Europe",
-    sophistication: "organized",
-    techniques: ["T1566", "T1059", "T1078", "T1560", "T1041"],
-    recent_campaign: "FIN7 rebrand targeting restaurant and hospitality POS systems",
-    target_sectors: ["Finance", "Hospitality", "Retail"],
-    active: true,
-  },
-  {
-    name: "REvil (Sodinokibi)",
-    origin: "Russia",
-    sophistication: "criminal",
-    techniques: ["T1190", "T1486", "T1489", "T1078", "T1560"],
-    recent_campaign: "Resurging activity targeting managed service providers",
-    target_sectors: ["MSP", "Manufacturing", "Legal"],
-    active: false,
-  },
-];
+// NO-MOCKS (CLAUDE.md): threat actors are loaded live from
+// GET /api/v1/threat-intel/actors and normalized into ThreatActor below — there
+// is no hardcoded actor fixture. These helpers map the API shape
+// (origin_country / ttps / associated_campaigns / aliases / motivation) onto the
+// view model and coerce free-form severity/motivation into the typed enums.
+
+function normSeverity(s: unknown): CvssRange {
+  const v = String(s ?? "").toLowerCase();
+  return (["critical", "high", "medium", "low"].includes(v) ? v : "low") as CvssRange;
+}
+
+function mapSophistication(s: unknown): ThreatActor["sophistication"] {
+  const v = String(s ?? "").toLowerCase();
+  if (v.includes("nation") || v.includes("state") || v.includes("espionage") || v === "apt") return "nation-state";
+  if (["criminal", "ransomware", "financial", "fraud", "cybercrime", "cyber-crime", "extortion"].some(k => v.includes(k))) return "criminal";
+  return "organized";
+}
 
 // ═══════════════════════════════════════════════════════════
 // Severity helpers
@@ -913,7 +883,7 @@ const ORIGIN_FLAG: Record<string, string> = {
   "Eastern Europe": "🌐",
 };
 
-function ThreatActorProfiles() {
+function ThreatActorProfiles({ actors }: { actors: ThreatActor[] }) {
   const [selected, setSelected] = useState<string | null>(null);
 
   return (
@@ -927,7 +897,9 @@ function ThreatActorProfiles() {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {THREAT_ACTORS.map((actor, i) => (
+          {actors.length === 0 ? (
+            <p className="col-span-full text-center text-xs text-muted-foreground py-6">No threat-actor intelligence available yet — refresh threat-intel feeds to populate.</p>
+          ) : actors.slice(0, 5).map((actor, i) => (
             <motion.div
               key={actor.name}
               initial={{ opacity: 0, y: 10 }}
@@ -1006,6 +978,7 @@ function ThreatActorProfiles() {
 export default function ThreatIntelDashboard() {
   const [cves, setCves] = useState<CveItem[]>([]);
   const [iocs, setIocs] = useState<IocItem[]>([]);
+  const [actors, setActors] = useState<ThreatActor[]>([]);
   const [selectedCve, setSelectedCve] = useState<CveItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(new Date());
@@ -1017,15 +990,58 @@ export default function ThreatIntelDashboard() {
       const _tok = getStoredAuthToken() ?? "";
       const _org = encodeURIComponent(getStoredOrgId() ?? "default");
       const _h: HeadersInit = _tok ? { "X-API-Key": _tok } : {};
-      const [cveRes, iocRes] = await Promise.allSettled([
-        fetch(`${API}/api/v1/cve/search?org_id=${_org}&limit=20`, { headers: _h }).then(r => r.json()),
+      // NO MOCKS: real API data normalized into the view models, or honest empty.
+      // (cves: /threat-intel/cves/recent returns a list; iocs: /threat-intel/iocs
+      //  returns {iocs:[...]}; actors: /threat-intel/actors returns a list.)
+      const [cveRes, actorRes, iocRes] = await Promise.allSettled([
+        fetch(`${API}/api/v1/threat-intel/cves/recent?org_id=${_org}&limit=20`, { headers: _h }).then(r => r.json()),
         fetch(`${API}/api/v1/threat-intel/actors?org_id=${_org}`, { headers: _h }).then(r => r.json()),
+        fetch(`${API}/api/v1/threat-intel/iocs?org_id=${_org}&limit=50`, { headers: _h }).then(r => r.json()),
       ]);
-      // NO MOCKS: real API arrays or honest empty (EmptyState) — never fabricated CVEs/IOCs.
-      setCves(cveRes.status === "fulfilled" && Array.isArray(cveRes.value) ? cveRes.value : []);
-      setIocs(iocRes.status === "fulfilled" && Array.isArray(iocRes.value) ? iocRes.value : []);
+
+      const rawCves = cveRes.status === "fulfilled" && Array.isArray(cveRes.value) ? cveRes.value : [];
+      setCves(rawCves.map((c: any): CveItem => ({
+        id: c.id ?? c.cve_id ?? "",
+        title: c.title ?? c.cve_id ?? c.id ?? "",
+        cvss: Number(c.cvss ?? c.cvss_score ?? 0),
+        epss: Number(c.epss ?? c.epss_score ?? 0),
+        in_kev: Boolean(c.in_kev ?? c.kev ?? false),
+        published: c.published ?? c.published_date ?? c.last_modified ?? "",
+        severity: normSeverity(c.severity ?? c.cvss_severity),
+        affected_products: Array.isArray(c.affected_products) ? c.affected_products : [],
+        description: c.description ?? "",
+        aldeci_findings: Number(c.aldeci_findings ?? c.findings ?? 0),
+        vector: c.vector ?? c.cvss_vector ?? "",
+      })));
+
+      const rawActors = actorRes.status === "fulfilled" && Array.isArray(actorRes.value) ? actorRes.value : [];
+      setActors(rawActors.map((a: any): ThreatActor => ({
+        name: a.name ?? a.id ?? "Unknown",
+        origin: a.origin ?? a.origin_country ?? "Unknown",
+        sophistication: mapSophistication(a.sophistication ?? a.motivation),
+        techniques: Array.isArray(a.techniques) ? a.techniques : (Array.isArray(a.ttps) ? a.ttps : []),
+        recent_campaign: a.recent_campaign ?? (Array.isArray(a.associated_campaigns) ? a.associated_campaigns.join(", ") : ""),
+        target_sectors: Array.isArray(a.target_sectors) ? a.target_sectors : (Array.isArray(a.aliases) ? a.aliases : []),
+        active: Boolean(a.active),
+      })));
+
+      const iocPayload = iocRes.status === "fulfilled" ? iocRes.value : null;
+      const rawIocs = Array.isArray(iocPayload)
+        ? iocPayload
+        : (iocPayload && Array.isArray(iocPayload.iocs) ? iocPayload.iocs : []);
+      setIocs(rawIocs.map((i: any, idx: number): IocItem => ({
+        id: i.id ?? `${i.ioc_type ?? i.type ?? "ioc"}-${i.value ?? idx}`,
+        type: ((["ip", "domain", "hash", "url"].includes(i.type ?? i.ioc_type)) ? (i.type ?? i.ioc_type) : "ip") as IocItem["type"],
+        value: i.value ?? "",
+        source: i.source ?? "",
+        confidence: Number(i.confidence ?? 0),
+        threat_category: i.threat_category ?? i.category ?? "",
+        last_seen: i.last_seen ?? i.last_online ?? "",
+        blocked: Boolean(i.blocked),
+      })));
     } catch {
       setCves([]);
+      setActors([]);
       setIocs([]);
     }
     setLastRefresh(new Date());
@@ -1125,7 +1141,7 @@ export default function ThreatIntelDashboard() {
         </div>
 
         {/* Threat Actor Profiles */}
-        <ThreatActorProfiles />
+        <ThreatActorProfiles actors={actors} />
 
         {/* CVE Detail Drawer */}
         <AnimatePresence>
