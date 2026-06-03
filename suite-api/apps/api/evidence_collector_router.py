@@ -323,3 +323,8 @@ async def expire_evidence(evidence_id: str, body: ExpireRequest):
 async def get_gap_report(org_id: str = Depends(get_org_id)):
     """Get a gap report across all compliance frameworks."""
     return _auto_collector.get_gap_report(org_id=org_id)
+
+
+# Fix GET /{param}-before-literal route shadowing (see _route_priority).
+from apps.api._route_priority import prioritize_literal_routes as _prioritize_literal_routes  # noqa: E402
+_prioritize_literal_routes(router)

@@ -646,3 +646,7 @@ async def    retry_dead_letter(sub_id: str, org_id: str = Depends(get_org_id)) -
             "delivery_result": result,
             "message": "Test delivery failed. Subscription remains in dead letter queue.",
         }
+
+# Fix GET /{param}-before-literal route shadowing (see _route_priority).
+from apps.api._route_priority import prioritize_literal_routes as _prioritize_literal_routes  # noqa: E402
+_prioritize_literal_routes(router)

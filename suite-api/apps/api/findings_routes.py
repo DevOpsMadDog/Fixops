@@ -908,22 +908,6 @@ async def export_findings(
         return {"export_id": export_id, "format": "csv", "status": "ready"}
 
 
-def _prioritize_literal_routes() -> None:
-    """Ensure literal sub-paths (e.g. /summary, /sla) are matched BEFORE the greedy
-    ``/{finding_id}`` param route.
-
-    Starlette matches routes in list order, and ``/{finding_id}`` (defined earlier in
-    this module) otherwise swallows ``GET /findings/summary`` and ``/findings/sla``
-    (resolving them as a finding_id → 404). Reordering once at import time, before the
-    router is mounted, fixes the shadowing without relocating handler bodies.
-    """
-    literal, param = [], []
-    for route in list(router.routes):
-        if "{finding_id}" in getattr(route, "path", ""):
-            param.append(route)
-        else:
-            literal.append(route)
-    router.routes[:] = literal + param
-
-
-_prioritize_literal_routes()
+# Fix GET /{finding_id}-before-literal route shadowing (/summary, /sla). See _route_priority.
+from apps.api._route_priority import prioritize_literal_routes as _prioritize_literal_routes  # noqa: E402
+_prioritize_literal_routes(router)
