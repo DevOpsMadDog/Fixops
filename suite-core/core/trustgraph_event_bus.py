@@ -691,6 +691,16 @@ _DEFAULT_HANDLERS: Dict[str, Callable[[Dict[str, Any]], Coroutine]] = {
 # ---------------------------------------------------------------------------
 
 
+_MODULE_BG_TASKS: Set["asyncio.Task"] = set()
+
+
+def _track_bg_task(task: "asyncio.Task") -> None:
+    """Hold a strong ref to a fire-and-forget task so asyncio cannot GC it before
+    it runs (untracked ensure_future/create_task results are weakly held)."""
+    _MODULE_BG_TASKS.add(task)
+    task.add_done_callback(_MODULE_BG_TASKS.discard)
+
+
 class EventBus:
     """Lightweight in-process async event bus with offline queueing.
 
@@ -730,6 +740,11 @@ class EventBus:
         self._enabled_types: Set[str] = set(ALL_EVENT_TYPES)
         self._queue = _OfflineQueue(db_path=db_path, max_size=queue_max_size)
         self._flush_task: Optional[asyncio.Task] = None
+        # Strong refs to fire-and-forget dispatch tasks. asyncio only holds a WEAK
+        # ref to ensure_future/create_task results, so an untracked task can be
+        # garbage-collected before it runs — silently dropping events (and causing
+        # "Task was destroyed but it is pending" + late-logging-to-closed-stream).
+        self._bg_tasks: Set["asyncio.Task"] = set()
         self._lock = asyncio.Lock()
 
         logger.info(
@@ -753,6 +768,17 @@ class EventBus:
         self._handlers[event_type].append(handler)
         logger.debug("EventBus.on: registered handler", event_type=event_type, handler=handler.__name__)
 
+    def _spawn(self, coro: "Coroutine[Any, Any, Any]") -> None:
+        """Schedule a fire-and-forget coroutine, holding a strong ref until done.
+
+        Without the strong ref (stored in ``self._bg_tasks``) asyncio may GC the
+        task before it runs — dropping the event. The done-callback discards the
+        ref so the set does not grow unbounded.
+        """
+        task = asyncio.ensure_future(coro)
+        self._bg_tasks.add(task)
+        task.add_done_callback(self._bg_tasks.discard)
+
     async def emit(self, event_type: str, data: Dict[str, Any]) -> None:
         """Emit an event. Dispatches handlers as background tasks (non-blocking).
 
@@ -775,7 +801,7 @@ class EventBus:
         try:  # pragma: no cover — bridge is optional
             from trustgraph.agentdb_bridge import get_agentdb_bridge
 
-            asyncio.ensure_future(
+            self._spawn(
                 asyncio.to_thread(
                     get_agentdb_bridge().dual_write,
                     event_type=event_type,
@@ -793,10 +819,10 @@ class EventBus:
 
         # Dispatch as background task to avoid blocking API response
         for handler in handlers:
-            asyncio.ensure_future(self._dispatch(event_type, handler, data))
+            self._spawn(self._dispatch(event_type, handler, data))
 
         # Fire-and-forget: push to WebSocket alert broadcaster (best-effort)
-        asyncio.ensure_future(self._broadcast_alert(event_type, data))
+        self._spawn(self._broadcast_alert(event_type, data))
 
     async def _dispatch(
         self,
@@ -1094,7 +1120,7 @@ class ResponseInterceptorMiddleware(BaseHTTPMiddleware):
             return _rebuild_response(response, body)
 
         if isinstance(data, (dict, list)):
-            asyncio.ensure_future(self._inspect_and_emit(request, data))
+            _track_bg_task(asyncio.ensure_future(self._inspect_and_emit(request, data)))
 
         return _rebuild_response(response, body)
 
