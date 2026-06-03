@@ -343,8 +343,9 @@ def test_compute_uses_real_findings_when_no_manual_components(tmp_path):
         assert result["overall_score"] > 0.0
 
 
-def test_compute_falls_back_to_baseline_when_no_findings_db(tmp_path):
-    """When the findings DB does not exist, vuln_mgmt falls back to 50."""
+def test_compute_yields_honest_empty_when_no_findings_db(tmp_path):
+    """Ingest-first: a greenfield tenant with no operator components AND no findings
+    DB must read honest-empty (0.0 / "N/A"), NOT a fabricated baseline 50."""
     posture_db = tmp_path / "posture_score.db"
     with _mock.patch(
         "core.posture_score_engine._FINDINGS_DB",
@@ -352,9 +353,10 @@ def test_compute_falls_back_to_baseline_when_no_findings_db(tmp_path):
     ):
         eng = PostureScoreEngine(db_path=str(posture_db))
         result = eng.compute_posture_score("greenfield-tenant")
-        # All 8 components should be 50 → weighted sum = 50.0
-        assert result["overall_score"] == 50.0
-        assert all(v == 50 for v in result["components"].values())
+        assert result["overall_score"] == 0.0
+        assert result["grade"] == "N/A"
+        assert result["has_data"] is False
+        assert all(v is None for v in result["components"].values())
 
 
 def test_manual_component_overrides_derived(tmp_path):
