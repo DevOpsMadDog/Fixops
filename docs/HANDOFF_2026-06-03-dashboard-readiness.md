@@ -125,7 +125,11 @@ Rate-limits: VERIFIED live (260 reqs → 25×429; global RateLimitMiddleware + a
 - **(B) red-team hardening frontier: DONE.** All caller-supplied filesystem paths are allowlist-confined; all arbitrary-file-read surfaces (live + gated + shell-out) closed.
 
 ### Remaining (low priority, optional):
-- DRY: migrate the 4 native-read per-engine allowlist copies (ide_backend/deep_code/dlp/secrets_manager) onto core/storage_root_guard.py (cleanup only — secure as-is).
+- DRY migration of the 4 native-read per-engine copies onto core/storage_root_guard.py: **DECIDED AGAINST** (tick130). The shared util's default is /tmp-inclusive (scanner test-friendliness), but DLP + secrets_manager (LIVE high-severity raw-read) intentionally use a tighter default (gettempdir+fleet, no bare /tmp). Migrating would broaden their allowlist = minor security regression. The per-engine "duplication" is intentional per-surface tuning. Leave as-is.
+
+### (B) egress / SSRF posture (tick130):
+- 145 outbound-fetch engines; SPEC-005 socket egress guard covers all BUT is opt-in (FIXOPS_AIRGAP_MODE=enforced; OFF by default). Added a fail-loud startup WARNING when not enforced.
+- **FOUNDER DECISION**: make enforced-airgap the fail-secure DEFAULT (ALDECI is on-prem/airgap per memory). Blast radius: blocks outbound LLM/feeds/connectors unless explicitly opted out — needs founder sign-off on the deployment-mode default + how connected-mode features opt out.
 
 ## Founder-blocked (record + move on)
 push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
