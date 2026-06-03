@@ -260,3 +260,21 @@ excluded — those need founder-blocked external creds).
 **Session T3 cumulative: 2492 tests green** (1769 hardening + 723 ingest) + Beast
 smoke 755 + 1 known flake. Zero regressions. UI component layer also confirmed
 NO-MOCKS clean (0 void-discard, 0 useState(MOCK), 0 no-api module data arrays).
+
+### Item (C) Augment-governance spec-backfill — COMPLETE (tick152-153)
+
+The `specs/INDEX.md` governance map (the Augment Code intent-IDE source of truth)
+was only 8/22 specs registered and carried stale statuses. Synced to **22/22**:
+- Added the 14 missing rows (SPEC-002..010, 012..015) with Status sourced from each
+  spec file header + verified router/engine mappings.
+- Fixed stale `PLANNED`→`IMPLEMENTED` on 002/003/004 (files said IMPLEMENTED).
+- Marked the original 8-group backfill backlog DONE (all authored: 011/012/013/014/
+  015/018/019/020) and listed verified-real next-candidate groups (MPTE/attack-sim,
+  threat-intel+IOC, SOAR/playbooks, deception, forensics, exec-reporting).
+- Verified: 22 files = 22 rows, 0 broken links, 0 unregistered, all spot-checked
+  routers exist on disk. Docs-only (no code/build/test impact).
+
+**Next buildable thread**: author a NEW spec for one next-candidate group (each is a
+standalone effort like SPEC-011..020 — read router+engine, write intent/scope/
+contracts/acceptance-criteria). Best done one-per-tick with fresh context to avoid
+PRD-theater.
