@@ -549,8 +549,8 @@ export default function App() {
             <Route path="/mission-control/sla" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
             <Route path="/mission-control/live-feed" element={<LiveFeed />} />
             <Route path="/mission-control/risk" element={<RiskOverview />} />
-            <Route path="/mission-control/soc" element={<Navigate to="/?view=soc" replace />} />
-            <Route path="/mission-control/soc-t1" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/mission-control/soc" element={<Navigate to="/incidents" replace />} />
+            <Route path="/mission-control/soc-t1" element={<Navigate to="/incidents" replace />} />
             <Route path="/mission-control/compliance" element={<Navigate to="/compliance" replace />} />
             {/* DoD #5 — CTEM Cycles surface lives in mission-control compliance variant */}
             <Route path="/mission-control/ctem" element={<MissionControlComplianceDashboard />} />
@@ -832,13 +832,13 @@ export default function App() {
             <Route path="/cloud-security" element={<Navigate to="/discover/cloud-posture?tab=posture" replace />} />
             <Route path="/discover/cloud-posture" element={<CloudPostureUnifiedHub />} />
             <Route path="/breach-response" element={<Navigate to="/remediate/incidents/extensions?tab=breach" replace />} />
-            <Route path="/soc" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/soc" element={<Navigate to="/incidents" replace />} />
             <Route path="/watchlist" element={<Navigate to="/attack/intel/ops?tab=watchlist" replace />} />
             {/* Canonical hub route — Threat Intel Operations (combined 4-page fold) */}
             <Route path="/attack/intel/ops" element={<ThreatIntelOpsHub />} />
             <Route path="/uba" element={<Navigate to="/mission-control/behavior?tab=uba" replace />} />
             <Route path="/cmdb" element={<Navigate to="/discover/assets/inventory?tab=cmdb" replace />} />
-            <Route path="/incident-response" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/incident-response" element={<Navigate to="/incidents" replace />} />
             {/* S11 Email & Threat Protection hub — folded 2026-05-02 (FOLDED PhishingSimulation) */}
             <Route path="/phishing" element={<Navigate to="/discover/threat-protection?tab=phishing" replace />} />
             <Route path="/api-sec" element={<APISecurityPage />} />
@@ -894,7 +894,7 @@ export default function App() {
             <Route path="/system-health" element={<SystemHealthDashboard />} />
 
             {/* OpenClaw + SOC Triage AI + SBOM */}
-            <Route path="/soc-triage" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/soc-triage" element={<Navigate to="/incidents" replace />} />
 
             {/* NDR / XDR / Awareness / EDR */}
             <Route path="/ndr" element={<NDRDashboard />} />
@@ -997,7 +997,7 @@ export default function App() {
             <Route path="/discover/posture-metrics" element={<PostureMetricsHub />} />
             <Route path="/posture-benchmarking" element={<Navigate to="/discover/posture-metrics?tab=benchmarking" replace />} />
             <Route path="/quantum-crypto" element={<Navigate to="/discover/crypto?tab=quantum" replace />} />
-            <Route path="/ai-soc" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/ai-soc" element={<Navigate to="/incidents" replace />} />
             <Route path="/deception-analytics" element={<Navigate to="/brain/fail/deception?tab=analytics" replace />} />
 
             {/* Wave 23 domain dashboards */}
@@ -1034,7 +1034,7 @@ export default function App() {
             <Route path="/data-pipeline" element={<DataPipelineDashboard />} />
 
             {/* Wave 27 domain dashboards */}
-            <Route path="/alert-triage" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/alert-triage" element={<Navigate to="/incidents" replace />} />
             <Route path="/awareness-metrics" element={<Navigate to="/comply/awareness?tab=metrics" replace />} />
             <Route path="/patch-management" element={<Navigate to="/remediate/automation?tab=patch" replace />} />
             <Route path="/container-posture" element={<Navigate to="/discover/container-security?tab=posture" replace />} />
@@ -1209,8 +1209,8 @@ export default function App() {
             <Route path="/mission-control" element={<Navigate to="/executive" replace />} />
             <Route path="/mission-control/ciso" element={<Navigate to="/executive" replace />} />
             <Route path="/mission-control/executive" element={<Navigate to="/executive" replace />} />
-            <Route path="/mission-control/soc" element={<Navigate to="/?view=soc" replace />} />
-            <Route path="/mission-control/soc-t1" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/mission-control/soc" element={<Navigate to="/incidents" replace />} />
+            <Route path="/mission-control/soc-t1" element={<Navigate to="/incidents" replace />} />
             <Route path="/mission-control/dev-security" element={<Navigate to="/?view=dev" replace />} />
 
             {/* 90-day muscle-memory redirects → real pages (the tabbed Admin hero was
@@ -1258,12 +1258,12 @@ export default function App() {
             <Route path="/risk-scenarios" element={<Navigate to="/compliance?tab=sla-risk" replace />} />
 
             {/* P1 Wave 3 — SOC Operations redirects → Command hero soc tab (S3) */}
-            <Route path="/soc" element={<Navigate to="/?view=soc" replace />} />
-            <Route path="/soc-triage" element={<Navigate to="/?view=soc" replace />} />
-            <Route path="/alert-triage" element={<Navigate to="/?view=soc" replace />} />
-            <Route path="/incident-response" element={<Navigate to="/?view=soc" replace />} />
-            <Route path="/incidents/response" element={<Navigate to="/?view=soc" replace />} />
-            <Route path="/ai-soc" element={<Navigate to="/?view=soc" replace />} />
+            <Route path="/soc" element={<Navigate to="/incidents" replace />} />
+            <Route path="/soc-triage" element={<Navigate to="/incidents" replace />} />
+            <Route path="/alert-triage" element={<Navigate to="/incidents" replace />} />
+            <Route path="/incident-response" element={<Navigate to="/incidents" replace />} />
+            <Route path="/incidents/response" element={<Navigate to="/incidents" replace />} />
+            <Route path="/ai-soc" element={<Navigate to="/incidents" replace />} />
 
             {/* P1 Wave 3 — Executive Brief redirects → CISO Dashboard (Multica #3986) */}
             <Route path="/ciso" element={<Navigate to="/executive" replace />} />
