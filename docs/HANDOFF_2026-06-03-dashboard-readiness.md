@@ -119,9 +119,13 @@ Rate-limits: VERIFIED live (260 reqs → 25×429; global RateLimitMiddleware + a
 - Audited safe: secret_scanner (content-based), malware_detector/sast_engine (content dicts), error_audit (fixed internal dirs), ide_router (content).
 - **8 path-handling engines now guarded** (4 native-read tick123-127 + 4 shell-out tick128); local_file_store + evidence_chain pre-existing.
 
-### Remaining epic tail (low priority):
-- DRY: migrate the 4 per-engine copies (ide_backend/deep_code/dlp/secrets_manager) to the shared util (cleanup; working+secure as-is, so non-urgent).
-- Spot-audit config_benchmark / compliance_scanner / security_dependency_mapping / function_reachability engines for caller-path reads (likely shell-out/checkov-family or gated).
+### tick129 — STORAGE-ROOT FRONTIER COMPLETE:
+- Guarded the last 3: config_benchmark + compliance_scanner (mounted shell-out checkov, target_path) + function_reachability (gated, 4 parse methods, root_path). security_dependency_mapping audited safe (no FS read).
+- **11 path-handling engines now guarded**: DLP + secrets_manager (LIVE-fixed), ide_backend + deep_code + function_reachability (gated), semgrep + bandit + checkov + gitleaks + config_benchmark + compliance_scanner (shell-out) — all via FIXOPS_*_ALLOWED_ROOTS. Plus local_file_store + evidence_chain (pre-existing). Rate-limits verified live.
+- **(B) red-team hardening frontier: DONE.** All caller-supplied filesystem paths are allowlist-confined; all arbitrary-file-read surfaces (live + gated + shell-out) closed.
+
+### Remaining (low priority, optional):
+- DRY: migrate the 4 native-read per-engine allowlist copies (ide_backend/deep_code/dlp/secrets_manager) onto core/storage_root_guard.py (cleanup only — secure as-is).
 
 ## Founder-blocked (record + move on)
 push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
