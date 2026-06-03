@@ -6,7 +6,7 @@ Migration note (2026-05-26):
   called those methods expecting a result dict have been rewritten:
 
   * Calls that tested start_campaign / advance_phase behaviour → wrapped in
-    pytest.raises(NotImplementedError).
+    pytest.raises(NucleiNotConfiguredError).
   * Tests whose real goal was pause / resume / complete / findings / stats
     (read-paths that ARE production-ready) now seed the required row state
     directly via the engine's SQLite DB so the CRUD paths remain covered.
@@ -26,6 +26,7 @@ import uuid
 import pytest
 
 from core.openclaw_engine import OpenClawEngine, PHASE_TASKS, FINDING_TEMPLATES
+from core.pentest_connectors.nuclei_connector import NucleiNotConfiguredError
 
 
 # ---------------------------------------------------------------------------
@@ -295,29 +296,30 @@ def test_get_campaign_includes_tasks_and_operators(tmp_engine):
 def test_start_campaign_raises_not_implemented(tmp_engine):
     """start_campaign() raises NotImplementedError until PENTEST_CONNECTOR_URL is set."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(NucleiNotConfiguredError):
         tmp_engine.start_campaign("test_org", camp["id"])
 
 
 def test_start_campaign_error_message_mentions_connector(tmp_engine):
     """Error message must reference the connector configuration path."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    with pytest.raises(NotImplementedError, match="PENTEST_CONNECTOR_URL"):
+    with pytest.raises(NucleiNotConfiguredError, match="PENTEST_CONNECTOR_URL"):
         tmp_engine.start_campaign("test_org", camp["id"])
 
 
 def test_start_campaign_raises_even_for_nonexistent_campaign(tmp_engine):
-    """NotImplementedError fires before existence check — env gate is first."""
-    with pytest.raises(NotImplementedError):
+    """Existence is validated BEFORE the connector check — a nonexistent
+    campaign raises a clear 'not found' ValueError, not the connector error."""
+    with pytest.raises(ValueError, match="not found"):
         tmp_engine.start_campaign("test_org", str(uuid.uuid4()))
 
 
 def test_start_campaign_raises_even_when_already_running(tmp_engine):
-    """NotImplementedError fires regardless of current status."""
+    """Status is validated BEFORE the connector check — starting an already
+    'running' campaign raises a status ValueError, not the connector error."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    # Seed running status directly so we can verify the env-gate still fires
     _seed_campaign_status(tmp_engine, "test_org", camp["id"], "running")
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ValueError, match="staged"):
         tmp_engine.start_campaign("test_org", camp["id"])
 
 
@@ -327,16 +329,19 @@ def test_start_campaign_raises_even_when_already_running(tmp_engine):
 
 
 def test_advance_phase_raises_not_implemented(tmp_engine):
-    """advance_phase() raises NotImplementedError until PENTEST_CONNECTOR_URL is set."""
+    """A staged campaign fails the status check first: advance_phase requires a
+    'running' campaign, so it raises a status ValueError before the connector."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ValueError, match="running"):
         tmp_engine.advance_phase("test_org", camp["id"])
 
 
 def test_advance_phase_error_message_mentions_connector(tmp_engine):
-    """Error message must reference the connector configuration path."""
+    """For a RUNNING campaign (valid status), advance_phase reaches the connector
+    check and its error references the connector configuration path."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    with pytest.raises(NotImplementedError, match="PENTEST_CONNECTOR_URL"):
+    _seed_campaign_status(tmp_engine, "test_org", camp["id"], "running")
+    with pytest.raises(NucleiNotConfiguredError, match="PENTEST_CONNECTOR_URL"):
         tmp_engine.advance_phase("test_org", camp["id"])
 
 
@@ -344,14 +349,15 @@ def test_advance_phase_raises_on_running_campaign(tmp_engine):
     """advance_phase() raises NotImplementedError even if campaign is running."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
     _seed_campaign_status(tmp_engine, "test_org", camp["id"], "running")
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(NucleiNotConfiguredError):
         tmp_engine.advance_phase("test_org", camp["id"])
 
 
 def test_advance_phase_raises_on_staged_campaign(tmp_engine):
-    """advance_phase() raises NotImplementedError on a staged campaign too."""
+    """advance_phase() on a staged campaign raises a status ValueError
+    (must be 'running') — the status gate precedes the connector check."""
     camp = tmp_engine.create_campaign("test_org", _make_campaign_data())
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ValueError, match="running"):
         tmp_engine.advance_phase("test_org", camp["id"])
 
 
