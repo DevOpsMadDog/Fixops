@@ -148,19 +148,14 @@ export default function CopilotDashboard() {
   if (agentsQuery.isLoading) return <PageSkeleton />;
   if (agentsQuery.isError) return <ErrorState message="Failed to load AI Copilot" onRetry={refetch} />;
 
-  // Fallback agent list — uses /api/v1/agents response when available
-  const DEFAULT_AGENTS = [
-    { id: "triage", name: "Triage Agent", type: "triage", status: "idle", last_action: "—" },
-    { id: "fix", name: "Fix Agent", type: "fix", status: "idle", last_action: "—" },
-    { id: "evidence", name: "Evidence Agent", type: "evidence", status: "idle", last_action: "—" },
-    { id: "compliance", name: "Compliance Agent", type: "compliance", status: "idle", last_action: "—" },
-  ];
+  // NO MOCKS: agents come ONLY from the real /api/v1/agents response. When the
+  // API returns no agent array, render a branded empty state — never a fabricated list.
   const rawAgents = agentsQuery.data;
   const agents: any[] = Array.isArray(rawAgents) ? rawAgents
     : Array.isArray((rawAgents as any)?.agents) ? (rawAgents as any).agents
     : Array.isArray((rawAgents as any)?.data) ? (rawAgents as any).data
     : Array.isArray((rawAgents as any)?.items) ? (rawAgents as any).items
-    : DEFAULT_AGENTS;
+    : [];
 
   const sendMessage = async (content: string) => {
     if (!content.trim()) return;
@@ -313,16 +308,28 @@ export default function CopilotDashboard() {
               Active Agents
             </h3>
             <div className="space-y-3">
-              {agents.map((agent: any, i: number) => (
-                <motion.div
-                  key={agent.id ?? i}
-                  initial={{ opacity: 0, x: 12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.07 }}
-                >
-                  <AgentCard agent={agent} />
-                </motion.div>
-              ))}
+              {agents.length === 0 ? (
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <Bot className="h-6 w-6 mx-auto mb-2 text-muted-foreground/60" />
+                    <p className="text-sm text-muted-foreground">No agents active yet</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">
+                      Agents appear here once the orchestrator registers them.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                agents.map((agent: any, i: number) => (
+                  <motion.div
+                    key={agent.id ?? i}
+                    initial={{ opacity: 0, x: 12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.07 }}
+                  >
+                    <AgentCard agent={agent} />
+                  </motion.div>
+                ))
+              )}
             </div>
           </div>
 
