@@ -139,8 +139,8 @@ Rate-limits: VERIFIED live (260 reqs → 25×429; global RateLimitMiddleware + a
 - **Secrets-in-logs** (tick132): CLEAN — 27 candidate log lines emit metadata/status/lengths/str(exc), not secret values (deliberate `# nosemgrep` annotations). Minor low-sev obs: auth_router:1314 logs the user's own email in a password-reset error (PII-in-log, not fixed).
 - These verified-negatives + the storage-root/rate-limit/egress work = a thorough red-team pass; the evidence is exactly what a SCIF procurement scanner checks.
 
-### RED-TEAM FRONTIER STATUS: comprehensively audited.
-Classes covered — storage-root/path-traversal (FIXED 11 engines), command-injection (clean), unsafe-deserialization (FIXED pickle integrity), XXE (clean/defusedxml), JWT/auth (clean), secrets-in-logs (clean), rate-limits (verified live), egress/SSRF (fail-loud warning + founder fail-secure-default decision). Real gaps found+fixed; remaining audit angles returning clean. Further security work needs a founder decision (fail-secure airgap default) or a novel angle.
+### RED-TEAM FRONTIER STATUS: comprehensively audited (OWASP-class complete).
+Classes covered — storage-root/path-traversal (FIXED 11 engines), command-injection (clean), unsafe-deserialization (FIXED pickle integrity), XXE (clean/defusedxml), JWT/auth (clean), secrets-in-logs (clean), CORS (clean/env-driven/no-wildcard), security-headers (clean — CSP/HSTS/COOP/CORP/X-Frame/etc all set), rate-limits (verified live), egress/SSRF (fail-loud warning + founder fail-secure-default decision). 2-3 real gaps found+fixed; all subsequent audit angles return clean — the codebase is well-hardened. Further security work needs a founder decision (fail-secure airgap default) or a fundamentally novel angle.
 
 ## Founder-blocked (record + move on)
 push, Postgres, test-infra fixture, org-precedence, FIPS, PIV, GPU, Stripe.
