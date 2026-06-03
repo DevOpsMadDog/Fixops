@@ -19,6 +19,8 @@ class EntityType(str, Enum):
     CLUSTER = "cluster"
     TASK = "task"
     FINDING = "finding"
+    WAR_ROOM = "war_room"
+    INCIDENT = "incident"
 
 
 class ActivityType(str, Enum):
@@ -32,6 +34,8 @@ class ActivityType(str, Enum):
     WATCHER_ADDED = "watcher_added"
     WATCHER_REMOVED = "watcher_removed"
     MENTION = "mention"
+    CREATED = "created"
+    RESOLVED = "resolved"
 
 
 class CollaborationService:

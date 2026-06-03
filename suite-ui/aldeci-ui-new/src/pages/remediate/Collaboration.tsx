@@ -249,7 +249,7 @@ function CreateRoomDialog({
     setOpen(false);
     // Persist war room creation via collaboration activity API
     try {
-      await api.post("/api/v1/collaboration/activity", {
+      await api.post("/api/v1/collaboration/activities", {
         entity_type: "war_room",
         entity_id: `room_${Date.now()}`,
         org_id: "default",
