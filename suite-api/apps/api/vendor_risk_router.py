@@ -742,6 +742,73 @@ def vra_get_risk_register(org_id: str = Query("default")) -> List[Dict[str, Any]
 
 
 @vra_router.get(
+    "/assessments",
+    response_model=List[Dict[str, Any]],
+    summary="Recent vendor risk assessments (dashboard list)",
+)
+def vra_list_assessments(
+    org_id: str = Query("default"),
+    limit: int = Query(50, ge=1, le=500),
+) -> List[Dict[str, Any]]:
+    """List vendors' latest completed assessments (dashboard Assessment shape).
+
+    NO MOCKS — derived from get_risk_register (real per-vendor latest scores); only
+    vendors that have an assessment are included; empty when nothing assessed yet.
+    """
+    register = _get_risk_engine().get_risk_register(org_id=org_id)
+    out: List[Dict[str, Any]] = []
+    for e in register:
+        if not e.get("latest_assessment_id"):
+            continue
+        out.append({
+            "id": e.get("latest_assessment_id"),
+            "vendor_name": e.get("name") or e.get("vendor_name") or e.get("vendor_id"),
+            "timestamp": e.get("latest_assessed_at"),
+            "score": e.get("latest_risk_score"),
+            "assessor": "system",
+            "risk_level": e.get("latest_risk_level"),
+        })
+    return out[:limit]
+
+
+@vra_router.get(
+    "/risk-domains",
+    summary="Vendor-risk domain scores (avg risk_score per domain)",
+)
+def vra_risk_domains(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Average per-dimension scorecard scores across vendors (0-100, higher = safer).
+
+    NO MOCKS — derived from real VendorScorecard dimensions (get_scorecard); only
+    dimensions with at least one scored vendor are returned; empty when no scorecards.
+    """
+    eng = _get_risk_engine()
+    dims = [
+        ("Domain Reputation", "domain_score"),
+        ("CVE Exposure", "cve_score"),
+        ("Breach History", "breach_score"),
+        ("Data Handling", "data_handling_score"),
+        ("Fourth Party", "fourth_party_score"),
+    ]
+    acc: Dict[str, List[float]] = {name: [] for name, _ in dims}
+    for vendor in eng.list_vendors(org_id=org_id):
+        vid = vendor.get("vendor_id") or vendor.get("id")
+        if not vid:
+            continue
+        sc = eng.get_scorecard(vid)
+        if not sc:
+            continue
+        for name, key in dims:
+            val = sc.get(key)
+            if isinstance(val, (int, float)):
+                acc[name].append(float(val))
+    domains = [
+        {"name": name, "score": round(sum(acc[name]) / len(acc[name]), 1)}
+        for name, _ in dims if acc[name]
+    ]
+    return {"domains": domains, "count": len(domains)}
+
+
+@vra_router.get(
     "/assessments/{assessment_id}",
     response_model=Dict[str, Any],
     summary="Get assessment by ID",
