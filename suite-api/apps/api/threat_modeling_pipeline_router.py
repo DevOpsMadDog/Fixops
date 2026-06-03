@@ -106,6 +106,32 @@ def list_threat_modeling_pipeline(org_id: str = Query("default")) -> List[Dict[s
     return _get_engine().list_models(org_id=org_id)
 
 
+@router.get("/stats", dependencies=[Depends(api_key_auth)],
+            summary="Threat modeling pipeline statistics")
+def stats(org_id: str = Query("default")) -> Dict[str, Any]:
+    """Aggregated counts over the org's threat models (real data, honest zeros).
+
+    Backs the threat-modeling dashboard KPIs. NO MOCKS — derived from list_models +
+    get_unmitigated_threats; returns zeros when nothing has been modeled yet.
+    """
+    eng = _get_engine()
+    models = eng.list_models(org_id=org_id)
+    by_status: Dict[str, int] = {}
+    by_methodology: Dict[str, int] = {}
+    for m in models:
+        s = str(m.get("status") or "unknown")
+        by_status[s] = by_status.get(s, 0) + 1
+        meth = str(m.get("methodology") or "unknown")
+        by_methodology[meth] = by_methodology.get(meth, 0) + 1
+    unmitigated = eng.get_unmitigated_threats(org_id)
+    return {
+        "total_models": len(models),
+        "by_status": by_status,
+        "by_methodology": by_methodology,
+        "unmitigated_threats": len(unmitigated),
+    }
+
+
 @router.post("/models", summary="Create a new threat model")
 def create_model(req: CreateModelRequest) -> Dict[str, Any]:
     try:

@@ -103,6 +103,35 @@ def list_objectives(
     return _get_engine().list_objectives(org_id, period=period, status=status)
 
 
+@router.get("/stats", dependencies=[Depends(api_key_auth)],
+            summary="Security OKR statistics")
+def stats(org_id: str = Depends(get_org_id)):
+    """Aggregated OKR counts/progress for the org (real data, honest zeros).
+
+    Backs the OKR dashboard KPIs. NO MOCKS — derived from list_objectives; returns
+    zeros when no objectives have been defined yet.
+    """
+    objectives = _get_engine().list_objectives(org_id)
+    by_status: dict = {}
+    by_period: dict = {}
+    progresses = []
+    for o in objectives:
+        s = str(o.get("status") or "unknown")
+        by_status[s] = by_status.get(s, 0) + 1
+        p = str(o.get("period") or "unknown")
+        by_period[p] = by_period.get(p, 0) + 1
+        prog = o.get("progress")
+        if isinstance(prog, (int, float)):
+            progresses.append(float(prog))
+    avg_progress = round(sum(progresses) / len(progresses), 1) if progresses else 0.0
+    return {
+        "total_objectives": len(objectives),
+        "by_status": by_status,
+        "by_period": by_period,
+        "avg_progress": avg_progress,
+    }
+
+
 @router.get("/objectives/{objective_id}", dependencies=[Depends(api_key_auth)])
 def get_objective(objective_id: str, org_id: str = Depends(get_org_id)):
     """Get an objective with its key results."""
