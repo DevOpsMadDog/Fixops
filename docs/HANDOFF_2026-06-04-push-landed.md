@@ -36,3 +36,23 @@ if pushes start failing again, it's the VPN (see memory project_push_blocker_vpn
 ## Next dispatch
 Resume item C (spec-backfill for un-spec'd router clusters / a fresh T3 slice) or, if prioritised,
 start the dependabot remediation on main. All non-blast-radius and pushable now.
+
+---
+## Addendum 2026-06-06 (post-push UI-routing + placeholder fixes — all pushed)
+Push working throughout (tip now `1716d126`). UI NO-MOCKS lane carried to verified-complete:
+- **Dead-redirect bug class fixed** (browser-found): 13 routes redirected to `Navigate to="/?view=…"`
+  — a dead query param that the index→/executive redirect stripped, so SOC/alert/incident/dev routes
+  silently landed on the CISO Executive dashboard. Repointed to real pages: 8 SOC/alert/incident
+  routes → `/incidents` (real IncidentResponse, fires `/api/v1/incidents/`), 2 dev-security →
+  `/developer` (real DeveloperSecurityHub, fires sast/dast findings), 3 executive-* → `/executive`.
+  Browser-verified each lands on the real page + fires real calls. Systematic recheck: 0 of 75
+  Navigate targets unresolved.
+- **`$user` placeholder fixed**: DeveloperSecurityHub sent a literal `author=$user`/`owner=$user`
+  (never interpolated → tabs always empty); now substitutes real `user.email` via useAuth
+  (browser-verified `author=dev%40verify`), omits when no identity. Swept all src/ → no other
+  literal `$placeholder` in /api/v1 URLs.
+- **Browser NO-MOCKS verified across 7 domains** all-real: executive, compliance, copilot,
+  asset-risk, incidents, developer, secrets-hub.
+Gate green throughout: NO-MOCKS static 5/5, routes 8357, Beast smoke green. Follow-up noted: SAST/DAST
+`author` may store git-author names (not login email) → a backend author-identity mapping could
+under-match (separate). Remaining = founder-gated (dependabot-on-main, repo-of-truth, schema-tenancy).
