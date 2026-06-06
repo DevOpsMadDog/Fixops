@@ -65,6 +65,12 @@ jobs:
             -x --tb=short --timeout=30 -q \
             --override-ini="addopts=" \
             --override-ini="log_cli=false"
+      - name: UI routing integrity gate (SPEC-031)
+        run: |
+          python -m pytest tests/test_ui_route_integrity.py \
+            -x --tb=short --timeout=30 -q \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"
       - name: Perf lockdown (benchmarks/)
         run: |
           python -m pytest tests/benchmarks/ \
