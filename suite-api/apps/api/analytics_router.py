@@ -1045,14 +1045,19 @@ async def triage_funnel(
     if correlated_count == 0:
         correlated_count = dedup_count  # If no scoring done, equal to dedup
 
-    # Count open non-info findings — real exposure cases
-    prioritized_count = sum(
-        1 for f in findings
-        if (f.severity.value if hasattr(f.severity, "value") else str(f.severity)).lower()
-        not in ("info", "none")
-        and (f.status.value if hasattr(f.status, "value") else str(f.status)).lower()
-        in ("open", "confirmed", "in_progress")
-    )
+    # Exposure cases = UNIQUE open non-info findings (deduped, like after_dedup), so the
+    # funnel stays monotonic (raw >= dedup >= correlation >= exposure). Counting raw
+    # open findings here previously produced exposure_cases ~= raw (e.g. 39113 vs dedup
+    # 122), making the noise-reduction funnel show ~0% reduction instead of the real ~99%.
+    exposure_keys: set = set()
+    for f in findings:
+        sev = (f.severity.value if hasattr(f.severity, "value") else str(f.severity)).lower()
+        status = (f.status.value if hasattr(f.status, "value") else str(f.status)).lower()
+        if sev not in ("info", "none") and status in ("open", "confirmed", "in_progress"):
+            title = getattr(f, "title", "") or ""
+            asset = getattr(f, "asset_name", "") or getattr(f, "source", "") or ""
+            exposure_keys.add((title, asset, sev))
+    prioritized_count = len(exposure_keys)
 
     reduction_pct = round(
         (1 - prioritized_count / max(total_raw, 1)) * 100, 1

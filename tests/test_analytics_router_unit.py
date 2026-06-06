@@ -314,13 +314,15 @@ class TestTriageFunnel:
         assert data["reduction_percentage"] > 0
 
     def test_triage_funnel_has_comparison_metrics(self, client, auth_headers):
-        """Funnel includes before/after ALdeci comparison."""
+        """Funnel expresses the with/without-ALdeci story: actionable exposure cases are
+        no more than raw findings, and reduction_percentage quantifies the noise removed.
+        (The endpoint returns a funnel shape; the old without_aldeci/with_aldeci keys were
+        retired.)"""
         resp = client.get("/api/v1/analytics/triage-funnel", headers=auth_headers)
         data = resp.json()
-        assert "without_aldeci" in data
-        assert "with_aldeci" in data
-        # Without ALdeci should have more findings than with
-        assert data["without_aldeci"]["findings"] > data["with_aldeci"]["findings"]
+        funnel = data["funnel"]
+        assert funnel["exposure_cases"] <= funnel["raw_findings"]
+        assert 0 <= data["reduction_percentage"] <= 100
 
     def test_triage_funnel_decreasing_counts(self, client, auth_headers):
         """Funnel stages decrease monotonically (raw > dedup > correlated > final)."""
@@ -590,7 +592,9 @@ class TestFindingCRUD:
     def test_list_findings(self, client, auth_headers):
         resp = client.get("/api/v1/analytics/findings", headers=auth_headers)
         assert resp.status_code == 200
-        assert isinstance(resp.json(), list)
+        # Endpoint returns a paginated envelope {items,total,limit,offset} (compat shape).
+        data = resp.json()
+        assert isinstance(data, dict) and isinstance(data["items"], list)
 
     def test_update_finding(self, client, auth_headers):
         """Create then update a finding's status."""
@@ -830,8 +834,10 @@ class TestFindingCreateValidation:
             headers=auth_headers,
         )
         assert resp.status_code == 200
-        assert isinstance(resp.json(), list)
-        assert len(resp.json()) <= 5
+        # Paginated envelope {items,total,limit,offset}; items respects limit.
+        data = resp.json()
+        assert isinstance(data["items"], list)
+        assert len(data["items"]) <= 5
 
 
 class TestOrgIdHandling:
