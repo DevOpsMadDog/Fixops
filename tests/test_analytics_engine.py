@@ -78,13 +78,15 @@ def engine_seeded(tmp_path: Path) -> AnalyticsEngine:
         conn.commit()
         conn.close()
 
-    _seed("posture_score", "posture_scores", "current_score REAL, grade TEXT", [(78.5, "B")])
-    _seed("risk_register", "risks", "severity TEXT",
-          [("critical",), ("high",), ("critical",)])  # 3 total, 2 critical
-    _seed("digital_forensics", "forensic_cases", "status TEXT",
-          [("open",), ("closed",)])  # 1 open
-    _seed("threat_hunting", "hunt_findings", "severity TEXT",
-          [("critical",), ("medium",)])  # 2 total, 1 critical
+    # org_id tagged to match real ingestion (domain tables carry org_id); the engine's
+    # cross_domain_risk_summary scopes every aggregate WHERE org_id = ? (SPEC-029 #9091).
+    _seed("posture_score", "posture_scores", "org_id TEXT, current_score REAL, grade TEXT", [("default", 78.5, "B")])
+    _seed("risk_register", "risks", "org_id TEXT, severity TEXT",
+          [("default", "critical"), ("default", "high"), ("default", "critical")])  # 3 total, 2 critical
+    _seed("digital_forensics", "forensic_cases", "org_id TEXT, status TEXT",
+          [("default", "open"), ("default", "closed")])  # 1 open
+    _seed("threat_hunting", "hunt_findings", "org_id TEXT, severity TEXT",
+          [("default", "critical"), ("default", "medium")])  # 2 total, 1 critical
     _seed("compliance_scanner", "scan_results", "score REAL, scan_completed TEXT",
           [(80, "2026-06-01"), (90, "2026-06-02"), (70, "2026-06-03")])  # avg 80
     return AnalyticsEngine(data_dir=tmp_path)

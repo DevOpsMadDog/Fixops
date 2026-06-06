@@ -302,7 +302,8 @@ def test_stats_empty(engine):
     stats = engine.get_governance_stats(ORG)
     assert stats["total_policies"] == 0
     assert stats["total_violations"] == 0
-    assert stats["compliance_score"] == 100.0
+    # Ingest-first: no policies/violations ingested → no baseline (None), not a fake 100%.
+    assert stats["compliance_score"] is None
 
 
 def test_stats_all_open_violations(engine):

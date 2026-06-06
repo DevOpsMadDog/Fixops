@@ -295,7 +295,8 @@ def test_stats_empty(engine):
     stats = engine.get_inventory_stats(ORG)
     assert stats["total_resources"] == 0
     assert stats["total_findings"] == 0
-    assert stats["avg_security_score"] == 100.0
+    # Ingest-first: no resources ingested → no security baseline (None), not a fake 100%.
+    assert stats["avg_security_score"] is None
     assert stats["critical_resources"] == 0
 
 
