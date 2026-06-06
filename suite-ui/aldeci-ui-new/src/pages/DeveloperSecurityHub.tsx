@@ -30,6 +30,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { cn } from "@/lib/utils";
 import { getStoredAuthToken } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 // ── API ──────────────────────────────────────────────────────────────────────
 
@@ -129,15 +130,19 @@ function Skeleton() {
 // ── Tab: PR Findings ─────────────────────────────────────────────────────────
 
 function PRFindingsTab() {
+  const { user } = useAuth();
   const [items, setItems] = useState<PRFinding[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
+    // NO MOCKS: filter by the REAL signed-in user (was a literal "$user" placeholder
+    // that matched nothing); omit the author filter when no user identity is available.
+    const authorQ = user?.email ? `&author=${encodeURIComponent(user.email)}` : "";
     Promise.allSettled([
-      apiFetch<{ findings?: PRFinding[]; items?: PRFinding[] }>("/api/v1/sast/findings?author=$user&org_id=default"),
-      apiFetch<{ findings?: PRFinding[]; items?: PRFinding[] }>("/api/v1/dast/findings?author=$user&org_id=default"),
+      apiFetch<{ findings?: PRFinding[]; items?: PRFinding[] }>(`/api/v1/sast/findings?org_id=default${authorQ}`),
+      apiFetch<{ findings?: PRFinding[]; items?: PRFinding[] }>(`/api/v1/dast/findings?org_id=default${authorQ}`),
     ]).then(([sastR, dastR]) => {
       const merged: PRFinding[] = [];
       for (const r of [sastR, dastR]) {
@@ -318,14 +323,17 @@ function ChampionTab() {
 // ── Tab: My Code ─────────────────────────────────────────────────────────────
 
 function MyCodeTab() {
+  const { user } = useAuth();
   const [repos, setRepos] = useState<RepoScore[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
+    // NO MOCKS: real signed-in user as repo owner (was literal "$user"); omit when absent.
+    const ownerQ = user?.email ? `&owner=${encodeURIComponent(user.email)}` : "";
     Promise.allSettled([
-      apiFetch<{ repos?: RepoScore[]; items?: RepoScore[] }>("/api/v1/repos/list?owner=$user&org_id=default"),
+      apiFetch<{ repos?: RepoScore[]; items?: RepoScore[] }>(`/api/v1/repos/list?org_id=default${ownerQ}`),
       apiFetch<{ groups?: RepoScore[]; items?: RepoScore[] }>("/api/v1/asset-inventory/groups?org_id=default"),
     ]).then(([reposR, groupsR]) => {
       const reposVal = reposR.status === "fulfilled" ? reposR.value : null;
