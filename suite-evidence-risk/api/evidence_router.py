@@ -735,8 +735,8 @@ async def download_evidence_bundle(
       rendering service).
 
     If a physical bundle file exists on disk it is served directly.
-    Otherwise a synthetic JSON payload is generated from demo data so
-    the download always succeeds for demo / investor presentations.
+    Otherwise returns 404 — NO MOCKS: no fabricated content is generated.
+    Callers must create a real bundle via POST /evidence/bundles/generate first.
     """
     safe_bundle_id = _sanitize_bundle_id(bundle_id)
 
@@ -799,8 +799,8 @@ async def verify_bundle(
 
     If the enterprise RSA verification module is available **and** a
     physical manifest exists on disk, real cryptographic verification is
-    performed.  Otherwise a deterministic demo result is returned based
-    on the bundle's known demo data (signature_valid field).
+    performed.  Otherwise an honest "unverifiable" result is returned —
+    NO MOCKS: never a faked pass/fail for a bundle we cannot actually verify.
     """
     safe_id = _sanitize_bundle_id(bundle_id)
 
