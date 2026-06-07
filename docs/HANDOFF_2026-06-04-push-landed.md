@@ -56,3 +56,26 @@ Push working throughout (tip now `1716d126`). UI NO-MOCKS lane carried to verifi
 Gate green throughout: NO-MOCKS static 5/5, routes 8357, Beast smoke green. Follow-up noted: SAST/DAST
 `author` may store git-author names (not login email) → a backend author-identity mapping could
 under-match (separate). Remaining = founder-gated (dependabot-on-main, repo-of-truth, schema-tenancy).
+
+---
+## Addendum 2026-06-08 (durable guards + verification — all pushed, tip 1eafbf83)
+This stretch converted the session's fixes into permanent regression guards + verified the
+remaining hardenings, rather than just one-off fixes:
+- **3 new blocking CI gates** in regression-gates.yml (owasp-lockdown, runs on PR→main):
+  SPEC-031 `test_ui_route_integrity` (no dead `Navigate to="/?…"` redirects; all targets
+  resolve), SPEC-029 `test_ingest_first_honest_empty` (12 posture/score fields read 0/None
+  for a fresh org), alongside the existing SPEC-027 auth + SPEC-028 NO-MOCKS gates.
+- **Real bug fixed**: triage-funnel exposure_cases counted raw not deduped → showed ~0%
+  noise reduction; now monotonic, reduction_percentage 99.7% (the core ALdeci value).
+- **Red-team item B verified enforced**: path-traversal blocked (ASGI-normalize +
+  _sanitize_bundle_id + verify_allowlisted_path), storage-root allowlist, rate-limiting
+  (429 after burst). 2 stale evidence-endpoint docstrings claiming "demo data for investor
+  presentations" corrected (code was already honest).
+- **T3 over touched engines** caught + fixed 3 self-regressions; dashboard-math audited clean.
+
+State: non-founder-gated frontier is DONE and GUARDED. Further ticks yield diminishing value
+until a founder unblock. Remaining strictly founder-gated: test-infra TestClient pollution
+(highest-leverage unblock for broad-regression T3), org-precedence, 140 dependabot vulns on
+main, repo-of-truth (aldeci-core), schema-tenancy (org_id for sla/network), SAST/DAST
+author-identity. Recommended next: open PR chore/ui-prune-plan-2026-05-24 → main (all pushed
++ verified + now CI-guarded), or fix the test-infra fixture to unblock broad T3.
