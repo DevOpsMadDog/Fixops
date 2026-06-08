@@ -21,7 +21,7 @@ from pathlib import Path
 
 # Force-set the test token BEFORE any auth_deps import so _load_api_tokens()
 # returns it on every per-request call.
-os.environ["FIXOPS_API_TOKEN"] = "test-token-hunt"
+os.environ.setdefault("FIXOPS_API_TOKEN", "test-token-hunt")
 os.environ.setdefault("FIXOPS_MODE", "dev")
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "suite-core"))
@@ -32,7 +32,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from unittest.mock import patch
 
-_HEADERS = {"X-API-Key": "test-token-hunt"}
+_HEADERS = {"X-API-Key": os.environ.get("FIXOPS_API_TOKEN", "test-token-hunt")}
 
 
 # ---------------------------------------------------------------------------

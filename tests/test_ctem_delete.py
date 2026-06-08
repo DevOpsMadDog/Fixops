@@ -3,7 +3,7 @@ import os, sys
 sys.path.insert(0, "/Users/devops.ai/fixops/Fixops/suite-core")
 sys.path.insert(0, "/Users/devops.ai/fixops/Fixops/suite-api")
 
-os.environ["FIXOPS_API_TOKEN"] = "test-key-123"
+os.environ.setdefault("FIXOPS_API_TOKEN", "test-key-123")
 os.environ["ALDECI_API_KEY"] = "test-key-123"
 
 import pytest
@@ -17,7 +17,7 @@ import core.ctem_engine as _ctem_mod
 app = FastAPI()
 app.include_router(router)
 
-HDR = {"X-API-Key": "test-key-123"}
+HDR = {"X-API-Key": os.environ.get("FIXOPS_API_TOKEN", "test-key-123")}
 
 
 @pytest.fixture(autouse=True)

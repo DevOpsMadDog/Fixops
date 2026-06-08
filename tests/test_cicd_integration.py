@@ -26,7 +26,7 @@ import yaml
 # Environment setup — must happen before any app/router imports
 # ---------------------------------------------------------------------------
 os.environ["FIXOPS_MODE"] = "dev"
-os.environ["FIXOPS_API_TOKEN"] = "test-token"
+os.environ.setdefault("FIXOPS_API_TOKEN", "test-token")
 os.environ["FIXOPS_JWT_SECRET"] = "test-secret-that-is-long-enough-32c"
 os.environ.setdefault("FIXOPS_DISABLE_TELEMETRY", "1")
 os.environ.setdefault("FIXOPS_DISABLE_RATE_LIMIT", "1")
@@ -491,7 +491,7 @@ def test_client(tmp_path):
     app = FastAPI()
     app.include_router(cicd_router)
 
-    with TestClient(app, headers={"X-API-Key": "test-token"}) as client:
+    with TestClient(app, headers={"X-API-Key": os.environ.get("FIXOPS_API_TOKEN", "test-token")}) as client:
         yield client
 
     # Clean up singleton for next test

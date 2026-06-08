@@ -18,7 +18,7 @@ for _sub in ("suite-api", "suite-core", "suite-attack", "suite-feeds", "suite-ev
         sys.path.insert(0, _p)
 
 _API_KEY = "test-connectors-types-key-x1"
-os.environ["FIXOPS_API_TOKEN"] = _API_KEY
+os.environ.setdefault("FIXOPS_API_TOKEN", _API_KEY)
 
 import pytest
 from fastapi.testclient import TestClient

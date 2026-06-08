@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 _API_KEY = "test-audit-index-key-x6"
-os.environ["FIXOPS_API_TOKEN"] = _API_KEY
+os.environ.setdefault("FIXOPS_API_TOKEN", _API_KEY)
 _HEADERS = {"X-API-Key": _API_KEY}
 
 

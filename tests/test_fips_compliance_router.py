@@ -7,7 +7,7 @@ import os
 import pytest
 
 # Configure auth BEFORE auth_deps gets imported (same pattern as wave_a tests).
-os.environ["FIXOPS_API_TOKEN"] = "fips-test-token"
+os.environ.setdefault("FIXOPS_API_TOKEN", "fips-test-token")
 os.environ.setdefault("FIXOPS_MODE", "dev")
 
 import apps.api.auth_deps as _auth_mod  # noqa: E402
@@ -20,7 +20,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 def client():
     from apps.api.app import create_app
     app = create_app()
-    return TestClient(app, headers={"X-API-Key": "fips-test-token"})
+    return TestClient(app, headers={"X-API-Key": os.environ.get("FIXOPS_API_TOKEN", "fips-test-token")})
 
 
 def test_get_fips_status_default(client):

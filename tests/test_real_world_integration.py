@@ -18,7 +18,7 @@ import pytest
 
 # Set environment variables BEFORE importing create_app
 API_TOKEN = os.getenv("FIXOPS_API_TOKEN", "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh")
-os.environ["FIXOPS_API_TOKEN"] = API_TOKEN
+os.environ.setdefault("FIXOPS_API_TOKEN", API_TOKEN)
 os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
 os.environ["FIXOPS_MODE"] = os.getenv("FIXOPS_MODE", "enterprise")
 os.environ["FIXOPS_JWT_SECRET"] = "test-jwt-secret-real-world-do-not-use-in-production"

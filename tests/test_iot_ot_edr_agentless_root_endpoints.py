@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 
 # Must be set BEFORE any app/router import so auth_deps picks it up.
 _TEST_TOKEN = "test-iot-ot-edr-root-key"
-os.environ["FIXOPS_API_TOKEN"] = _TEST_TOKEN
+os.environ.setdefault("FIXOPS_API_TOKEN", _TEST_TOKEN)
 
 _HEADERS = {"X-API-Key": _TEST_TOKEN}
 _ACCEPTABLE = {200, 201, 307, 308}

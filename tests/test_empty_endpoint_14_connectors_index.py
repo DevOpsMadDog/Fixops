@@ -16,7 +16,7 @@ _API_TOKEN = os.getenv(
     "FIXOPS_API_TOKEN",
     "aVFf3-1e7EmlXzx37Y8jaCx--yzpd4OJroyIdgXH-vFiylmaN0FDl2vIOAfBA_Oh",
 )
-os.environ["FIXOPS_API_TOKEN"] = _API_TOKEN
+os.environ.setdefault("FIXOPS_API_TOKEN", _API_TOKEN)
 _HEADERS = {"X-API-Key": _API_TOKEN}
 
 

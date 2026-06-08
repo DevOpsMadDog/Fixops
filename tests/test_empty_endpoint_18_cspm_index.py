@@ -4,7 +4,7 @@ Multica issue #3972.
 """
 import os
 
-os.environ["FIXOPS_API_TOKEN"] = "fixops_test_key_ep18"
+os.environ.setdefault("FIXOPS_API_TOKEN", "fixops_test_key_ep18")
 
 from fastapi.testclient import TestClient
 

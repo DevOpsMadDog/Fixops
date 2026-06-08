@@ -19,7 +19,7 @@ import os
 import pytest
 
 # Set auth token BEFORE any app import so auth_deps reads the right value
-os.environ["FIXOPS_API_TOKEN"] = "test-token-gdpr"
+os.environ.setdefault("FIXOPS_API_TOKEN", "test-token-gdpr")
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "suite-api"))
 sys.path.insert(0, str(Path(__file__).parent.parent / "suite-core"))
@@ -39,7 +39,7 @@ def client():
         yield c
 
 
-_HEADERS = {"X-API-Key": "test-token-gdpr"}
+_HEADERS = {"X-API-Key": os.environ.get("FIXOPS_API_TOKEN", "test-token-gdpr")}
 
 
 # ---------------------------------------------------------------------------

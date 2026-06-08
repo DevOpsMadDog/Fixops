@@ -22,7 +22,7 @@ import os
 import sys
 
 # Set env vars BEFORE any imports so auth_deps reads them at module import time
-os.environ["FIXOPS_API_TOKEN"] = "test-sbom-export-router-xyz"
+os.environ.setdefault("FIXOPS_API_TOKEN", "test-sbom-export-router-xyz")
 os.environ.setdefault("FIXOPS_JWT_SECRET", "test-jwt-secret-32-chars-padding!!")
 os.environ.setdefault("FIXOPS_DISABLE_TELEMETRY", "1")
 os.environ.setdefault("FIXOPS_DISABLE_RATE_LIMIT", "1")

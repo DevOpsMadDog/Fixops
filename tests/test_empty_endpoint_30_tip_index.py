@@ -5,7 +5,7 @@ import os
 import pytest
 
 _API_KEY = "test-tip-index-key-x30"
-os.environ["FIXOPS_API_TOKEN"] = _API_KEY
+os.environ.setdefault("FIXOPS_API_TOKEN", _API_KEY)
 _HEADERS = {"X-API-Key": _API_KEY}
 
 

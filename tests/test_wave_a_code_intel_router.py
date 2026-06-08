@@ -19,7 +19,7 @@ import pytest
 # Configure auth BEFORE auth_deps gets imported.
 # api_key_auth reads FIXOPS_API_TOKEN + FIXOPS_MODE at module-import time, so
 # we set a known token here and pass it as X-API-Key on every request below.
-os.environ["FIXOPS_API_TOKEN"] = "wave-a-test-token"
+os.environ.setdefault("FIXOPS_API_TOKEN", "wave-a-test-token")
 os.environ.setdefault("FIXOPS_MODE", "dev")
 
 from fastapi import FastAPI  # noqa: E402
@@ -57,7 +57,7 @@ def app() -> FastAPI:
 
 @pytest.fixture(scope="module")
 def client(app: FastAPI) -> TestClient:
-    return TestClient(app, headers={"X-API-Key": "wave-a-test-token"})
+    return TestClient(app, headers={"X-API-Key": os.environ.get("FIXOPS_API_TOKEN", "wave-a-test-token")})
 
 
 @pytest.fixture(scope="module")

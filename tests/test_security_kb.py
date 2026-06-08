@@ -24,7 +24,7 @@ import pytest
 # Environment setup — must happen before any app imports
 # ---------------------------------------------------------------------------
 os.environ["FIXOPS_MODE"] = "dev"
-os.environ["FIXOPS_API_TOKEN"] = "test-token"
+os.environ.setdefault("FIXOPS_API_TOKEN", "test-token")
 os.environ["FIXOPS_JWT_SECRET"] = "test-secret-that-is-at-least-32-chars-long"
 os.environ.setdefault("FIXOPS_DISABLE_TELEMETRY", "1")
 os.environ.setdefault("FIXOPS_DISABLE_RATE_LIMIT", "1")

@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 # Set auth token before any app import so auth_deps picks it up
-os.environ["FIXOPS_API_TOKEN"] = "test-token-settings"
+os.environ.setdefault("FIXOPS_API_TOKEN", "test-token-settings")
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "suite-api"))
 sys.path.insert(0, str(Path(__file__).parent.parent / "suite-core"))
@@ -34,7 +34,7 @@ app = FastAPI()
 app.include_router(router)
 
 client = TestClient(app, raise_server_exceptions=True)
-HEADERS = {"X-API-Key": "test-token-settings", "X-Org-ID": "test-org"}
+HEADERS = {"X-API-Key": os.environ.get("FIXOPS_API_TOKEN", "test-token-settings"), "X-Org-ID": "test-org"}
 
 VALID_STAGE_MATRIX = {
     "ide": True,

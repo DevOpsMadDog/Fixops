@@ -13,7 +13,7 @@ import os
 import pytest
 
 API_KEY = "fixops_test_key_incidents_index"
-os.environ["FIXOPS_API_TOKEN"] = API_KEY
+os.environ.setdefault("FIXOPS_API_TOKEN", API_KEY)
 os.environ.setdefault("FIXOPS_MODE", "dev")
 
 from apps.api.app import create_app  # noqa: E402

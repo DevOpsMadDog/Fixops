@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "suite-api"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "suite-core"))
 
 # Auth env vars must be set before importing auth_deps (read at import time)
-os.environ["FIXOPS_API_TOKEN"] = "test-token-compliance-seed"
+os.environ.setdefault("FIXOPS_API_TOKEN", "test-token-compliance-seed")
 os.environ["FIXOPS_MODE"] = "dev"
 
 from fastapi.testclient import TestClient
@@ -38,7 +38,7 @@ client = TestClient(_app, raise_server_exceptions=False)
 
 HEADERS = {
     "X-Org-ID": "test-org-compliance-seed",
-    "X-API-Key": "test-token-compliance-seed",
+    "X-API-Key": os.environ.get("FIXOPS_API_TOKEN", "test-token-compliance-seed"),
 }
 
 
@@ -125,7 +125,7 @@ def test_stats_without_org_header_still_responds():
     """Router falls back to 'default' org when X-Org-ID is absent."""
     resp = client.get(
         "/api/v1/compliance-seed/stats",
-        headers={"X-API-Key": "test-token-compliance-seed"},
+        headers={"X-API-Key": os.environ.get("FIXOPS_API_TOKEN", "test-token-compliance-seed")},
     )
     # Should not be 422 — org_id has a default
     assert resp.status_code != 422

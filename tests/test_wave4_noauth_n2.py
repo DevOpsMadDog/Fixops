@@ -33,7 +33,7 @@ for _p in [
 # Force-set (not setdefault) so a pre-existing env value doesn't shadow us.
 # ---------------------------------------------------------------------------
 _TEST_TOKEN = "test-token-wave4-n2"
-os.environ["FIXOPS_API_TOKEN"] = _TEST_TOKEN
+os.environ.setdefault("FIXOPS_API_TOKEN", _TEST_TOKEN)
 os.environ["FIXOPS_MODE"] = "test"  # NOT dev/demo — real auth enforced
 
 

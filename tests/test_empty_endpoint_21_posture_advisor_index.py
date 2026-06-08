@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 API_KEY = "fixops_test_key_ep21"
-os.environ["FIXOPS_API_TOKEN"] = API_KEY
+os.environ.setdefault("FIXOPS_API_TOKEN", API_KEY)
 os.environ.setdefault("FIXOPS_MODE", "dev")
 
 from apps.api.app import create_app  # noqa: E402

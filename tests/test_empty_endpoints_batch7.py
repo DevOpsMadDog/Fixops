@@ -42,7 +42,7 @@ from fastapi.testclient import TestClient
 
 # Set API key BEFORE importing the app so api_key_auth picks it up.
 API_KEY = "fixops_test_key_batch7"
-os.environ["FIXOPS_API_TOKEN"] = API_KEY
+os.environ.setdefault("FIXOPS_API_TOKEN", API_KEY)
 os.environ.setdefault("FIXOPS_MODE", "dev")
 
 from apps.api.app import create_app  # noqa: E402

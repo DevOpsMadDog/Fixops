@@ -8,7 +8,7 @@ evidence-risk router is not mounted.
 import os
 import pytest
 
-os.environ["FIXOPS_API_TOKEN"] = "fixops_test_key_ep19"
+os.environ.setdefault("FIXOPS_API_TOKEN", "fixops_test_key_ep19")
 API_KEY = "fixops_test_key_ep19"
 HEADERS = {"X-API-Key": API_KEY}
 

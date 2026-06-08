@@ -23,7 +23,7 @@ from fastapi.testclient import TestClient
 
 # Set auth env before app import so middleware picks it up.
 TEST_API_KEY = "test-identity-iam-batch5"
-os.environ["FIXOPS_API_TOKEN"] = TEST_API_KEY
+os.environ.setdefault("FIXOPS_API_TOKEN", TEST_API_KEY)
 os.environ.setdefault("FIXOPS_MODE", "dev")
 
 from apps.api.app import create_app  # noqa: E402

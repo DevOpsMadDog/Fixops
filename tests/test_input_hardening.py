@@ -32,7 +32,7 @@ os.environ["FIXOPS_DISABLE_RATE_LIMIT"] = "1"
 os.environ.setdefault("FIXOPS_JWT_SECRET", "test-secret-minimum-32-chars-xxxxxx")
 # Set a known API token so auth middleware accepts our test requests
 _TEST_API_TOKEN = "hardening-test-token-abc123"
-os.environ["FIXOPS_API_TOKEN"] = _TEST_API_TOKEN
+os.environ.setdefault("FIXOPS_API_TOKEN", _TEST_API_TOKEN)
 
 # ---------------------------------------------------------------------------
 # Imports — PYTHONPATH must include suite-api and suite-core

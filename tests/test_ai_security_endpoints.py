@@ -12,7 +12,7 @@ import os
 
 # Must be set before any app imports so auth_deps picks them up.
 os.environ["FIXOPS_MODE"] = "enterprise"
-os.environ["FIXOPS_API_TOKEN"] = "test-key"
+os.environ.setdefault("FIXOPS_API_TOKEN", "test-key")
 os.environ["FIXOPS_JWT_SECRET"] = "test-secret-that-is-at-least-32chars!"
 os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
 os.environ["FIXOPS_DISABLE_RATE_LIMIT"] = "1"
@@ -32,7 +32,7 @@ def client():
 
 
 # X-API-Key is the correct header name per auth_deps.py line 128
-AUTH = {"X-API-Key": "test-key"}
+AUTH = {"X-API-Key": os.environ.get("FIXOPS_API_TOKEN", "test-key")}
 ORG = "test-ai-security"
 
 

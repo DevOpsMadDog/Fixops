@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 
 os.environ["FIXOPS_MODE"] = "enterprise"
-os.environ["FIXOPS_API_TOKEN"] = "test-key"
+os.environ.setdefault("FIXOPS_API_TOKEN", "test-key")
 os.environ["FIXOPS_JWT_SECRET"] = "test-secret-that-is-at-least-32chars!"
 os.environ["FIXOPS_DISABLE_TELEMETRY"] = "1"
 os.environ["FIXOPS_DISABLE_RATE_LIMIT"] = "1"
@@ -27,7 +27,7 @@ def client():
     return TestClient(app, raise_server_exceptions=True)
 
 
-AUTH = {"X-API-Key": "test-key"}
+AUTH = {"X-API-Key": os.environ.get("FIXOPS_API_TOKEN", "test-key")}
 
 
 def test_ide_root_returns_200(client):

@@ -42,7 +42,7 @@ from fastapi.testclient import TestClient
 # Set API key BEFORE importing the app so api_key_auth picks it up.
 # Auth precedence: FIXOPS_API_TOKEN (canonical, see suite-api/apps/api/auth_deps.py:70).
 API_KEY = "fixops_test_key_batch6"
-os.environ["FIXOPS_API_TOKEN"] = API_KEY
+os.environ.setdefault("FIXOPS_API_TOKEN", API_KEY)
 os.environ.setdefault("FIXOPS_MODE", "dev")  # belt-and-suspenders dev bypass
 
 from apps.api.app import create_app  # noqa: E402
