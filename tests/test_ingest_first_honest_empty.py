@@ -37,8 +37,12 @@ def client():
 
 
 def _get(client, path):
+    # Read the token from the LIVE env (not the import-time _TOKEN constant): in a
+    # multi-file batch another module may mutate FIXOPS_API_TOKEN after this one
+    # imports, desyncing a captured constant from what create_app validates → 401.
+    # See feedback_testclient_token_pollution.
     r = client.get(path + ("&" if "?" in path else "?") + f"org_id={_FRESH}",
-                   headers={"X-API-Key": _TOKEN})
+                   headers={"X-API-Key": os.environ.get("FIXOPS_API_TOKEN", _TOKEN)})
     return r.status_code, (r.json() if r.status_code == 200 else None)
 
 
