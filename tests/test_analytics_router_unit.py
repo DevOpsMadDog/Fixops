@@ -45,7 +45,8 @@ def client():
 
 @pytest.fixture
 def auth_headers():
-    return {"X-API-Key": API_TOKEN}
+    # Live env at fixture time (not import-time API_TOKEN) — batch token-pollution safe.
+    return {"X-API-Key": os.environ.get("FIXOPS_API_TOKEN", API_TOKEN)}
 
 
 # ---------------------------------------------------------------------------
