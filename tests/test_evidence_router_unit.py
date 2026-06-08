@@ -57,8 +57,15 @@ def unconfigured_client():
 
 @pytest.fixture
 def auth_headers():
-    """Return auth headers for API requests."""
-    return {"X-API-Key": API_TOKEN}
+    """Return auth headers for API requests.
+
+    Read the token at FIXTURE time (live env), not the import-time API_TOKEN
+    constant: in a multi-file batch another test module may mutate
+    FIXOPS_API_TOKEN after this module imports, desyncing a captured constant
+    from what create_app() validates at request time → spurious 401s. Reading
+    the live env keeps the header in sync with the app under test.
+    """
+    return {"X-API-Key": os.environ.get("FIXOPS_API_TOKEN", API_TOKEN)}
 
 
 @pytest.fixture
