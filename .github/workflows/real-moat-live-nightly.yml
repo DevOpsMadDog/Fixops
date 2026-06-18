@@ -1,0 +1,48 @@
+name: Real-Moat Live (nightly)
+
+# Proves the $100K moat actually runs: a real 5-member OpenRouter council convenes on a
+# real finding and reports cost_usd > 0 with distinct member reasoning (SPEC-032 live half).
+# Costs money + needs network, so it runs nightly / on-demand only — NOT on PRs, NOT air-gapped.
+# The CI-safe counterpart (tests/test_real_moat_e2e.py) runs on every PR in regression-gates.yml.
+
+on:
+  schedule:
+    - cron: "0 7 * * *"   # 07:00 UTC daily
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  live-moat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      FIXOPS_API_TOKEN: "ci-test-token"
+      FIXOPS_JWT_SECRET: "ci-jwt-secret-for-testing-only-not-production"
+      FIXOPS_DISABLE_TELEMETRY: "1"
+      FIXOPS_DISABLE_RATE_LIMIT: "1"
+      PYTHONPATH: suite-api:suite-core:suite-attack:suite-feeds:suite-evidence-risk:suite-integrations:.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+      - name: Guard — fail if no live key configured
+        run: |
+          if [ -z "${OPENROUTER_API_KEY}" ]; then
+            echo "::error::OPENROUTER_API_KEY secret not set — the live real-moat test cannot prove cost>0."
+            exit 1
+          fi
+      - name: Real-moat LIVE (cost>0 + distinct member reasoning)
+        run: |
+          python -m pytest -m live tests/test_real_moat_live.py \
+            -v --tb=short --timeout=300 \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"

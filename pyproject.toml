@@ -81,6 +81,7 @@ markers = [
     "requires_k8s: Tests that require Kubernetes",
     "asyncio: Async tests using pytest-asyncio",
     "owasp: OWASP regression lockdown tests",
+    "live: Real-moat tests that make live paid LLM calls (nightly only; needs API key + network; not air-gap)",
 ]
 log_cli = true
 log_cli_level = "INFO"

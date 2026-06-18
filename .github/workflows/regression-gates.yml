@@ -77,6 +77,12 @@ jobs:
             -x --tb=short --timeout=90 -q \
             --override-ini="addopts=" \
             --override-ini="log_cli=false"
+      - name: Real-moat E2E gate (SPEC-032, CI-safe — real ingest + no-fabricated-council)
+        run: |
+          python -m pytest tests/test_real_moat_e2e.py \
+            -x --tb=short --timeout=60 -q \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"
       - name: Perf lockdown (benchmarks/)
         run: |
           python -m pytest tests/benchmarks/ \
