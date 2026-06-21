@@ -1266,7 +1266,7 @@ async def false_positive_rate(
     scanner: Optional[str] = Query(None),
     cwe_id: Optional[str] = Query(None),
     app_id: Optional[str] = Query(None),
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """[V3] Get false-positive rate from analyst feedback.
 
