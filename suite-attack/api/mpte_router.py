@@ -242,6 +242,8 @@ async def mpte_health():
     """MPTE verification engine health check."""
     configs = db.list_configs(limit=10)
     results = db.list_results(limit=1)
+    # NOTE: /health is an unauthenticated aggregate — no org context available.
+    # scan_count intentionally shows system-wide total (not per-tenant) for ops monitoring.
     scan_count = len(_get_all_scan_results())
     return {
         "status": "healthy",
@@ -750,8 +752,8 @@ def list_pen_test_results(
         offset=offset,
     )
 
-    # Merge real scan results into the response
-    scan_results = _get_all_scan_results()
+    # Merge real scan results into the response — scoped to caller's org
+    scan_results = _get_all_scan_results(org_id)
     scan_items = []
     for sr in scan_results:
         # Transform scan result into the format the frontend expects
@@ -1063,14 +1065,25 @@ def _store_scan_result(result: dict) -> None:
         _scan_results[result["scan_id"]] = result
 
 
-def _get_all_scan_results() -> list:
-    """Get all stored scan results."""
+def _get_all_scan_results(org_id: Optional[str] = None) -> list:
+    """Get stored scan results, optionally scoped to a specific org.
+
+    When org_id is provided, only results whose stored "org_id" matches are
+    returned — results with no org_id tag are excluded to avoid leaking
+    pre-tagging data to other tenants.
+    """
     with _scan_results_lock:
-        return list(_scan_results.values())
+        values = list(_scan_results.values())
+    if org_id is not None:
+        return [r for r in values if r.get("org_id") == org_id]
+    return values
 
 
 @router.post("/scan/comprehensive", status_code=201)
-async def run_comprehensive_scan(data: ComprehensiveScanModel):
+async def run_comprehensive_scan(
+    data: ComprehensiveScanModel,
+    org_id: str = Depends(get_org_id),
+):
     """
     Run comprehensive multi-vector security scan using BUILT-IN scanner.
 
@@ -1108,6 +1121,8 @@ async def run_comprehensive_scan(data: ComprehensiveScanModel):
             depth=depth,
         )
         result_dict = result.to_dict()
+        # Tag with org_id so _get_all_scan_results() can filter per tenant
+        result_dict["org_id"] = org_id
 
         # Store the result for later retrieval via /results and /stats
         _store_scan_result(result_dict)
@@ -1346,19 +1361,30 @@ def get_verification_detail(verification_id: str):
 
 
 @router.get("/stats")
-def get_pen_test_stats():
-    """Get statistics about pen tests including real scan results."""
+def get_pen_test_stats(org_id: str = Depends(get_org_id)):
+    """Get statistics about pen tests including real scan results, scoped to caller's org."""
     try:
         all_requests = db.list_requests(limit=10000)
+        # Filter DB requests to this org (org_id stored in metadata at creation time)
+        all_requests = [
+            r for r in all_requests
+            if r.metadata.get("org_id") == org_id
+        ]
     except (OSError, ValueError, RuntimeError) as exc:
         logger.warning("Failed to list MPTE requests: %s", type(exc).__name__)
         all_requests = []
     try:
         all_results = db.list_results(limit=10000)
+        # PenTestResult carries org_id in metadata (written at create_pen_test_request time);
+        # filter strictly — results without org_id are excluded to avoid cross-tenant bleed.
+        all_results = [
+            r for r in all_results
+            if (r.metadata or {}).get("org_id") == org_id
+        ]
     except (OSError, ValueError, RuntimeError) as exc:
         logger.warning("Failed to list MPTE results: %s", type(exc).__name__)
         all_results = []
-    scan_results = _get_all_scan_results()
+    scan_results = _get_all_scan_results(org_id)
 
     # Count from real scan results
     total_scans = len(scan_results)
