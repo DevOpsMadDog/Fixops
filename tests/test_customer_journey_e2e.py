@@ -485,6 +485,25 @@ def test_step5_get_findings_and_tenant_isolation(journey_state: Dict[str, Any]) 
     )
 
     journey_state["step5_org_b_total"] = total_b
+
+    # (c) Canonical readback path (/security-findings/) — unlike /api/v1/findings
+    # (in-memory store, C3 split tracked in Multica #9094), this DOES reflect
+    # scanner-ingest. Assert REAL tenant isolation here so the gate proves the
+    # contract instead of relying on the always-true isinstance check above.
+    sf_b = _client.get(
+        f"/api/v1/security-findings/?org_id={_ORG_B}&limit=200", headers=_headers(_ORG_B)
+    )
+    if sf_b.status_code == 200:
+        body_sfb = _json_safe(sf_b)
+        sfb = body_sfb.get("findings", body_sfb if isinstance(body_sfb, list) else [])
+        # org B must not see any finding tagged to org A (real cross-tenant proof)
+        leaked = [f for f in sfb if isinstance(f, dict) and f.get("org_id") == org_id]
+        assert not leaked, (
+            f"[step5_canonical_isolation] CRITICAL TENANT LEAK on /security-findings/: "
+            f"org B ({_ORG_B}) sees {len(leaked)} of org A's findings; first: {leaked[0]}"
+        )
+        journey_state["step5_canonical_org_b_total"] = len(sfb)
+
     journey_state["step5_tenant_isolation_pass"] = True
 
 
