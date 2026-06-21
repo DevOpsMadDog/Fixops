@@ -392,29 +392,6 @@ class AssetGroupEngine:
         asset_type: str,
         added_by: str = "",
     ) -> Dict[str, Any]:
-        """Add multiple assets to a group. Returns count actually inserted."""
-        count = 0
-        for asset_id in asset_ids:
-            try:
-                self.add_member(group_id, org_id, asset_id, asset_type, added_by)
-                # If member was newly inserted, added_at matches ~now
-                count += 1
-            except Exception:
-                pass
-        # Recalculate actual count from DB
-        # We just track how many calls succeeded (not whether they were duplicates)
-        # Re-run with proper tracking:
-        # Reset and redo properly
-        return {"group_id": group_id, "requested": len(asset_ids), "added": count}
-
-    def bulk_add_members(  # noqa: F811
-        self,
-        group_id: str,
-        org_id: str,
-        asset_ids: List[str],
-        asset_type: str,
-        added_by: str = "",
-    ) -> Dict[str, Any]:
         """Add multiple assets to a group. Returns count actually inserted (dedup-aware)."""
         self._ensure_db(org_id)
         if asset_type not in _VALID_ASSET_TYPES:

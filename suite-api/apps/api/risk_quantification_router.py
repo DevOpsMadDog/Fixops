@@ -11,8 +11,10 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+
+from apps.api.dependencies import get_org_id
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +92,7 @@ class FinancialImpactCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/scenarios")
-def list_scenarios(org_id: str = Query("default", description="Organisation ID")) -> List[Dict[str, Any]]:
+def list_scenarios(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List all risk scenarios for an org."""
     return _get_engine().list_scenarios(org_id)
 
@@ -98,7 +100,7 @@ def list_scenarios(org_id: str = Query("default", description="Organisation ID")
 @router.post("/scenarios", status_code=201)
 def create_scenario(
     payload: ScenarioCreate,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new FAIR risk scenario."""
     try:
@@ -112,7 +114,7 @@ def create_scenario(
 def update_scenario(
     scenario_id: str,
     payload: ScenarioUpdate,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update an existing risk scenario."""
     data = {k: v for k, v in payload.model_dump().items() if v is not None}
@@ -133,7 +135,7 @@ def update_scenario(
 def run_monte_carlo(
     scenario_id: str,
     payload: MonteCarloRequest,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Run a Monte Carlo loss simulation on the scenario."""
     try:
@@ -151,7 +153,7 @@ def run_monte_carlo(
 
 @router.get("/treatments")
 def list_treatments(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     scenario_id: Optional[str] = Query(None, description="Filter by scenario"),
 ) -> List[Dict[str, Any]]:
     """List risk treatments, optionally filtered by scenario."""
@@ -161,7 +163,7 @@ def list_treatments(
 @router.post("/treatments", status_code=201)
 def create_treatment(
     payload: TreatmentCreate,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a risk treatment with auto-computed ROI."""
     try:
@@ -177,7 +179,7 @@ def create_treatment(
 
 @router.get("/financial-impacts")
 def list_financial_impacts(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     fiscal_year: Optional[int] = Query(None, description="Filter by fiscal year"),
 ) -> List[Dict[str, Any]]:
     """List financial impacts, optionally filtered by fiscal year."""
@@ -187,7 +189,7 @@ def list_financial_impacts(
 @router.post("/financial-impacts", status_code=201)
 def record_financial_impact(
     payload: FinancialImpactCreate,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record the financial impact of an actual security incident."""
     try:
@@ -203,7 +205,7 @@ def record_financial_impact(
 
 @router.get("/stats")
 def get_risk_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate risk statistics for the org."""
     return _get_engine().get_risk_stats(org_id)

@@ -242,13 +242,12 @@ class DataLakeSecurityEngine:
             })
             # already counted above
 
-        if cls == "confidential" and cls == "public":
-            findings.append({
-                "issue": "confidential_data_public",
-                "severity": "critical",
-                "recommendation": "Reclassify or restrict access immediately",
-            })
-            deductions += _ISSUE_WEIGHTS["confidential_public"]
+        # NOTE: a "confidential data publicly accessible" check belongs here, but
+        # the data_stores schema has no public-exposure/access-control column to
+        # evaluate it against. The previous condition `cls == "confidential" and
+        # cls == "public"` was logically impossible (one value can't equal two) and
+        # never fired — removed as dead code. Implementing this honestly needs a
+        # `publicly_accessible` field on the store (schema change, tracked).
 
         score = max(0, 100 - deductions)
         return {
