@@ -38,6 +38,8 @@ from core.evidence_chain_engine import EvidenceChainEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from apps.api.dependencies import get_org_id  # SPEC-034: org_id from auth context
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
@@ -112,7 +114,7 @@ class ExportCoverageIn(BaseModel):
 
 @router.get("/")
 def summary(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Router summary: stats snapshot for the evidence-chain domain."""
     try:
@@ -135,7 +137,7 @@ def summary(
 
 @router.get("/cases")
 def list_cases(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     """List all investigation cases for an org."""
@@ -149,7 +151,7 @@ def list_cases(
 @router.post("/cases", status_code=201)
 def create_case(
     payload: CaseIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new investigation case."""
     try:
@@ -162,7 +164,7 @@ def create_case(
 @router.get("/cases/{case_id}")
 def get_case(
     case_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single investigation case."""
     try:
@@ -181,7 +183,7 @@ def get_case(
 def close_case(
     case_id: str,
     payload: CloseIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Close a case with outcome."""
     try:
@@ -204,7 +206,7 @@ def close_case(
 @router.get("/cases/{case_id}/evidence")
 def list_evidence(
     case_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all evidence items for a case."""
     try:
@@ -218,7 +220,7 @@ def list_evidence(
 def add_evidence(
     case_id: str,
     payload: EvidenceIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add an evidence item to a case."""
     try:
@@ -236,7 +238,7 @@ def add_evidence(
 @router.get("/evidence/{evidence_id}/custody")
 def get_custody_chain(
     evidence_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get the complete chain of custody for an evidence item."""
     try:
@@ -255,7 +257,7 @@ def get_custody_chain(
 def transfer_custody(
     evidence_id: str,
     payload: TransferIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record a custody transfer for an evidence item."""
     try:
@@ -276,7 +278,7 @@ def transfer_custody(
 def seal_evidence(
     evidence_id: str,
     payload: SealIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Seal evidence to prevent further custody transfers."""
     try:
@@ -294,7 +296,7 @@ def seal_evidence(
 @router.get("/evidence/{evidence_id}/verify")
 def verify_integrity(
     evidence_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Verify hash consistency and chain integrity for an evidence item."""
     try:
@@ -312,7 +314,7 @@ def verify_integrity(
 @router.post("/export-coverage", status_code=201)
 def verify_export_coverage(
     payload: ExportCoverageIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Verify export coverage of evidence items against a compliance filter.
 
@@ -330,7 +332,7 @@ def verify_export_coverage(
 
 @router.get("/verifications")
 def list_verifications(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500),
 ) -> List[Dict[str, Any]]:
     """List past export-coverage verifications for an org (most recent first)."""
@@ -348,7 +350,7 @@ def list_verifications(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return evidence statistics for an org."""
     try:
