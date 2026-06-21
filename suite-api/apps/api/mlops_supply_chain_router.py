@@ -29,7 +29,10 @@ try:
     from fastapi import Depends
     _AUTH_DEP: list = [Depends(_api_key_auth)]
 except ImportError:
-    _AUTH_DEP = []
+    def _api_key_auth_failclosed():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
+    _AUTH_DEP = [Depends(_api_key_auth_failclosed)]
 
 from core.supply_chain_analyzer import SupplyChainAnalyzer, get_supply_chain_analyzer
 

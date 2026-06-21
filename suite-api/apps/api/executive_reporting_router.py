@@ -48,7 +48,10 @@ try:  # pragma: no cover - import guard
 
     _AUTH_DEP: list = [Depends(_api_key_auth)]
 except Exception:  # pragma: no cover
-    _AUTH_DEP = []
+    def _api_key_auth_failclosed():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
+    _AUTH_DEP = [Depends(_api_key_auth_failclosed)]
 
 router = APIRouter(prefix="/api/v1/exec-reporting", tags=["exec-reporting"], dependencies=_AUTH_DEP)
 

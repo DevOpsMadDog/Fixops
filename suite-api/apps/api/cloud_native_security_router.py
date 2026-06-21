@@ -22,7 +22,10 @@ try:
     from apps.api.auth_deps import api_key_auth as _real_api_key_auth
     _AUTH_DEP = [Depends(_real_api_key_auth)]
 except Exception:  # pragma: no cover
-    _AUTH_DEP = []
+    def _api_key_auth_failclosed():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
+    _AUTH_DEP = [Depends(_api_key_auth_failclosed)]
 
 router = APIRouter(prefix="/api/v1/cloud-native", tags=["cloud-native"], dependencies=_AUTH_DEP)
 

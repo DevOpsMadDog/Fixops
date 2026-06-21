@@ -28,7 +28,10 @@ except ImportError:
         "endpoint_security_router: auth_deps not available, "
         "relying on app.py mount-level auth"
     )
-    _AUTH_DEP = []
+    def _api_key_auth_failclosed():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
+    _AUTH_DEP = [Depends(_api_key_auth_failclosed)]
 
 from core.endpoint_security_engine import EndpointSecurityEngine
 

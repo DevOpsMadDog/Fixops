@@ -34,7 +34,10 @@ except ImportError:
     _logging.getLogger(__name__).warning(
         "gap_router: auth_deps not available, sub-routers will rely on app.py mount-level auth"
     )
-    _AUTH_DEP = []
+    def _api_key_auth_failclosed():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
+    _AUTH_DEP = [Depends(_api_key_auth_failclosed)]
 
 logger = logging.getLogger(__name__)
 _logger = logger

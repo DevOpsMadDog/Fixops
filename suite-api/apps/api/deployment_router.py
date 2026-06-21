@@ -24,7 +24,10 @@ try:  # SECURITY 2026-06-03: was unauthenticated (POST /initialize with no API k
     from apps.api.auth_deps import api_key_auth as _api_key_auth
     _AUTH_DEP = [_Depends(_api_key_auth)]
 except Exception:  # pragma: no cover
-    _AUTH_DEP = []
+    def _api_key_auth_failclosed():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
+    _AUTH_DEP = [Depends(_api_key_auth_failclosed)]
 router = APIRouter(prefix="/api/v1/deployment", tags=["Deployment"], dependencies=_AUTH_DEP)
 
 # ─── Lazy manager import (avoids circular deps at module load time) ───────────

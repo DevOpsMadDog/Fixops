@@ -22,7 +22,10 @@ try:
     from apps.api.auth_deps import api_key_auth
     _AUTH_DEP = [Depends(api_key_auth)]
 except Exception:
-    _AUTH_DEP = []
+    def _api_key_auth_failclosed():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
+    _AUTH_DEP = [Depends(_api_key_auth_failclosed)]
 
 router = APIRouter(
     prefix="/api/v1/developer-profiles",
