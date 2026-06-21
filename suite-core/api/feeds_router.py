@@ -827,10 +827,16 @@ def get_mitre_techniques(
         "data_source": {
             "provider": "MITRE Corporation",
             "feed_id": "mitre-attack-v15",
+            # NO-MOCKS: this is a curated subset SHIPPED with the product (a legit
+            # reference catalog), NOT a live STIX/TAXII fetch. Report it honestly —
+            # the bundle's version date, not utcnow() (which faked live freshness).
+            "source_type": "bundled_static",
+            "bundled_count": len(_MITRE_TECHNIQUES),
             "stix_endpoint": "https://attack.mitre.org/versions/v15/collections/enterprise-attack.json",
             "taxii_endpoint": "https://attack.mitre.org/taxii/",
-            "last_updated": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "next_update": (datetime.utcnow() + timedelta(days=182)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "last_updated": "2024-04-23T00:00:00Z",  # MITRE ATT&CK v15 release date (bundle)
+            "next_update": None,  # live STIX/TAXII sync not configured
+            "note": "Bundled curated subset of high-prevalence techniques from MITRE ATT&CK v15; live STIX/TAXII sync not configured.",
         },
         "tactic_summary": {
             tactic_name: sum(1 for t in _MITRE_TECHNIQUES if t["tactic"] == tactic_name)
