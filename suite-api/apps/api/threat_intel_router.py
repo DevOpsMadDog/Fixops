@@ -502,7 +502,9 @@ async def get_feeds_status() -> Dict[str, Any]:
     """
     feodo_count = _get_feodo_count()
     feodo_last = _get_feodo_last_updated()
-    kev_count = _get_kev_count() or 1100
+    # NO-MOCKS: report the real cache count; 0 (not a fabricated magic number)
+    # when the feed has never been fetched.
+    kev_count = _get_kev_count() or 0
     osv_count = _get_osv_count() or 0
 
     has_abuseipdb = bool(_os.environ.get("ABUSEIPDB_API_KEY", ""))
@@ -513,7 +515,7 @@ async def get_feeds_status() -> Dict[str, Any]:
             "name": "Feodo C2 Blocklist",
             "source": "feodo_c2",
             "ioc_type": "ip",
-            "ioc_count": feodo_count or 600,
+            "ioc_count": feodo_count,
             "last_updated": feodo_last,
             "health": "healthy" if feodo_count > 0 else "degraded",
             "url": "https://feodotracker.abuse.ch/downloads/ipblocklist.json",
@@ -522,7 +524,7 @@ async def get_feeds_status() -> Dict[str, Any]:
             "name": "URLhaus",
             "source": "urlhaus",
             "ioc_type": "url",
-            "ioc_count": 3200,
+            "ioc_count": 0,
             "last_updated": None,
             "health": "degraded",
             "note": "No API key configured",
@@ -531,7 +533,7 @@ async def get_feeds_status() -> Dict[str, Any]:
             "name": "ThreatFox",
             "source": "threatfox",
             "ioc_type": "mixed",
-            "ioc_count": 8900,
+            "ioc_count": 0,
             "last_updated": None,
             "health": "degraded",
             "note": "No API key configured",
@@ -551,7 +553,7 @@ async def get_feeds_status() -> Dict[str, Any]:
             "ioc_type": "cve",
             "ioc_count": kev_count,
             "last_updated": None,
-            "health": "healthy",
+            "health": "healthy" if kev_count > 0 else "no_data",
             "url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
         },
         {
@@ -598,23 +600,24 @@ async def get_feeds_summary() -> Dict[str, Any]:
     Aggregated stats: total IOCs, counts by type and source.
     """
     feodo_count = _get_feodo_count()
-    kev_count = _get_kev_count() or 1100
+    # NO-MOCKS: real cache counts only; 0 for feeds never fetched (no fabricated magic numbers).
+    kev_count = _get_kev_count() or 0
     osv_count = _get_osv_count() or 0
 
     by_type = {
-        "ip": feodo_count or 600,
-        "url": 3200,
+        "ip": feodo_count,
+        "url": 0,
         "hash": 0,
         "cve": kev_count + osv_count,
         "domain": 0,
-        "mixed": 8900,
+        "mixed": 0,
     }
     by_source = {
-        "feodo_c2": feodo_count or 600,
+        "feodo_c2": feodo_count,
         "cisa_kev": kev_count,
         "osv": osv_count,
-        "urlhaus": 3200,
-        "threatfox": 8900,
+        "urlhaus": 0,
+        "threatfox": 0,
         "malwarebazaar": 0,
         "otx": 0,
         "abuseipdb": 0,
