@@ -76,7 +76,7 @@ class VulnerableRequest(BaseModel):
 
 @router.post("/parse")
 async def parse_repo(body: ParseRequest) -> Dict[str, Any]:
-    """Parse a repo into the call graph (Python only in v0)."""
+    """Parse a repo into the call graph (Python, TypeScript/JavaScript, Java)."""
     eng = _get_engine()
     lang = body.language.lower().strip()
     try:
@@ -85,11 +85,13 @@ async def parse_repo(body: ParseRequest) -> Dict[str, Any]:
                 body.org_id, body.repo_ref, body.root_path
             )
         elif lang in ("typescript", "javascript"):
-            eng.parse_typescript_repo(body.org_id, body.repo_ref, body.root_path)
-            raise RuntimeError("unreachable")  # pragma: no cover
+            nodes_added = eng.parse_typescript_repo(
+                body.org_id, body.repo_ref, body.root_path
+            )
         elif lang == "java":
-            eng.parse_java_repo(body.org_id, body.repo_ref, body.root_path)
-            raise RuntimeError("unreachable")  # pragma: no cover
+            nodes_added = eng.parse_java_repo(
+                body.org_id, body.repo_ref, body.root_path
+            )
         else:
             raise HTTPException(
                 status_code=422,
