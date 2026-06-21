@@ -119,6 +119,24 @@ jobs:
             -x --tb=short --timeout=30 -q \
             --override-ini="addopts=" \
             --override-ini="log_cli=false"
+      - name: Reachability multilang gate (SPEC-011 — TS/JS/Java parse, no false 500)
+        run: |
+          python -m pytest tests/test_function_reachability_engine.py tests/test_reachability_parse_multilang.py \
+            -x --tb=short --timeout=30 -q \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"
+      - name: Graph-populate gate (SPEC-005b)
+        run: |
+          python -m pytest tests/test_graph_populate.py \
+            -x --tb=short --timeout=30 -q \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"
+      - name: Honest-compliance gate (SPEC-006)
+        run: |
+          python -m pytest tests/test_compliance_engine_unit.py \
+            -x --tb=short --timeout=30 -q \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"
       - name: Perf lockdown (benchmarks/)
         run: |
           python -m pytest tests/benchmarks/ \
