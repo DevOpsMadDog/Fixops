@@ -16,6 +16,7 @@ Tests:
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -191,8 +192,11 @@ def test_import_kev_endpoint_no_longer_501(tmp_db):
         app = FastAPI()
         app.include_router(router)
         client = TestClient(app)
+        # Router enforces api_key_auth (fail-closed, 2026-06-03) — authenticate.
+        # Read the token live (CI/conftest canonical) per the token-pollution fix.
+        _auth = {"X-API-Key": os.environ.get("FIXOPS_API_TOKEN", "ci-test-token")}
         # Must NOT return 501
-        resp = client.post("/api/v1/vuln-correlation/import-kev")
+        resp = client.post("/api/v1/vuln-correlation/import-kev", headers=_auth)
         assert resp.status_code != 501, f"Endpoint still returning 501: {resp.json()}"
         assert resp.status_code == 200
         body = resp.json()
