@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -87,7 +88,7 @@ class AddIndicatorRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/incidents", response_model=Dict[str, Any])
-def record_incident(body: RecordIncidentRequest, org_id: str = Query("default")):
+def record_incident(body: RecordIncidentRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     data = body.model_dump()
     if data.get("detected_at") is None:
@@ -101,7 +102,7 @@ def record_incident(body: RecordIncidentRequest, org_id: str = Query("default"))
 
 @router.get("/incidents", response_model=Dict[str, Any])
 def list_incidents(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     incident_type: Optional[str] = Query(None),
@@ -114,7 +115,7 @@ def list_incidents(
 
 
 @router.get("/incidents/{incident_id}", response_model=Dict[str, Any])
-def get_incident(incident_id: str, org_id: str = Query("default")):
+def get_incident(incident_id: str, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     incident = eng.get_incident(org_id, incident_id)
     if incident is None:
@@ -126,7 +127,7 @@ def get_incident(incident_id: str, org_id: str = Query("default")):
 def update_incident_status(
     incident_id: str,
     body: UpdateIncidentStatusRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     eng = _get_engine()
     try:
@@ -143,7 +144,7 @@ def update_incident_status(
 # ---------------------------------------------------------------------------
 
 @router.post("/policies", response_model=Dict[str, Any])
-def create_policy(body: CreatePolicyRequest, org_id: str = Query("default")):
+def create_policy(body: CreatePolicyRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     try:
         policy = eng.create_policy(org_id, body.model_dump())
@@ -154,7 +155,7 @@ def create_policy(body: CreatePolicyRequest, org_id: str = Query("default")):
 
 @router.get("/policies", response_model=Dict[str, Any])
 def list_policies(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     enabled: Optional[bool] = Query(None),
 ):
     eng = _get_engine()
@@ -167,7 +168,7 @@ def list_policies(
 # ---------------------------------------------------------------------------
 
 @router.post("/indicators", response_model=Dict[str, Any])
-def add_indicator(body: AddIndicatorRequest, org_id: str = Query("default")):
+def add_indicator(body: AddIndicatorRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     try:
         indicator = eng.add_indicator(org_id, body.model_dump())
@@ -178,7 +179,7 @@ def add_indicator(body: AddIndicatorRequest, org_id: str = Query("default")):
 
 @router.get("/indicators", response_model=Dict[str, Any])
 def list_indicators(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     incident_id: Optional[str] = Query(None),
 ):
     eng = _get_engine()
@@ -191,6 +192,6 @@ def list_indicators(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", response_model=Dict[str, Any])
-def get_exfil_stats(org_id: str = Query("default")):
+def get_exfil_stats(org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     return eng.get_exfil_stats(org_id)

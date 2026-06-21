@@ -22,6 +22,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -69,10 +70,10 @@ class AccessPatternCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/stores", summary="Register data store", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_data_store(req: DataStoreCreate) -> Dict[str, Any]:
+def register_data_store(req: DataStoreCreate, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Register a data store with classification and security configuration."""
     try:
-        return _get_engine().register_data_store(req.org_id, req.model_dump())
+        return _get_engine().register_data_store(org_id, req.model_dump())
     except Exception as exc:
         _logger.exception("Error registering data store")
         raise HTTPException(status_code=500, detail=str(exc))
@@ -80,7 +81,7 @@ def register_data_store(req: DataStoreCreate) -> Dict[str, Any]:
 
 @router.get("/stores", summary="List data stores", dependencies=[Depends(api_key_auth)])
 def list_data_stores(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     classification: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     """List data stores with optional classification filter."""
@@ -94,7 +95,7 @@ def list_data_stores(
 )
 def run_security_assessment(
     store_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Run a security assessment on a data store. Returns findings and score."""
     try:
@@ -113,10 +114,11 @@ def run_security_assessment(
 def record_access_pattern(
     store_id: str,
     req: AccessPatternCreate,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record an access event for a data store."""
     try:
-        return _get_engine().record_access_pattern(req.org_id, store_id, req.model_dump())
+        return _get_engine().record_access_pattern(org_id, store_id, req.model_dump())
     except Exception as exc:
         _logger.exception("Error recording access pattern")
         raise HTTPException(status_code=500, detail=str(exc))
@@ -129,7 +131,7 @@ def record_access_pattern(
 )
 def get_access_patterns(
     store_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500),
 ) -> List[Dict[str, Any]]:
     """Return recent access patterns for a data store."""
@@ -143,13 +145,13 @@ def get_access_patterns(
 )
 def detect_data_exfiltration_risk(
     store_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Compute data exfiltration risk score and indicators."""
     return _get_engine().detect_data_exfiltration_risk(org_id, store_id)
 
 
 @router.get("/stats", summary="Data lake security stats", dependencies=[Depends(api_key_auth)])
-def get_data_lake_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_data_lake_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate data lake security statistics for the org."""
     return _get_engine().get_data_lake_stats(org_id)

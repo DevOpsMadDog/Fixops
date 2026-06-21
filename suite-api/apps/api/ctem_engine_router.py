@@ -110,11 +110,11 @@ class MobilizeRequest(BaseModel):
 
 
 @router.post("/cycles", dependencies=[Depends(_verify_api_key)])
-def create_cycle(request: StartCycleRequest) -> Dict[str, Any]:
+def create_cycle(request: StartCycleRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Create a new CTEM cycle starting at SCOPING stage."""
     engine = _get_engine()
     try:
-        cycle = engine.start_cycle(name=request.name, org_id=request.org_id)
+        cycle = engine.start_cycle(name=request.name, org_id=org_id)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return cycle.model_dump(mode="json")
@@ -232,7 +232,7 @@ def prioritize_exposures(cycle_id: str) -> Dict[str, Any]:
 
 
 @router.post("/exposures", dependencies=[Depends(_verify_api_key)])
-def add_exposure(request: AddExposureRequest) -> Dict[str, Any]:
+def add_exposure(request: AddExposureRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Add a new exposure and auto-link it to the latest active cycle."""
     engine = _get_engine()
     try:
@@ -243,7 +243,7 @@ def add_exposure(request: AddExposureRequest) -> Dict[str, Any]:
             findings=request.findings,
             risk_score=request.risk_score,
             business_impact=request.business_impact,
-            org_id=request.org_id,
+            org_id=org_id,
         )
         saved = engine.add_exposure(exp)
     except Exception as exc:

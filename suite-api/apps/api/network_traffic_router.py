@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -64,8 +65,8 @@ class RuleIn(BaseModel):
 
 @router.post("/flows", summary="Record a network flow")
 def record_flow(
-    org_id: str,
     body: FlowIn,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().record_flow(org_id, body.model_dump())
@@ -75,17 +76,17 @@ def record_flow(
 
 @router.get("/flows", summary="List network flows")
 def list_flows(
-    org_id: str,
     flagged: Optional[bool] = Query(None),
     anomaly_type: Optional[str] = Query(None),
     src_ip: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     return _get_engine().list_flows(org_id, flagged=flagged, anomaly_type=anomaly_type, src_ip=src_ip, limit=limit)
 
 
 @router.get("/flows/{flow_id}", summary="Get a single flow")
-def get_flow(org_id: str, flow_id: str) -> Dict[str, Any]:
+def get_flow(flow_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     result = _get_engine().get_flow(org_id, flow_id)
     if not result:
         raise HTTPException(status_code=404, detail="Flow not found.")
@@ -94,16 +95,16 @@ def get_flow(org_id: str, flow_id: str) -> Dict[str, Any]:
 
 @router.get("/anomalies", summary="List traffic anomalies")
 def list_anomalies(
-    org_id: str,
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     return _get_engine().list_anomalies(org_id, severity=severity, status=status, limit=limit)
 
 
 @router.post("/anomalies/{anomaly_id}/resolve", summary="Resolve an anomaly")
-def resolve_anomaly(org_id: str, anomaly_id: str) -> Dict[str, Any]:
+def resolve_anomaly(anomaly_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     found = _get_engine().resolve_anomaly(org_id, anomaly_id)
     if not found:
         raise HTTPException(status_code=404, detail="Anomaly not found.")
@@ -111,7 +112,7 @@ def resolve_anomaly(org_id: str, anomaly_id: str) -> Dict[str, Any]:
 
 
 @router.post("/rules", summary="Create a traffic rule")
-def create_rule(org_id: str, body: RuleIn) -> Dict[str, Any]:
+def create_rule(body: RuleIn, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _get_engine().create_rule(org_id, body.model_dump())
     except ValueError as exc:
@@ -119,18 +120,18 @@ def create_rule(org_id: str, body: RuleIn) -> Dict[str, Any]:
 
 
 @router.get("/rules", summary="List traffic rules")
-def list_rules(org_id: str) -> List[Dict[str, Any]]:
+def list_rules(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     return _get_engine().list_rules(org_id)
 
 
 @router.get("/stats", summary="Get traffic statistics")
-def get_traffic_stats(org_id: str) -> Dict[str, Any]:
+def get_traffic_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().get_traffic_stats(org_id)
 
 
 @router.get("/top-talkers", summary="Get top talkers by bytes")
 def get_top_talkers(
-    org_id: str,
     limit: int = Query(10, ge=1, le=100),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     return _get_engine().get_top_talkers(org_id, limit=limit)

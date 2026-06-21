@@ -26,6 +26,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
 from core.data_retention_engine import DataRetentionEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -97,7 +98,7 @@ class CompleteDeleteIn(BaseModel):
 
 @router.get("/policies")
 def list_policies(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     regulation: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     """List retention policies for an org."""
@@ -111,7 +112,7 @@ def list_policies(
 @router.post("/policies", status_code=201)
 def create_policy(
     payload: PolicyIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new retention policy."""
     try:
@@ -128,7 +129,7 @@ def create_policy(
 
 @router.get("/datasets")
 def list_datasets(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     policy_id: Optional[str] = Query(None),
     expiry_status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -145,7 +146,7 @@ def list_datasets(
 @router.post("/datasets", status_code=201)
 def register_dataset(
     payload: DatasetIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Register a dataset under a retention policy."""
     try:
@@ -167,7 +168,7 @@ def register_dataset(
 def mark_legal_hold(
     dataset_id: str,
     payload: LegalHoldIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Apply a legal hold to a dataset."""
     try:
@@ -188,7 +189,7 @@ def mark_legal_hold(
 def release_legal_hold(
     dataset_id: str,
     payload: ReleaseHoldIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Release a legal hold from a dataset."""
     try:
@@ -207,7 +208,7 @@ def release_legal_hold(
 def schedule_deletion(
     dataset_id: str,
     payload: ScheduleDeleteIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Schedule a dataset for deletion."""
     try:
@@ -228,7 +229,7 @@ def schedule_deletion(
 def complete_deletion(
     dataset_id: str,
     payload: CompleteDeleteIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Complete deletion of a dataset and record audit trail."""
     try:
@@ -250,7 +251,7 @@ def complete_deletion(
 
 @router.get("/deletion-audit")
 def get_deletion_audit(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return the deletion audit trail for an org."""
     try:
@@ -262,7 +263,7 @@ def get_deletion_audit(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return retention compliance statistics for an org."""
     try:
