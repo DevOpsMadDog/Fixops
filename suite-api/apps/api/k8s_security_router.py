@@ -30,10 +30,10 @@ try:  # SECURITY 2026-06-03: was unauthenticated (POST /scan with no API key)
     from apps.api.auth_deps import api_key_auth as _api_key_auth
     _AUTH_DEP = [_Depends(_api_key_auth)]
 except Exception:  # pragma: no cover
+    from fastapi import Depends as _failclosed_dep, HTTPException as _failclosed_he
     def _api_key_auth_failclosed():
-        from fastapi import HTTPException
-        raise HTTPException(status_code=503, detail="auth dependency unavailable")
-    _AUTH_DEP = [Depends(_api_key_auth_failclosed)]
+        raise _failclosed_he(status_code=503, detail="auth dependency unavailable")
+    _AUTH_DEP = [_failclosed_dep(_api_key_auth_failclosed)]
 router = APIRouter(prefix="/api/v1/k8s", tags=["Kubernetes Security"], dependencies=_AUTH_DEP)
 
 
