@@ -19,6 +19,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -307,7 +308,7 @@ def create_incident(req: CreateIncidentRequest) -> IncidentResponse:
 )
 def get_incident(
     incident_id: str,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> IncidentResponse:
     engine = _get_engine()
     incident = engine.get_incident(incident_id, org_id=org_id)
@@ -328,7 +329,7 @@ def get_incident(
 def advance_phase(
     incident_id: str,
     req: AdvancePhaseRequest,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> IncidentResponse:
     engine = _get_engine()
     try:
@@ -351,7 +352,7 @@ def advance_phase(
 )
 def get_timeline(
     incident_id: str,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[TimelineEvent]:
     engine = _get_engine()
     try:
@@ -371,7 +372,7 @@ def get_timeline(
 )
 def get_evidence_chain(
     incident_id: str,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[EvidenceResponse]:
     engine = _get_engine()
     try:
@@ -411,7 +412,7 @@ def get_evidence_chain(
 def add_evidence(
     incident_id: str,
     req: AddEvidenceRequest,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> EvidenceResponse:
     engine = _get_engine()
     try:
@@ -449,7 +450,7 @@ def add_evidence(
     ),
 )
 def get_metrics(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> IRMetrics:
     engine = _get_engine()
     return engine.get_metrics(org_id=org_id)
@@ -466,7 +467,7 @@ def get_metrics(
     ),
 )
 def get_notifications(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     incident_id: Optional[str] = Query(None, description="Filter by incident ID"),
 ) -> List[NotificationResponse]:
     engine = _get_engine()
@@ -482,7 +483,7 @@ def get_notifications(
 )
 def mark_notification_sent(
     notification_id: str,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> NotificationResponse:
     engine = _get_engine()
     notification = engine.mark_notification_sent(notification_id, org_id=org_id)

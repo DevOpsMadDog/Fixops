@@ -12,7 +12,8 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from core.duckdb_analytics_engine import AnalyticsEngine
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 
 router = APIRouter(
     prefix="/api/v1/analytics-engine",
@@ -43,7 +44,7 @@ def _get_engine():
     ),
 )
 def get_risk_summary(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return cross-domain risk summary for the given org."""
     try:
@@ -61,7 +62,7 @@ def get_risk_summary(
     ),
 )
 def get_asset_vuln_correlation(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return asset-vulnerability correlations."""
     try:
@@ -79,7 +80,7 @@ def get_asset_vuln_correlation(
     ),
 )
 def get_threat_ioc_correlation(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     ioc: str = Query(..., description="Indicator of compromise (IP, domain, hash, URL)"),
 ) -> Dict[str, Any]:
     """Search for IOC across all threat databases."""
@@ -100,7 +101,7 @@ def get_threat_ioc_correlation(
     ),
 )
 def get_compliance_trend(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return compliance posture trend data."""
     try:
@@ -118,7 +119,7 @@ def get_compliance_trend(
     ),
 )
 def get_executive_dashboard(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregated CISO executive dashboard data."""
     try:

@@ -20,6 +20,7 @@ from core.metrics_aggregator import (
     get_metrics_aggregator,
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 
 router = APIRouter(
     prefix="/api/v1/metrics",
@@ -44,7 +45,7 @@ def _get_aggregator() -> MetricsAggregator:
 
 @router.get("/all", response_model=MetricsSnapshot)
 async def get_all_metrics(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> MetricsSnapshot:
     """
     Return a full metrics snapshot aggregating all security categories
@@ -57,7 +58,7 @@ async def get_all_metrics(
 @router.get("/category/{category}", response_model=List[Metric])
 async def get_metrics_by_category(
     category: MetricCategory,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Metric]:
     """
     Return metrics for a specific category from the latest snapshot.
@@ -70,7 +71,7 @@ async def get_metrics_by_category(
 @router.get("/metric/{name}", response_model=Metric)
 async def get_single_metric(
     name: str,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Metric:
     """
     Return a single named metric from the latest snapshot.
@@ -86,7 +87,7 @@ async def get_single_metric(
 @router.get("/history/{name}", response_model=List[Dict[str, Any]])
 async def get_metric_history(
     name: str,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(30, ge=1, le=365, description="Number of days of history"),
 ) -> List[Dict[str, Any]]:
     """
@@ -99,7 +100,7 @@ async def get_metric_history(
 
 @router.get("/compare", response_model=Dict[str, Any])
 async def compare_periods(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     current_days: int = Query(7, ge=1, le=90, description="Current period length in days"),
     previous_days: int = Query(7, ge=1, le=90, description="Previous period length in days"),
 ) -> Dict[str, Any]:
@@ -117,7 +118,7 @@ async def compare_periods(
 
 @router.get("/health", response_model=Dict[str, Any])
 async def get_health_check(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """
     System health check.

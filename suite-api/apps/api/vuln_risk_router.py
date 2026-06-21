@@ -17,6 +17,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -109,7 +110,7 @@ class StatsResponse(BaseModel):
     summary="Vulnerability risk scoring — service summary",
 )
 def get_service_summary(
-    org_id: str = Query("default", description="Organization identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return service status and high-level stats for the vuln risk scoring domain."""
     scorer = get_scorer()

@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 from apps.api.auth_deps import api_key_auth
 from core.supply_chain_monitoring_engine import SupplyChainMonitoringEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -94,7 +95,7 @@ async def register_supplier(body: RegisterSupplierRequest) -> Dict[str, Any]:
 
 @router.get("/suppliers", response_model=List[Dict[str, Any]])
 async def list_suppliers(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     supplier_type: Optional[str] = Query(None, description="Filter by supplier type"),
     risk_tier: Optional[str] = Query(None, description="Filter by risk tier"),
 ) -> List[Dict[str, Any]]:
@@ -106,7 +107,7 @@ async def list_suppliers(
 @router.get("/suppliers/{supplier_id}", response_model=Dict[str, Any])
 async def get_supplier(
     supplier_id: str,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single supplier by ID."""
     engine = _get_engine()
@@ -144,7 +145,7 @@ async def record_event(body: RecordEventRequest) -> Dict[str, Any]:
 
 @router.get("/events", response_model=List[Dict[str, Any]])
 async def list_events(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     supplier_id: Optional[str] = Query(None, description="Filter by supplier ID"),
     event_type: Optional[str] = Query(None, description="Filter by event type"),
     status: Optional[str] = Query(None, description="Filter by status (open/resolved)"),
@@ -171,7 +172,7 @@ async def resolve_event(
 
 @router.get("/stats", response_model=Dict[str, Any])
 async def get_stats(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate supply chain stats for an org."""
     engine = _get_engine()
@@ -180,7 +181,7 @@ async def get_stats(
 
 @router.get("/", response_model=Dict[str, Any])
 async def supply_chain_monitoring_overview(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Top-level supply chain monitoring overview: supplier counts, event counts, stats."""
     engine = _get_engine()

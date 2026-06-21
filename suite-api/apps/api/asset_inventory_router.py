@@ -158,7 +158,7 @@ def _require_asset(asset_id: str, org_id: str = Depends(get_org_id)) -> ManagedA
 
 @router.get("/stats", summary="Inventory stats")
 def get_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return asset counts grouped by type, criticality, tier, lifecycle,
     environment, cloud provider, and data classification."""
@@ -167,7 +167,7 @@ def get_stats(
 
 @router.get("/unowned", response_model=List[ManagedAsset], summary="Unowned assets")
 def get_unowned_assets(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[ManagedAsset]:
     """Return assets with no assigned owner."""
     return _inv().get_unowned_assets(org_id)
@@ -175,7 +175,7 @@ def get_unowned_assets(
 
 @router.get("/stale", response_model=List[ManagedAsset], summary="Stale assets")
 def get_stale_assets(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(30, ge=1, le=3650, description="Not seen in this many days"),
 ) -> List[ManagedAsset]:
     """Return assets not seen within the specified number of days."""
@@ -184,7 +184,7 @@ def get_stale_assets(
 
 @router.get("/exposed", response_model=List[ManagedAsset], summary="Internet-exposed high-risk assets")
 def get_exposed_assets(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[ManagedAsset]:
     """Return internet-facing assets with a risk score >= 6.0 (high or critical).
 
@@ -196,7 +196,7 @@ def get_exposed_assets(
 @router.get("/compliance/{framework}", response_model=List[ManagedAsset], summary="Assets by compliance scope")
 def get_assets_by_compliance(
     framework: ComplianceFramework,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[ManagedAsset]:
     """Return all assets tagged with a specific compliance framework."""
     return _inv().get_assets_in_compliance_scope(org_id, framework.value)
@@ -204,7 +204,7 @@ def get_assets_by_compliance(
 
 @router.get("", response_model=List[ManagedAsset], summary="List assets")
 def list_assets(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     asset_type: Optional[str] = Query(None),
     criticality: Optional[AssetCriticality] = Query(None),
     criticality_tier: Optional[CriticalityTier] = Query(None),

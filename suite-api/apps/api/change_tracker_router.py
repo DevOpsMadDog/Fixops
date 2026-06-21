@@ -20,7 +20,8 @@ import logging
 from typing import Any, Dict, List
 
 from core.change_tracker import Change, ChangeRisk, ChangeTracker, ChangeType
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -119,7 +120,7 @@ def reject_change(change_id: str, req: RejectChangeRequest) -> Change:
 
 @router.get("/pending", response_model=List[Change], summary="Pending reviews")
 def get_pending_reviews(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Change]:
     """Return all changes awaiting review."""
     try:
@@ -131,7 +132,7 @@ def get_pending_reviews(
 
 @router.get("/high-risk", response_model=List[Change], summary="High-risk changes")
 def get_high_risk_changes(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Change]:
     """Return changes flagged as HIGH or CRITICAL risk."""
     try:
@@ -143,7 +144,7 @@ def get_high_risk_changes(
 
 @router.get("/velocity", response_model=Dict[str, Any], summary="Change velocity")
 def get_change_velocity(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(30, ge=1, le=365, description="Look-back window in days"),
 ) -> Dict[str, Any]:
     """Return change velocity trend (changes per day) for an organisation."""
@@ -156,7 +157,7 @@ def get_change_velocity(
 
 @router.get("/stats", response_model=Dict[str, Any], summary="Change statistics")
 def get_change_stats(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate stats: counts by type, risk, and approval rate."""
     try:
@@ -168,7 +169,7 @@ def get_change_stats(
 
 @router.get("/correlate-incidents", response_model=List[Dict[str, Any]], summary="Correlate with incidents")
 def correlate_with_incidents(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     window_hours: int = Query(72, ge=1, le=720, description="Correlation time window in hours"),
 ) -> List[Dict[str, Any]]:
     """Return high-risk changes correlated to likely incident windows."""

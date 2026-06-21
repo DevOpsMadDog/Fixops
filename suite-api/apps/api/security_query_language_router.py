@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -105,7 +106,7 @@ def save_query(req: SaveQueryRequest) -> Dict[str, Any]:
 
 
 @router.get("/queries", summary="List saved queries")
-def list_queries(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def list_queries(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Return all saved DSL queries for an org."""
     try:
         return _get_engine().list_queries(org_id=org_id)
@@ -115,7 +116,7 @@ def list_queries(org_id: str = Query("default")) -> List[Dict[str, Any]]:
 
 
 @router.get("/queries/{query_id}", summary="Get a saved query")
-def get_query(query_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
+def get_query(query_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Retrieve a single saved query by ID."""
     result = _get_engine().get_query(org_id=org_id, query_id=query_id)
     if result is None:
@@ -124,7 +125,7 @@ def get_query(query_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
 
 
 @router.delete("/queries/{query_id}", summary="Delete a saved query")
-def delete_query(query_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
+def delete_query(query_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Remove a saved query."""
     deleted = _get_engine().delete_query(org_id=org_id, query_id=query_id)
     if not deleted:
@@ -134,7 +135,7 @@ def delete_query(query_id: str, org_id: str = Query("default")) -> Dict[str, Any
 
 @router.get("/history", summary="Execution history")
 def list_history(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(100, ge=1, le=1000),
 ) -> List[Dict[str, Any]]:
     """Return recent DSL execution history for the org."""
@@ -156,7 +157,7 @@ def get_schema() -> Dict[str, Any]:
 
 
 @router.get("/stats", summary="Engine statistics")
-def get_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate statistics for the SQL engine (queries run, saved, history depth)."""
     try:
         return _get_engine().stats(org_id=org_id)

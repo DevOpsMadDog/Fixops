@@ -147,7 +147,7 @@ def add_metric(report_id: str, req: AddMetricRequest) -> Dict[str, Any]:
 @router.put("/reports/{report_id}/publish", summary="Publish a report")
 def publish_report(
     report_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().publish_report(report_id=report_id, org_id=org_id)
@@ -161,7 +161,7 @@ def publish_report(
 @router.get("/reports/{report_id}", summary="Get report detail with sections and metrics")
 def get_report_detail(
     report_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     result = _get_engine().get_report_detail(report_id=report_id, org_id=org_id)
     if result is None:
@@ -171,7 +171,7 @@ def get_report_detail(
 
 @router.get("/reports", summary="List posture reports")
 def list_reports(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     report_type: Optional[str] = Query(None, description="Filter by report type"),
     status: Optional[str] = Query(None, description="Filter by status"),
     limit: int = Query(default=50, ge=1, le=500),
@@ -216,7 +216,7 @@ def list_reports(
 @router.get("/reports/latest/{report_type}", summary="Get latest report of a given type")
 def get_latest_report(
     report_type: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     result = _get_engine().get_latest_report(org_id=org_id, report_type=report_type)
     if result is None:
@@ -226,7 +226,7 @@ def get_latest_report(
 
 @router.get("/trends", summary="Get metric trend summary across published reports")
 def get_trend_summary(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     try:
         return _get_engine().get_trend_summary(org_id=org_id)

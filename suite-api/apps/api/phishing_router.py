@@ -16,7 +16,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -262,21 +263,21 @@ def add_template(req: AddTemplateRequest):
 
 
 @router.get("/stats", response_model=Dict[str, Any], summary="Org-wide phishing stats")
-def get_stats(org_id: str = Query("default", description="Organisation identifier")):
+def get_stats(org_id: str = Depends(get_org_id)):
     """Return org-wide phishing susceptibility metrics (click rate, report rate, risk level)."""
     sim = _get_simulator()
     return sim.get_org_phishing_risk(org_id)
 
 
 @router.get("/campaigns", response_model=List[Dict[str, Any]], summary="List campaigns")
-def list_campaigns(org_id: str = Query("default", description="Organisation identifier")):
+def list_campaigns(org_id: str = Depends(get_org_id)):
     """Return all phishing campaigns for an org, newest first."""
     sim = _get_simulator()
     return sim.get_campaign_history(org_id)
 
 
 @router.get("/", summary="Phishing index", tags=["phishing-simulation"])
-def phishing_index(org_id: str = Query("default")) -> Dict[str, Any]:
+def phishing_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return phishing campaign summary for the org."""
     try:
         sim = _get_simulator()

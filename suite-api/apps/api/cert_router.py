@@ -17,6 +17,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -111,7 +112,7 @@ def add_certificate(body: AddCertRequest, mgr: CertificateManager = Depends(_get
 
 @router.get("/", response_model=List[Dict[str, Any]], summary="List certificates")
 def list_certificates(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     expired_only: bool = Query(False),
     expiring_days: Optional[int] = Query(None),
     mgr: CertificateManager = Depends(_get_manager),
@@ -121,7 +122,7 @@ def list_certificates(
 
 @router.get("/alerts/expiry", response_model=Dict[str, Any], summary="Get expiry alert groups")
 def get_expiry_alerts(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     mgr: CertificateManager = Depends(_get_manager),
 ):
     return mgr.get_expiry_alerts(org_id)
@@ -129,7 +130,7 @@ def get_expiry_alerts(
 
 @router.get("/weak", response_model=List[Dict[str, Any]], summary="List weak certificates")
 def get_weak_certificates(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     mgr: CertificateManager = Depends(_get_manager),
 ):
     return mgr.get_weak_certificates(org_id)
@@ -137,7 +138,7 @@ def get_weak_certificates(
 
 @router.get("/stats", response_model=Dict[str, Any], summary="Certificate statistics")
 def get_cert_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     mgr: CertificateManager = Depends(_get_manager),
 ):
     return mgr.get_cert_stats(org_id)
@@ -151,7 +152,7 @@ def check_certificate(body: CheckDomainRequest, mgr: CertificateManager = Depend
 @router.get("/{cert_id}", response_model=Dict[str, Any], summary="Get a certificate by ID")
 def get_certificate(
     cert_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     mgr: CertificateManager = Depends(_get_manager),
 ):
     cert = mgr.get_certificate(cert_id, org_id)
@@ -164,7 +165,7 @@ def get_certificate(
 def update_certificate(
     cert_id: str,
     body: UpdateCertRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     mgr: CertificateManager = Depends(_get_manager),
 ):
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
@@ -178,7 +179,7 @@ def update_certificate(
 @router.delete("/{cert_id}", response_model=DeleteResponse, summary="Delete a certificate")
 def delete_certificate(
     cert_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     mgr: CertificateManager = Depends(_get_manager),
 ):
     deleted = mgr.delete_certificate(cert_id, org_id)

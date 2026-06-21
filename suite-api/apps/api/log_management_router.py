@@ -26,9 +26,8 @@ import logging
 from typing import Any, Dict, Optional
 
 from core.log_management_engine import LogManagementEngine
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
-from fastapi import Depends
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -105,7 +104,7 @@ def create_source(body: LogSourceCreate) -> Dict[str, Any]:
 
 @router.get("/sources")
 def list_sources(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     log_type: Optional[str] = Query(None),
 ) -> Dict[str, Any]:
     """List log sources for an org."""
@@ -133,7 +132,7 @@ def store_entry(body: LogEntryStore) -> Dict[str, Any]:
 
 @router.get("/entries")
 def query_entries(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     source_id: Optional[str] = Query(None),
     level: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
@@ -165,7 +164,7 @@ def create_retention_policy(body: RetentionPolicyCreate) -> Dict[str, Any]:
 
 
 @router.get("/retention-policies")
-def list_retention_policies(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_retention_policies(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """List all retention policies for an org."""
     policies = _get_engine().list_retention_policies(org_id)
     return {"org_id": org_id, "policies": policies, "total": len(policies)}
@@ -173,7 +172,7 @@ def list_retention_policies(org_id: str = Query("default")) -> Dict[str, Any]:
 
 @router.post("/retention-policies/{policy_id}/apply")
 def apply_retention_policy(
-    policy_id: str, org_id: str = Query("default")
+    policy_id: str, org_id: str = Depends(get_org_id)
 ) -> Dict[str, Any]:
     """Apply a retention policy — deletes expired log entries."""
     try:
@@ -192,6 +191,6 @@ def apply_retention_policy(
 
 
 @router.get("/stats")
-def get_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get log management statistics for an org."""
     return _get_engine().get_log_stats(org_id)

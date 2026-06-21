@@ -10,6 +10,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -86,7 +87,7 @@ class TriggerAlertRequest(BaseModel):
 
 @router.get("/", summary="Network monitoring summary (5-state envelope)")
 def get_network_monitoring_summary(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """5-state envelope summarising network monitoring posture for the org.
 
@@ -154,7 +155,7 @@ def register_interface(body: RegisterInterfaceRequest) -> Dict[str, Any]:
 
 @router.get("/interfaces", summary="List network interfaces")
 def list_interfaces(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     if_type: Optional[str] = Query(None, description="Filter by type: wan/lan/dmz"),
 ) -> List[Dict[str, Any]]:
     """List registered interfaces for an org with optional type filter."""
@@ -188,7 +189,7 @@ def record_traffic_sample(
 @router.get("/interfaces/{interface_id}/stats", summary="Get traffic statistics")
 def get_traffic_stats(
     interface_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     hours: int = Query(24, ge=1, le=720, description="Lookback window in hours"),
 ) -> Dict[str, Any]:
     """Return avg_bps, peak_bps, and total_bytes for an interface over N hours."""
@@ -218,7 +219,7 @@ def create_alert_rule(body: AlertRuleRequest) -> Dict[str, Any]:
 
 @router.get("/alert-rules", summary="List alert rules")
 def list_alert_rules(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all alert rules for an org."""
     engine = _get_engine()
@@ -247,7 +248,7 @@ def trigger_alert(rule_id: str, body: TriggerAlertRequest) -> Dict[str, Any]:
 
 @router.get("/alerts", summary="List triggered alerts")
 def list_alerts(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None, description="Filter by severity: critical/high/medium/low"),
     limit: int = Query(50, ge=1, le=500, description="Max results"),
 ) -> List[Dict[str, Any]]:
@@ -267,7 +268,7 @@ def list_alerts(
 
 @router.get("/stats", summary="Get monitoring stats")
 def get_monitoring_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate monitoring stats: interface count, sample count, alert count."""
     engine = _get_engine()

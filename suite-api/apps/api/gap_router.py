@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 # Auth dependency — imported lazily to avoid startup errors when auth_deps is
@@ -730,7 +731,7 @@ fail_gap = APIRouter(prefix="/api/v1/fail", tags=["fail-gap"], dependencies=_AUT
 
 
 @fail_gap.get("/", summary="Fail engine index", tags=["fail-gap"])
-async def fail_index(org_id: str = Query("default")) -> Dict[str, Any]:
+async def fail_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return FAIL chaos engine summary for the org."""
     try:
         from core.fail_engine import FAILEngine
@@ -828,7 +829,7 @@ graph_gap = APIRouter(prefix="/api/v1/graph", tags=["graph-gap"], dependencies=_
 
 
 @graph_gap.get("/", summary="Graph index", tags=["graph-gap"])
-async def graph_index(org_id: str = Query("default")) -> Dict[str, Any]:
+async def graph_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return knowledge graph summary for the org."""
     try:
         from core.falkordb_client import KnowledgeGraphEngine
@@ -2709,7 +2710,7 @@ ALL_GAP_ROUTERS = [
 logs_gap = APIRouter(prefix="/api/v1/logs", tags=["logs-gap"], dependencies=_AUTH_DEP)
 
 @logs_gap.get("/stats")
-async def logs_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+async def logs_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Log management statistics — live query from LogManagementEngine."""
     try:
         from core.log_management_engine import LogManagementEngine
@@ -3711,7 +3712,7 @@ supply_chain_gap = APIRouter(prefix="/api/v1/supply-chain", tags=["supply-chain-
 
 
 @supply_chain_gap.get("/", summary="Supply chain index", tags=["supply-chain-gap"])
-async def supply_chain_index(org_id: str = Query("default")) -> Dict[str, Any]:
+async def supply_chain_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return supply chain summary for the org via SupplyChainIntel engine."""
     try:
         from core.supply_chain_intel import SupplyChainIntel

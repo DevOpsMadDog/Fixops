@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -105,7 +106,7 @@ class CreatePolicyRequest(BaseModel):
 
 @router.get("/endpoints", response_model=List[Dict[str, Any]], summary="List endpoints")
 def list_endpoints(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None, description="Filter by status: active or inactive"),
     eng: EndpointSecurityEngine = Depends(_get_engine),
 ):
@@ -129,7 +130,7 @@ def register_endpoint(
 def update_endpoint_status(
     endpoint_id: str,
     body: UpdateStatusRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     eng: EndpointSecurityEngine = Depends(_get_engine),
 ):
     updated = eng.update_endpoint_status(org_id, endpoint_id, body.status)
@@ -143,7 +144,7 @@ def update_endpoint_status(
 
 @router.get("/alerts", response_model=List[Dict[str, Any]], summary="List EDR alerts")
 def list_alerts(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None, description="open/investigating/resolved"),
     severity: Optional[str] = Query(None, description="critical/high/medium/low"),
     eng: EndpointSecurityEngine = Depends(_get_engine),
@@ -168,7 +169,7 @@ def create_alert(
 def resolve_alert(
     alert_id: str,
     body: ResolveAlertRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     eng: EndpointSecurityEngine = Depends(_get_engine),
 ):
     resolved = eng.resolve_alert(org_id, alert_id, body.resolution_note)
@@ -179,7 +180,7 @@ def resolve_alert(
 
 @router.get("/stats", response_model=Dict[str, Any], summary="EDR statistics")
 def get_edr_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     eng: EndpointSecurityEngine = Depends(_get_engine),
 ):
     return eng.get_edr_stats(org_id)
@@ -187,7 +188,7 @@ def get_edr_stats(
 
 @router.get("/policies", response_model=List[Dict[str, Any]], summary="List EDR policies")
 def list_policies(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     eng: EndpointSecurityEngine = Depends(_get_engine),
 ):
     return eng.list_policies(org_id)
@@ -209,7 +210,7 @@ def create_policy(
 )
 def get_endpoint_timeline(
     endpoint_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     eng: EndpointSecurityEngine = Depends(_get_engine),
 ):
     return eng.get_endpoint_timeline(org_id, endpoint_id)

@@ -28,6 +28,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -97,7 +98,7 @@ class CreatePlaybookIn(BaseModel):
 @router.post("/workflows", summary="Create remediation workflow")
 def create_workflow(
     req: CreateWorkflowIn,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().create_workflow(org_id, req.model_dump())
@@ -110,7 +111,7 @@ def create_workflow(
 
 @router.get("/workflows", summary="List remediation workflows")
 def list_workflows(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     trigger_type: Optional[str] = Query(None, description="Filter by trigger_type"),
     status: Optional[str] = Query(None, description="Filter by status"),
 ) -> List[Dict[str, Any]]:
@@ -120,7 +121,7 @@ def list_workflows(
 @router.get("/workflows/{workflow_id}", summary="Get remediation workflow")
 def get_workflow(
     workflow_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     result = _get_engine().get_workflow(org_id, workflow_id)
     if not result:
@@ -131,7 +132,7 @@ def get_workflow(
 @router.put("/workflows/{workflow_id}/activate", summary="Activate workflow")
 def activate_workflow(
     workflow_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().activate_workflow(org_id, workflow_id)
@@ -149,7 +150,7 @@ def activate_workflow(
 @router.post("/executions", summary="Record workflow execution")
 def record_execution(
     req: RecordExecutionIn,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().record_execution(org_id, req.model_dump())
@@ -162,7 +163,7 @@ def record_execution(
 
 @router.get("/executions", summary="List workflow executions")
 def list_executions(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     workflow_id: Optional[str] = Query(None, description="Filter by workflow_id"),
     status: Optional[str] = Query(None, description="Filter by status"),
 ) -> List[Dict[str, Any]]:
@@ -176,7 +177,7 @@ def list_executions(
 @router.post("/playbooks", summary="Create remediation playbook")
 def create_playbook(
     req: CreatePlaybookIn,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().create_playbook(org_id, req.model_dump())
@@ -189,7 +190,7 @@ def create_playbook(
 
 @router.get("/playbooks", summary="List remediation playbooks")
 def list_playbooks(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     target_type: Optional[str] = Query(None, description="Filter by target_type"),
 ) -> List[Dict[str, Any]]:
     return _get_engine().list_playbooks(org_id, target_type=target_type)
@@ -198,7 +199,7 @@ def list_playbooks(
 @router.put("/playbooks/{playbook_id}/run", summary="Run a playbook")
 def run_playbook(
     playbook_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().run_playbook(org_id, playbook_id)
@@ -215,6 +216,6 @@ def run_playbook(
 
 @router.get("/stats", summary="Remediation statistics")
 def get_remediation_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     return _get_engine().get_remediation_stats(org_id)

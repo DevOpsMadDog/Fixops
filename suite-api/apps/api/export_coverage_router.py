@@ -22,6 +22,7 @@ from apps.api.auth_deps import api_key_auth
 from core.audit_management_engine import AuditManagementEngine
 from core.evidence_chain_engine import EvidenceChainEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ class AuditExportBody(BaseModel):
 @router.post("/verify", status_code=201)
 async def verify_export_coverage(
     body: VerifyBody,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Compute export-coverage metrics for a given filter and persist result."""
     try:
@@ -85,7 +86,7 @@ async def verify_export_coverage(
 
 @router.get("/verifications")
 async def list_verifications(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500),
 ) -> List[Dict[str, Any]]:
     """List recent export-coverage verifications for org."""
@@ -95,7 +96,7 @@ async def list_verifications(
 @router.post("/audit-export", status_code=201)
 async def record_audit_export(
     body: AuditExportBody,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record that an audit export occurred, linked to a verification."""
     try:
@@ -108,7 +109,7 @@ async def record_audit_export(
 
 @router.get("/audit-history")
 async def audit_export_history(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     framework: Optional[str] = Query(None, description="Filter by framework"),
 ) -> List[Dict[str, Any]]:
     """Return audit-export history for org, optionally filtered by framework."""

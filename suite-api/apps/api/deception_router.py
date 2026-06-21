@@ -17,6 +17,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -116,7 +117,7 @@ def create_canary(
 
 @router.get("/canaries", response_model=List[CanaryToken])
 def list_canaries(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: DeceptionEngine = Depends(_get_engine),
 ) -> List[CanaryToken]:
     """List all canary tokens for an organisation."""
@@ -130,7 +131,7 @@ def list_canaries(
 @router.delete("/canaries/{canary_id}", response_model=DeactivateResponse)
 def deactivate_canary(
     canary_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: DeceptionEngine = Depends(_get_engine),
 ) -> DeactivateResponse:
     """Deactivate (soft-delete) a canary token."""
@@ -179,7 +180,7 @@ def check_canary(
 
 @router.get("/alerts", response_model=List[CanaryAlert])
 def get_alerts(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     hours: int = Query(24, ge=1, le=8760, description="Look-back window in hours"),
     engine: DeceptionEngine = Depends(_get_engine),
 ) -> List[CanaryAlert]:
@@ -193,7 +194,7 @@ def get_alerts(
 
 @router.get("/stats", response_model=Dict[str, Any])
 def get_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: DeceptionEngine = Depends(_get_engine),
 ) -> Dict[str, Any]:
     """Return aggregate deception statistics for an organisation."""
@@ -206,7 +207,7 @@ def get_stats(
 
 @router.get("/honeypots", response_model=List[Dict[str, Any]])
 def list_honeypots(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     active_only: bool = Query(True, description="Return only active honeypot endpoints"),
     engine: DeceptionEngine = Depends(_get_engine),
 ) -> List[Dict[str, Any]]:

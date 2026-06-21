@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -60,7 +61,7 @@ class FixCostRequest(BaseModel):
 
 
 @router.get("/business-units")
-def list_business_units(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_business_units(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """List business units for an org. Seeds 5 defaults on first call."""
     try:
         bus = _get_engine().business_units(org_id)
@@ -73,7 +74,7 @@ def list_business_units(org_id: str = Query("default")) -> Dict[str, Any]:
 @router.post("/per-bu-risk")
 def compute_per_bu_risk(
     payload: PerBuRiskRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Compute FAIR per-BU risk (SLE × ARO × probability)."""
     try:
@@ -92,7 +93,7 @@ def compute_per_bu_risk(
 @router.post("/fix-cost", status_code=201)
 def record_fix_cost(
     payload: FixCostRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record the cost and ALE reduction of a fix."""
     try:
@@ -112,7 +113,7 @@ def record_fix_cost(
 
 @router.get("/roi-trend")
 def roi_trend(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     window_days: int = Query(90, ge=7, le=730),
 ) -> Dict[str, Any]:
     """Weekly cumulative ALE-reduced ÷ cumulative fix cost trend."""
@@ -124,7 +125,7 @@ def roi_trend(
 
 
 @router.get("/stats")
-def stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Combined stats: BU count + latest ROI snapshot."""
     try:
         eng = _get_engine()

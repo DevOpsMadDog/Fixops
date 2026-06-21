@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 from apps.api.auth_deps import api_key_auth
 from core.casb_engine import CASBEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -128,7 +129,7 @@ class RecordViolationRequest(BaseModel):
 
 @router.get("/apps", summary="List cloud apps")
 def list_apps(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     category: Optional[str] = Query(None, description="Filter by app category"),
     is_sanctioned: Optional[bool] = Query(None, description="Filter by sanction status"),
     risk_level: Optional[str] = Query(None, description="Filter by risk level"),
@@ -187,7 +188,7 @@ def unsanction_app(app_id: str, req: UnsanctionRequest) -> Dict[str, Any]:
 
 @router.get("/data-activities", summary="List data activities")
 def list_data_activities(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     app_name: Optional[str] = Query(None, description="Filter by app name"),
     data_classification: Optional[str] = Query(
         None, description="Filter by data classification"
@@ -224,7 +225,7 @@ def record_data_activity(req: RecordActivityRequest) -> Dict[str, Any]:
 
 @router.get("/policies", summary="List CASB policies")
 def list_policies(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all CASB policies for the organisation."""
     return _get_engine().list_policies(org_id)
@@ -251,7 +252,7 @@ def create_policy(req: CreatePolicyRequest) -> Dict[str, Any]:
 
 @router.get("/violations", summary="List policy violations")
 def list_violations(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None, description="Filter by severity"),
     limit: int = Query(50, ge=1, le=500, description="Max records to return"),
 ) -> List[Dict[str, Any]]:
@@ -280,7 +281,7 @@ def record_violation(req: RecordViolationRequest) -> Dict[str, Any]:
 
 @router.get("/shadow-it-report", summary="Shadow IT discovery report")
 def shadow_it_report(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return shadow IT discovery report: total apps, sanctioned/unsanctioned breakdown,
     high-risk apps, and top data uploaders."""
@@ -289,7 +290,7 @@ def shadow_it_report(
 
 @router.get("/stats", summary="CASB statistics")
 def casb_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregated CASB statistics: shadow IT %, 24h activity/violations,
     risk distribution, and policy count."""

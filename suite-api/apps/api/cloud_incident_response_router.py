@@ -104,7 +104,7 @@ class ExecutePlaybookRequest(BaseModel):
 
 @router.get("/", summary="Cloud IR root list (incidents) for landing pages")
 def list_cloud_ir_root(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     status: Optional[str] = Query(default=None),

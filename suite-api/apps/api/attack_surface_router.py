@@ -20,7 +20,8 @@ from core.attack_surface import (
     ExposurePath,
     get_attack_surface_mapper,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -83,7 +84,7 @@ def register_asset(req: RegisterAssetRequest) -> Asset:
 
 @router.get("/assets", response_model=List[Asset], summary="List assets")
 def list_assets(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     type_filter: Optional[AssetType] = Query(None, description="Filter by asset type"),
     exposure_filter: Optional[ExposureLevel] = Query(None, description="Filter by exposure level"),
 ) -> List[Asset]:
@@ -114,7 +115,7 @@ def delete_asset(asset_id: str) -> Dict[str, Any]:
 
 @router.get("/summary", response_model=AttackSurface, summary="Attack surface summary")
 def get_surface_summary(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> AttackSurface:
     """Return the full attack surface summary for an org."""
     mapper = _get_mapper()
@@ -123,7 +124,7 @@ def get_surface_summary(
 
 @router.get("/external", response_model=List[Asset], summary="External-facing assets")
 def get_external_assets(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Asset]:
     """Return only internet-facing (EXTERNAL exposure) assets."""
     mapper = _get_mapper()
@@ -132,7 +133,7 @@ def get_external_assets(
 
 @router.get("/paths", response_model=List[ExposurePath], summary="Exposure paths")
 def get_exposure_paths(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     min_score: float = Query(0.0, ge=0.0, le=1.0, description="Minimum risk score"),
 ) -> List[ExposurePath]:
     """Return exposure paths, optionally filtered by minimum risk score."""
@@ -142,7 +143,7 @@ def get_exposure_paths(
 
 @router.get("/changes", summary="Recent surface changes")
 def get_surface_changes(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     since_days: int = Query(7, ge=1, le=365, description="Look-back window in days"),
 ) -> Dict[str, Any]:
     """Return new and potentially removed assets since N days ago."""
@@ -182,7 +183,7 @@ def discover_from_findings(req: DiscoverFromFindingsRequest) -> List[Asset]:
 
 @router.get("/score", summary="Attack surface risk score")
 def get_surface_score(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return a numeric risk score (0-100) derived from the attack surface summary."""
     mapper = _get_mapper()
@@ -198,7 +199,7 @@ def get_surface_score(
 
 @router.get("/exposed", summary="Exposed assets")
 def get_exposed_assets(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Asset]:
     """Return internet-facing (externally exposed) assets — alias for /external."""
     mapper = _get_mapper()
@@ -207,7 +208,7 @@ def get_exposed_assets(
 
 @router.get("/shadow-it", summary="Shadow IT assets")
 def get_shadow_it(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return a list of unmanaged / shadow-IT assets (those with 'shadow' or 'unmanaged' tags)."""
     mapper = _get_mapper()

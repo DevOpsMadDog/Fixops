@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -158,7 +159,7 @@ def list_checks() -> List[CheckInfo]:
 
 @router.get("/history", response_model=List[ScanResponse], summary="Scan history for an org")
 def get_history(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500, description="Maximum results to return"),
 ) -> List[ScanResponse]:
     """Return past Dockerfile analyses for *org_id*, most-recent first."""
@@ -195,7 +196,7 @@ def get_history(
 
 @router.get("/stats", response_model=StatsResponse, summary="Aggregate statistics for an org")
 def get_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> StatsResponse:
     """Return aggregate scan statistics (counts, average score, breakdown by severity/category)."""
     scanner = _get_scanner()
@@ -207,7 +208,7 @@ def get_stats(
 def quick_score(
     content: str = Query(..., description="Raw Dockerfile content"),
     file_path: str = Query("Dockerfile"),
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Scan a Dockerfile (via query param) and return only the score and finding counts."""
     if not content.strip():
@@ -234,7 +235,7 @@ def quick_score(
 
 @router.delete("/history", summary="Clear scan history for an org")
 def clear_history(
-    org_id: str = Query("default", description="Organisation ID to clear"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Delete all scan history for *org_id*. Irreversible."""
     import sqlite3

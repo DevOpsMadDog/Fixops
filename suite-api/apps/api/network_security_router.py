@@ -30,6 +30,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -199,7 +200,7 @@ def register_asset(body: RegisterAssetRequest) -> NetworkAsset:
     summary="List network assets",
 )
 def list_assets(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     asset_type: Optional[str] = Query(None, description="Filter by asset type"),
 ) -> List[NetworkAsset]:
     """List all registered network assets, optionally filtered by type."""
@@ -225,7 +226,7 @@ def list_assets(
     summary="Network topology map",
 )
 def network_topology(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """
     Build and return a topology map from registered assets.
@@ -251,7 +252,7 @@ def network_topology(
     summary="Run segmentation analysis",
 )
 def run_segmentation_scan(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[SegmentationFinding]:
     """
     Analyse registered assets for segmentation violations.
@@ -273,7 +274,7 @@ def run_segmentation_scan(
     summary="List segmentation findings",
 )
 def list_segmentation_findings(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[SegmentationFinding]:
     """Retrieve all persisted segmentation findings for the org."""
     engine = _get_engine()
@@ -323,7 +324,7 @@ def add_firewall_rule(body: AddFirewallRuleRequest) -> FirewallRule:
     summary="Audit firewall rules",
 )
 def audit_firewall_rules(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[FirewallRuleAuditResult]:
     """
     Audit all registered firewall rules for:
@@ -398,7 +399,7 @@ def report_dns_rebinding(body: ReportDNSRebindingRequest) -> Optional[DNSThreat]
     summary="List DNS threats",
 )
 def list_dns_threats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[DNSThreat]:
     """Retrieve all persisted DNS threat records for the org."""
     engine = _get_engine()
@@ -454,7 +455,7 @@ def register_certificate(body: RegisterCertificateRequest) -> TLSCertificate:
     summary="List TLS certificates",
 )
 def list_certificates(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[TLSCertificate]:
     """Return all registered TLS certificates for the org."""
     engine = _get_engine()
@@ -471,7 +472,7 @@ def list_certificates(
     summary="List TLS issues",
 )
 def list_tls_issues(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[TLSIssue]:
     """Return all detected TLS/SSL issues for the org."""
     engine = _get_engine()
@@ -521,7 +522,7 @@ def record_flow(body: RecordFlowRequest) -> NetworkFlow:
     summary="Analyse network flows for anomalies",
 )
 def analyse_flows(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     window_hours: int = Query(24, ge=1, le=168, description="Look-back window in hours"),
 ) -> List[FlowAnomaly]:
     """
@@ -545,7 +546,7 @@ def analyse_flows(
     summary="List flow anomalies",
 )
 def list_flow_anomalies(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[FlowAnomaly]:
     """Return all persisted network flow anomalies for the org."""
     engine = _get_engine()
@@ -596,7 +597,7 @@ def compute_zero_trust_score(body: ZeroTrustScoreRequest) -> ZeroTrustScore:
     summary="List Zero Trust scores",
 )
 def list_zero_trust_scores(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[ZeroTrustScore]:
     """Return all computed Zero Trust scores for the org, newest first."""
     engine = _get_engine()
@@ -618,7 +619,7 @@ def list_zero_trust_scores(
     summary="NDR health summary",
 )
 def ndr_summary(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> NDRSummary:
     """
     Return a high-level NDR health summary:

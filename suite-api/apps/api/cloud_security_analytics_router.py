@@ -9,6 +9,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -113,7 +114,7 @@ def record_event(body: RecordEventRequest) -> Dict[str, Any]:
 
 @router.get("/events", summary="List cloud security events")
 def list_events(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     event_source: Optional[str] = Query(None, description="Filter by event source"),
     severity: Optional[str] = Query(None, description="Filter by severity"),
     event_type: Optional[str] = Query(None, description="Filter by event type"),
@@ -149,7 +150,7 @@ def record_anomaly(body: RecordAnomalyRequest) -> Dict[str, Any]:
 
 @router.get("/anomalies", summary="List cloud security anomalies")
 def list_anomalies(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     anomaly_type: Optional[str] = Query(None, description="Filter by anomaly type"),
     severity: Optional[str] = Query(None, description="Filter by severity"),
     status: Optional[str] = Query(None, description="Filter by status"),
@@ -200,7 +201,7 @@ def create_rule(body: CreateRuleRequest) -> Dict[str, Any]:
 
 @router.get("/rules", summary="List detection rules")
 def list_rules(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     rule_type: Optional[str] = Query(None, description="Filter by rule type"),
     enabled: Optional[bool] = Query(None, description="Filter by enabled state"),
 ) -> List[Dict[str, Any]]:
@@ -262,7 +263,7 @@ def replay_cloudtrail(body: CloudTrailReplayRequest) -> Dict[str, Any]:
 
 @router.get("/stats", summary="Get cloud analytics statistics")
 def get_analytics_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate cloud security analytics statistics."""
     engine = _get_engine()

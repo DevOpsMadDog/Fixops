@@ -337,7 +337,7 @@ def create_correlation_link(
 
 
 @router.get("/")
-def dedup_root(org_id: str = Query("default")) -> Dict[str, Any]:
+def dedup_root(org_id: str = Depends(_get_org_id_dep)) -> Dict[str, Any]:
     """Root summary for the deduplication engine.
 
     Real data only: cluster/event counts + breakdowns from the dedup service,
@@ -391,7 +391,7 @@ def correlate_cross_stage(
 
 @router.get("/graph")
 def get_correlation_graph(
-    org_id: str = Query("default"), cluster_id: Optional[str] = None
+    org_id: str = Depends(_get_org_id_dep), cluster_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """Get the correlation graph for visualization.
 

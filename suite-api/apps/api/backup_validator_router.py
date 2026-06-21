@@ -40,7 +40,8 @@ from core.backup_validator import (
     VerificationStatus,
     get_backup_validator,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -254,7 +255,7 @@ def register_backup_job(req: RegisterBackupJobRequest) -> BackupJob:
 
 @router.get("/jobs", response_model=List[BackupJob], summary="List backup jobs")
 def list_backup_jobs(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     system_name: Optional[str] = Query(None, description="Filter by system name"),
 ) -> List[BackupJob]:
     """List all backup jobs for an org, optionally filtered by system."""
@@ -316,7 +317,7 @@ def set_rpo_config(req: SetRPOConfigRequest) -> RPOConfig:
 
 @router.get("/rpo", response_model=List[RPOConfig], summary="List RPO/RTO configs")
 def list_rpo_configs(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[RPOConfig]:
     """List all RPO/RTO configurations for an org."""
     return _val().list_rpo_configs(org_id)
@@ -361,7 +362,7 @@ def record_verification(req: RecordVerificationRequest) -> BackupVerification:
 
 @router.get("/verifications", response_model=List[BackupVerification], summary="List verifications")
 def list_verifications(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     backup_job_id: Optional[str] = Query(None, description="Filter by backup job ID"),
 ) -> List[BackupVerification]:
     """List backup verification records for an org."""
@@ -405,7 +406,7 @@ def register_dr_plan(req: RegisterDRPlanRequest) -> DRPlan:
 
 @router.get("/dr-plans", response_model=List[DRPlan], summary="List DR plans")
 def list_dr_plans(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     system_name: Optional[str] = Query(None, description="Filter by system name"),
 ) -> List[DRPlan]:
     """List DR plans for an org, optionally filtered by system."""
@@ -468,7 +469,7 @@ def record_dr_test(req: RecordDRTestRequest) -> DRTestRecord:
 
 @router.get("/dr-tests", response_model=List[DRTestRecord], summary="List DR tests")
 def list_dr_tests(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     dr_plan_id: Optional[str] = Query(None, description="Filter by DR plan ID"),
 ) -> List[DRTestRecord]:
     """List DR test records for an org, optionally filtered by plan."""
@@ -522,7 +523,7 @@ def set_geo_redundancy(req: SetGeoRedundancyRequest) -> GeoRedundancyRecord:
 
 @router.get("/geo-redundancy", response_model=List[GeoRedundancyRecord], summary="List geo records")
 def list_geo_records(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[GeoRedundancyRecord]:
     """List geographic redundancy records for an org."""
     return _val().list_geo_records(org_id)
@@ -539,7 +540,7 @@ def get_geo_record(geo_id: str) -> GeoRedundancyRecord:
 
 @router.get("/bc-score", response_model=BCScore, summary="Business continuity score")
 def get_bc_score(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> BCScore:
     """Compute a 0-100 business continuity readiness score for the org.
 

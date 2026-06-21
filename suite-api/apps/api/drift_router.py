@@ -20,7 +20,8 @@ from core.config_drift import (
     DriftSeverity,
     DriftSummary,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -97,7 +98,7 @@ def check_batch(req: CheckBatchRequest) -> List[DriftResult]:
 
 @router.get("/active", response_model=List[DriftResult], summary="List active drifts")
 def get_active_drifts(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[DriftSeverity] = Query(None, description="Filter by severity"),
 ) -> List[DriftResult]:
     """Return all unresolved drift findings for the organisation."""
@@ -110,7 +111,7 @@ def get_active_drifts(
 
 @router.get("/summary", response_model=DriftSummary, summary="Drift summary")
 def get_drift_summary(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> DriftSummary:
     """Return aggregated drift statistics for the organisation."""
     try:
@@ -122,7 +123,7 @@ def get_drift_summary(
 
 @router.get("/trend", response_model=List[Dict[str, Any]], summary="Drift trend over time")
 def get_drift_trend(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(30, ge=1, le=365, description="Number of days to look back"),
 ) -> List[Dict[str, Any]]:
     """Return daily drift counts over the last N days."""
@@ -190,7 +191,7 @@ def load_default_baselines() -> Dict[str, Any]:
 
 @router.get("/history", response_model=List[DriftResult], summary="Drift history")
 def get_drift_history(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     resource_id: Optional[str] = Query(None, description="Filter by resource ID"),
     days: int = Query(30, ge=1, le=365, description="Number of days to look back"),
 ) -> List[DriftResult]:

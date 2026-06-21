@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -119,7 +120,7 @@ class AddDmarcReportRequest(BaseModel):
 
 @router.get("/domains", response_model=List[Dict[str, Any]], summary="List domains")
 def list_domains(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: EmailSecurityEngine = Depends(_get_engine),
 ):
     """Return all email domains configured for an org, ordered by compliance score."""
@@ -149,7 +150,7 @@ def add_domain(
 def update_domain_policy(
     domain_id: str,
     body: UpdateDomainRequest,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: EmailSecurityEngine = Depends(_get_engine),
 ):
     """Update SPF/DKIM/DMARC fields for a domain and recompute compliance score."""
@@ -168,7 +169,7 @@ def update_domain_policy(
 )
 def analyze_domain(
     domain_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: EmailSecurityEngine = Depends(_get_engine),
 ):
     """Recompute compliance score and issues for a domain based on current config."""
@@ -185,7 +186,7 @@ def analyze_domain(
 
 @router.get("/threats", response_model=List[Dict[str, Any]], summary="List email threats")
 def list_threats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     threat_type: Optional[str] = Query(
         None, description="Filter by type: phishing|spoofing|bec|spam|malware"
     ),
@@ -215,7 +216,7 @@ def create_threat(
 def update_threat_status(
     threat_id: str,
     body: UpdateThreatStatusRequest,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: EmailSecurityEngine = Depends(_get_engine),
 ):
     """Update the status of an email threat (e.g. detected → blocked)."""
@@ -239,7 +240,7 @@ def update_threat_status(
     summary="List DMARC reports",
 )
 def list_dmarc_reports(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     domain_id: Optional[str] = Query(None, description="Filter by domain ID"),
     engine: EmailSecurityEngine = Depends(_get_engine),
 ):
@@ -268,7 +269,7 @@ def add_dmarc_report(
 
 @router.get("/stats", response_model=Dict[str, Any], summary="Email security statistics")
 def get_email_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: EmailSecurityEngine = Depends(_get_engine),
 ):
     """Return email security summary: domain count, compliance rate, threat counts."""

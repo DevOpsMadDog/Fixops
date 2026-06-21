@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -90,7 +91,7 @@ class CreateMitigationRuleRequest(BaseModel):
     dependencies=[Depends(api_key_auth)],
     summary="DDoS protection summary (5-state envelope)",
 )
-def get_ddos_summary(org_id: str = Query("default", description="Organisation identifier")) -> Dict[str, Any]:
+def get_ddos_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return a 5-state envelope summarising DDoS protection posture for the org.
 
     States: ok | warning | critical | empty | error

@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ class AddDomainThreatRequest(BaseModel):
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
 def get_passive_dns_root(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate Passive DNS stats and capability summary for the org."""
     engine = _get_engine()
@@ -105,7 +106,7 @@ def record_resolution(req: RecordResolutionRequest) -> Dict[str, Any]:
 
 @router.get("/resolutions", dependencies=[Depends(api_key_auth)])
 def list_resolutions(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     domain: Optional[str] = Query(None),
     resolved_ip: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=1000),
@@ -119,7 +120,7 @@ def list_resolutions(
 @router.get("/domains/{domain}/history", dependencies=[Depends(api_key_auth)])
 def get_domain_history(
     domain: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Get all historical IPs for a domain, ordered by last_seen descending."""
     return _get_engine().get_domain_history(org_id, domain)
@@ -128,7 +129,7 @@ def get_domain_history(
 @router.get("/ips/{ip}/history", dependencies=[Depends(api_key_auth)])
 def get_ip_history(
     ip: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Get all domains that ever resolved to this IP address."""
     return _get_engine().get_ip_history(org_id, ip)
@@ -137,7 +138,7 @@ def get_ip_history(
 @router.get("/domains/{domain}/fast-flux", dependencies=[Depends(api_key_auth)])
 def detect_fast_flux(
     domain: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Detect fast-flux DNS patterns for a domain."""
     return _get_engine().detect_fast_flux(org_id, domain)
@@ -154,7 +155,7 @@ def add_domain_threat(req: AddDomainThreatRequest) -> Dict[str, Any]:
 
 @router.get("/threats", dependencies=[Depends(api_key_auth)])
 def list_domain_threats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     threat_type: Optional[str] = Query(None),
     min_confidence: Optional[float] = Query(None, ge=0.0, le=1.0),
 ) -> List[Dict[str, Any]]:
@@ -167,7 +168,7 @@ def list_domain_threats(
 @router.get("/domains/{domain}/reputation", dependencies=[Depends(api_key_auth)])
 def check_domain_reputation(
     domain: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Check domain reputation against recorded threats and resolution history."""
     return _get_engine().check_domain_reputation(org_id, domain)
@@ -175,7 +176,7 @@ def check_domain_reputation(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_dns_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get aggregate DNS statistics for an organisation."""
     return _get_engine().get_dns_stats(org_id)

@@ -51,7 +51,7 @@ class AnalyzeRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/")
-def list_network_forensics(org_id: str = Query("default")):
+def list_network_forensics(org_id: str = Depends(get_org_id)):
     """List network forensics captures for the org."""
     captures = _get_engine().list_captures(org_id=org_id)
     return {"org_id": org_id, "captures": captures, "total": len(captures)}

@@ -53,6 +53,7 @@ from typing import Any, Dict, List, Optional
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from fastapi import Path as PathParam
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -213,7 +214,7 @@ def _data_dir() -> Path:
     summary="Aggregate compliance posture across frameworks",
 )
 def system_compliance_posture(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Aggregate posture across SOC2/ISO/PCI/HIPAA/FedRAMP/NIST + FIPS readiness.
 
@@ -429,7 +430,7 @@ def system_fips_self_test(
     "/fips-mode", summary="Get FIPS 140-3 mode status (active/inactive + posture)"
 )
 def system_fips_mode(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return FIPS mode for tenant, plus active provider + readiness summary."""
     try:
@@ -673,7 +674,7 @@ def pbom_artifact_propagation(
 )
 def provenance_attestation(
     artifact: str = PathParam(..., min_length=8, description="Artifact name or sha256"),
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return the latest in-toto SLSA attestation envelope for an artifact.
 
@@ -734,7 +735,7 @@ def provenance_attestation(
     summary="List material change events (filter by kind/severity)",
 )
 def changes_material(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     kind: Optional[str] = Query(
         None, description="dependency|config|secret|crypto|infra|rbac|other"
     ),
@@ -829,7 +830,7 @@ def list_scopes() -> Dict[str, Any]:
     "/feed-status", summary="Air-gapped feed bundle freshness + status"
 )
 def air_gap_feed_status(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Report freshness of feed bundles imported into an air-gapped install.
 
@@ -1215,7 +1216,7 @@ def skills_uninstall(
 # ===========================================================================
 # 18) GET /api/v1/rules/dsl     (4091307b) — alias of dynamic_rule_dsl_router
 @rules_router.get("/", summary="Rules index")
-def list_rules(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_rules(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return a summary of available detection rules for the org."""
     rules: List[Dict[str, Any]] = []
     try:
@@ -1233,7 +1234,7 @@ def list_rules(org_id: str = Query("default")) -> Dict[str, Any]:
 
 @rules_router.get("/dsl", summary="List DSL rules (alias)")
 def list_dsl_rules(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None, description="draft|published|retired"),
 ) -> Dict[str, Any]:
     rules: List[Dict[str, Any]] = []

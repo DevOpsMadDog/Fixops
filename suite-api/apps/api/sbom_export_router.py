@@ -23,6 +23,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -84,7 +85,7 @@ class GenerateRequest(BaseModel):
 
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_sbom_exports(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_sbom_exports(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """List SBOM projects for the org."""
     projects = _get_engine().list_projects(org_id=org_id)
     return {"org_id": org_id, "projects": projects, "total": len(projects)}

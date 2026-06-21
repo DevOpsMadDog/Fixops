@@ -85,7 +85,7 @@ class PolicyEvaluate(BaseModel):
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
 def list_cloud_accounts_root(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     provider: Optional[str] = Query(None),

@@ -31,6 +31,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -157,7 +158,7 @@ def create_playbook(body: CreatePlaybookRequest) -> SOARPlaybook:
     summary="List all SOAR playbooks",
 )
 def list_playbooks(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[SOARPlaybook]:
     """Return all playbooks registered for the given org."""
     engine = _get_engine()
@@ -175,7 +176,7 @@ def list_playbooks(
 )
 def get_playbook(
     playbook_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> SOARPlaybook:
     """Retrieve a playbook by its ID."""
     engine = _get_engine()
@@ -248,7 +249,7 @@ def execute_playbook(playbook_id: str, body: ExecutePlaybookRequest) -> SOARExec
     summary="Get SOAR execution history",
 )
 def get_execution_history(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     playbook_id: Optional[str] = Query(None, description="Filter by playbook ID"),
     limit: int = Query(100, ge=1, le=1000, description="Max results"),
 ) -> List[SOARExecution]:
@@ -274,7 +275,7 @@ def get_execution_history(
     summary="SOAR playbook aggregate statistics",
 )
 def get_playbook_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> PlaybookStats:
     """
     Return aggregate SOAR statistics: playbook counts, execution totals,
@@ -294,7 +295,7 @@ def get_playbook_stats(
     summary="Mean Time To Respond (MTTR)",
 )
 def get_mean_time_to_respond(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> MTTRResponse:
     """
     Compute MTTR from all completed SOAR executions for the org.
@@ -315,7 +316,7 @@ def get_mean_time_to_respond(
 
 
 @router.get("/", summary="SOAR index", tags=["soar"])
-async def soar_index(org_id: str = Query("default")) -> Dict[str, Any]:
+async def soar_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return SOAR playbook summary for the org."""
     playbooks: List[Any] = []
     try:

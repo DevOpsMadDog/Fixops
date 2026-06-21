@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -87,7 +88,7 @@ class AggregationCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/sources", dependencies=[Depends(api_key_auth)])
-def register_source(body: SourceCreate, org_id: str = Query("default")) -> Dict[str, Any]:
+def register_source(body: SourceCreate, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Register a new metrics source."""
     try:
         return _get_engine().register_source(org_id, body.model_dump())
@@ -97,7 +98,7 @@ def register_source(body: SourceCreate, org_id: str = Query("default")) -> Dict[
 
 @router.get("/sources", dependencies=[Depends(api_key_auth)])
 def list_sources(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     source_type: Optional[str] = Query(None),
     active: Optional[bool] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -109,7 +110,7 @@ def list_sources(
 def sync_source(
     source_id: str,
     body: SourceSyncUpdate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Sync a source — increments metric count and updates last_sync."""
     try:
@@ -123,7 +124,7 @@ def sync_source(
 # ---------------------------------------------------------------------------
 
 @router.post("/metrics", dependencies=[Depends(api_key_auth)])
-def record_metric(body: MetricRecord, org_id: str = Query("default")) -> Dict[str, Any]:
+def record_metric(body: MetricRecord, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Record a new metric observation."""
     try:
         return _get_engine().record_metric(org_id, body.model_dump())
@@ -133,7 +134,7 @@ def record_metric(body: MetricRecord, org_id: str = Query("default")) -> Dict[st
 
 @router.get("/metrics", dependencies=[Depends(api_key_auth)])
 def list_metrics(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     source_id: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
     metric_type: Optional[str] = Query(None),
@@ -145,7 +146,7 @@ def list_metrics(
 
 
 @router.get("/metrics/latest/{metric_name}", dependencies=[Depends(api_key_auth)])
-def get_latest_metric(metric_name: str, org_id: str = Query("default")) -> Dict[str, Any]:
+def get_latest_metric(metric_name: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get the most recent metric by collected_at for a given metric name."""
     result = _get_engine().get_latest_metric(org_id, metric_name)
     if result is None:
@@ -158,7 +159,7 @@ def get_latest_metric(metric_name: str, org_id: str = Query("default")) -> Dict[
 # ---------------------------------------------------------------------------
 
 @router.post("/aggregations", dependencies=[Depends(api_key_auth)])
-def create_aggregation(body: AggregationCreate, org_id: str = Query("default")) -> Dict[str, Any]:
+def create_aggregation(body: AggregationCreate, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Create an aggregation computation record."""
     try:
         return _get_engine().create_aggregation(org_id, body.model_dump())
@@ -168,7 +169,7 @@ def create_aggregation(body: AggregationCreate, org_id: str = Query("default")) 
 
 @router.get("/aggregations", dependencies=[Depends(api_key_auth)])
 def list_aggregations(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     aggregation_type: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     """List aggregation records."""
@@ -180,6 +181,6 @@ def list_aggregations(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_aggregator_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_aggregator_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregated metrics stats."""
     return _get_engine().get_aggregator_stats(org_id)

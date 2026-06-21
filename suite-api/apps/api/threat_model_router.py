@@ -24,6 +24,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -171,7 +172,7 @@ async def create_model(
 
 @router.get("", response_model=List[ThreatModel])
 async def list_models(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: ThreatModelEngine = Depends(_get_engine),
 ) -> List[ThreatModel]:
     """List all threat models for an organisation."""
@@ -180,7 +181,7 @@ async def list_models(
 
 @router.get("/unmitigated", response_model=List[ThreatEntry])
 async def get_unmitigated_threats(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: ThreatModelEngine = Depends(_get_engine),
 ) -> List[ThreatEntry]:
     """Return all open (unmitigated) threats for an organisation."""

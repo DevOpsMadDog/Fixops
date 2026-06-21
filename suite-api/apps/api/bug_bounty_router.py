@@ -32,7 +32,8 @@ from core.bug_bounty import (
     VulnerabilitySubmission,
     get_bug_bounty_engine,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -149,7 +150,7 @@ def create_program(req: CreateProgramRequest) -> BountyProgram:
 
 @router.get("/programs", response_model=List[BountyProgram], summary="List bug bounty programs")
 def list_programs(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     status: Optional[ProgramStatus] = Query(None, description="Filter by program status"),
 ) -> List[BountyProgram]:
     """List all bug bounty programs for an org, with optional status filter."""
@@ -208,7 +209,7 @@ def submit_vulnerability(req: SubmitVulnerabilityRequest) -> VulnerabilitySubmis
     summary="List vulnerability submissions",
 )
 def list_submissions(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     program_id: Optional[str] = Query(None, description="Filter by program ID"),
     status: Optional[SubmissionStatus] = Query(None, description="Filter by submission status"),
     severity: Optional[Severity] = Query(None, description="Filter by severity"),
@@ -278,7 +279,7 @@ def update_reward(reward_id: str, req: UpdateRewardRequest) -> RewardRecord:
 )
 def get_program_metrics(
     program_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> ProgramMetrics:
     """Return full program metrics: submissions, acceptance rate, avg triage time, ROI."""
     _require_program(program_id)

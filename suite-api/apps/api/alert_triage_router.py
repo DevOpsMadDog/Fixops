@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from apps.api.auth_deps import api_key_auth, require_role
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 _logger = logging.getLogger(__name__)
@@ -163,7 +164,7 @@ class BulkTriageRequest(BaseModel):
 # Endpoints
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_alert_triage(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_alert_triage(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """List alerts in the triage queue for the org."""
     alerts = _get_engine().list_alerts(org_id=org_id)
     return {"org_id": org_id, "alerts": alerts, "total": len(alerts)}

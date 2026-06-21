@@ -10,6 +10,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -128,7 +129,7 @@ def detect_anomalies(req: DetectAnomalyRequest) -> List[Dict[str, Any]]:
 @router.put("/anomalies/{anomaly_id}/resolve", summary="Resolve a network anomaly")
 def resolve_anomaly(
     anomaly_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().resolve_anomaly(anomaly_id=anomaly_id, org_id=org_id)
@@ -141,7 +142,7 @@ def resolve_anomaly(
 
 @router.get("/summary", summary="Get anomaly summary for org")
 def get_anomaly_summary(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().get_anomaly_summary(org_id=org_id)
@@ -152,7 +153,7 @@ def get_anomaly_summary(
 
 @router.get("/baselines", summary="Get baseline health for org")
 def get_baseline_health(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     try:
         return _get_engine().get_baseline_health(org_id=org_id)
@@ -163,7 +164,7 @@ def get_baseline_health(
 
 @router.get("/traffic-trend", summary="Get traffic trend for segment/protocol")
 def get_traffic_trend(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     segment: str = Query(..., description="Network segment"),
     protocol: str = Query("TCP", description="Protocol"),
     hours: int = Query(24, ge=1, le=720, description="Hours of history to return"),

@@ -26,6 +26,7 @@ from core.zero_trust_policy_engine import (
     get_zero_trust_policy_engine,
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = structlog.get_logger()
@@ -117,7 +118,7 @@ class RecordAccessEventRequest(BaseModel):
 
 @router.get("/", response_model=Dict[str, Any])
 async def get_summary(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Return a top-level summary of Zero Trust policy state for an org."""
@@ -142,7 +143,7 @@ async def get_summary(
 
 @router.get("/policies", response_model=List[Dict[str, Any]])
 async def list_policies(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     policy_type: Optional[str] = Query(None),
     enabled: Optional[bool] = Query(None),
     _auth: Any = Depends(api_key_auth),
@@ -154,7 +155,7 @@ async def list_policies(
 @router.post("/policies", response_model=Dict[str, Any], status_code=201)
 async def create_policy(
     body: CreatePolicyRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Create a Zero Trust policy."""
@@ -170,7 +171,7 @@ async def create_policy(
 @router.get("/policies/{policy_id}", response_model=Dict[str, Any])
 async def get_policy(
     policy_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Get a single Zero Trust policy by ID."""
@@ -184,7 +185,7 @@ async def get_policy(
 async def update_policy(
     policy_id: str,
     body: UpdatePolicyRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Update a Zero Trust policy."""
@@ -201,7 +202,7 @@ async def update_policy(
 @router.delete("/policies/{policy_id}", response_model=Dict[str, Any])
 async def delete_policy(
     policy_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Delete a Zero Trust policy."""
@@ -239,7 +240,7 @@ async def evaluate_access(
 
 @router.get("/access-events", response_model=List[Dict[str, Any]])
 async def list_access_events(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     decision: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
     _auth: Any = Depends(api_key_auth),
@@ -267,7 +268,7 @@ async def record_access_event(
 
 @router.get("/stats", response_model=Dict[str, Any])
 async def get_policy_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Return policy and access event statistics."""
@@ -276,7 +277,7 @@ async def get_policy_stats(
 
 @router.get("/compliance", response_model=Dict[str, Any])
 async def get_compliance_posture(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth: Any = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Return Zero Trust maturity score, pillar breakdown, and recommendations."""

@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field
 
@@ -226,7 +226,7 @@ def upload_sbom(body: SBOMUploadRequest) -> SBOMUploadResponse:
     summary="List all tracked components with risk scores",
 )
 def list_components(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(200, ge=1, le=1000, description="Maximum results"),
 ) -> List[Dict[str, Any]]:
     """
@@ -249,7 +249,7 @@ def list_components(
     summary="Supply chain risk dashboard",
 )
 def get_risk_dashboard(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> RiskDashboard:
     """
     Return an aggregated risk dashboard for the organisation's supply chain.
@@ -299,7 +299,7 @@ def trigger_scan(body: ScanRequest) -> Dict[str, Any]:
     summary="List active supply chain policies",
 )
 def list_policies(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[SupplyChainPolicy]:
     """
     Return all supply chain security policies for the organisation.
@@ -351,7 +351,7 @@ def create_policy(body: CreatePolicyRequest) -> SupplyChainPolicy:
     summary="List vendor risk assessments",
 )
 def list_vendors(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[VendorRiskAssessment]:
     """
     Return all vendor risk assessments for the organisation.
@@ -528,7 +528,7 @@ def osv_scan(body: OSVScanRequest) -> List[Dict[str, Any]]:
     status_code=200,
 )
 def sync_from_brain(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> dict:
     """
     Query the KnowledgeBrain for all ``component``-type nodes and upsert them
@@ -691,7 +691,7 @@ def analyze_sbom_intel(body: AnalyzeSBOMRequest) -> Dict[str, Any]:
 
 
 @router.get("/alerts", summary="List supply chain alerts")
-def get_intel_alerts(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_intel_alerts(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     intel = _get_intel()
     alerts = intel.get_alerts(org_id=org_id)
     return {"alerts": [a.model_dump() for a in alerts], "total": len(alerts)}
@@ -708,7 +708,7 @@ def resolve_intel_alert(alert_id: str) -> Dict[str, Any]:
 
 @router.get("/high-risk", summary="List high-risk packages above a score threshold")
 def get_high_risk_packages(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     threshold: float = Query(70.0, ge=0.0, le=100.0),
 ) -> Dict[str, Any]:
     intel = _get_intel()
@@ -721,7 +721,7 @@ def get_high_risk_packages(
 
 
 @router.get("/stats", summary="Supply chain intelligence aggregate statistics")
-def get_intel_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_intel_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     intel = _get_intel()
     return intel.get_supply_chain_stats(org_id=org_id)
 
@@ -762,7 +762,7 @@ def get_malicious_db(
 
 
 @router.get("/risk-summary", summary="Risk summary grouped by ecosystem, category, severity")
-def get_risk_summary(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_risk_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     intel = _get_intel()
     return intel.get_risk_summary(org_id=org_id)
 

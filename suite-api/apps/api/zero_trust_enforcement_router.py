@@ -27,6 +27,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -124,7 +125,7 @@ class CreateSessionRequest(BaseModel):
 
 @router.get("/policies", response_model=List[Dict[str, Any]])
 async def list_policies(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     resource_type: Optional[str] = Query(None),
     enabled: Optional[bool] = Query(None),
     _auth=Depends(api_key_auth),
@@ -138,7 +139,7 @@ async def list_policies(
 @router.post("/policies", response_model=Dict[str, Any], status_code=201)
 async def create_policy(
     body: CreatePolicyRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Create a new Zero Trust access policy."""
@@ -154,7 +155,7 @@ async def create_policy(
 @router.get("/policies/{policy_id}", response_model=Dict[str, Any])
 async def get_policy(
     policy_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Get a single Zero Trust policy by ID."""
@@ -168,7 +169,7 @@ async def get_policy(
 async def update_policy(
     policy_id: str,
     body: UpdatePolicyRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Update a Zero Trust policy."""
@@ -187,7 +188,7 @@ async def update_policy(
 @router.delete("/policies/{policy_id}", response_model=Dict[str, Any])
 async def delete_policy(
     policy_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Delete a Zero Trust policy."""
@@ -206,7 +207,7 @@ async def delete_policy(
 @router.post("/evaluate", response_model=Dict[str, Any])
 async def evaluate_access(
     body: EvaluateAccessRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Evaluate an access request against all active Zero Trust policies."""
@@ -223,7 +224,7 @@ async def evaluate_access(
 
 @router.get("/trust-scores", response_model=List[Dict[str, Any]])
 async def list_trust_scores(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     entity_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     _auth=Depends(api_key_auth),
@@ -237,7 +238,7 @@ async def list_trust_scores(
 @router.post("/trust-scores", response_model=Dict[str, Any], status_code=201)
 async def set_trust_score(
     body: SetTrustScoreRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Create or update a trust score for an entity."""
@@ -259,7 +260,7 @@ async def set_trust_score(
 @router.get("/trust-scores/{entity_id}", response_model=Dict[str, Any])
 async def get_trust_score(
     entity_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Get trust score for a specific entity."""
@@ -277,7 +278,7 @@ async def get_trust_score(
 
 @router.get("/sessions", response_model=List[Dict[str, Any]])
 async def list_sessions(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     principal_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     _auth=Depends(api_key_auth),
@@ -291,7 +292,7 @@ async def list_sessions(
 @router.post("/sessions", response_model=Dict[str, Any], status_code=201)
 async def create_session(
     body: CreateSessionRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Create a new Zero Trust session."""
@@ -310,7 +311,7 @@ async def create_session(
 @router.post("/sessions/{session_id}/revoke", response_model=Dict[str, Any])
 async def revoke_session(
     session_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Revoke an active session."""
@@ -329,7 +330,7 @@ async def revoke_session(
 
 @router.get("/access-log", response_model=List[Dict[str, Any]])
 async def list_access_requests(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     decision: Optional[str] = Query(None),
     resource_type: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
@@ -350,7 +351,7 @@ async def list_access_requests(
 
 @router.get("/stats", response_model=Dict[str, Any])
 async def get_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Return Zero Trust stats: request rates, active sessions, trust scores."""
@@ -359,7 +360,7 @@ async def get_stats(
 
 @router.get("/compliance", response_model=Dict[str, Any])
 async def get_compliance_posture(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Return Zero Trust maturity score, pillar breakdown, and recommendations.

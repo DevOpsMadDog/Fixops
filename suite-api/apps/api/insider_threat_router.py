@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -148,7 +149,7 @@ def record_activity(body: RecordActivityRequest) -> RecordActivityResponse:
 )
 def assess_user_risk(
     user_email: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> UserRiskProfile:
     """
     Compute and persist the risk profile for the specified user.
@@ -187,7 +188,7 @@ def detect_anomalies(body: DetectRequest) -> DetectResponse:
     summary="List high-risk users",
 )
 def get_high_risk_users(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     threshold: float = Query(60.0, ge=0, le=100, description="Minimum risk score"),
 ) -> List[UserRiskProfile]:
     """
@@ -205,7 +206,7 @@ def get_high_risk_users(
 )
 def get_user_timeline(
     user_email: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(200, ge=1, le=1000, description="Max records"),
 ) -> List[ActivityRecord]:
     """
@@ -223,7 +224,7 @@ def get_user_timeline(
     summary="Risk-level distribution across org users",
 )
 def get_risk_distribution(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> RiskDistribution:
     """
     Return count of users at each alert level (low/medium/high/critical).
@@ -270,7 +271,7 @@ def acknowledge_alert(
     summary="Insider threat programme statistics",
 )
 def get_detection_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> DetectionStats:
     """
     Return aggregate statistics: total activities, alerts, reviews,
@@ -286,7 +287,7 @@ def get_detection_stats(
 )
 def get_trustgraph_context(
     entity_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return TrustGraph cross-domain context for an insider threat entity (related assets, findings, incidents)."""
     detector = _get_detector()

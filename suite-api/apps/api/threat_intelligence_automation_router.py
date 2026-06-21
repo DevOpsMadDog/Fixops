@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -92,7 +93,7 @@ class EnrichmentCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/feeds", dependencies=[Depends(api_key_auth)])
-def register_feed(body: FeedCreate, org_id: str = Query("default")) -> Dict[str, Any]:
+def register_feed(body: FeedCreate, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Register a new threat intelligence feed."""
     try:
         return _get_engine().register_feed(org_id, body.model_dump())
@@ -102,7 +103,7 @@ def register_feed(body: FeedCreate, org_id: str = Query("default")) -> Dict[str,
 
 @router.get("/feeds", dependencies=[Depends(api_key_auth)])
 def list_feeds(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     feed_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ) -> Dict[str, Any]:
@@ -118,7 +119,7 @@ def list_feeds(
 
 
 @router.post("/feeds/import-global", dependencies=[Depends(api_key_auth)])
-def import_global_feeds(org_id: str = Query("default")) -> Dict[str, Any]:
+def import_global_feeds(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Import feeds from the global feed registry into per-org tia_feeds.
 
     Reads the 7 catalogs in suite-feeds/feeds_service.py (AUTHORITATIVE,
@@ -141,7 +142,7 @@ def import_global_feeds(org_id: str = Query("default")) -> Dict[str, Any]:
 def update_feed_stats(
     feed_id: str,
     body: FeedStatsUpdate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update feed IOC count and last polled timestamp."""
     try:
@@ -157,7 +158,7 @@ def update_feed_stats(
 # ---------------------------------------------------------------------------
 
 @router.post("/automations", dependencies=[Depends(api_key_auth)])
-def create_automation(body: AutomationCreate, org_id: str = Query("default")) -> Dict[str, Any]:
+def create_automation(body: AutomationCreate, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Create an automation rule."""
     try:
         return _get_engine().create_automation(org_id, body.model_dump())
@@ -167,7 +168,7 @@ def create_automation(body: AutomationCreate, org_id: str = Query("default")) ->
 
 @router.get("/automations", dependencies=[Depends(api_key_auth)])
 def list_automations(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     trigger_type: Optional[str] = Query(None),
     enabled: Optional[bool] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -178,7 +179,7 @@ def list_automations(
 @router.put("/automations/{automation_id}/execute", dependencies=[Depends(api_key_auth)])
 def execute_automation(
     automation_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Execute an automation rule (increments execution count)."""
     try:
@@ -192,7 +193,7 @@ def execute_automation(
 # ---------------------------------------------------------------------------
 
 @router.post("/enrichments", dependencies=[Depends(api_key_auth)])
-def store_enrichment(body: EnrichmentCreate, org_id: str = Query("default")) -> Dict[str, Any]:
+def store_enrichment(body: EnrichmentCreate, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Store an IOC enrichment record."""
     try:
         return _get_engine().store_enrichment(org_id, body.model_dump())
@@ -202,7 +203,7 @@ def store_enrichment(body: EnrichmentCreate, org_id: str = Query("default")) -> 
 
 @router.get("/enrichments", dependencies=[Depends(api_key_auth)])
 def list_enrichments(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     ioc_type: Optional[str] = Query(None),
     is_malicious: Optional[bool] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -211,7 +212,7 @@ def list_enrichments(
 
 
 @router.get("/enrichments/{ioc_value}", dependencies=[Depends(api_key_auth)])
-def get_enrichment(ioc_value: str, org_id: str = Query("default")) -> Dict[str, Any]:
+def get_enrichment(ioc_value: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get most recent enrichment for a specific IOC value."""
     result = _get_engine().get_enrichment(org_id, ioc_value)
     if result is None:
@@ -224,6 +225,6 @@ def get_enrichment(ioc_value: str, org_id: str = Query("default")) -> Dict[str, 
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_ti_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_ti_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregated threat intelligence stats."""
     return _get_engine().get_ti_stats(org_id)

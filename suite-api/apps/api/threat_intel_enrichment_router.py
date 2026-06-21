@@ -91,7 +91,7 @@ class BulkEnrichRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_intel_enrichment(org_id: str = Query("default")):
+def list_intel_enrichment(org_id: str = Depends(get_org_id)):
     """Get threat intel enrichment statistics for the org."""
     return _get_engine().get_enrichment_stats(org_id=org_id)
 

@@ -20,9 +20,8 @@ from core.vulnerability_analytics import (
     TrendPoint,
     VulnerabilityAnalytics,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
-from fastapi import Depends
 
 router = APIRouter(
     prefix="/api/v1/analytics",
@@ -60,7 +59,7 @@ def _parse_date(value: Optional[str], param_name: str) -> Optional[datetime]:
 
 @router.get("/trends", response_model=List[TrendPoint])
 async def get_finding_trends(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     granularity: TimeGranularity = Query(TimeGranularity.DAILY, description="Time bucket size"),
     start: Optional[str] = Query(None, description="Start date (ISO 8601)"),
     end: Optional[str] = Query(None, description="End date (ISO 8601)"),
@@ -81,7 +80,7 @@ async def get_finding_trends(
 
 @router.get("/mttr")
 async def get_mttr(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None, description="Filter by severity (critical/high/medium/low/info)"),
     period_days: int = Query(30, ge=1, le=365, description="Look-back window in days"),
 ) -> Dict[str, Any]:
@@ -101,7 +100,7 @@ async def get_mttr(
 
 @router.get("/mttd")
 async def get_mttd(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     period_days: int = Query(30, ge=1, le=365, description="Look-back window in days"),
 ) -> Dict[str, Any]:
     """Mean time to detect (hours) — average time from opened to detected event."""
@@ -115,7 +114,7 @@ async def get_mttd(
 
 @router.get("/severity")
 async def get_severity_distribution(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     date: Optional[str] = Query(None, description="Point-in-time cutoff (ISO 8601)"),
 ) -> Dict[str, Any]:
     """
@@ -132,7 +131,7 @@ async def get_severity_distribution(
 
 @router.get("/severity-trend")
 async def get_severity_trend(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     granularity: TimeGranularity = Query(TimeGranularity.DAILY, description="Time bucket size"),
     period_days: int = Query(30, ge=1, le=365, description="Look-back window in days"),
 ) -> List[Dict[str, Any]]:
@@ -146,7 +145,7 @@ async def get_severity_trend(
 
 @router.get("/scanners", response_model=List[ScannerEffectiveness])
 async def get_scanner_effectiveness(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[ScannerEffectiveness]:
     """Scanner effectiveness ranked by finding volume with quality metrics."""
     return _analytics.get_scanner_effectiveness(org_id=org_id)
@@ -154,7 +153,7 @@ async def get_scanner_effectiveness(
 
 @router.get("/risk-trajectory")
 async def get_risk_trajectory(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     period_days: int = Query(30, ge=1, le=365, description="Look-back window in days"),
 ) -> List[Dict[str, Any]]:
     """Average risk score of newly opened findings per day."""
@@ -163,7 +162,7 @@ async def get_risk_trajectory(
 
 @router.get("/recurring")
 async def get_top_recurring(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(10, ge=1, le=100, description="Maximum number of findings to return"),
 ) -> List[Dict[str, Any]]:
     """Most frequently reopened findings."""
@@ -173,7 +172,7 @@ async def get_top_recurring(
 @router.get("/executive-summary")
 @cache_endpoint(ttl=TTL_STATS)
 async def get_executive_summary(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """
     All key vulnerability metrics in a single call — designed for

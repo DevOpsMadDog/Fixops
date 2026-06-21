@@ -112,7 +112,7 @@ async def list_templates(
 
 @router.get("/answer-bank", response_model=List[Dict[str, Any]], dependencies=[Depends(api_key_auth)])
 async def get_answer_bank(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: QuestionnaireEngine = Depends(_get_engine),
 ) -> List[Dict[str, Any]]:
     """Return all reusable answers from the answer bank."""
@@ -137,7 +137,7 @@ async def add_to_answer_bank(
 
 @router.get("", response_model=List[Dict[str, Any]], dependencies=[Depends(api_key_auth)])
 async def list_questionnaires(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: QuestionnaireEngine = Depends(_get_engine),
 ) -> List[Dict[str, Any]]:
     """List all questionnaires for an organisation."""

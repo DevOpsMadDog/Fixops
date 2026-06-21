@@ -15,6 +15,7 @@ import logging
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ router = APIRouter(
 @router.get("")
 @router.get("/")
 async def list_profiles(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500),
 ) -> Dict[str, Any]:
     """List developer risk profiles for the org."""
@@ -52,7 +53,7 @@ async def list_profiles(
 
 @router.get("/leaderboard/risk")
 async def risk_leaderboard(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(20, ge=1, le=100),
 ) -> Dict[str, Any]:
     """Developer risk leaderboard — ranked by findings fixed and risk reduction."""
@@ -70,7 +71,7 @@ async def risk_leaderboard(
 @router.get("/{dev_id}")
 async def get_profile(
     dev_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single developer risk profile."""
     try:

@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -77,7 +78,7 @@ class RemediateRequest(BaseModel):
 @router.post("/policies", response_model=Dict[str, Any], status_code=201)
 def create_governance_policy(
     body: PolicyCreate,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new cloud governance policy."""
     try:
@@ -88,7 +89,7 @@ def create_governance_policy(
 
 @router.get("/policies")
 def list_governance_policies(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     policy_type: Optional[str] = Query(None, description="Filter by policy_type"),
     cloud_provider: Optional[str] = Query(None, description="Filter by cloud_provider"),
     enforcement: Optional[str] = Query(None, description="Filter by enforcement"),
@@ -134,7 +135,7 @@ def list_governance_policies(
 @router.get("/policies/{policy_id}", response_model=Dict[str, Any])
 def get_governance_policy(
     policy_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return a single governance policy."""
     result = _get_engine(org_id).get_governance_policy(org_id, policy_id)
@@ -146,7 +147,7 @@ def get_governance_policy(
 @router.post("/violations", response_model=Dict[str, Any], status_code=201)
 def record_violation(
     body: ViolationCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record a new policy violation."""
     try:
@@ -157,7 +158,7 @@ def record_violation(
 
 @router.get("/violations", response_model=List[Dict[str, Any]])
 def list_violations(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     policy_id: Optional[str] = Query(None, description="Filter by policy_id"),
     severity: Optional[str] = Query(None, description="Filter by severity"),
     status: Optional[str] = Query(None, description="Filter by status"),
@@ -175,7 +176,7 @@ def list_violations(
 def remediate_violation(
     violation_id: str,
     body: RemediateRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Mark a violation as remediated."""
     result = _get_engine(org_id).remediate_violation(
@@ -188,7 +189,7 @@ def remediate_violation(
 
 @router.get("/stats", response_model=Dict[str, Any])
 def get_governance_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return aggregated cloud governance statistics."""
     return _get_engine(org_id).get_governance_stats(org_id)

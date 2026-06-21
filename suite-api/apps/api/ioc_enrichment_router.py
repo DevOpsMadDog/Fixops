@@ -80,7 +80,7 @@ class BulkImport(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_ioc_enrichment(org_id: str = Query("default")):
+def list_ioc_enrichment(org_id: str = Depends(get_org_id)):
     """Get IOC enrichment statistics for the org."""
     return _get_engine().get_ioc_stats(org_id)
 

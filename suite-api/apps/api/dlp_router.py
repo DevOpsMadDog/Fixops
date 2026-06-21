@@ -16,6 +16,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -109,7 +110,7 @@ def redact_text(req: RedactRequest, engine: DLPEngine = Depends(_get_engine)) ->
 
 @router.get("/results", summary="List scan results")
 def list_results(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     risk_level: Optional[str] = Query(None, description="Filter by risk level"),
     limit: int = Query(50, ge=1, le=500),
     engine: DLPEngine = Depends(_get_engine),
@@ -129,7 +130,7 @@ def get_result(scan_id: str, engine: DLPEngine = Depends(_get_engine)) -> Dict[s
 
 @router.get("/stats", summary="DLP statistics")
 def get_stats(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: DLPEngine = Depends(_get_engine),
 ) -> Dict[str, Any]:
     """Return aggregated DLP statistics for an organisation."""
@@ -201,7 +202,7 @@ def create_policy(req: PolicyCreate, engine: DLPEngine = Depends(_get_engine)) -
 
 @router.get("/policies", summary="List DLP policies")
 def list_policies(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     enabled: Optional[bool] = Query(None),
     engine: DLPEngine = Depends(_get_engine),
 ) -> List[Dict[str, Any]]:
@@ -211,7 +212,7 @@ def list_policies(
 @router.get("/policies/{policy_id}", summary="Get DLP policy")
 def get_policy(
     policy_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     engine: DLPEngine = Depends(_get_engine),
 ) -> Dict[str, Any]:
     pol = engine.get_policy(org_id, policy_id)
@@ -230,7 +231,7 @@ def detect_incident(req: DetectIncidentRequest, engine: DLPEngine = Depends(_get
 
 @router.get("/incidents", summary="List DLP incidents")
 def list_incidents(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None),
     channel: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -245,7 +246,7 @@ def list_incidents(
 def update_incident_status(
     incident_id: str,
     req: IncidentStatusUpdate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     engine: DLPEngine = Depends(_get_engine),
 ) -> Dict[str, Any]:
     try:
@@ -267,7 +268,7 @@ def create_exception(req: ExceptionCreate, engine: DLPEngine = Depends(_get_engi
 
 @router.get("/exceptions", summary="List policy exceptions")
 def list_exceptions(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     engine: DLPEngine = Depends(_get_engine),
 ) -> List[Dict[str, Any]]:
     return engine.list_exceptions(org_id)
@@ -275,7 +276,7 @@ def list_exceptions(
 
 @router.get("/dlp-stats", summary="DLP policy/incident stats")
 def get_dlp_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     engine: DLPEngine = Depends(_get_engine),
 ) -> Dict[str, Any]:
     return engine.get_dlp_stats(org_id)
@@ -283,7 +284,7 @@ def get_dlp_stats(
 
 @router.get("/daily-trends", summary="Daily incident trend")
 def get_daily_trends(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(30, ge=1, le=365),
     engine: DLPEngine = Depends(_get_engine),
 ) -> List[Dict[str, Any]]:
@@ -297,7 +298,7 @@ def get_daily_trends(
 
 @router.get("/", summary="DLP domain summary")
 def get_dlp_summary(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: DLPEngine = Depends(_get_engine),
 ) -> Dict[str, Any]:
     """Return a 5-state summary envelope for the DLP domain.

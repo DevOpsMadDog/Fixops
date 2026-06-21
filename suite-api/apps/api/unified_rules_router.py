@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -75,7 +76,7 @@ class SyncRequest(BaseModel):
 @router.post("", response_model=Dict[str, Any], status_code=201)
 def register_unified_rule(
     body: UnifiedRuleCreate,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ):
     """UPSERT a rule into the canonical taxonomy registry."""
     try:
@@ -94,7 +95,7 @@ def register_unified_rule(
 
 @router.get("", response_model=List[Dict[str, Any]])
 def list_unified_rules(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     domain: Optional[str] = Query(None, description="Filter by domain"),
     source_engine: Optional[str] = Query(None, description="Filter by source_engine"),
     enabled: Optional[bool] = Query(None, description="Filter by enabled flag"),
@@ -108,7 +109,7 @@ def list_unified_rules(
 @router.post("/{rule_key}/enable", response_model=Dict[str, Any])
 def enable_rule(
     rule_key: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Enable a rule in the registry."""
     result = _get_policy_engine().enable_rule(org_id, rule_key)
@@ -120,7 +121,7 @@ def enable_rule(
 @router.post("/{rule_key}/disable", response_model=Dict[str, Any])
 def disable_rule(
     rule_key: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Disable a rule in the registry (soft-delete)."""
     result = _get_policy_engine().disable_rule(org_id, rule_key)
@@ -138,7 +139,7 @@ def get_rule_taxonomy():
 @router.post("/sync", response_model=Dict[str, Any])
 def sync_from_unified_registry(
     body: SyncRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Shim: sync registry rules for a source_engine into policy_enforcement_engine.
 

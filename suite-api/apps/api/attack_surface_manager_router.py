@@ -13,6 +13,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -146,7 +147,7 @@ class TriggerScanRequest(BaseModel):
 
 @router.get("/assets", response_model=List[ManagedAsset], summary="Full attack surface inventory")
 def list_assets(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     category: Optional[AssetCategory] = Query(None, description="Filter by category"),
     zone: Optional[ExposureZone] = Query(None, description="Filter by exposure zone"),
     tier: Optional[RiskTier] = Query(None, description="Filter by risk tier"),
@@ -232,7 +233,7 @@ def discover_assets(
 
 @router.get("/score", response_model=ASMSurfaceScore, summary="Overall attack surface score + breakdown")
 def get_surface_score(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: AttackSurfaceManager = Depends(_get_engine),
 ) -> ASMSurfaceScore:
     """Return composite attack surface score with component breakdown."""
@@ -246,7 +247,7 @@ def get_surface_score(
 
 @router.get("/exposed", response_model=List[ManagedAsset], summary="Internet-exposed assets")
 def get_exposed_assets(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: AttackSurfaceManager = Depends(_get_engine),
 ) -> List[ManagedAsset]:
     """Return all internet-facing (INTERNET_FACING zone) assets."""
@@ -272,7 +273,7 @@ def get_exposure_analysis(
 
 @router.get("/shadow-it", response_model=List[ShadowITFinding], summary="Shadow IT / unmanaged assets")
 def list_shadow_it(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: AttackSurfaceManager = Depends(_get_engine),
 ) -> List[ShadowITFinding]:
     """Return previously detected shadow IT findings."""
@@ -303,7 +304,7 @@ def scan_shadow_it(
 
 @router.get("/paths", response_model=List[AttackPath], summary="Attack path analysis")
 def list_attack_paths(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     min_score: float = Query(0.0, ge=0.0, le=1.0, description="Minimum path risk score"),
     choke_points_only: bool = Query(False, description="Return only choke point paths"),
     engine: AttackSurfaceManager = Depends(_get_engine),
@@ -336,7 +337,7 @@ def map_attack_path(
 
 @router.post("/paths/auto-generate", response_model=List[AttackPath], summary="Auto-generate attack paths")
 def auto_generate_paths(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: AttackSurfaceManager = Depends(_get_engine),
 ) -> List[AttackPath]:
     """Automatically generate attack paths from internet-facing to internal assets."""
@@ -371,7 +372,7 @@ def trigger_scan(
 
 @router.get("/scan/latest", response_model=Optional[ScanResult], summary="Get latest scan result")
 def get_latest_scan(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     engine: AttackSurfaceManager = Depends(_get_engine),
 ) -> Optional[ScanResult]:
     """Return the most recent scan result for an org."""
@@ -385,7 +386,7 @@ def get_latest_scan(
 
 @router.get("/changes", response_model=List[SurfaceChange], summary="Recent attack surface changes")
 def list_changes(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     since: Optional[str] = Query(None, description="ISO timestamp lower bound"),
     engine: AttackSurfaceManager = Depends(_get_engine),
 ) -> List[SurfaceChange]:
@@ -395,7 +396,7 @@ def list_changes(
 
 @router.post("/changes/detect", response_model=List[SurfaceChange], summary="Run change detection")
 def detect_changes(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     lookback_days: int = Query(7, ge=1, le=365, description="Days to look back"),
     engine: AttackSurfaceManager = Depends(_get_engine),
 ) -> List[SurfaceChange]:
@@ -414,7 +415,7 @@ def detect_changes(
 
 @router.get("/certificates", response_model=List[CertificateRecord], summary="Certificate inventory + health")
 def list_certificates(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     expiring_only: bool = Query(False, description="Return only expiring certificates"),
     within_days: int = Query(30, ge=1, le=365, description="Expiry window in days"),
     engine: AttackSurfaceManager = Depends(_get_engine),
@@ -461,7 +462,7 @@ def register_certificate(
 
 @router.get("/prioritized", summary="Risk-prioritized asset list")
 def get_prioritized_assets(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     top_n: int = Query(20, ge=1, le=200, description="Number of top assets to return"),
     engine: AttackSurfaceManager = Depends(_get_engine),
 ) -> List[Dict[str, Any]]:

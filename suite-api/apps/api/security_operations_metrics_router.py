@@ -86,14 +86,14 @@ class WorkloadUpdate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_soc_metrics(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_soc_metrics(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get SOC metrics summary for the org."""
     return _get_engine().get_soc_summary(org_id=org_id)
 
 
 @router.get("/queue", dependencies=[Depends(api_key_auth)])
 def list_alert_queue(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None, description="Filter: open|acknowledged|resolved"),
     limit: int = Query(default=100, ge=1, le=500),
 ) -> Dict[str, Any]:
@@ -105,7 +105,7 @@ def list_alert_queue(
 @router.post("/queue/{alert_id}/ack", dependencies=[Depends(api_key_auth)])
 def acknowledge_alert_queue(
     alert_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     analyst: str = Query("ui"),
 ) -> Dict[str, Any]:
     """Acknowledge an alert in the SOC queue (real soc_alerts update)."""
@@ -118,7 +118,7 @@ def acknowledge_alert_queue(
 @router.post("/queue/{alert_id}/resolve", dependencies=[Depends(api_key_auth)])
 def resolve_alert_queue(
     alert_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     false_positive: bool = Query(False),
 ) -> Dict[str, Any]:
     """Resolve an alert in the SOC queue (real soc_alerts update)."""
@@ -130,7 +130,7 @@ def resolve_alert_queue(
 
 @router.get("/snapshots", dependencies=[Depends(api_key_auth)])
 def list_snapshots(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=30, ge=1, le=365),
 ) -> Dict[str, Any]:
     """Recent daily SOC metric snapshots (real data, newest first)."""

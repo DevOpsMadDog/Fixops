@@ -9,6 +9,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -113,7 +114,7 @@ def create_hunt(body: CreateHuntRequest) -> Dict[str, Any]:
 
 @router.get("/hunts", summary="List threat hunts")
 def list_hunts(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None, description="Filter by status"),
     hunt_type: Optional[str] = Query(None, description="Filter by hunt type"),
 ) -> List[Dict[str, Any]]:
@@ -129,7 +130,7 @@ def list_hunts(
 @router.get("/hunts/{hunt_id}", summary="Get a threat hunt by ID")
 def get_hunt(
     hunt_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a specific threat hunt campaign."""
     engine = _get_engine()
@@ -193,7 +194,7 @@ def record_finding(body: RecordFindingRequest) -> Dict[str, Any]:
 
 @router.get("/findings", summary="List threat findings")
 def list_findings(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     hunt_id: Optional[str] = Query(None, description="Filter by hunt ID"),
     severity: Optional[str] = Query(None, description="Filter by severity"),
     status: Optional[str] = Query(None, description="Filter by status"),
@@ -245,7 +246,7 @@ def add_ioc(body: AddIocRequest) -> Dict[str, Any]:
 
 @router.get("/iocs", summary="List IOCs")
 def list_iocs(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     hunt_id: Optional[str] = Query(None, description="Filter by hunt ID"),
     ioc_type: Optional[str] = Query(None, description="Filter by IOC type"),
 ) -> List[Dict[str, Any]]:
@@ -265,7 +266,7 @@ def list_iocs(
 
 @router.get("/stats", summary="Get hunting statistics")
 def get_hunting_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate endpoint threat hunting statistics."""
     engine = _get_engine()

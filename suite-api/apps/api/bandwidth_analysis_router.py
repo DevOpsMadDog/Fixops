@@ -10,6 +10,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -89,7 +90,7 @@ def register_link(body: RegisterLinkRequest) -> Dict[str, Any]:
 
 @router.get("/links", summary="List network links")
 def list_links(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all registered links for an org."""
     engine = _get_engine()
@@ -122,7 +123,7 @@ def record_utilization(
 @router.get("/links/{link_id}/trend", summary="Get utilization trend")
 def get_utilization_trend(
     link_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     hours: int = Query(24, ge=1, le=720, description="Lookback window in hours"),
 ) -> Dict[str, Any]:
     """Return avg_pct, peak_pct, and per-sample data for a link over N hours."""
@@ -137,7 +138,7 @@ def get_utilization_trend(
 @router.get("/links/{link_id}/anomaly", summary="Detect bandwidth anomaly")
 def detect_anomaly(
     link_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Detect utilization anomaly for a link using z-score against historical baseline."""
     engine = _get_engine()
@@ -166,7 +167,7 @@ def create_qos_policy(body: QoSPolicyRequest) -> Dict[str, Any]:
 
 @router.get("/qos-policies", summary="List QoS policies")
 def list_qos_policies(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List QoS policies for an org ordered by priority."""
     engine = _get_engine()
@@ -184,7 +185,7 @@ def list_qos_policies(
 
 @router.get("/stats", summary="Get bandwidth stats")
 def get_bandwidth_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate bandwidth stats: total links, avg utilization, high-util links."""
     engine = _get_engine()

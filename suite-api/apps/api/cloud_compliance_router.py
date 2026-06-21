@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -96,7 +97,7 @@ class RemediationStatusUpdate(BaseModel):
 @router.post("/assessments", response_model=Dict[str, Any], status_code=201)
 def create_assessment(
     body: AssessmentCreate,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new cloud compliance assessment."""
     try:
@@ -107,7 +108,7 @@ def create_assessment(
 
 @router.get("/assessments", response_model=List[Dict[str, Any]])
 def list_assessments(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     framework: Optional[str] = Query(None),
     provider: Optional[str] = Query(None),
 ):
@@ -118,7 +119,7 @@ def list_assessments(
 @router.get("/assessments/{assessment_id}", response_model=Dict[str, Any])
 def get_assessment(
     assessment_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return assessment details with control summary."""
     result = _get_engine(org_id).get_assessment(org_id, assessment_id)
@@ -131,7 +132,7 @@ def get_assessment(
 def add_control_result(
     assessment_id: str,
     body: ControlResultCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record a control result against an assessment."""
     try:
@@ -143,7 +144,7 @@ def add_control_result(
 @router.post("/assessments/{assessment_id}/complete", response_model=Dict[str, Any])
 def complete_assessment(
     assessment_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Mark an assessment as completed and compute final score + drift."""
     result = _get_engine(org_id).complete_assessment(org_id, assessment_id)
@@ -154,7 +155,7 @@ def complete_assessment(
 
 @router.get("/controls", response_model=List[Dict[str, Any]])
 def list_control_results(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     assessment_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
@@ -168,7 +169,7 @@ def list_control_results(
 @router.post("/remediation-plans", response_model=Dict[str, Any], status_code=201)
 def create_remediation_plan(
     body: RemediationPlanCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a remediation plan for a control failure."""
     try:
@@ -181,7 +182,7 @@ def create_remediation_plan(
 def update_remediation_plan(
     plan_id: str,
     body: RemediationStatusUpdate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Update the status of a remediation plan."""
     try:
@@ -195,7 +196,7 @@ def update_remediation_plan(
 
 @router.get("/remediation-plans", response_model=List[Dict[str, Any]])
 def list_remediation_plans(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     assessment_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -207,7 +208,7 @@ def list_remediation_plans(
 
 @router.get("/drift", response_model=List[Dict[str, Any]])
 def list_drift_history(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     framework: Optional[str] = Query(None),
     limit: int = Query(10, ge=1, le=100),
 ):
@@ -217,7 +218,7 @@ def list_drift_history(
 
 @router.get("/stats", response_model=Dict[str, Any])
 def get_compliance_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return aggregated cloud compliance statistics."""
     return _get_engine(org_id).get_compliance_stats(org_id)

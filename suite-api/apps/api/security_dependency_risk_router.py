@@ -98,7 +98,7 @@ class LicenseRiskRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/")
-def list_dependency_risk(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_dependency_risk(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get security dependency risk summary for the org."""
     try:
         return _get_engine().get_dependency_summary(org_id=org_id)

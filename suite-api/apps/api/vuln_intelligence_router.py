@@ -271,7 +271,7 @@ def get_package_issues(purl: str, org_id: str = Depends(get_org_id)):
 
 @router.post("/sync", dependencies=[Depends(api_key_auth)])
 def sync_cves_from_brain(
-    org_id: str = Query("default", description="Target org for upserted CVEs"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Pull CVE/vulnerability findings from the brain graph and upsert them into
     the vuln-intel database.
@@ -349,7 +349,7 @@ def sync_cves_from_brain(
 
 
 @router.get("/", summary="Vulnerability intelligence index", tags=["vuln-intel"])
-def vuln_intel_index(org_id: str = Query("default"), _auth: None = Depends(api_key_auth)) -> Dict[str, Any]:
+def vuln_intel_index(org_id: str = Depends(get_org_id), _auth: None = Depends(api_key_auth)) -> Dict[str, Any]:
     """Return vulnerability intelligence summary for the org."""
     try:
         items = _get_engine().list_cves(org_id, limit=10)

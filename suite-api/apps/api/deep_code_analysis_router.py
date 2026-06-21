@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -137,7 +138,7 @@ async def get_stats(
 
 
 @router.get("/", summary="Deep code analysis index", tags=["dca"])
-async def dca_index(org_id: str = Query("default")) -> Dict[str, Any]:
+async def dca_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return deep code analysis summary and recent analyses for the org."""
     try:
         engine = _get_engine()

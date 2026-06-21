@@ -24,9 +24,8 @@ from core.code_ownership import (
     OwnershipRule,
     get_code_ownership,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
-from fastapi import Depends
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/ownership", tags=["code-ownership"])
@@ -178,7 +177,7 @@ async def unowned_files(body: UnownedRequest):
 # ── Workload ─────────────────────────────────────────────────────────────────
 
 @router.get("/workload", response_model=List[Dict[str, Any]])
-async def owner_workload(org_id: str = Query("default")):
+async def owner_workload(org_id: str = Depends(get_org_id)):
     """Return findings-per-owner workload for an org."""
     return _svc().get_owner_workload(org_id=org_id)
 

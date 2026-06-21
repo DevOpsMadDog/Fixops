@@ -23,7 +23,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -116,7 +117,7 @@ def build_graph(req: BuildGraphRequest) -> "CloudGraph":
 
 @router.get("/graph", response_model=CloudGraph, summary="Get cloud graph")
 def get_graph(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     node_type: Optional[str] = Query(None, description="Filter by NodeType"),
     public_only: bool = Query(False, description="Return only public nodes"),
 ) -> "CloudGraph":
@@ -177,7 +178,7 @@ def add_edge(req: AddEdgeRequest) -> "GraphEdge":
 
 @router.get("/exposed", response_model=List[GraphNode] if GraphNode else None, summary="Internet-exposed resources")
 def get_exposed_resources(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List["GraphNode"]:
     """Return all internet-reachable (public=True) cloud resources."""
     engine = _require_engine()
@@ -186,7 +187,7 @@ def get_exposed_resources(
 
 @router.get("/attack-paths", summary="Attack paths from internet to sensitive data")
 def get_attack_paths(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Find traversal paths from public-facing nodes to sensitive resources."""
     engine = _require_engine()
@@ -201,7 +202,7 @@ def get_attack_paths(
 @router.get("/blast-radius/{node_id}", response_model=CloudGraph, summary="Blast radius for a node")
 def get_blast_radius(
     node_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> "CloudGraph":
     """Return the subgraph of resources affected if the given node is compromised."""
     engine = _require_engine()
@@ -213,7 +214,7 @@ def get_blast_radius(
 
 @router.get("/overprivileged", response_model=List[GraphNode] if GraphNode else None, summary="Overprivileged IAM entities")
 def get_overprivileged_roles(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List["GraphNode"]:
     """Return IAM roles and users with excessive permissions."""
     engine = _require_engine()
@@ -222,7 +223,7 @@ def get_overprivileged_roles(
 
 @router.get("/segmentation", summary="Network segmentation analysis")
 def get_network_segmentation(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Analyse VPC and subnet isolation — flags mixed public/private VPCs."""
     engine = _require_engine()
@@ -231,7 +232,7 @@ def get_network_segmentation(
 
 @router.get("/risk-paths", summary="Ranked attack paths by risk score")
 def get_risk_paths(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return attack paths sorted by cumulative risk score (highest first)."""
     engine = _require_engine()
@@ -241,7 +242,7 @@ def get_risk_paths(
 
 @router.get("/stats", summary="Graph statistics")
 def get_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return node/edge counts and per-type breakdown for the org."""
     engine = _require_engine()

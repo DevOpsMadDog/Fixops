@@ -22,6 +22,7 @@ from typing import List, Optional
 from apps.api.auth_deps import api_key_auth
 from core.attack_path_engine import AttackPathEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -100,7 +101,7 @@ def compute(req: ComputeRequest) -> dict:
 
 @router.get("/analyses", summary="List cached choke-point analyses for an org")
 def list_analyses(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> dict:
     try:
         return {"org_id": org_id, "analyses": _get_engine().list_analyses(org_id)}
@@ -115,7 +116,7 @@ def list_analyses(
 )
 def get_analysis(
     analysis_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> dict:
     try:
         result = _get_engine().get_analysis(analysis_id, org_id=org_id)
@@ -132,7 +133,7 @@ def get_analysis(
 
 @router.get("/stats", summary="Choke-point analysis summary stats")
 def stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> dict:
     try:
         return _get_engine().get_choke_point_stats(org_id=org_id)

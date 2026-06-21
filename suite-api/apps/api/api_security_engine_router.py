@@ -223,7 +223,7 @@ def get_api_stats(org_id: str = Depends(get_org_id)):
 
 
 @router.get("/", summary="API security engine index", tags=["api-security-engine"])
-def api_security_index(org_id: str = Query("default"), _auth: None = Depends(api_key_auth)):
+def api_security_index(org_id: str = Depends(get_org_id), _auth: None = Depends(api_key_auth)):
     """Return API security engine summary and registered endpoints for the org."""
     engine = _get_engine()
     try:

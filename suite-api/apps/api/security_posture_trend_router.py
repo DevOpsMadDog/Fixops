@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -87,7 +88,7 @@ class UpdateProgressRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_posture_trends(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_posture_trends(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get security posture velocity summary for the org."""
     return _get_engine().get_posture_velocity_summary(org_id=org_id)
 

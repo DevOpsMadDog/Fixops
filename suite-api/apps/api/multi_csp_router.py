@@ -36,9 +36,8 @@ from core.cspm_engine import (
 from core.cspm_engine import (
     list_supported_providers as list_cspm_providers,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
-from fastapi import Depends
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -136,7 +135,7 @@ def scan(req: ScanRequest) -> Dict[str, Any]:
 
 
 @router.get("/coverage")
-def coverage(org_id: str = Query("default")) -> Dict[str, Any]:
+def coverage(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return per-provider asset counts and coverage summary."""
     per_provider: Dict[str, Dict[str, Any]] = {}
     for provider in SUPPORTED_PROVIDERS:
@@ -174,7 +173,7 @@ def coverage(org_id: str = Query("default")) -> Dict[str, Any]:
 
 
 @router.get("/stats")
-def stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate stats across all supported providers."""
     total_cspm_resources = 0
     total_cnapp_workloads = 0

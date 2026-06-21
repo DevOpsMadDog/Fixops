@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 
 from core.security_kpi_tracker import KPI_NAMES, SecurityKPITracker
 from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
 
@@ -120,7 +121,7 @@ def record_batch(req: RecordBatchRequest) -> List[dict]:
 
 
 @router.get("/current", summary="Get latest value for all KPIs")
-def get_current(org_id: str = Query("default")) -> dict:
+def get_current(org_id: str = Depends(get_org_id)) -> dict:
     return _get_tracker().get_current_kpis(org_id=org_id)
 
 
@@ -128,7 +129,7 @@ def get_current(org_id: str = Query("default")) -> dict:
 def get_trend(
     kpi_name: str,
     days: int = Query(30, ge=1, le=365),
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[dict]:
     if kpi_name not in KPI_NAMES:
         raise HTTPException(status_code=404, detail=f"Unknown KPI '{kpi_name}'")
@@ -136,30 +137,30 @@ def get_trend(
 
 
 @router.get("/benchmarks", summary="Compare KPIs against industry benchmarks")
-def get_benchmarks(org_id: str = Query("default")) -> dict:
+def get_benchmarks(org_id: str = Depends(get_org_id)) -> dict:
     return _get_tracker().get_benchmark_comparison(org_id=org_id)
 
 
 @router.post("/snapshot", summary="Take a point-in-time KPI snapshot")
-def take_snapshot(org_id: str = Query("default")) -> dict:
+def take_snapshot(org_id: str = Depends(get_org_id)) -> dict:
     return _get_tracker().record_snapshot(org_id=org_id)
 
 
 @router.get("/snapshots", summary="List historical KPI snapshots")
 def list_snapshots(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(30, ge=1, le=200),
 ) -> List[dict]:
     return _get_tracker().get_snapshots(org_id=org_id, limit=limit)
 
 
 @router.get("/scorecard", summary="Generate security scorecard")
-def get_scorecard(org_id: str = Query("default")) -> dict:
+def get_scorecard(org_id: str = Depends(get_org_id)) -> dict:
     return _get_tracker().calculate_score_card(org_id=org_id)
 
 
 @router.get("/targets", summary="Get KPI targets")
-def get_targets(org_id: str = Query("default")) -> List[dict]:
+def get_targets(org_id: str = Depends(get_org_id)) -> List[dict]:
     return _get_tracker().get_targets(org_id=org_id)
 
 

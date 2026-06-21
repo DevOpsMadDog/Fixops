@@ -105,7 +105,7 @@ async def get_data_sources() -> List[Dict[str, Any]]:
 
 @router.get("/stats", dependencies=[Depends(_verify_api_key)])
 async def get_stats(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate statistics for the report builder."""
     return _get_builder().get_builder_stats(org_id=org_id)
@@ -113,7 +113,7 @@ async def get_stats(
 
 @router.get("/reports", dependencies=[Depends(_verify_api_key)])
 async def list_reports(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List generated reports for an organisation, newest first."""
     reports = _get_builder().list_reports(org_id=org_id)
@@ -170,7 +170,7 @@ async def create_template(req: CreateTemplateRequest) -> Dict[str, Any]:
 
 @router.get("/templates", dependencies=[Depends(_verify_api_key)])
 async def list_templates(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all report templates for an organisation."""
     templates = _get_builder().list_templates(org_id=org_id)

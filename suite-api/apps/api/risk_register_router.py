@@ -149,7 +149,7 @@ async def create_risk(body: CreateRiskRequest) -> Dict[str, Any]:
 
 @router.get("", summary="List risks", response_model=List[Dict[str, Any]])
 async def list_risks(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     category: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     min_score: Optional[float] = Query(None),
@@ -180,7 +180,7 @@ async def create_control(body: CreateControlRequest) -> Dict[str, Any]:
 
 
 @router.get("/controls/list", summary="List controls", response_model=List[Dict[str, Any]])
-async def list_controls(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+async def list_controls(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     register = get_risk_register()
     return [c.model_dump() for c in register.list_controls(org_id)]
 
@@ -245,7 +245,7 @@ async def create_kri(body: CreateKRIRequest) -> Dict[str, Any]:
 
 @router.get("/kris/list", summary="List KRIs", response_model=List[Dict[str, Any]])
 async def list_kris(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     risk_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -285,7 +285,7 @@ async def set_appetite(body: SetAppetiteRequest) -> Dict[str, Any]:
 
 @router.get("/appetite/list", summary="List risk appetites",
             response_model=List[Dict[str, Any]])
-async def list_appetites(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+async def list_appetites(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     register = get_risk_register()
     return [a.model_dump() for a in register.list_appetites(org_id)]
 
@@ -296,7 +296,7 @@ async def list_appetites(org_id: str = Query("default")) -> List[Dict[str, Any]]
 
 @router.get("/heatmap", summary="Get risk heat map data",
             response_model=List[Dict[str, Any]])
-async def get_heat_map(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+async def get_heat_map(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     register = get_risk_register()
     cells = register.get_heat_map(org_id)
     return [c.model_dump() for c in cells]
@@ -308,7 +308,7 @@ async def get_heat_map(org_id: str = Query("default")) -> List[Dict[str, Any]]:
 
 @router.get("/report/board", summary="Board-level risk report",
             response_model=Dict[str, Any])
-async def board_report(org_id: str = Query("default")) -> Dict[str, Any]:
+async def board_report(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     register = get_risk_register()
     report = register.get_board_report(org_id)
     return report.model_dump()

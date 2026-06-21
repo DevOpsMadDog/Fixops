@@ -79,7 +79,7 @@ class UpdateActivityModel(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_threat_actors(org_id: str = Query("default")):
+def list_threat_actors(org_id: str = Depends(get_org_id)):
     """Get threat actor tracking summary for the org."""
     return _get_engine().get_tracking_summary(org_id=org_id)
 
@@ -157,7 +157,7 @@ def add_intelligence(actor_id: str, body: AddIntelligenceModel):
 
 
 @router.get("/actors/{actor_id}", dependencies=[Depends(api_key_auth)])
-def get_actor(actor_id: str, org_id: str = Query("default")):
+def get_actor(actor_id: str, org_id: str = Depends(get_org_id)):
     """Get a threat actor with recent activities and intelligence."""
     result = _get_engine().get_actor(actor_id=actor_id, org_id=org_id)
     if not result:
@@ -167,7 +167,7 @@ def get_actor(actor_id: str, org_id: str = Query("default")):
 
 @router.get("/actors", dependencies=[Depends(api_key_auth)])
 def list_actors(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     actor_type: Optional[str] = Query(None),
     threat_level: Optional[str] = Query(None),
     targeting_our_sector: Optional[bool] = Query(None),
@@ -182,19 +182,19 @@ def list_actors(
 
 
 @router.get("/active", dependencies=[Depends(api_key_auth)])
-def get_active_threats(org_id: str = Query("default")):
+def get_active_threats(org_id: str = Depends(get_org_id)):
     """Get actors with activity in the past 90 days."""
     return _get_engine().get_active_threats(org_id=org_id)
 
 
 @router.get("/ttp-summary", dependencies=[Depends(api_key_auth)])
-def get_ttp_summary(org_id: str = Query("default")):
+def get_ttp_summary(org_id: str = Depends(get_org_id)):
     """Get aggregated TTP frequency across all tracked actors."""
     return _get_engine().get_actor_ttp_summary(org_id=org_id)
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_summary(org_id: str = Query("default")):
+def get_summary(org_id: str = Depends(get_org_id)):
     """Get threat actor tracking summary for the org."""
     return _get_engine().get_tracking_summary(org_id=org_id)
 

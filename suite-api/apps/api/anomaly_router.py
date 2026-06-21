@@ -18,6 +18,7 @@ import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -147,7 +148,7 @@ def detect_anomalies(body: DetectRequest) -> DetectResponse:
 
 @router.get("", response_model=List[Anomaly], summary="List detected anomalies")
 def list_anomalies(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None, description="Filter by severity (low/medium/high/critical)"),
     limit: int = Query(100, ge=1, le=1000, description="Max results"),
 ) -> List[Anomaly]:
@@ -169,7 +170,7 @@ def list_anomalies(
 
 @router.get("/stats", response_model=AnomalyStats, summary="Anomaly summary statistics")
 def get_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> AnomalyStats:
     """
     Return aggregate statistics: totals, breakdown by type/severity,
@@ -186,7 +187,7 @@ def get_stats(
 )
 def get_baseline(
     metric_name: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     window_days: int = Query(30, ge=1, le=365, description="Lookback window in days"),
 ) -> BaselineStats:
     """

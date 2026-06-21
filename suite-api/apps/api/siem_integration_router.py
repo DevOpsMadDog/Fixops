@@ -29,9 +29,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from core.siem_integration_engine import SIEMIntegrationEngine
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
-from fastapi import Depends
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -144,7 +143,7 @@ def create_source(body: SIEMSourceCreate) -> Dict[str, Any]:
 
 @router.get("/sources")
 def list_sources(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     source_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ) -> Dict[str, Any]:
@@ -154,7 +153,7 @@ def list_sources(
 
 
 @router.get("/sources/{source_id}")
-def get_source(source_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
+def get_source(source_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get a single SIEM source."""
     try:
         return _get_engine().get_siem_source(org_id, source_id)
@@ -177,7 +176,7 @@ def ingest_event(body: SIEMEventIngest) -> Dict[str, Any]:
 
 @router.get("/events")
 def list_events(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     source_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     event_type: Optional[str] = Query(None),
@@ -192,7 +191,7 @@ def list_events(
 @router.get("/events/search")
 def search_events(
     q: str = Query(..., description="Keyword or phrase to search across event raw_data and parsed_fields"),
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     source_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     event_type: Optional[str] = Query(None),
@@ -238,7 +237,7 @@ def create_alert(body: CorrelationAlertCreate) -> Dict[str, Any]:
 
 @router.get("/alerts")
 def list_alerts(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
 ) -> Dict[str, Any]:
@@ -258,7 +257,7 @@ def acknowledge_alert(alert_id: str, body: AlertAcknowledge) -> Dict[str, Any]:
 
 
 @router.get("/stats")
-def get_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get aggregate SIEM statistics for an org."""
     return _get_engine().get_siem_stats(org_id)
 
@@ -330,7 +329,7 @@ def create_correlation_rule(body: CorrelationRuleCreate) -> Dict[str, Any]:
 
 @router.get("/correlation-rules")
 def list_correlation_rules(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     enabled_only: bool = Query(False),
 ) -> Dict[str, Any]:
     """List correlation rules for an org."""
@@ -339,7 +338,7 @@ def list_correlation_rules(
 
 
 @router.get("/correlation-rules/{rule_id}")
-def get_correlation_rule(rule_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
+def get_correlation_rule(rule_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get a single correlation rule by ID."""
     rule = _get_engine().get_correlation_rule(org_id, rule_id)
     if not rule:
@@ -348,7 +347,7 @@ def get_correlation_rule(rule_id: str, org_id: str = Query("default")) -> Dict[s
 
 
 @router.delete("/correlation-rules/{rule_id}")
-def delete_correlation_rule(rule_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
+def delete_correlation_rule(rule_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Delete a correlation rule."""
     deleted = _get_engine().delete_correlation_rule(org_id, rule_id)
     if not deleted:
@@ -357,7 +356,7 @@ def delete_correlation_rule(rule_id: str, org_id: str = Query("default")) -> Dic
 
 
 @router.post("/correlation-rules/{rule_id}/run")
-def run_correlation_rule(rule_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
+def run_correlation_rule(rule_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Execute a stored correlation rule against recent events."""
     try:
         result = _get_engine().run_correlation_rule(org_id, rule_id)
@@ -375,7 +374,7 @@ def run_correlation_rule(rule_id: str, org_id: str = Query("default")) -> Dict[s
 
 
 @router.get("/integrations")
-def list_integrations(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_integrations(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """List all registered SIEM integrations (legacy)."""
     siems = _get_engine().list_siems(org_id)
     return {"org_id": org_id, "siems": siems, "total": len(siems)}
@@ -393,7 +392,7 @@ def register_integration(body: SIEMRegisterIn) -> Dict[str, Any]:
 
 
 @router.get("/integrations/{siem_id}")
-def get_integration(siem_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
+def get_integration(siem_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get a single SIEM integration (legacy)."""
     siem = _get_engine().get_siem(org_id, siem_id)
     if not siem:

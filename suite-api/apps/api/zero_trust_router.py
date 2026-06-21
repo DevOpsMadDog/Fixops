@@ -22,9 +22,8 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 from core.zero_trust_engine import ZeroTrustEngine, get_zero_trust_engine
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
-from fastapi import Depends
 from pydantic import BaseModel, Field
 
 _logger = structlog.get_logger()
@@ -108,7 +107,7 @@ async def create_policy(body: CreatePolicyRequest) -> Dict[str, Any]:
 
 @router.get("/policies", response_model=List[Dict[str, Any]])
 async def list_policies(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     active_only: bool = Query(True),
 ) -> List[Dict[str, Any]]:
     """List zero-trust policies."""
@@ -180,7 +179,7 @@ async def compute_trust_score(body: TrustScoreRequest) -> Dict[str, Any]:
 @router.get("/access-log", response_model=List[Dict[str, Any]])
 async def get_access_log(
     user_id: Optional[str] = Query(None),
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     decision: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=1000),
 ) -> List[Dict[str, Any]]:
@@ -192,7 +191,7 @@ async def get_access_log(
 
 @router.get("/analytics", response_model=Dict[str, Any])
 async def get_analytics(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return trust analytics: rates, averages, decision breakdown."""
     return _engine().get_trust_analytics(org_id=org_id)
@@ -201,7 +200,7 @@ async def get_analytics(
 @router.get("/trust-score/{subject_id}", response_model=Dict[str, Any])
 async def get_trust_score(
     subject_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get trust score and factor breakdown for a subject (user or device)."""
     return _engine().get_trust_score(subject_id=subject_id, org_id=org_id)
@@ -209,7 +208,7 @@ async def get_trust_score(
 
 @router.get("/stats", response_model=Dict[str, Any])
 async def get_policy_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return policy effectiveness stats: allows/denies/challenges today, top denied resources."""
     return _engine().get_policy_stats(org_id=org_id)
@@ -217,7 +216,7 @@ async def get_policy_stats(
 
 @router.get("/segments", response_model=Dict[str, Any])
 async def get_micro_segmentation_map(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return network zone micro-segmentation map with allowed paths."""
     return _engine().get_micro_segmentation_map(org_id=org_id)

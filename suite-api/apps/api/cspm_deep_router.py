@@ -15,9 +15,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 if TYPE_CHECKING:
     from core.cspm_engine import CspmScanResult
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
-from fastapi import Depends
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -608,7 +607,7 @@ def capture_baseline(
 
 @router.get("/compliance-report", summary="Cloud compliance posture report")
 def get_compliance_report(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return a compliance posture report across all cloud providers."""
     if not _probe_engine():
@@ -638,7 +637,7 @@ def get_compliance_report(
 
 
 @router.get("/", summary="CSPM index", tags=["CSPM Deep Scan"])
-async def cspm_index(org_id: str = Query("default")) -> Dict[str, Any]:
+async def cspm_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return CSPM posture summary for the org."""
     posture_score = 0.0
     findings: list = []

@@ -24,7 +24,8 @@ from core.cloud_discovery import (
     CloudDiscoveryNotConfiguredError,
     get_cloud_discovery,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -179,7 +180,7 @@ def discover_all(body: DiscoverRequest) -> Dict[str, Any]:
 
 @router.get("/inventory", summary="Get full cloud asset inventory")
 def get_inventory(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(None, description="Filter by provider: aws | azure | gcp"),
     asset_type: Optional[str] = Query(None, description="Filter by asset type"),
     region: Optional[str] = Query(None, description="Filter by region"),
@@ -208,7 +209,7 @@ def get_inventory(
 
 @router.get("/assets/unmanaged", summary="Get unmanaged (shadow IT) assets")
 def get_unmanaged_assets(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return assets not present in the CMDB."""
     assets = _discovery().get_unmanaged_assets(org_id=org_id)
@@ -221,7 +222,7 @@ def get_unmanaged_assets(
 
 @router.get("/assets/public", summary="Get internet-exposed assets")
 def get_public_assets(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return assets with a public IP address."""
     assets = _discovery().get_public_assets(org_id=org_id)
@@ -234,7 +235,7 @@ def get_public_assets(
 
 @router.get("/assets/drift", response_model=DriftResponse, summary="Get asset drift")
 def get_asset_drift(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(7, ge=1, le=365, description="Lookback window in days"),
 ) -> DriftResponse:
     """Return new and removed assets within the lookback window."""
@@ -244,7 +245,7 @@ def get_asset_drift(
 
 @router.get("/stats", summary="Get discovery statistics")
 def get_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregated discovery stats by provider, asset type, and region."""
     return _discovery().get_discovery_stats(org_id=org_id)

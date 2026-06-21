@@ -24,9 +24,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
-from fastapi import Depends
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -112,7 +111,7 @@ async def register_endpoint(body: EndpointCreate) -> Dict[str, Any]:
 
 @router.get("/endpoints")
 async def list_endpoints(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     service_name: Optional[str] = Query(None),
     is_shadow: Optional[bool] = Query(None),
     risk_level: Optional[str] = Query(None),
@@ -131,7 +130,7 @@ async def list_endpoints(
 @router.get("/endpoints/{endpoint_id}")
 async def get_endpoint(
     endpoint_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get an API endpoint by UUID."""
     result = _get_engine().get_endpoint(org_id, endpoint_id)
@@ -143,7 +142,7 @@ async def get_endpoint(
 @router.put("/endpoints/{endpoint_id}/mark-shadow")
 async def mark_as_shadow(
     endpoint_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Mark an endpoint as a shadow API."""
     try:
@@ -155,7 +154,7 @@ async def mark_as_shadow(
 @router.put("/endpoints/{endpoint_id}/mark-documented")
 async def mark_as_documented(
     endpoint_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Mark an endpoint as documented."""
     try:
@@ -211,7 +210,7 @@ async def create_scan(body: ScanCreate) -> Dict[str, Any]:
 async def complete_scan(
     scan_id: str,
     body: ScanComplete,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Mark a scan as completed with results."""
     try:
@@ -235,7 +234,7 @@ async def record_change(body: ChangeCreate) -> Dict[str, Any]:
 
 @router.get("/changes")
 async def list_changes(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     endpoint_id: Optional[str] = Query(None),
     change_type: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
@@ -252,7 +251,7 @@ async def list_changes(
 
 @router.get("/stats")
 async def get_api_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate API discovery stats."""
     return _get_engine().get_api_stats(org_id)

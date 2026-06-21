@@ -18,7 +18,8 @@ from core.patch_manager import (
     PatchStatus,
     get_patch_manager,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -69,7 +70,7 @@ def _require_patch(patch_id: str) -> Patch:
 
 @router.post("/discover", response_model=List[Patch], summary="Discover available patches")
 def discover_patches(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Patch]:
     """Scan for available patches for the organisation and persist any new ones."""
     try:
@@ -101,7 +102,7 @@ def add_patch(req: AddPatchRequest) -> Patch:
 
 @router.get("", response_model=List[Patch], summary="List patches")
 def list_patches(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     priority: Optional[PatchPriority] = Query(None, description="Filter by priority"),
     status: Optional[PatchStatus] = Query(None, description="Filter by status"),
     package_name: Optional[str] = Query(None, description="Filter by package name"),
@@ -117,7 +118,7 @@ def list_patches(
 
 @router.get("/stats", summary="Patch statistics")
 def get_patch_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return patch counts grouped by priority, status, and package."""
     return _pm().get_patch_stats(org_id)
@@ -125,7 +126,7 @@ def get_patch_stats(
 
 @router.get("/compliance", summary="Patch SLA compliance")
 def get_patch_compliance(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return the percentage of patches deployed within their SLA window."""
     return _pm().get_patch_compliance(org_id)
@@ -133,7 +134,7 @@ def get_patch_compliance(
 
 @router.get("/overdue", response_model=List[Patch], summary="Overdue patches")
 def get_overdue_patches(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Patch]:
     """Return patches that have exceeded their SLA window without being deployed."""
     return _pm().get_overdue_patches(org_id)
@@ -141,7 +142,7 @@ def get_overdue_patches(
 
 @router.get("/velocity", summary="Patch deployment velocity")
 def get_patch_velocity(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     weeks: int = Query(8, ge=1, le=52, description="Number of weeks to trend"),
 ) -> Dict[str, Any]:
     """Return patches-per-week deployment trend."""

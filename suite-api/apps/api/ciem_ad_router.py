@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -164,7 +165,7 @@ def least_privilege_for_identity(
 )
 def evaluate_ad_risks(
     body: ADRisksRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Runs kerberoastable, DCSync, adminCount mismatch, unconstrained delegation."""
     try:
@@ -181,7 +182,7 @@ def evaluate_ad_risks(
     summary="Empty default evaluation (stats-only)",
 )
 def list_ad_risks_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return empty-evaluation shape — useful as a smoke endpoint."""
     try:
@@ -196,7 +197,7 @@ def list_ad_risks_stats(
     summary="Detect standing privilege + produce JIT recommendations",
 )
 def standing_privilege(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     stale_days: int = Query(30, ge=1, le=365),
     lookback_days: int = Query(30, ge=1, le=365),
 ) -> Dict[str, Any]:
@@ -261,7 +262,7 @@ def attack_path(body: AttackPathRequest) -> Dict[str, Any]:
     "/stats",
     summary="Aggregated CIEM+AD stats across the 5 merged engines",
 )
-def stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Cross-engine summary. Never raises — missing DBs yield zero counters."""
     result: Dict[str, Any] = {"org_id": org_id, "sources": {}}
     # identity_risk

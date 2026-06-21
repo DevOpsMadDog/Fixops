@@ -19,7 +19,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -141,7 +142,7 @@ def create_card(body: CreateCardRequest) -> RemediationCard:
 
 
 @router.get("/board")
-def get_board(org_id: str = Query("default", description="Organisation ID")) -> Dict[str, Any]:
+def get_board(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return all cards grouped by Kanban column."""
     try:
         board = _get_board().get_board(org_id)
@@ -207,7 +208,7 @@ def add_comment(card_id: str, body: AddCommentRequest) -> CardComment:
 
 @router.get("/workload")
 def get_assignee_workload(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, int]:
     """Return active card count per assignee (excluding DONE)."""
     try:
@@ -219,7 +220,7 @@ def get_assignee_workload(
 
 @router.get("/metrics")
 def get_board_metrics(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return board metrics: cycle time, throughput, WIP per column."""
     try:
@@ -231,7 +232,7 @@ def get_board_metrics(
 
 @router.get("/overdue", response_model=List[RemediationCard])
 def get_overdue(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[RemediationCard]:
     """Return all cards past their due date that are not yet DONE."""
     try:

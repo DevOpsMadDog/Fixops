@@ -93,7 +93,7 @@ class CompleteExecutionBody(BaseModel):
 
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_hunting_playbooks(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_hunting_playbooks(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get threat hunting playbook statistics for the org."""
     return _get_engine().get_hunt_stats(org_id)
 

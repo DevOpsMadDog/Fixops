@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -76,7 +77,7 @@ class RatesUpdate(BaseModel):
 @router.post("/scenarios", status_code=201)
 def create_scenario(
     payload: ScenarioCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a FAIR risk scenario with computed SLE and ALE."""
     try:
@@ -99,7 +100,7 @@ def create_scenario(
 def add_control(
     scenario_id: str,
     payload: ControlCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a control to a scenario with ROI computation."""
     try:
@@ -123,7 +124,7 @@ def add_control(
 def update_rates(
     scenario_id: str,
     payload: RatesUpdate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update scenario rate fields and recompute FAIR metrics."""
     result = _get_engine().update_rates(
@@ -139,13 +140,13 @@ def update_rates(
 
 
 @router.post("/snapshots", status_code=201)
-def take_snapshot(org_id: str = Query("default")) -> Dict[str, Any]:
+def take_snapshot(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Take a portfolio risk snapshot for the org."""
     return _get_engine().take_snapshot(org_id)
 
 
 @router.get("/summary")
-def get_portfolio_summary(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_portfolio_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate portfolio summary."""
     return _get_engine().get_portfolio_summary(org_id)
 
@@ -153,7 +154,7 @@ def get_portfolio_summary(org_id: str = Query("default")) -> Dict[str, Any]:
 @router.get("/scenarios/{scenario_id}")
 def get_scenario_detail(
     scenario_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return scenario with controls and recommended controls."""
     result = _get_engine().get_scenario_detail(scenario_id, org_id)
@@ -164,7 +165,7 @@ def get_scenario_detail(
 
 @router.get("/history")
 def get_snapshot_history(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(90, ge=1, le=365),
 ) -> List[Dict[str, Any]]:
     """Return portfolio snapshot history."""
@@ -172,6 +173,6 @@ def get_snapshot_history(
 
 
 @router.get("/roi-analysis")
-def get_roi_analysis(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def get_roi_analysis(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Return all positive-ROI controls ordered by ROI DESC."""
     return _get_engine().get_roi_analysis(org_id)

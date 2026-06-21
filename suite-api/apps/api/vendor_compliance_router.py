@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 from apps.api.auth_deps import api_key_auth
 from core.vendor_compliance_engine import VendorComplianceEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -99,7 +100,7 @@ async def register_vendor(body: RegisterVendorRequest) -> Dict[str, Any]:
 
 @router.get("/vendors", response_model=List[Dict[str, Any]])
 async def list_vendors(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     vendor_category: Optional[str] = Query(None, description="Filter by vendor category"),
     status: Optional[str] = Query(None, description="Filter by status"),
 ) -> List[Dict[str, Any]]:
@@ -111,7 +112,7 @@ async def list_vendors(
 @router.get("/vendors/{vendor_id}", response_model=Dict[str, Any])
 async def get_vendor(
     vendor_id: str,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single vendor by ID."""
     engine = _get_engine()
@@ -162,7 +163,7 @@ async def update_requirement_status(
 
 @router.get("/requirements", response_model=List[Dict[str, Any]])
 async def list_requirements(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     vendor_id: Optional[str] = Query(None, description="Filter by vendor ID"),
     status: Optional[str] = Query(None, description="Filter by status"),
 ) -> List[Dict[str, Any]]:
@@ -178,7 +179,7 @@ async def list_requirements(
 
 @router.get("/stats", response_model=Dict[str, Any])
 async def get_stats(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate vendor compliance stats for an org."""
     engine = _get_engine()
@@ -195,7 +196,7 @@ __all__ = ["router"]
 
 @router.get("/", response_model=None)
 async def get_vendor_compliance_root_summary(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return a 5-state summary envelope for the Vendor Compliance domain.
 

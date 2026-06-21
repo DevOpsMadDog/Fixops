@@ -14,9 +14,8 @@ from core.access_matrix import (
     ResourceType,
     get_access_matrix,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
-from fastapi import Depends
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/access-matrix", tags=["access-matrix"])
@@ -62,7 +61,7 @@ class CheckAccessResponse(BaseModel):
 
 
 @router.get("/", response_model=Dict[str, Any])
-async def index(org_id: str = Query("default")):
+async def index(org_id: str = Depends(get_org_id)):
     """Access Matrix index — returns stats and available resource types."""
     stats = _matrix().get_access_stats(org_id=org_id)
     return {
@@ -147,7 +146,7 @@ async def check_access(body: CheckAccessRequest):
 @router.get("/permissions/{role}", response_model=Dict[str, Any])
 async def get_effective_permissions(
     role: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return all effective (wildcard) permissions for a role."""
     perms = _matrix().get_effective_permissions(user_role=role, org_id=org_id)
@@ -162,7 +161,7 @@ async def get_effective_permissions(
 async def get_resource_acl(
     resource_type: ResourceType,
     resource_id: Optional[str] = Query(None),
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return the ACL for a resource type (and optionally a specific resource ID)."""
     acl = _matrix().get_resource_acl(
@@ -180,13 +179,13 @@ async def get_resource_acl(
 
 
 @router.get("/stats", response_model=Dict[str, Any])
-async def get_access_stats(org_id: str = Query("default")):
+async def get_access_stats(org_id: str = Depends(get_org_id)):
     """Return aggregated access-check statistics."""
     return _matrix().get_access_stats(org_id=org_id)
 
 
 @router.get("/matrix", response_model=Dict[str, Any])
-async def get_full_matrix(org_id: str = Query("default")):
+async def get_full_matrix(org_id: str = Depends(get_org_id)):
     """
     Return the complete access matrix — all roles x all resource types.
 

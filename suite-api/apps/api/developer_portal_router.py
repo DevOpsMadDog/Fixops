@@ -20,6 +20,7 @@ from core.developer_portal import (
     RepoSecurityScore,
 )
 from fastapi import APIRouter, Depends, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -188,7 +189,7 @@ alias_router = APIRouter(
 @alias_router.get("/repos", summary="Repos alias")
 async def alias_repos(
     developer_email: str = Query("default"),
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     owned = _portal._get_owned_repos(developer_email, org_id)
     return [_portal.get_repo_score(r, org_id).model_dump() for r in owned]
@@ -197,7 +198,7 @@ async def alias_repos(
 @alias_router.get("/findings", summary="Findings alias")
 async def alias_findings(
     developer_email: str = Query("default"),
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     author: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:

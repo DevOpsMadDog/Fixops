@@ -23,6 +23,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -83,7 +84,7 @@ class AlertRuleCreate(BaseModel):
 @router.post("/datapoints", status_code=201)
 def ingest_telemetry(
     body: DatapointCreate,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine()
     try:
@@ -97,7 +98,7 @@ def ingest_telemetry(
 
 @router.get("/datapoints/latest")
 def get_latest(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     telemetry_type: str = Query(..., description="Telemetry type"),
     source: Optional[str] = Query(None, description="Filter by source"),
 ) -> Dict[str, Any]:
@@ -110,7 +111,7 @@ def get_latest(
 
 @router.get("/datapoints")
 def list_telemetry(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     telemetry_type: Optional[str] = Query(None, description="Filter by telemetry type"),
     source: Optional[str] = Query(None, description="Filter by source"),
     limit: int = Query(100, description="Maximum results", ge=1, le=1000),
@@ -123,7 +124,7 @@ def list_telemetry(
 @router.post("/aggregate")
 def aggregate_telemetry(
     body: AggregateRequest,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine()
     try:
@@ -141,7 +142,7 @@ def aggregate_telemetry(
 @router.post("/rules", status_code=201)
 def create_alert_rule(
     body: AlertRuleCreate,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine()
     try:
@@ -152,7 +153,7 @@ def create_alert_rule(
 
 @router.get("/rules")
 def list_alert_rules(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     enabled: Optional[bool] = Query(None, description="Filter by enabled status"),
 ) -> Dict[str, Any]:
     engine = _get_engine()
@@ -162,7 +163,7 @@ def list_alert_rules(
 
 @router.post("/rules/check")
 def check_alert_rules(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine()
     triggered = engine.check_alert_rules(org_id)
@@ -171,7 +172,7 @@ def check_alert_rules(
 
 @router.get("/stats")
 def get_telemetry_stats(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine()
     return engine.get_telemetry_stats(org_id)

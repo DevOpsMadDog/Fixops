@@ -17,6 +17,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -89,7 +90,7 @@ class MarkPatchedRequest(BaseModel):
     summary="Patch prioritization — service summary",
 )
 def get_service_summary(
-    org_id: str = Query("default", description="Organization identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return service status and patch stats for the patch prioritization domain."""
     p = _get_prioritizer()
@@ -156,7 +157,7 @@ def create_plan(req: PlanCreateRequest) -> Dict[str, Any]:
 
 
 @router.get("/plans", summary="List patch plans for an org")
-def list_plans(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def list_plans(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List all patch plans for the given org."""
     p = _get_prioritizer()
     return p.list_plans(org_id=org_id)
@@ -185,7 +186,7 @@ def mark_patched(
 
 
 @router.get("/stats", summary="Org-level patch statistics")
-def get_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate patch stats for the org."""
     p = _get_prioritizer()
     return p.get_patch_stats(org_id=org_id)

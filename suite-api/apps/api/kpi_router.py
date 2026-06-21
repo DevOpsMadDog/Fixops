@@ -21,6 +21,7 @@ from core.kpi_engine import (
     KPITarget,
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 router = APIRouter(
@@ -93,7 +94,7 @@ async def record_kpi(body: KPIRecordRequest) -> KPI:
 
 @router.get("/current", response_model=List[KPI])
 async def get_current_kpis(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[KPI]:
     """
     Return the most-recent value for every KPI recorded for this org.
@@ -106,7 +107,7 @@ async def get_current_kpis(
 @router.get("/trend/{name}", response_model=List[Dict[str, Any]])
 async def get_kpi_trend(
     name: str,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(30, ge=1, le=365, description="Number of days of history to return"),
 ) -> List[Dict[str, Any]]:
     """
@@ -143,7 +144,7 @@ async def set_target(body: KPITargetRequest) -> KPITarget:
 
 @router.get("/health", response_model=List[KPIHealthStatus])
 async def get_kpi_health(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[KPIHealthStatus]:
     """
     Return RAG (green/yellow/red) health status for all KPIs.
@@ -156,7 +157,7 @@ async def get_kpi_health(
 
 @router.get("/executive", response_model=ExecutiveKPISummary)
 async def get_executive_kpis(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> ExecutiveKPISummary:
     """
     Return top 10 KPIs for the CISO executive dashboard.
@@ -172,7 +173,7 @@ async def get_executive_kpis(
 
 @router.post("/calculate", response_model=List[KPI])
 async def auto_calculate_kpis(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[KPI]:
     """
     Trigger auto-calculation of all KPIs from platform data.

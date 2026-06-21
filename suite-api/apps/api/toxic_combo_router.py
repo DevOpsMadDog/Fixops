@@ -19,6 +19,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -92,7 +93,7 @@ class UpgradeBody(BaseModel):
 
 @router.post("/evaluate")
 def evaluate_org(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     body: Optional[EvaluateBody] = None,
 ) -> Dict[str, Any]:
     """Run toxic-combo correlation across all registered entities for ``org_id``.
@@ -135,7 +136,7 @@ def evaluate_org(
 
 @router.get("/matches")
 def list_matches(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     combo_id: Optional[str] = Query(None),
     entity_ref: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=1000),
@@ -195,7 +196,7 @@ def simulate(body: EntityAttributesBody) -> Dict[str, Any]:
 @router.post("/upgrade-to-chain")
 def upgrade_to_chain(
     body: UpgradeBody,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Upgrade a toxic-combo match into a formal attack_chain."""
     engine = _get_engine(org_id)

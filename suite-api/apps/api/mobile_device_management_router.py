@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 from apps.api.auth_deps import api_key_auth
 from core.mobile_device_management_engine import MobileDeviceManagementEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 router = APIRouter(
@@ -71,7 +72,7 @@ async def enroll_device(body: EnrollDeviceRequest) -> Dict[str, Any]:
 
 @router.get("/devices")
 async def list_devices(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     platform: Optional[str] = Query(None, description="Filter by platform"),
     status: Optional[str] = Query(None, description="Filter by status"),
 ) -> List[Dict[str, Any]]:
@@ -82,7 +83,7 @@ async def list_devices(
 @router.get("/devices/{device_id}")
 async def get_device(
     device_id: str,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single device by ID."""
     try:
@@ -119,7 +120,7 @@ async def wipe_device(
 
 @router.get("/summary")
 async def get_compliance_summary(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get compliance summary: totals by platform and status, average score."""
     return _get_engine().get_compliance_summary(org_id)

@@ -15,7 +15,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from core.rate_limiter_v2 import RateLimiterV2, RateLimitTier, get_rate_limiter
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -145,7 +146,7 @@ async def update_config(body: EndpointConfigUpdate) -> Dict[str, str]:
     summary="Rate limit usage dashboard",
 )
 async def dashboard(
-    org_id: str = Query("default", description="Organisation ID for the dashboard"),
+    org_id: str = Depends(get_org_id),
 ) -> DashboardResponse:
     """Return a usage snapshot: top consumers, endpoint tiers, per-key overrides."""
     limiter: RateLimiterV2 = get_rate_limiter()

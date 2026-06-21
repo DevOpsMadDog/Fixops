@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -104,14 +105,14 @@ class OrgRequest(BaseModel):
 
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_threat_modeling_pipeline(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def list_threat_modeling_pipeline(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List threat models for the org."""
     return _get_engine().list_models(org_id=org_id)
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)],
             summary="Threat modeling pipeline statistics")
-def stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Aggregated counts over the org's threat models (real data, honest zeros).
 
     Backs the threat-modeling dashboard KPIs. NO MOCKS — derived from list_models +

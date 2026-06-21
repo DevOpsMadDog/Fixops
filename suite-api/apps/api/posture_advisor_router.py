@@ -12,7 +12,8 @@ from core.posture_advisor import (
     RECOMMENDATION_CATEGORIES,
     get_posture_advisor,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/posture-advisor", tags=["posture-advisor"])
@@ -58,7 +59,7 @@ class DismissRequest(BaseModel):
 
 @router.get("/analyze", summary="Get posture analysis summary (GET)")
 def get_analyze(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return posture score, grade, and top recommendations — GET version for dashboard polling."""
     advisor = get_posture_advisor()
@@ -92,7 +93,7 @@ def analyze_posture(req: AnalyzeRequest) -> Dict[str, Any]:
 
 @router.get("/recommendations", summary="List posture improvement recommendations")
 def list_recommendations(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     category: Optional[str] = Query(None, description="Filter by category"),
     priority: Optional[str] = Query(None, description="Filter by priority level"),
     status: Optional[str] = Query(None, description="Filter by status (open/accepted/completed/dismissed)"),
@@ -107,7 +108,7 @@ def list_recommendations(
 
 
 @router.get("/recommendations/{rec_id}", summary="Get a single recommendation")
-def get_recommendation(rec_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
+def get_recommendation(rec_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Retrieve a recommendation by ID."""
     advisor = get_posture_advisor()
     rec = advisor.get_recommendation(rec_id, org_id=org_id)
@@ -117,7 +118,7 @@ def get_recommendation(rec_id: str, org_id: str = Query("default")) -> Dict[str,
 
 
 @router.post("/recommendations/{rec_id}/accept", summary="Accept a recommendation")
-def accept_recommendation(rec_id: str, req: AcceptRequest, org_id: str = Query("default")) -> Dict[str, Any]:
+def accept_recommendation(rec_id: str, req: AcceptRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Accept a recommendation and assign an owner with a target completion date."""
     advisor = get_posture_advisor()
     try:
@@ -137,7 +138,7 @@ def complete_recommendation(rec_id: str, req: CompleteRequest) -> Dict[str, Any]
 
 
 @router.post("/recommendations/{rec_id}/dismiss", summary="Dismiss a recommendation")
-def dismiss_recommendation(rec_id: str, req: DismissRequest, org_id: str = Query("default")) -> Dict[str, Any]:
+def dismiss_recommendation(rec_id: str, req: DismissRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Dismiss a recommendation with a justification reason."""
     advisor = get_posture_advisor()
     try:
@@ -147,21 +148,21 @@ def dismiss_recommendation(rec_id: str, req: DismissRequest, org_id: str = Query
 
 
 @router.get("/roadmap", summary="Get prioritized improvement roadmap")
-def get_roadmap(org_id: str = Query("default", description="Organisation identifier")) -> Dict[str, Any]:
+def get_roadmap(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Generate a 3-phase prioritized security improvement roadmap."""
     advisor = get_posture_advisor()
     return advisor.get_roadmap(org_id=org_id)
 
 
 @router.get("/stats", summary="Get advisor statistics")
-def get_stats(org_id: str = Query("default", description="Organisation identifier")) -> Dict[str, Any]:
+def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate advisor stats: analyses run, recommendations accepted/completed, avg improvement."""
     advisor = get_posture_advisor()
     return advisor.get_advisor_stats(org_id=org_id)
 
 
 @router.get("/score", summary="Get current posture score summary")
-def get_score(org_id: str = Query("default", description="Organisation identifier")) -> Dict[str, Any]:
+def get_score(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return overall posture score, grade and trend from the posture score engine."""
     try:
         from core.posture_score_engine import PostureScoreEngine
@@ -190,7 +191,7 @@ def get_score(org_id: str = Query("default", description="Organisation identifie
 
 
 @router.get("/components", summary="Get posture component scores")
-def get_components(org_id: str = Query("default", description="Organisation identifier")) -> List[Dict[str, Any]]:
+def get_components(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Return per-domain component scores for the posture breakdown chart."""
     try:
         from core.posture_score_engine import PostureScoreEngine
@@ -233,7 +234,7 @@ def get_components(org_id: str = Query("default", description="Organisation iden
 
 @router.get("/", summary="Posture advisor index", tags=["posture-advisor"])
 async def posture_index(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None, description="Filter recommendations by status (open/accepted/completed/dismissed)"),
     limit: int = Query(20, ge=1, le=200),
 ) -> Dict[str, Any]:

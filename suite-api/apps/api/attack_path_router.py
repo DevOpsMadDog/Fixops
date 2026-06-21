@@ -108,7 +108,7 @@ def add_node(req: AddNodeRequest) -> dict:
 
 @router.get("/nodes", summary="List network nodes")
 def list_nodes(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     is_crown_jewel: Optional[bool] = Query(None, description="Filter by crown jewel status"),
 ) -> list[dict]:
     try:
@@ -121,7 +121,7 @@ def list_nodes(
 @router.delete("/nodes/{node_id}", summary="Remove a network node and its edges")
 def remove_node(
     node_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> dict:
     try:
         found = _get_engine().remove_node(node_id, org_id=org_id)
@@ -179,7 +179,7 @@ def blast_radius(req: BlastRadiusRequest) -> dict:
 
 @router.get("/crown-jewels-at-risk", summary="List crown jewels and which entry points can reach them")
 def crown_jewels_at_risk(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> list[dict]:
     try:
         return _get_engine().get_crown_jewels_at_risk(org_id=org_id)
@@ -190,7 +190,7 @@ def crown_jewels_at_risk(
 
 @router.get("/paths", summary="List attack paths (entry points that can reach crown jewels)")
 def list_paths(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> dict:
     try:
         # Real attack paths from the graph: crown jewels + the entry points that reach them.
@@ -204,7 +204,7 @@ def list_paths(
 
 @router.get("/stats", summary="Attack graph statistics")
 def stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> dict:
     try:
         return _get_engine().get_graph_stats(org_id=org_id)
@@ -215,7 +215,7 @@ def stats(
 
 @router.get("/toxic-combinations", summary="Detect assets where chained medium findings create critical risk")
 def toxic_combinations(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> list[dict]:
     """Return assets with 3+ vulnerabilities that are internet-exposed.
 

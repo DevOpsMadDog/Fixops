@@ -19,6 +19,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -343,7 +344,7 @@ def analyze_timeseries(body: TimeSeriesRequest) -> TimeSeriesResponse:
 )
 def get_user_risk(
     user_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     window_days: int = Query(7, ge=1, le=90, description="Lookback window"),
 ) -> UEBARiskResponse:
     """
@@ -374,7 +375,7 @@ def get_user_risk(
     summary="Get grouped anomaly alerts (alert fatigue reduction)",
 )
 def list_alert_groups(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     window_hours: int = Query(4, ge=1, le=72, description="Grouping time window"),
 ) -> AlertGroupResponse:
     """
@@ -397,7 +398,7 @@ def list_alert_groups(
     summary="List detected ML anomalies",
 )
 def list_anomalies(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     entity_id: Optional[str] = Query(None, description="Filter by entity ID"),
     risk_level: Optional[str] = Query(
         None, description="Filter by risk level: low/medium/high/critical"
@@ -474,7 +475,7 @@ def submit_feedback(body: FeedbackRequest) -> FeedbackResponse:
     summary="Anomaly ML summary — counts and feedback stats",
     tags=["anomaly-ml"],
 )
-def anomaly_ml_index(org_id: str = Query("default")) -> Dict[str, Any]:
+def anomaly_ml_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate anomaly counts and feedback stats from the real engine."""
     engine = _get_engine()
     try:

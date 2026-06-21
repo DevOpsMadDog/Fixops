@@ -20,6 +20,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -739,7 +740,7 @@ def vra_get_questionnaire() -> List[Dict[str, Any]]:
     response_model=List[Dict[str, Any]],
     summary="Risk register — all vendors with latest scores",
 )
-def vra_get_risk_register(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def vra_get_risk_register(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Return all vendors with their latest completed risk scores."""
     return _get_risk_engine().get_risk_register(org_id=org_id)
 
@@ -750,7 +751,7 @@ def vra_get_risk_register(org_id: str = Query("default")) -> List[Dict[str, Any]
     summary="Recent vendor risk assessments (dashboard list)",
 )
 def vra_list_assessments(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500),
 ) -> List[Dict[str, Any]]:
     """List vendors' latest completed assessments (dashboard Assessment shape).
@@ -778,7 +779,7 @@ def vra_list_assessments(
     "/risk-domains",
     summary="Vendor-risk domain scores (avg risk_score per domain)",
 )
-def vra_risk_domains(org_id: str = Query("default")) -> Dict[str, Any]:
+def vra_risk_domains(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Average per-dimension scorecard scores across vendors (0-100, higher = safer).
 
     NO MOCKS — derived from real VendorScorecard dimensions (get_scorecard); only
@@ -860,7 +861,7 @@ def vra_complete_assessment(assessment_id: str) -> Dict[str, Any]:
     summary="List vendors",
 )
 def vra_list_vendors(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     tier: _Optional[str] = Query(None, description="Filter by tier: critical | high | medium | low"),
 ) -> List[Dict[str, Any]]:
     """List all registered vendors, optionally filtered by tier."""

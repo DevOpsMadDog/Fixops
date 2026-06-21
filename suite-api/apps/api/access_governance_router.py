@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -107,7 +108,7 @@ class AssignRoleRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_access_governance(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_access_governance(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get access governance summary for the org."""
     return _get_engine().get_access_summary(org_id)
 

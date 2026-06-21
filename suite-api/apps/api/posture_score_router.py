@@ -9,7 +9,8 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from core.posture_score_engine import PostureScoreEngine
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/posture-score", tags=["posture-score"])
@@ -68,7 +69,7 @@ def compute_posture_score(req: ComputeRequest) -> Dict[str, Any]:
 
 
 @router.get("/current", summary="Get current posture score")
-def get_current_score(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_current_score(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return the most recently saved posture score for an org."""
     result = _get_engine().get_current_score(org_id)
     if not result:
@@ -78,7 +79,7 @@ def get_current_score(org_id: str = Query("default")) -> Dict[str, Any]:
 
 @router.get("/history", summary="Get score history")
 def get_score_history(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(30, ge=1, le=365),
 ) -> List[Dict[str, Any]]:
     """Return posture score snapshots for the last N days."""
@@ -98,13 +99,13 @@ def update_component(
 
 
 @router.get("/components", summary="List component scores")
-def list_components(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def list_components(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List all component scores and weights for an org."""
     return _get_engine().list_components(org_id)
 
 
 @router.get("/benchmarks", summary="List benchmarks")
-def list_benchmarks(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def list_benchmarks(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List industry benchmarks for an org."""
     return _get_engine().list_benchmarks(org_id)
 
@@ -117,6 +118,6 @@ def add_benchmark(req: BenchmarkRequest) -> Dict[str, Any]:
 
 
 @router.get("/stats", summary="Get posture stats")
-def get_posture_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_posture_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return summary statistics: current score, grade, 30d trend, days at risk."""
     return _get_engine().get_posture_stats(org_id)

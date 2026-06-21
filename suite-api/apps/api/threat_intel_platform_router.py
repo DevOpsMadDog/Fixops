@@ -118,7 +118,7 @@ class CheckIndicatorRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/sources", dependencies=[Depends(api_key_auth)])
-def add_source(body: SourceCreate, org_id: str = Query("default")) -> Dict[str, Any]:
+def add_source(body: SourceCreate, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Register a new intel source."""
     try:
         return _get_engine().add_source(org_id, body.model_dump())
@@ -128,7 +128,7 @@ def add_source(body: SourceCreate, org_id: str = Query("default")) -> Dict[str, 
 
 @router.get("/sources", dependencies=[Depends(api_key_auth)])
 def list_sources(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     """List intel sources."""
@@ -140,7 +140,7 @@ def list_sources(
 # ---------------------------------------------------------------------------
 
 @router.post("/indicators", dependencies=[Depends(api_key_auth)])
-def add_indicator(body: IndicatorCreate, org_id: str = Query("default")) -> Dict[str, Any]:
+def add_indicator(body: IndicatorCreate, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Add an IOC/indicator."""
     try:
         return _get_engine().add_indicator(org_id, body.model_dump(exclude_none=True))
@@ -150,7 +150,7 @@ def add_indicator(body: IndicatorCreate, org_id: str = Query("default")) -> Dict
 
 @router.get("/indicators", dependencies=[Depends(api_key_auth)])
 def search_indicators(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     query: str = Query(""),
     indicator_type: Optional[str] = Query(None),
     threat_category: Optional[str] = Query(None),
@@ -166,7 +166,7 @@ def search_indicators(
 
 
 @router.get("/indicators/{indicator_id}", dependencies=[Depends(api_key_auth)])
-def get_indicator(indicator_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
+def get_indicator(indicator_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get a single indicator with relationships."""
     result = _get_engine().get_indicator(org_id, indicator_id)
     if not result:
@@ -175,7 +175,7 @@ def get_indicator(indicator_id: str, org_id: str = Query("default")) -> Dict[str
 
 
 @router.post("/indicators/bulk", dependencies=[Depends(api_key_auth)])
-def bulk_ingest(body: BulkIngestRequest, org_id: str = Query("default")) -> Dict[str, Any]:
+def bulk_ingest(body: BulkIngestRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Bulk ingest indicators from a source."""
     return _get_engine().bulk_ingest(org_id, body.source_id, body.indicators)
 
@@ -185,7 +185,7 @@ def bulk_ingest(body: BulkIngestRequest, org_id: str = Query("default")) -> Dict
 # ---------------------------------------------------------------------------
 
 @router.post("/relationships", dependencies=[Depends(api_key_auth)])
-def add_relationship(body: RelationshipCreate, org_id: str = Query("default")) -> Dict[str, Any]:
+def add_relationship(body: RelationshipCreate, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Add a relationship between indicators."""
     try:
         return _get_engine().add_relationship(org_id, body.model_dump())
@@ -194,7 +194,7 @@ def add_relationship(body: RelationshipCreate, org_id: str = Query("default")) -
 
 
 @router.get("/relationships/{indicator_id}", dependencies=[Depends(api_key_auth)])
-def get_relationships(indicator_id: str, org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def get_relationships(indicator_id: str, org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Get all relationships for an indicator."""
     return _get_engine().get_relationships(org_id, indicator_id)
 
@@ -204,7 +204,7 @@ def get_relationships(indicator_id: str, org_id: str = Query("default")) -> List
 # ---------------------------------------------------------------------------
 
 @router.post("/reports", dependencies=[Depends(api_key_auth)])
-def create_report(body: ReportCreate, org_id: str = Query("default")) -> Dict[str, Any]:
+def create_report(body: ReportCreate, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Create an intel report."""
     try:
         return _get_engine().create_report(org_id, body.model_dump())
@@ -214,7 +214,7 @@ def create_report(body: ReportCreate, org_id: str = Query("default")) -> Dict[st
 
 @router.get("/reports", dependencies=[Depends(api_key_auth)])
 def list_reports(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     report_type: Optional[str] = Query(None),
     tlp_level: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -233,20 +233,20 @@ def check_indicator(body: CheckIndicatorRequest) -> Dict[str, Any]:
 
 
 @router.post("/expire", dependencies=[Depends(api_key_auth)])
-def expire_indicators(org_id: str = Query("default")) -> Dict[str, Any]:
+def expire_indicators(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Mark expired indicators as inactive."""
     count = _get_engine().expire_indicators(org_id)
     return {"expired": count}
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_tip_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_tip_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregated TIP stats."""
     return _get_engine().get_tip_stats(org_id)
 
 
 @router.get("/", summary="TIP index", tags=["tip"])
-def tip_index(org_id: str = Query("default"), _auth: None = Depends(api_key_auth)) -> Dict[str, Any]:
+def tip_index(org_id: str = Depends(get_org_id), _auth: None = Depends(api_key_auth)) -> Dict[str, Any]:
     """Return threat intelligence platform summary for the org."""
     engine = _get_engine()
     try:

@@ -87,7 +87,7 @@ class ROIAssessmentCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/")
-def list_cost_optimization(org_id: str = Query("default")):
+def list_cost_optimization(org_id: str = Depends(get_org_id)):
     """Get cloud cost optimization portfolio summary for the org."""
     return _get_engine().get_portfolio_summary(org_id=org_id)
 

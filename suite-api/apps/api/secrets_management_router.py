@@ -22,7 +22,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -77,7 +78,7 @@ class RecordAccessIn(BaseModel):
 @router.post("/secrets", summary="Store secret metadata")
 def store_secret(
     req: StoreSecretIn,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Store secret metadata. The actual secret value is never persisted."""
     try:
@@ -91,7 +92,7 @@ def store_secret(
 
 @router.get("/secrets", summary="List secrets metadata")
 def list_secrets(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     secret_type: Optional[str] = Query(None, description="Filter by secret type"),
 ) -> List[Dict[str, Any]]:
     """List secret metadata for org. Secret values are never returned."""
@@ -101,7 +102,7 @@ def list_secrets(
 @router.get("/secrets/{secret_id}", summary="Get secret metadata")
 def get_secret_metadata(
     secret_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return metadata for a single secret (no value exposed)."""
     result = _get_engine().get_secret_metadata(org_id, secret_id)
@@ -113,7 +114,7 @@ def get_secret_metadata(
 @router.post("/secrets/{secret_id}/rotate", summary="Record secret rotation")
 def rotate_secret(
     secret_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record a rotation event — updates last_rotated timestamp."""
     try:
@@ -131,7 +132,7 @@ def rotate_secret(
 def revoke_secret(
     secret_id: str,
     req: RevokeSecretIn,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Permanently revoke a secret with a stated reason."""
     try:
@@ -145,7 +146,7 @@ def revoke_secret(
 
 @router.get("/expiring", summary="List expiring secrets")
 def get_expiring_secrets(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     days_ahead: int = Query(30, ge=0, description="Warning window in days"),
 ) -> List[Dict[str, Any]]:
     """Return active secrets at or past their rotation window."""
@@ -154,7 +155,7 @@ def get_expiring_secrets(
 
 @router.get("/stats", summary="Secrets statistics")
 def get_secrets_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregated secrets stats: total, by_type, overdue, revoked."""
     return _get_engine().get_secrets_stats(org_id)
@@ -164,7 +165,7 @@ def get_secrets_stats(
 def record_access(
     secret_id: str,
     req: RecordAccessIn,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record an audit access event for a secret."""
     return _get_engine().record_access(org_id, secret_id, req.accessor, req.action)
@@ -173,7 +174,7 @@ def record_access(
 @router.get("/secrets/{secret_id}/access", summary="Get access log")
 def get_access_log(
     secret_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500, description="Max records to return"),
 ) -> List[Dict[str, Any]]:
     """Return recent access audit log for a secret."""
@@ -182,7 +183,7 @@ def get_access_log(
 
 @router.get("/audit", summary="Org-wide vault audit log")
 def get_vault_audit_log(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     accessor: Optional[str] = Query(None, description="Filter by accessor identity"),
     action: Optional[str] = Query(None, description="Filter by action (read|write|delete|rotate)"),
     limit: int = Query(100, ge=1, le=1000, description="Max records to return"),

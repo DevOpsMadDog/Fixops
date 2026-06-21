@@ -27,9 +27,8 @@ import time
 from typing import Any, AsyncGenerator, Dict, Optional
 
 from core.siem_output_engine import SIEMOutputEngine
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
-from fastapi import Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -100,7 +99,7 @@ def configure_siem_target(body: SIEMTargetConfigure):
 
 
 @router.get("/targets")
-def list_targets(org_id: str = Query("default")):
+def list_targets(org_id: str = Depends(get_org_id)):
     """List all configured SIEM output targets."""
     engine = _get_engine()
     targets = engine.get_targets(org_id)
@@ -108,7 +107,7 @@ def list_targets(org_id: str = Query("default")):
 
 
 @router.get("/targets/{target_id}")
-def get_target(target_id: str, org_id: str = Query("default")):
+def get_target(target_id: str, org_id: str = Depends(get_org_id)):
     """Get a single SIEM output target by ID."""
     engine = _get_engine()
     target = engine.get_target(org_id, target_id)
@@ -121,7 +120,7 @@ def get_target(target_id: str, org_id: str = Query("default")):
 def update_target_status(
     target_id: str,
     body: SIEMTargetStatusUpdate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Update a SIEM target's status (active/inactive/error)."""
     engine = _get_engine()
@@ -135,7 +134,7 @@ def update_target_status(
 
 
 @router.delete("/targets/{target_id}")
-def delete_target(target_id: str, org_id: str = Query("default")):
+def delete_target(target_id: str, org_id: str = Depends(get_org_id)):
     """Delete a SIEM output target."""
     engine = _get_engine()
     deleted = engine.delete_target(org_id, target_id)
@@ -145,7 +144,7 @@ def delete_target(target_id: str, org_id: str = Query("default")):
 
 
 @router.get("/status")
-def get_all_status(org_id: str = Query("default")):
+def get_all_status(org_id: str = Depends(get_org_id)):
     """Get connection health for all SIEM targets."""
     engine = _get_engine()
     targets = engine.get_targets(org_id)
@@ -165,7 +164,7 @@ def get_all_status(org_id: str = Query("default")):
 
 
 @router.get("/status/{target_id}")
-def get_target_status(target_id: str, org_id: str = Query("default")):
+def get_target_status(target_id: str, org_id: str = Depends(get_org_id)):
     """Get connection health for a specific SIEM target."""
     engine = _get_engine()
     target = engine.get_target(org_id, target_id)
@@ -225,7 +224,7 @@ def send_test_event(body: SIEMTestRequest):
 
 
 @router.post("/test/{target_id}")
-def send_test_event_to_target(target_id: str, org_id: str = Query("default")):
+def send_test_event_to_target(target_id: str, org_id: str = Depends(get_org_id)):
     """Send a test event to a specific SIEM target."""
     engine = _get_engine()
     target = engine.get_target(org_id, target_id)
@@ -255,7 +254,7 @@ def send_test_event_to_target(target_id: str, org_id: str = Query("default")):
 
 @router.get("/stats")
 def get_delivery_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     target_id: Optional[str] = Query(None),
 ):
     """Get delivery statistics for SIEM output targets."""
@@ -265,7 +264,7 @@ def get_delivery_stats(
 
 
 @router.get("/stats/{target_id}")
-def get_target_delivery_stats(target_id: str, org_id: str = Query("default")):
+def get_target_delivery_stats(target_id: str, org_id: str = Depends(get_org_id)):
     """Get delivery statistics for a specific SIEM target."""
     engine = _get_engine()
     stats = engine.get_stats(org_id, target_id)
@@ -275,7 +274,7 @@ def get_target_delivery_stats(target_id: str, org_id: str = Query("default")):
 @router.get("/history/{target_id}")
 def get_delivery_history(
     target_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500),
 ):
     """Get delivery history for a specific SIEM target."""
@@ -290,7 +289,7 @@ def get_delivery_history(
     response_class=StreamingResponse,
 )
 async def stream_audit_log(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     target_id: Optional[str] = Query(None, description="Filter to one target"),
     poll_interval: float = Query(5.0, ge=1.0, le=60.0, description="Polling interval in seconds"),
     last_seen_id: Optional[str] = Query(None, description="Resume: only emit deliveries newer than this delivery_id"),

@@ -75,7 +75,7 @@ class OrgQuery(BaseModel):
 # ------------------------------------------------------------------
 
 @router.get("/vaults", dependencies=[Depends(_verify_api_key)])
-def list_vaults(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def list_vaults(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List all secret vaults for an org."""
     return _get_engine().list_vaults(org_id)
 
@@ -95,7 +95,7 @@ def create_vault(body: VaultCreate) -> Dict[str, Any]:
 
 @router.get("/secrets", dependencies=[Depends(_verify_api_key)])
 def list_secrets(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     vault_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -118,7 +118,7 @@ def add_secret(vault_id: str, body: SecretCreate) -> Dict[str, Any]:
 
 @router.get("/secrets/expiring", dependencies=[Depends(_verify_api_key)])
 def get_expiring_secrets(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     days_ahead: int = Query(30, ge=1),
 ) -> List[Dict[str, Any]]:
     """Return secrets expiring within the next N days."""
@@ -148,7 +148,7 @@ def schedule_rotation(secret_id: str, body: RotationScheduleCreate) -> Dict[str,
 @router.get("/secrets/{secret_id}/history", dependencies=[Depends(_verify_api_key)])
 def get_rotation_history(
     secret_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Get rotation history for a secret."""
     try:
@@ -162,6 +162,6 @@ def get_rotation_history(
 # ------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(_verify_api_key)])
-def get_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregated secrets stats for an org."""
     return _get_engine().get_secrets_stats(org_id)

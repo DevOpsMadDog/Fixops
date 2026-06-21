@@ -20,7 +20,8 @@ from core.executive_reports import (
     ReportSchedule,
     ReportType,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 router = APIRouter(
@@ -126,7 +127,7 @@ async def generate_report(body: GenerateReportRequest) -> ExecutiveReport:
 
 @router.get("", response_model=List[ExecutiveReport])
 async def list_reports(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     type: Optional[ReportType] = Query(None, description="Filter by report type"),
     limit: int = Query(50, ge=1, le=200, description="Maximum results to return"),
 ) -> List[ExecutiveReport]:
@@ -170,7 +171,7 @@ async def create_schedule(body: CreateScheduleRequest) -> ReportSchedule:
 
 @router.get("/schedules/list", response_model=List[ReportSchedule])
 async def list_schedules(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[ReportSchedule]:
     """List all report schedules for an organisation."""
     return _get_engine().list_schedules(org_id=org_id)

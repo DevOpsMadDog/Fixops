@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 import structlog
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 # structlog (not stdlib logging) — the handlers below log with structured
@@ -311,7 +312,7 @@ async def check_drift(body: DriftCheckRequest) -> Dict[str, Any]:
 async def create_baseline_snapshot(
     name: str = Query(..., description="Baseline name / label"),
     description: str = Query("", description="Optional description"),
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Snapshot the current set of IaC findings as a named baseline.
 
@@ -324,7 +325,7 @@ async def create_baseline_snapshot(
 
 @router.get("/baselines")
 async def list_baseline_snapshots(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """List all IaC baseline snapshots for an org."""
     engine = _get_engine()
@@ -335,7 +336,7 @@ async def list_baseline_snapshots(
 @router.get("/baselines/{baseline_id}/snapshot")
 async def get_baseline_snapshot(
     baseline_id: str,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return a specific IaC baseline snapshot by ID."""
     engine = _get_engine()

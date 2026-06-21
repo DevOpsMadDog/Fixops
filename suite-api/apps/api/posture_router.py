@@ -17,7 +17,8 @@ from core.posture_tracker import (
     PostureTracker,
     get_posture_tracker,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ def calculate_posture(req: CalculatePostureRequest) -> PostureScore:
 
 @router.get("/current", response_model=PostureScore, summary="Get latest posture score")
 def get_current_posture(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> PostureScore:
     """Return the most recent posture score for an org."""
     scorer = _get_scorer()
@@ -83,7 +84,7 @@ def get_current_posture(
 
 @router.get("/history", response_model=List[PostureScore], summary="Posture score history")
 def get_posture_history(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(30, ge=1, le=365, description="Look-back window in days"),
 ) -> List[PostureScore]:
     """Return all persisted posture scores within the last N days."""
@@ -97,7 +98,7 @@ def get_posture_history(
 
 @router.get("/trend", response_model=List[Dict[str, Any]], summary="Posture score trend")
 def get_posture_trend(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(30, ge=1, le=365, description="Look-back window in days"),
 ) -> List[Dict[str, Any]]:
     """Return date + score pairs for chart rendering."""
@@ -111,7 +112,7 @@ def get_posture_trend(
 
 @router.get("/components", response_model=PostureScore, summary="Component score breakdown")
 def get_posture_components(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> PostureScore:
     """Return the latest score with full component breakdown."""
     scorer = _get_scorer()
@@ -142,7 +143,7 @@ def compare_orgs(req: CompareOrgsRequest) -> List[PostureScore]:
 
 @router.post("/tracker/calculate", response_model=PostureSnapshot, summary="Calculate + record posture snapshot")
 def tracker_calculate(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> PostureSnapshot:
     """Calculate current posture from live data and persist a snapshot."""
     tracker = _get_tracker()
@@ -155,7 +156,7 @@ def tracker_calculate(
 
 @router.get("/tracker/current", response_model=PostureSnapshot, summary="Get current posture snapshot")
 def tracker_current(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> PostureSnapshot:
     """Return the most recent posture snapshot for an org."""
     tracker = _get_tracker()
@@ -167,7 +168,7 @@ def tracker_current(
 
 @router.get("/tracker/trend", response_model=List[PostureSnapshot], summary="30-day posture trend")
 def tracker_trend(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(30, ge=1, le=365, description="Look-back window in days"),
 ) -> List[PostureSnapshot]:
     """Return all posture snapshots within the last N days, oldest first."""

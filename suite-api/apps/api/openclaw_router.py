@@ -580,7 +580,7 @@ def get_scan_status(
 
 
 @router.get("/", summary="OpenClaw index", tags=["openclaw"])
-async def openclaw_index(org_id: str = Query("default")) -> Dict[str, Any]:
+async def openclaw_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return OpenClaw red-team campaign summary for the org."""
     try:
         engine = _get_engine(org_id)

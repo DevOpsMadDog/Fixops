@@ -23,6 +23,7 @@ from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from fastapi.responses import StreamingResponse
 
 logger = logging.getLogger(__name__)
@@ -855,7 +856,7 @@ def _build_recommendations(
     tags=["security-posture-pdf"],
 )
 def get_security_posture_pdf(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> StreamingResponse:
     """Generate and stream a comprehensive security posture PDF report.
 

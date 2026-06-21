@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 # Ensure suite-core is importable when running outside the app
@@ -90,7 +91,7 @@ def get_builtin_playbooks(
 
 @router.get("/executions", summary="List execution history")
 def list_executions(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500),
     engine: SecurityPlaybookEngine = Depends(_get_engine),
 ) -> List[Dict[str, Any]]:
@@ -101,7 +102,7 @@ def list_executions(
 @router.get("/executions/{execution_id}", summary="Get execution details")
 def get_execution(
     execution_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     engine: SecurityPlaybookEngine = Depends(_get_engine),
 ) -> Dict[str, Any]:
     """Get details of a specific playbook execution."""
@@ -113,7 +114,7 @@ def get_execution(
 
 @router.get("", summary="List playbooks")
 def list_playbooks(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     engine: SecurityPlaybookEngine = Depends(_get_engine),
 ) -> List[Dict[str, Any]]:
     """List all playbooks for an organization."""
@@ -141,7 +142,7 @@ def create_playbook(
 @router.get("/{playbook_id}", summary="Get playbook")
 def get_playbook(
     playbook_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     engine: SecurityPlaybookEngine = Depends(_get_engine),
 ) -> Dict[str, Any]:
     """Get a specific playbook by ID."""

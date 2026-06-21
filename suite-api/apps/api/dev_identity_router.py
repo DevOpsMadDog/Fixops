@@ -146,7 +146,7 @@ def analyze_dev_commits(body: AnalyzeRequest) -> Dict[str, Any]:
 
 @router.get("/score")
 def score_dev_behavior(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     author_email: str = Query(...),
     lookback_days: int = Query(30, ge=1, le=365),
 ) -> Dict[str, Any]:
@@ -195,7 +195,7 @@ def unwatch_developer(body: UnwatchRequest) -> Dict[str, Any]:
 
 @router.get("/watchlist")
 def list_watchlist(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     include_inactive: bool = Query(False),
 ) -> List[Dict[str, Any]]:
     """List watched developers for an org (active only by default)."""

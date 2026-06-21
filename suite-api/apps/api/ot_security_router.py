@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 from apps.api.auth_deps import api_key_auth
 from core.ot_security_engine import OTSecurityEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 router = APIRouter(
@@ -76,7 +77,7 @@ async def register_asset(body: RegisterAssetRequest) -> Dict[str, Any]:
 
 @router.get("/assets")
 async def list_assets(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     asset_type: Optional[str] = Query(None, description="Filter by asset type"),
     criticality: Optional[str] = Query(None, description="Filter by criticality"),
 ) -> List[Dict[str, Any]]:
@@ -87,7 +88,7 @@ async def list_assets(
 @router.get("/assets/{asset_id}")
 async def get_asset(
     asset_id: str,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single OT asset by ID."""
     try:
@@ -113,7 +114,7 @@ async def record_anomaly(body: RecordAnomalyRequest) -> Dict[str, Any]:
 
 @router.get("/anomalies")
 async def list_anomalies(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None, description="Filter by status"),
     severity: Optional[str] = Query(None, description="Filter by severity"),
 ) -> List[Dict[str, Any]]:
@@ -135,7 +136,7 @@ async def resolve_anomaly(
 
 @router.get("/stats")
 async def get_ot_stats(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get OT environment statistics: asset counts by type/criticality, open anomalies."""
     return _get_engine().get_ot_stats(org_id)
@@ -147,7 +148,7 @@ async def get_ot_stats(
 
 @router.get("/")
 async def get_ot_root(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return OT Security service capabilities and live stats summary."""
     stats = _get_engine().get_ot_stats(org_id)

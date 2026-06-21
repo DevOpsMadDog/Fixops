@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -116,7 +117,7 @@ def create_access_review(body: CreateReviewRequest) -> CreateReviewResponse:
 
 
 @router.get("/reviews", response_model=List[Dict[str, Any]])
-def list_access_reviews(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def list_access_reviews(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List all access review campaigns for an organisation."""
     return _get_engine().list_access_reviews(org_id)
 
@@ -124,7 +125,7 @@ def list_access_reviews(org_id: str = Query("default")) -> List[Dict[str, Any]]:
 @router.get("/reviews/{review_id}/items", response_model=List[Dict[str, Any]])
 def get_review_items(
     review_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return all items to certify or revoke for a review campaign."""
     items = _get_engine().get_review_items(review_id, org_id)
@@ -157,25 +158,25 @@ def certify_access(
 
 
 @router.get("/orphaned-accounts", response_model=List[Dict[str, Any]])
-def get_orphaned_accounts(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def get_orphaned_accounts(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Return accounts with no owner or from departed employees."""
     return _get_engine().get_orphaned_accounts(org_id)
 
 
 @router.get("/excessive-privileges", response_model=List[Dict[str, Any]])
-def get_excessive_privileges(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def get_excessive_privileges(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Return users with more access than their role requires."""
     return _get_engine().get_excessive_privileges(org_id)
 
 
 @router.get("/sod-violations", response_model=List[Dict[str, Any]])
-def get_sod_violations(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def get_sod_violations(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Return Segregation of Duties violations — conflicting roles held by the same user."""
     return _get_engine().get_segregation_violations(org_id)
 
 
 @router.get("/stats", response_model=Dict[str, Any])
-def get_certification_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_certification_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return access certification statistics for the organisation."""
     return _get_engine().get_access_certification_stats(org_id)
 

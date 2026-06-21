@@ -35,6 +35,7 @@ from core.executive_dashboard import (
     create_executive_dashboard,
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field, field_validator
 
 router = APIRouter(
@@ -473,7 +474,7 @@ def _get_real_compliance_data(org_id: str) -> Dict[Regulation, float]:
     ),
 )
 async def get_risk_summary(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     iterations: int = Query(1000, ge=100, le=10000, description="Monte Carlo iterations"),
 ) -> FAIRRiskSummaryResponse:
     """Return FAIR risk quantification for default scenarios."""
@@ -633,7 +634,7 @@ async def record_snapshot(body: RecordSnapshotRequest) -> dict:
     ),
 )
 async def get_benchmarks(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     vertical: IndustryVertical = Query(IndustryVertical.TECHNOLOGY, description="Industry vertical"),
     vuln_density: float = Query(4.2, ge=0, description="Vulnerabilities per host"),
     mttr_days: float = Query(9.1, ge=0, description="Mean time to remediate (days)"),
@@ -662,7 +663,7 @@ async def get_benchmarks(
     ),
 )
 async def get_regulatory_heatmap(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> RegulatoryHeatmapResponse:
     """Return regulatory risk heatmap with penalty exposure per framework.
 
@@ -709,7 +710,7 @@ async def get_regulatory_heatmap(
     ),
 )
 async def get_due_diligence(
-    org_id: str = Query("default", description="Target organisation identifier"),
+    org_id: str = Depends(get_org_id),
     critical_vulns: int = Query(3, ge=0, description="Open critical vulnerabilities"),
     high_vulns: int = Query(12, ge=0, description="Open high vulnerabilities"),
     medium_vulns: int = Query(45, ge=0, description="Open medium vulnerabilities"),
@@ -753,7 +754,7 @@ async def get_due_diligence(
     ),
 )
 async def get_kpis(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> KPIDashboardResponse:
     """Return KPI dashboard with status and trend for each metric.
 

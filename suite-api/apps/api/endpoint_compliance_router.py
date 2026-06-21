@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -101,7 +102,7 @@ class BaselineCreate(BaseModel):
 @router.post("/endpoints", response_model=Dict[str, Any], status_code=201)
 def register_endpoint(
     body: EndpointCreate,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ):
     """Register a new endpoint for compliance tracking."""
     try:
@@ -112,7 +113,7 @@ def register_endpoint(
 
 @router.get("/endpoints", response_model=List[Dict[str, Any]])
 def list_endpoints(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     compliance_level: Optional[str] = Query(None, description="compliant/partial/non_compliant"),
     os_type: Optional[str] = Query(None),
     department: Optional[str] = Query(None),
@@ -129,7 +130,7 @@ def list_endpoints(
 @router.get("/endpoints/{endpoint_id}", response_model=Dict[str, Any])
 def get_endpoint(
     endpoint_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return endpoint details with check summary."""
     result = _get_engine(org_id).get_endpoint(org_id, endpoint_id)
@@ -142,7 +143,7 @@ def get_endpoint(
 def record_check(
     endpoint_id: str,
     body: CheckCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Record a compliance check result for an endpoint."""
     try:
@@ -155,7 +156,7 @@ def record_check(
 def bulk_record_checks(
     endpoint_id: str,
     body: BulkChecksCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Batch-record compliance checks for an endpoint."""
     checks_data = [c.model_dump() for c in body.checks]
@@ -164,7 +165,7 @@ def bulk_record_checks(
 
 @router.get("/checks", response_model=List[Dict[str, Any]])
 def list_checks(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     endpoint_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
@@ -183,7 +184,7 @@ def list_checks(
 @router.post("/exceptions", response_model=Dict[str, Any], status_code=201)
 def add_exception(
     body: ExceptionCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a compliance exception for a specific endpoint check."""
     try:
@@ -195,7 +196,7 @@ def add_exception(
 @router.post("/baselines", response_model=Dict[str, Any], status_code=201)
 def create_baseline(
     body: BaselineCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a compliance baseline definition."""
     try:
@@ -206,7 +207,7 @@ def create_baseline(
 
 @router.get("/baselines", response_model=List[Dict[str, Any]])
 def list_baselines(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """List all compliance baselines for the org."""
     return _get_engine(org_id).list_baselines(org_id)
@@ -214,7 +215,7 @@ def list_baselines(
 
 @router.get("/stats", response_model=Dict[str, Any])
 def get_endpoint_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return aggregated endpoint compliance statistics."""
     return _get_engine(org_id).get_endpoint_stats(org_id)
@@ -222,7 +223,7 @@ def get_endpoint_stats(
 
 @router.get("/department-compliance", response_model=List[Dict[str, Any]])
 def get_department_compliance(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return per-department compliance rates."""
     return _get_engine(org_id).get_department_compliance(org_id)

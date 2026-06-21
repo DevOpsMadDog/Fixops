@@ -18,7 +18,8 @@ from core.threat_intel_correlator import (
     ThreatCorrelation,
     ThreatIntelCorrelator,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel
 
 router = APIRouter(
@@ -134,7 +135,7 @@ async def get_campaign_timeline(campaign_id: str) -> Dict[str, Any]:
 
 @router.get("/landscape", response_model=Dict[str, Any])
 async def get_threat_landscape(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """
     Return a high-level threat landscape overview for the organisation:
@@ -145,7 +146,7 @@ async def get_threat_landscape(
 
 @router.get("/active-threats", response_model=List[ThreatActor])
 async def get_active_threats(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[ThreatActor]:
     """
     Return all currently active threat actors relevant to the organisation.
@@ -803,7 +804,7 @@ async def get_ip_geo(ip: str) -> Dict[str, Any]:
 
 
 @router.get("/", summary="Threat intel index", tags=["threat-intel"])
-async def threat_intel_index(org_id: str = Query("default")) -> Dict[str, Any]:
+async def threat_intel_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return active threat actors and landscape summary for the org."""
     try:
         actors = _correlator.get_active_threats(org_id=org_id)

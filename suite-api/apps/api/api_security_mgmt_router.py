@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -95,7 +96,7 @@ class RecordAbuseEventRequest(BaseModel):
 
 @router.get("/apis", summary="List registered API endpoints")
 def list_apis(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     service_name: Optional[str] = Query(None, description="Filter by service name"),
     sensitivity_level: Optional[str] = Query(None, description="Filter by sensitivity level"),
 ) -> List[Dict[str, Any]]:
@@ -119,7 +120,7 @@ def register_api(req: RegisterApiRequest) -> Dict[str, Any]:
 
 @router.get("/keys", summary="List API keys")
 def list_api_keys(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None, description="Filter by status: active/revoked/expired"),
 ) -> List[Dict[str, Any]]:
     """List API keys. Raw key values are never returned — only prefix hints."""
@@ -143,7 +144,7 @@ def create_api_key(req: CreateApiKeyRequest) -> Dict[str, Any]:
 @router.delete("/keys/{key_id}", summary="Revoke an API key")
 def revoke_api_key(
     key_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Revoke an API key by ID."""
     engine = _get_engine()
@@ -155,7 +156,7 @@ def revoke_api_key(
 
 @router.get("/abuse-events", summary="List abuse events")
 def list_abuse_events(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     event_type: Optional[str] = Query(None, description="Filter by event type"),
     severity: Optional[str] = Query(None, description="Filter by severity"),
     status: Optional[str] = Query(None, description="Filter by status"),
@@ -182,7 +183,7 @@ def record_abuse_event(req: RecordAbuseEventRequest) -> Dict[str, Any]:
 @router.post("/scan/{api_name}", summary="Run OWASP API Top 10 scan")
 def run_owasp_scan(
     api_name: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Initiate an OWASP API Top 10 scan for a named service."""
     engine = _get_engine()
@@ -196,7 +197,7 @@ def run_owasp_scan(
 
 @router.get("/stats", summary="Get API security stats")
 def get_security_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregated API security statistics for an org."""
     engine = _get_engine()

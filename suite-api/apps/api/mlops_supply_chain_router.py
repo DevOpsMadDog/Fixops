@@ -21,7 +21,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -334,7 +335,7 @@ def check_malicious(
     summary="List stored supply chain analyses for an org",
 )
 def list_analyses(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500, description="Maximum results"),
 ) -> List[Dict[str, Any]]:
     """
@@ -362,7 +363,7 @@ def list_analyses(
     summary="Aggregated supply chain risk summary for an org",
 )
 def get_risk_summary(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> RiskSummaryResponse:
     """
     Return aggregated supply chain risk metrics for the organisation:

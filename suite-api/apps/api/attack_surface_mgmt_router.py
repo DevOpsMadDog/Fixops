@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -91,7 +92,7 @@ class ScanComplete(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/assets", dependencies=[Depends(api_key_auth)])
-def add_asset(body: AssetCreate, org_id: str = Query("default")) -> Dict[str, Any]:
+def add_asset(body: AssetCreate, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Register a new surface asset."""
     try:
         return _get_engine().add_asset(org_id, body.model_dump())
@@ -101,7 +102,7 @@ def add_asset(body: AssetCreate, org_id: str = Query("default")) -> Dict[str, An
 
 @router.get("/assets", dependencies=[Depends(api_key_auth)])
 def list_assets(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     asset_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     min_risk: Optional[float] = Query(None),
@@ -116,7 +117,7 @@ def list_assets(
 
 
 @router.get("/assets/{asset_id}", dependencies=[Depends(api_key_auth)])
-def get_asset(asset_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
+def get_asset(asset_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get an asset with its exposures."""
     result = _get_engine().get_asset(org_id, asset_id)
     if not result:
@@ -132,7 +133,7 @@ def get_asset(asset_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
 def add_exposure(
     asset_id: str,
     body: ExposureCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add an exposure finding for an asset."""
     try:
@@ -143,7 +144,7 @@ def add_exposure(
 
 @router.get("/exposures", dependencies=[Depends(api_key_auth)])
 def list_exposures(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     exposure_type: Optional[str] = Query(None),
@@ -160,7 +161,7 @@ def list_exposures(
 
 
 @router.post("/exposures/{exposure_id}/fix", dependencies=[Depends(api_key_auth)])
-def fix_exposure(exposure_id: str, org_id: str = Query("default")) -> Dict[str, Any]:
+def fix_exposure(exposure_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Mark an exposure as fixed."""
     result = _get_engine().fix_exposure(org_id, exposure_id)
     if not result:
@@ -173,7 +174,7 @@ def fix_exposure(exposure_id: str, org_id: str = Query("default")) -> Dict[str, 
 # ---------------------------------------------------------------------------
 
 @router.post("/scans", dependencies=[Depends(api_key_auth)])
-def create_scan(body: ScanCreate, org_id: str = Query("default")) -> Dict[str, Any]:
+def create_scan(body: ScanCreate, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Create a new attack surface scan."""
     try:
         return _get_engine().create_scan(org_id, body.model_dump())
@@ -185,7 +186,7 @@ def create_scan(body: ScanCreate, org_id: str = Query("default")) -> Dict[str, A
 def complete_scan(
     scan_id: str,
     body: ScanComplete,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Mark a scan as completed with discovery metrics."""
     result = _get_engine().complete_scan(org_id, scan_id, body.model_dump())
@@ -196,7 +197,7 @@ def complete_scan(
 
 @router.get("/scans", dependencies=[Depends(api_key_auth)])
 def list_scans(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     """List scans."""
@@ -209,7 +210,7 @@ def list_scans(
 
 @router.get("/changes", dependencies=[Depends(api_key_auth)])
 def list_changes(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(7, ge=1, le=90),
     severity: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -222,6 +223,6 @@ def list_changes(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def get_surface_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_surface_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregated attack surface stats."""
     return _get_engine().get_surface_stats(org_id)

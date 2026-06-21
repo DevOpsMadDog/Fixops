@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -125,7 +126,7 @@ def attribute_asset(req: AttributeAssetRequest) -> Dict[str, Any]:
 
 @router.get("/assets", dependencies=[Depends(api_key_auth)])
 def list_subsidiary_assets(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     subsidiary_name: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     """List subsidiary-attributed assets, optionally filtered by subsidiary name."""
@@ -158,7 +159,7 @@ def tag_exposure_layer(req: ExposureLayerRequest) -> Dict[str, Any]:
 
 @router.get("/exposure", dependencies=[Depends(api_key_auth)])
 def list_assets_by_exposure(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     exposure_layer: str = Query(..., description="One of external-internet/dmz/internal/restricted/isolated"),
 ) -> List[Dict[str, Any]]:
     """List assets tagged with a given exposure layer (GAP-045)."""

@@ -1302,7 +1302,7 @@ async def false_positive_rate(
 
 
 @router.get("/", summary="Analytics index", tags=["analytics"])
-async def analytics_root_index(org_id: str = Query("default")) -> Dict[str, Any]:
+async def analytics_root_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return analytics overview for the org from the live AnalyticsDB."""
     try:
         overview = db.get_dashboard_overview()
