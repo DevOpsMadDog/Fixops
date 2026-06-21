@@ -36,7 +36,8 @@ try:
     from apps.api.auth_deps import api_key_auth
 except ImportError:  # pragma: no cover — only absent in isolated unit tests
     async def api_key_auth() -> None:  # type: ignore[misc]
-        return None
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
 
 # Canonical org resolver (always importable) — no shadow fallback (SPEC-007 V3).
 from apps.api.dependencies import get_org_id
