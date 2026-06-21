@@ -272,13 +272,14 @@ GET /api/v1/feeds/epss  (no network, read from local DB)
 
 ```
 Stages (in order):
-  SCOPING → DISCOVERY → PRIORITIZATION → VALIDATION → MOBILIZATION → MEASUREMENT
+  SCOPING → DISCOVERY → PRIORITIZATION → VALIDATION → MOBILIZATION
+  (the canonical Gartner CTEM 5-stage model; matches CTEMStage in code)
 
 CTEMCycle {
   cycle_id: str
   name: str
   org_id: str
-  stage: scoping|discovery|prioritization|validation|mobilization|measurement
+  stage: scoping|discovery|prioritization|validation|mobilization
   scoped_assets: [str]
   exposures: [Exposure]
   created_at: str
@@ -334,7 +335,7 @@ Exposure {
 
 - **REQ-012-15**: RiskAggregatorEngine.sync_from_brain_graph() pulls brain_nodes WHERE node_type = 'finding' AND org_id = ? from the brain SQLite DB. CVSS → risk conversion: >=9.0 → 95, >=7.0 → 70 + scale, >=4.0 → 30 + scale. Exposure multiplier: internet/public/external → 1.2. Emits RISK_ASSESSED to TrustGraph event bus.
 
-- **REQ-012-16**: CTEM cycle advances through SCOPING → DISCOVERY → PRIORITIZATION → VALIDATION → MOBILIZATION → MEASUREMENT in order. advance_stage() on a cycle already at MEASUREMENT raises ValueError. Cycle and exposure records are org-scoped.
+- **REQ-012-16**: CTEM cycle advances through SCOPING → DISCOVERY → PRIORITIZATION → VALIDATION → MOBILIZATION in order (the canonical Gartner CTEM 5 stages). advance_stage() on a cycle already at MOBILIZATION (the final stage) raises ValueError. Cycle and exposure records are org-scoped.
 
 - **REQ-012-17**: ExposureCaseManager.purge_empty_cases() deletes cases where finding_count=0 AND risk_score=0.0 AND root_cve/cwe/component all NULL. Supports dry_run=True for inspection without deletion.
 
