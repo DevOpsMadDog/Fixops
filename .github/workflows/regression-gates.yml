@@ -89,6 +89,12 @@ jobs:
             -x --tb=short --timeout=120 -q \
             --override-ini="addopts=" \
             --override-ini="log_cli=false"
+      - name: UI↔API contract gate (SPEC-033 C1+C2 — ingest→readback shape pinned)
+        run: |
+          python -m pytest tests/test_contract_ingest_readback.py \
+            -x --tb=short --timeout=120 -q \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"
       - name: Perf lockdown (benchmarks/)
         run: |
           python -m pytest tests/benchmarks/ \
