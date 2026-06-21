@@ -83,6 +83,12 @@ jobs:
             -x --tb=short --timeout=60 -q \
             --override-ini="addopts=" \
             --override-ini="log_cli=false"
+      - name: Customer-journey E2E gate (SPEC-032 — upload→my findings→tenant-isolated→verdict→evidence)
+        run: |
+          python -m pytest tests/test_customer_journey_e2e.py \
+            -x --tb=short --timeout=120 -q \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"
       - name: Perf lockdown (benchmarks/)
         run: |
           python -m pytest tests/benchmarks/ \
