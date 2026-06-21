@@ -137,6 +137,18 @@ jobs:
             -x --tb=short --timeout=30 -q \
             --override-ini="addopts=" \
             --override-ini="log_cli=false"
+      - name: Full-pipeline-on-ingest gate (SPEC-017 — core customer path)
+        run: |
+          python -m pytest tests/test_spec017_pipeline_on_ingest.py \
+            -x --tb=short --timeout=60 -q \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"
+      - name: Executive-reporting gate (SPEC-026)
+        run: |
+          python -m pytest tests/test_executive_reporting_engine.py \
+            -x --tb=short --timeout=30 -q \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"
       - name: Perf lockdown (benchmarks/)
         run: |
           python -m pytest tests/benchmarks/ \
