@@ -496,9 +496,20 @@ class AISecurityAdvisorEngine:
             "Generate 5 actionable security recommendations."
         )
 
+        # NO-MOCKS: never fabricate AI advice. If the LLM is not configured,
+        # report honest-empty (mirrors the council's CouncilNotConfiguredError
+        # contract) rather than passing canned recommendations off as real.
+        if not MULEROUTER_API_KEY:
+            self._complete_session(session["id"], 0)
+            session["status"] = "llm_not_configured"
+            session["recommendation_count"] = 0
+            session["note"] = "Set MULEROUTER_API_KEY to enable AI security recommendations."
+            return {"session": session, "recommendations": []}
+
         llm_text = _call_llm(system_prompt, user_message, max_tokens=1500)
 
         recs_data: List[Dict[str, Any]] = []
+        synthetic_fallback = False
         try:
             parsed = self._extract_json_from_llm(llm_text)
             if isinstance(parsed, list):
@@ -506,15 +517,20 @@ class AISecurityAdvisorEngine:
             elif isinstance(parsed, dict) and "recommendations" in parsed:
                 recs_data = parsed["recommendations"][:5]
         except (json.JSONDecodeError, ValueError, KeyError):
-            _logger.warning("LLM returned non-JSON for posture review — using fallbacks")
+            _logger.warning("LLM returned non-JSON for posture review — using flagged fallbacks")
             recs_data = FALLBACK_RECOMMENDATIONS
+            synthetic_fallback = True
 
         if not recs_data:
             recs_data = FALLBACK_RECOMMENDATIONS
+            synthetic_fallback = True
 
         saved = self._save_recommendations(org_id, session["id"], recs_data)
         self._complete_session(session["id"], len(saved))
-        session["status"] = "completed"
+        # When the LLM call failed and we served static best-practice fallbacks,
+        # flag it so callers never mistake canned content for real AI advice.
+        session["status"] = "degraded" if synthetic_fallback else "completed"
+        session["synthetic_fallback"] = synthetic_fallback
         session["recommendation_count"] = len(saved)
         if _get_tg_bus:
             try:
