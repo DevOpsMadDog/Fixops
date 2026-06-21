@@ -1399,15 +1399,14 @@ def register_grc_routers(
     except ImportError:
         pass
 
-    # Risk Acceptance (apps/api/)
-    try:
-        from apps.api.risk_acceptance_router import (
-            router as risk_acceptance_router,  # noqa: PLC0415
-        )
-        app.include_router(risk_acceptance_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
-        _logger.info("Mounted Risk Acceptance router (wave-6)")
-    except ImportError:
-        pass
+    # Risk Acceptance: mounted ONCE above (~L1076) with _verify_api_key.
+    # GAP_MAP #17: this was a second, shadowed mount that added a router-level
+    # write:findings scope. Because the product's primary auth is API-key (which
+    # carries no OAuth scopes), that scope would have 403'd every endpoint — it
+    # only "worked" because the earlier auth-only mount shadowed it. Removed the
+    # duplicate to make the mount consistent with the API-key model. Real
+    # scope/RBAC enforcement on writes needs JWT scopes end-to-end (founder-gated
+    # design), tracked separately — do NOT re-add a router-level scope here.
 
     # Risk Quantifier (apps/api/)
     try:
