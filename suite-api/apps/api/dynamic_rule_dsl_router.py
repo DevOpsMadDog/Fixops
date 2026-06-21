@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -89,7 +90,7 @@ def validate_dsl(req: ValidateDSLIn) -> Dict[str, Any]:
 @router.post("/publish", summary="Publish DSL rule (bumps version)")
 def publish_rule(
     req: PublishDSLIn,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Validate and publish. A new version is allocated for (org_id, key)."""
     try:
@@ -110,7 +111,7 @@ def publish_rule(
 
 @router.get("", summary="List DSL rules")
 def list_rules(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None, description="draft|published|retired"),
 ) -> List[Dict[str, Any]]:
     try:
@@ -126,7 +127,7 @@ def get_schema() -> Dict[str, Any]:
 
 @router.get("/stats", summary="DSL rule stats per org")
 def get_stats(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     return _get_engine().stats(org_id)
 
@@ -134,7 +135,7 @@ def get_stats(
 @router.get("/{key}", summary="Get DSL rule by key (latest version)")
 def get_rule(
     key: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     version: Optional[int] = Query(None, description="Specific version"),
 ) -> Dict[str, Any]:
     rule = _get_engine().get_rule(org_id, key, version=version)
@@ -146,7 +147,7 @@ def get_rule(
 @router.delete("/{key}", summary="Retire DSL rule (all versions)")
 def retire_rule(
     key: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().retire_rule(org_id, key)
@@ -158,7 +159,7 @@ def retire_rule(
 def evaluate_rule(
     key: str,
     req: EvaluateDSLIn,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _get_engine().evaluate_rule(org_id, key, req.input_doc)

@@ -23,6 +23,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -81,7 +82,7 @@ class FindingCreate(BaseModel):
 @router.post("/resources", status_code=201)
 def register_resource(
     body: ResourceCreate,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine()
     try:
@@ -92,7 +93,7 @@ def register_resource(
 
 @router.get("/resources")
 def list_resources(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(None, description="Filter by provider"),
     resource_type: Optional[str] = Query(None, description="Filter by resource_type"),
     compliance_status: Optional[str] = Query(None, description="Filter by compliance_status"),
@@ -112,7 +113,7 @@ def list_resources(
 @router.get("/resources/{resource_id}")
 def get_resource(
     resource_id: str,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine()
     resource = engine.get_resource(org_id, resource_id)
@@ -125,7 +126,7 @@ def get_resource(
 def update_resource_state(
     resource_id: str,
     body: ResourceStateUpdate,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine()
     try:
@@ -145,7 +146,7 @@ def update_resource_state(
 def record_security_finding(
     resource_id: str,
     body: FindingCreate,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine()
     try:
@@ -158,7 +159,7 @@ def record_security_finding(
 
 @router.get("/findings")
 def list_findings(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     cloud_resource_id: Optional[str] = Query(None, description="Filter by resource internal ID"),
     severity: Optional[str] = Query(None, description="Filter by severity"),
     status: Optional[str] = Query(None, description="Filter by status"),
@@ -175,7 +176,7 @@ def list_findings(
 
 @router.get("/stats")
 def get_inventory_stats(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine()
     return engine.get_inventory_stats(org_id)

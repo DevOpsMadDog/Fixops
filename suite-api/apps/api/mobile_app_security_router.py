@@ -20,6 +20,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -95,7 +96,7 @@ class CompleteScanRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/apps", response_model=Dict[str, Any])
-def register_app(body: RegisterAppRequest, org_id: str = Query("default")):
+def register_app(body: RegisterAppRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     data = body.model_dump()
     if data.get("last_scanned") is None:
@@ -109,7 +110,7 @@ def register_app(body: RegisterAppRequest, org_id: str = Query("default")):
 
 @router.get("/apps", response_model=Dict[str, Any])
 def list_apps(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     platform: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
 ):
@@ -130,7 +131,7 @@ def list_apps(
 
 
 @router.get("/apps/{app_id}", response_model=Dict[str, Any])
-def get_app(app_id: str, org_id: str = Query("default")):
+def get_app(app_id: str, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     app = eng.get_app(org_id, app_id)
     if app is None:
@@ -143,7 +144,7 @@ def get_app(app_id: str, org_id: str = Query("default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/findings", response_model=Dict[str, Any])
-def record_finding(body: RecordFindingRequest, org_id: str = Query("default")):
+def record_finding(body: RecordFindingRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     data = body.model_dump()
     if data.get("discovered_at") is None:
@@ -157,7 +158,7 @@ def record_finding(body: RecordFindingRequest, org_id: str = Query("default")):
 
 @router.get("/findings", response_model=Dict[str, Any])
 def list_findings(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     app_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -171,7 +172,7 @@ def list_findings(
 def update_finding_status(
     finding_id: str,
     body: UpdateFindingStatusRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     eng = _get_engine()
     try:
@@ -186,7 +187,7 @@ def update_finding_status(
 # ---------------------------------------------------------------------------
 
 @router.post("/scans", response_model=Dict[str, Any])
-def create_scan(body: CreateScanRequest, org_id: str = Query("default")):
+def create_scan(body: CreateScanRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     data = body.model_dump()
     if data.get("started_at") is None:
@@ -202,7 +203,7 @@ def create_scan(body: CreateScanRequest, org_id: str = Query("default")):
 def complete_scan(
     scan_id: str,
     body: CompleteScanRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     eng = _get_engine()
     try:
@@ -217,7 +218,7 @@ def complete_scan(
 
 @router.get("/scans", response_model=Dict[str, Any])
 def list_scans(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     app_id: Optional[str] = Query(None),
     scan_type: Optional[str] = Query(None),
 ):
@@ -231,6 +232,6 @@ def list_scans(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", response_model=Dict[str, Any])
-def get_mobile_stats(org_id: str = Query("default")):
+def get_mobile_stats(org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     return eng.get_mobile_stats(org_id)

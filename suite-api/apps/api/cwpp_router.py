@@ -17,6 +17,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -117,7 +118,7 @@ def deregister_workload(workload_id: str) -> Dict[str, Any]:
 
 @router.get("/workloads", summary="List workloads")
 def list_workloads(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     workload_type: Optional[str] = Query(None, description="Filter by workload type"),
 ) -> Dict[str, Any]:
     rows = _get_engine().list_workloads(org_id=org_id, workload_type=workload_type)
@@ -162,7 +163,7 @@ def check_compliance(workload_id: str, body: ComplianceCheckRequest) -> Dict[str
 
 @router.get("/threats", summary="Get threat events")
 def get_threat_events(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     workload_id: Optional[str] = Query(None, description="Filter by workload ID"),
 ) -> List[Dict[str, Any]]:
     return _get_engine().get_threat_events(workload_id=workload_id, org_id=org_id)
@@ -170,6 +171,6 @@ def get_threat_events(
 
 @router.get("/summary", summary="Protection summary for an org")
 def protection_summary(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     return _get_engine().get_protection_summary(org_id=org_id)

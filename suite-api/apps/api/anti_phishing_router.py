@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -81,7 +82,7 @@ class UpdateSimulationResultsRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/urls", response_model=Dict[str, Any])
-def submit_url(body: SubmitUrlRequest, org_id: str = Query("default")):
+def submit_url(body: SubmitUrlRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     data = body.model_dump()
     if data.get("submitted_at") is None:
@@ -95,7 +96,7 @@ def submit_url(body: SubmitUrlRequest, org_id: str = Query("default")):
 
 @router.get("/urls", response_model=Dict[str, Any])
 def list_urls(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     verdict: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -105,7 +106,7 @@ def list_urls(
 
 
 @router.get("/urls/{url_id}", response_model=Dict[str, Any])
-def get_url(url_id: str, org_id: str = Query("default")):
+def get_url(url_id: str, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     url_obj = eng.get_url(org_id, url_id)
     if url_obj is None:
@@ -114,7 +115,7 @@ def get_url(url_id: str, org_id: str = Query("default")):
 
 
 @router.post("/urls/{url_id}/analyze", response_model=Dict[str, Any])
-def analyze_url(url_id: str, body: AnalyzeUrlRequest, org_id: str = Query("default")):
+def analyze_url(url_id: str, body: AnalyzeUrlRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     try:
         result = eng.analyze_url(org_id, url_id, body.model_dump())
@@ -130,7 +131,7 @@ def analyze_url(url_id: str, body: AnalyzeUrlRequest, org_id: str = Query("defau
 # ---------------------------------------------------------------------------
 
 @router.post("/simulations", response_model=Dict[str, Any])
-def record_simulation(body: RecordSimulationRequest, org_id: str = Query("default")):
+def record_simulation(body: RecordSimulationRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     data = body.model_dump()
     if data.get("started_at") is None:
@@ -146,7 +147,7 @@ def record_simulation(body: RecordSimulationRequest, org_id: str = Query("defaul
 def update_simulation_results(
     sim_id: str,
     body: UpdateSimulationResultsRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     eng = _get_engine()
     result = eng.update_simulation_results(
@@ -159,7 +160,7 @@ def update_simulation_results(
 
 @router.get("/simulations", response_model=Dict[str, Any])
 def list_simulations(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
 ):
     eng = _get_engine()
@@ -172,6 +173,6 @@ def list_simulations(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", response_model=Dict[str, Any])
-def get_anti_phishing_stats(org_id: str = Query("default")):
+def get_anti_phishing_stats(org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     return eng.get_anti_phishing_stats(org_id)

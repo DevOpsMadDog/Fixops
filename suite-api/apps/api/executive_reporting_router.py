@@ -31,6 +31,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -127,7 +128,7 @@ def create_report(
 
 @router.get("/reports")
 def list_reports(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     report_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -142,7 +143,7 @@ def list_reports(
 @router.get("/reports/{report_id}")
 def get_report(
     report_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a report with its metrics."""
     try:
@@ -161,7 +162,7 @@ def get_report(
 def add_metric(
     report_id: str,
     payload: MetricIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a metric to a report."""
     try:
@@ -176,7 +177,7 @@ def add_metric(
 @router.post("/reports/{report_id}/publish")
 def publish_report(
     report_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Publish a report."""
     try:
@@ -198,7 +199,7 @@ def publish_report(
 @router.post("/kpis", status_code=201)
 def set_kpi(
     payload: KPIIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Upsert a KPI."""
     try:
@@ -219,7 +220,7 @@ def set_kpi(
 
 @router.get("/kpis")
 def list_kpis(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all KPIs for org."""
     try:
@@ -232,7 +233,7 @@ def list_kpis(
 @router.get("/kpis/{kpi_name}")
 def get_kpi(
     kpi_name: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single KPI by name."""
     try:
@@ -268,7 +269,7 @@ def create_board_presentation(
 
 @router.get("/board-presentations")
 def list_board_presentations(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all board presentations."""
     try:
@@ -284,7 +285,7 @@ def list_board_presentations(
 
 @router.get("/summary")
 def get_exec_summary(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregated executive summary."""
     try:
@@ -297,7 +298,7 @@ def get_exec_summary(
 @router.get("/context/{entity_id}")
 def get_trustgraph_context(
     entity_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return TrustGraph cross-domain context for an entity (related assets, findings, incidents)."""
     return _get_engine().get_trustgraph_context(org_id, entity_id)
@@ -457,7 +458,7 @@ def _build_pdf_bytes(report: Dict[str, Any], kpis: List[Dict[str, Any]]) -> byte
 @router.get("/reports/{report_id}/export/pdf")
 def export_report_pdf(
     report_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> StreamingResponse:
     """Export an executive report as a PDF (uses reportlab)."""
     try:
@@ -486,7 +487,7 @@ def export_report_pdf(
 
 
 @router.get("/", summary="Executive reporting index", tags=["exec-reporting"])
-async def exec_reporting_index(org_id: str = Query("default")) -> Dict[str, Any]:
+async def exec_reporting_index(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return executive reporting summary for the org."""
     try:
         engine = _get_engine()

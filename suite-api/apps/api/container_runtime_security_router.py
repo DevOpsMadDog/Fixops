@@ -23,9 +23,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
-from fastapi import Depends
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -117,7 +116,7 @@ async def register_container(body: ContainerCreate) -> Dict[str, Any]:
 
 @router.get("/containers")
 async def list_containers(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     namespace: Optional[str] = Query(None),
     runtime_status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -128,7 +127,7 @@ async def list_containers(
 @router.get("/containers/{container_id}")
 async def get_container(
     container_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a container by its container_id."""
     result = _get_engine().get_container(org_id, container_id)
@@ -141,7 +140,7 @@ async def get_container(
 async def update_container_status(
     container_id: str,
     body: ContainerStatusUpdate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update a container's runtime status."""
     try:
@@ -167,7 +166,7 @@ async def record_runtime_event(body: RuntimeEventCreate) -> Dict[str, Any]:
 
 @router.get("/events")
 async def list_events(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     event_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -182,7 +181,7 @@ async def list_events(
 async def update_event_status(
     event_id: str,
     body: EventStatusUpdate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update the status of a runtime event."""
     try:
@@ -208,7 +207,7 @@ async def create_policy(body: PolicyCreate) -> Dict[str, Any]:
 
 @router.get("/policies")
 async def list_policies(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     enforcement: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     """List runtime policies with optional enforcement filter."""
@@ -221,7 +220,7 @@ async def list_policies(
 
 @router.get("/stats")
 async def get_runtime_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate runtime security stats."""
     return _get_engine().get_runtime_stats(org_id)

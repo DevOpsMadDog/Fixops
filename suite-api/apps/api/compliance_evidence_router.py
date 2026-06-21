@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -79,7 +80,7 @@ class AutoCollectRequest(BaseModel):
 
 @router.get("/requests")
 def list_requests(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     framework: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     _auth=Depends(api_key_auth),
@@ -95,7 +96,7 @@ def list_requests(
 @router.post("/requests", status_code=201)
 def create_request(
     body: EvidenceRequestCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Create a new evidence collection request."""
@@ -111,7 +112,7 @@ def create_request(
 @router.get("/requests/{request_id}/evidence")
 def list_evidence(
     request_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> List[Dict[str, Any]]:
     """List evidence items for a request."""
@@ -128,7 +129,7 @@ def list_evidence(
 def submit_evidence(
     request_id: str,
     body: EvidenceSubmit,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Submit evidence for a request."""
@@ -145,7 +146,7 @@ def submit_evidence(
 def approve_evidence(
     request_id: str,
     body: ApproveRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Approve evidence for a request."""
@@ -162,7 +163,7 @@ def approve_evidence(
 def reject_evidence(
     request_id: str,
     body: RejectRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Reject evidence for a request."""
@@ -178,7 +179,7 @@ def reject_evidence(
 @router.post("/auto-collect")
 def auto_collect(
     body: AutoCollectRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Trigger automated evidence collection from connected systems."""
@@ -194,7 +195,7 @@ def auto_collect(
 
 @router.get("/audit-readiness")
 def audit_readiness(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     framework: str = Query("SOC2"),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -210,7 +211,7 @@ def audit_readiness(
 
 @router.get("/stats")
 def collection_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Get overall evidence collection statistics."""
@@ -223,7 +224,7 @@ def collection_stats(
 
 @router.post("/collect-all")
 def collect_all(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     _auth=Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Trigger evidence collection from all wired security engines.

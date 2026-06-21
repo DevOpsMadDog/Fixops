@@ -16,6 +16,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ class LogEmailEventRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/rules", response_model=Dict[str, Any])
-def create_filter_rule(body: CreateFilterRuleRequest, org_id: str = Query("default")):
+def create_filter_rule(body: CreateFilterRuleRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     try:
         rule = eng.create_filter_rule(org_id, body.model_dump())
@@ -81,7 +82,7 @@ def create_filter_rule(body: CreateFilterRuleRequest, org_id: str = Query("defau
 
 @router.get("/rules", response_model=Dict[str, Any])
 def list_filter_rules(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     rule_type: Optional[str] = Query(None),
     action: Optional[str] = Query(None),
 ):
@@ -94,7 +95,7 @@ def list_filter_rules(
 
 
 @router.get("/rules/{rule_id}", response_model=Dict[str, Any])
-def get_filter_rule(rule_id: str, org_id: str = Query("default")):
+def get_filter_rule(rule_id: str, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     rule = eng.get_filter_rule(org_id, rule_id)
     if rule is None:
@@ -107,7 +108,7 @@ def get_filter_rule(rule_id: str, org_id: str = Query("default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/events", response_model=Dict[str, Any])
-def log_email_event(body: LogEmailEventRequest, org_id: str = Query("default")):
+def log_email_event(body: LogEmailEventRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     data = body.model_dump()
     if data.get("processed_at") is None:
@@ -121,7 +122,7 @@ def log_email_event(body: LogEmailEventRequest, org_id: str = Query("default")):
 
 @router.get("/events", response_model=Dict[str, Any])
 def list_email_events(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     filter_result: Optional[str] = Query(None),
     limit: int = Query(50),
 ):
@@ -135,6 +136,6 @@ def list_email_events(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", response_model=Dict[str, Any])
-def get_email_stats(org_id: str = Query("default")):
+def get_email_stats(org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     return eng.get_email_stats(org_id)

@@ -148,7 +148,7 @@ def revoke_exception(request_id: str, body: RevokeRequestModel):
 
 
 @router.get("/requests/{request_id}", dependencies=[Depends(api_key_auth)])
-def get_request(request_id: str, org_id: str = Query("default")):
+def get_request(request_id: str, org_id: str = Depends(get_org_id)):
     """Get a single exception request with reviews and renewals."""
     result = _get_engine().get_request(request_id=request_id, org_id=org_id)
     if not result:
@@ -158,7 +158,7 @@ def get_request(request_id: str, org_id: str = Query("default")):
 
 @router.get("/requests", dependencies=[Depends(api_key_auth)])
 def list_requests(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     exception_type: Optional[str] = Query(None),
 ):
@@ -167,18 +167,18 @@ def list_requests(
 
 
 @router.get("/expiring", dependencies=[Depends(api_key_auth)])
-def get_expiring(org_id: str = Query("default"), days_ahead: int = Query(30)):
+def get_expiring(org_id: str = Depends(get_org_id), days_ahead: int = Query(30)):
     """Get approved exceptions expiring within days_ahead."""
     return _get_engine().get_expiring_exceptions(org_id=org_id, days_ahead=days_ahead)
 
 
 @router.get("/expired", dependencies=[Depends(api_key_auth)])
-def get_expired(org_id: str = Query("default")):
+def get_expired(org_id: str = Depends(get_org_id)):
     """Get approved exceptions that have already expired."""
     return _get_engine().get_expired_exceptions(org_id=org_id)
 
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
-def get_summary(org_id: str = Query("default")):
+def get_summary(org_id: str = Depends(get_org_id)):
     """Get exception summary stats for the org."""
     return _get_engine().get_exception_summary(org_id=org_id)

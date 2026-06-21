@@ -11,7 +11,8 @@ import logging
 from typing import Optional
 
 from core.red_team_engine import INTENSITY_LEVELS, TACTICS, RedTeamEngine
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -104,7 +105,7 @@ def run_simulation(simulation_id: str, req: RunSimulationRequest) -> dict:
 
 @router.get("/simulations", summary="List all simulations for an org")
 def list_simulations(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> list[dict]:
     try:
         return _get_engine().list_simulations(org_id=org_id)
@@ -119,7 +120,7 @@ def list_simulations(
 )
 def get_simulation_results(
     simulation_id: str,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> dict:
     try:
         return _get_engine().get_simulation_results(
@@ -135,7 +136,7 @@ def get_simulation_results(
 
 @router.get("/attack-surface-score", summary="Aggregate attack surface score across all simulations")
 def attack_surface_score(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> dict:
     try:
         return _get_engine().get_attack_surface_score(org_id=org_id)
@@ -146,7 +147,7 @@ def attack_surface_score(
 
 @router.get("/mitre-coverage", summary="MITRE ATT&CK detection coverage per tactic")
 def mitre_coverage(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> dict:
     try:
         return _get_engine().get_mitre_coverage(org_id=org_id)

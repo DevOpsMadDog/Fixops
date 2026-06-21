@@ -153,13 +153,13 @@ async def vulnerable(body: VulnerableRequest) -> Dict[str, Any]:
 @router.get("/callgraph/{repo_ref}")
 async def get_callgraph(
     repo_ref: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return nodes + edges for a repo (for graph visualisation)."""
     return _get_engine().list_callgraph(org_id, repo_ref)
 
 
 @router.get("/stats")
-async def get_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+async def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Aggregate counts: nodes, edges, queries, verdicts."""
     return _get_engine().stats(org_id)

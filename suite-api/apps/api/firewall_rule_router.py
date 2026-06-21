@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -125,7 +126,7 @@ def add_firewall(
 
 @router.get("/firewalls", response_model=List[Dict[str, Any]], summary="List firewalls")
 def list_firewalls(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     engine: FirewallRuleEngine = Depends(_get_engine),
 ):
     return engine.list_firewalls(org_id)
@@ -134,7 +135,7 @@ def list_firewalls(
 @router.get("/firewalls/{firewall_id}", response_model=Dict[str, Any], summary="Get a firewall")
 def get_firewall(
     firewall_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     engine: FirewallRuleEngine = Depends(_get_engine),
 ):
     fw = engine.get_firewall(org_id, firewall_id)
@@ -150,7 +151,7 @@ def get_firewall(
 )
 def analyze_rules(
     firewall_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     engine: FirewallRuleEngine = Depends(_get_engine),
 ):
     fw = engine.get_firewall(org_id, firewall_id)
@@ -161,7 +162,7 @@ def analyze_rules(
 
 @router.get("/rules", response_model=List[Dict[str, Any]], summary="List firewall rules")
 def list_rules(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     firewall_id: Optional[str] = Query(None),
     engine: FirewallRuleEngine = Depends(_get_engine),
 ):
@@ -187,7 +188,7 @@ def add_rule(
 
 @router.get("/findings", response_model=List[Dict[str, Any]], summary="List rule findings")
 def list_findings(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     firewall_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     engine: FirewallRuleEngine = Depends(_get_engine),
@@ -227,7 +228,7 @@ def create_finding(
 )
 def resolve_finding(
     finding_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     engine: FirewallRuleEngine = Depends(_get_engine),
 ):
     resolved = engine.resolve_finding(org_id, finding_id)
@@ -241,7 +242,7 @@ def resolve_finding(
 
 @router.get("/stats", response_model=Dict[str, Any], summary="Firewall aggregate statistics")
 def get_firewall_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     engine: FirewallRuleEngine = Depends(_get_engine),
 ):
     return engine.get_firewall_stats(org_id)

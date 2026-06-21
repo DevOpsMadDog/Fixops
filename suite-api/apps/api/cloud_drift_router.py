@@ -23,6 +23,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -96,7 +97,7 @@ class RemediateBody(BaseModel):
 
 @router.get("/baselines")
 def list_baselines(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     environment: Optional[str] = Query(None, description="Filter by environment"),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
@@ -107,7 +108,7 @@ def list_baselines(
 @router.post("/baselines", status_code=201)
 def register_baseline(
     body: BaselineCreate,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     return _wrap(engine.register_baseline(org_id, body.model_dump()))
@@ -115,7 +116,7 @@ def register_baseline(
 
 @router.get("/drifts")
 def list_drifts(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None),
     drift_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None, description="open / acknowledged / remediated"),
@@ -128,7 +129,7 @@ def list_drifts(
 @router.post("/drifts", status_code=201)
 def record_drift(
     body: DriftCreate,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     data = body.model_dump()
@@ -141,7 +142,7 @@ def record_drift(
 def acknowledge_drift(
     drift_id: str,
     body: AcknowledgeBody,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     result = engine.acknowledge_drift(org_id, drift_id, body.acknowledged_by, body.notes)
@@ -154,7 +155,7 @@ def acknowledge_drift(
 def remediate_drift(
     drift_id: str,
     body: RemediateBody,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     result = engine.remediate_drift(org_id, drift_id, body.remediated_by, body.method)
@@ -165,7 +166,7 @@ def remediate_drift(
 
 @router.post("/scan")
 def run_drift_scan(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     environment: Optional[str] = Query(None, description="Filter scan to environment"),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
@@ -188,7 +189,7 @@ def run_drift_scan(
 
 @router.get("/stats")
 def get_drift_stats(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     return _wrap(engine.get_drift_stats(org_id))

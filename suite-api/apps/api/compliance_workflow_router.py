@@ -83,7 +83,7 @@ class ApprovalSubmit(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_compliance_workflows(org_id: str = Query("default")):
+def list_compliance_workflows(org_id: str = Depends(get_org_id)):
     """Get compliance workflow summary for the org."""
     return _get_engine().get_workflow_summary(org_id)
 

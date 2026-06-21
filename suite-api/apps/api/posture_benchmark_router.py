@@ -16,7 +16,8 @@ from core.posture_benchmark import (
     PostureBenchmark,
     get_posture_benchmark,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -89,7 +90,7 @@ def get_industry_averages(
     summary="Get percentile rank for a metric",
 )
 def get_percentile_rank(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     metric_name: str = Query(..., description="Metric name (e.g. 'mttr_days')"),
 ) -> Dict[str, Any]:
     """Return where the org stands percentile-wise for a specific metric."""
@@ -115,7 +116,7 @@ def get_percentile_rank(
     summary="Get improvement priorities",
 )
 def get_improvement_priorities(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return metrics ranked by improvement opportunity (worst percentile first) with recommendations."""
     benchmark = _get_benchmark()
@@ -140,7 +141,7 @@ def get_improvement_priorities(
     summary="Get benchmark history",
 )
 def get_benchmark_history(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[BenchmarkReport]:
     """Return all historical benchmark reports for an org, ordered chronologically."""
     benchmark = _get_benchmark()
@@ -157,7 +158,7 @@ def get_benchmark_history(
     summary="Get latest benchmark report",
 )
 def get_latest_report(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> BenchmarkReport:
     """Return the most recent benchmark report for an org."""
     benchmark = _get_benchmark()

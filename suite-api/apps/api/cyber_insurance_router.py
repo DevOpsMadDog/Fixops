@@ -26,7 +26,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from core.cyber_insurance_engine import CyberInsuranceEngine
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -91,7 +92,7 @@ class ClaimUpdateIn(BaseModel):
 
 @router.get("/policies")
 def list_policies(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all cyber insurance policies for an org."""
     try:
@@ -104,7 +105,7 @@ def list_policies(
 @router.post("/policies", status_code=201)
 def add_policy(
     payload: PolicyIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a new cyber insurance policy."""
     try:
@@ -121,7 +122,7 @@ def add_policy(
 
 @router.get("/assessments")
 def list_assessments(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all coverage assessments for an org."""
     try:
@@ -134,7 +135,7 @@ def list_assessments(
 @router.post("/assessments", status_code=201)
 def create_assessment(
     payload: AssessmentIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a coverage assessment for a policy."""
     try:
@@ -153,7 +154,7 @@ def create_assessment(
 
 @router.get("/claims")
 def list_claims(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     """List insurance claims, optionally filtered by status."""
@@ -167,7 +168,7 @@ def list_claims(
 @router.post("/claims", status_code=201)
 def file_claim(
     payload: ClaimIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """File a new cyber insurance claim."""
     try:
@@ -181,7 +182,7 @@ def file_claim(
 def update_claim(
     claim_id: str,
     payload: ClaimUpdateIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update claim status and optionally set settlement amount."""
     try:
@@ -211,7 +212,7 @@ def update_claim(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return cyber insurance portfolio statistics for an org."""
     try:

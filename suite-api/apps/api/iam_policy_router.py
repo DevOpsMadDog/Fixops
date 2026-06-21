@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ class AccessReviewCreate(BaseModel):
 
 @router.get("/policies")
 def list_policies(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     policy_type: Optional[str] = Query(None),
     principal_type: Optional[str] = Query(None),
 ) -> Dict[str, Any]:
@@ -86,7 +87,7 @@ def list_policies(
 @router.post("/policies", status_code=201)
 def add_policy(
     body: PolicyCreate,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     policy = engine.add_policy(org_id, body.model_dump())
@@ -96,7 +97,7 @@ def add_policy(
 @router.get("/policies/{policy_id}/analyze")
 def analyze_policy(
     policy_id: str,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     result = engine.analyze_policy(org_id, policy_id)
@@ -110,7 +111,7 @@ def analyze_policy(
 
 @router.post("/analyze-all")
 def analyze_all(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     return engine.analyze_all(org_id)
@@ -118,7 +119,7 @@ def analyze_all(
 
 @router.get("/access-reviews")
 def list_access_reviews(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     reviews = engine.list_access_reviews(org_id)
@@ -128,7 +129,7 @@ def list_access_reviews(
 @router.post("/access-reviews", status_code=201)
 def record_access_review(
     body: AccessReviewCreate,
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     data = body.model_dump()
@@ -139,7 +140,7 @@ def record_access_review(
 
 @router.get("/stats")
 def get_iam_stats(
-    org_id: str = Query("default", description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     return engine.get_iam_stats(org_id)

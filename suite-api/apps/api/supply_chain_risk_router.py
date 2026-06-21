@@ -28,7 +28,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from core.supply_chain_risk_engine import SupplyChainRiskEngine
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -89,7 +90,7 @@ class SBOMImportIn(BaseModel):
 
 @router.get("/suppliers")
 def list_suppliers(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     risk_tier: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     """List registered suppliers for an org, optionally filtered by risk tier."""
@@ -103,7 +104,7 @@ def list_suppliers(
 @router.post("/suppliers", status_code=201)
 def add_supplier(
     payload: SupplierIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Register a new supplier in the supply-chain registry."""
     try:
@@ -120,7 +121,7 @@ def add_supplier(
 
 @router.get("/components")
 def list_components(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     supplier_id: Optional[str] = Query(None),
     is_eol: Optional[bool] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -172,7 +173,7 @@ def list_components(
 @router.post("/components", status_code=201)
 def add_component(
     payload: ComponentIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a software or hardware component for a supplier."""
     try:
@@ -191,7 +192,7 @@ def add_component(
 
 @router.get("/risks")
 def list_risks(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     """List supply-chain risks, optionally filtered by status."""
@@ -205,7 +206,7 @@ def list_risks(
 @router.post("/risks", status_code=201)
 def add_risk(
     payload: RiskIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Register a new supply-chain risk."""
     try:
@@ -223,7 +224,7 @@ def add_risk(
 @router.post("/sbom/import", status_code=201)
 def import_sbom(
     payload: SBOMImportIn,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Import an SBOM document (CycloneDX-style component list) and store entries."""
     try:
@@ -240,7 +241,7 @@ def import_sbom(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregated supply-chain statistics for an org.
 

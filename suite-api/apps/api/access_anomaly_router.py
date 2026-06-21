@@ -97,7 +97,7 @@ class ScmAnomalyCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/")
-def list_access_anomaly(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_access_anomaly(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get access anomaly summary for the org."""
     return _get_engine().get_summary(org_id=org_id)
 

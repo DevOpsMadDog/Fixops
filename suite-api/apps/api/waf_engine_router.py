@@ -21,6 +21,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -99,7 +100,7 @@ class RateLimitBody(BaseModel):
 
 @router.get("/rules", response_model=Dict[str, Any])
 def list_rules(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     rule_type: Optional[str] = Query(None),
     enabled: Optional[bool] = Query(None),
 ):
@@ -112,7 +113,7 @@ def list_rules(
 
 
 @router.post("/rules", response_model=Dict[str, Any])
-def create_rule(body: CreateRuleRequest, org_id: str = Query("default")):
+def create_rule(body: CreateRuleRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     try:
         rule = eng.create_rule(org_id, body.model_dump())
@@ -122,7 +123,7 @@ def create_rule(body: CreateRuleRequest, org_id: str = Query("default")):
 
 
 @router.put("/rules/{rule_id}", response_model=Dict[str, Any])
-def update_rule(rule_id: str, body: UpdateRuleRequest, org_id: str = Query("default")):
+def update_rule(rule_id: str, body: UpdateRuleRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     try:
@@ -135,7 +136,7 @@ def update_rule(rule_id: str, body: UpdateRuleRequest, org_id: str = Query("defa
 
 
 @router.delete("/rules/{rule_id}", response_model=Dict[str, Any])
-def delete_rule(rule_id: str, org_id: str = Query("default")):
+def delete_rule(rule_id: str, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     deleted = eng.delete_rule(org_id, rule_id)
     if not deleted:
@@ -149,7 +150,7 @@ def delete_rule(rule_id: str, org_id: str = Query("default")):
 
 @router.get("/blocked-requests", response_model=Dict[str, Any])
 def list_blocked_requests(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     attack_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     limit: int = Query(100),
@@ -166,7 +167,7 @@ def list_blocked_requests(
 
 
 @router.post("/blocked-requests", response_model=Dict[str, Any])
-def record_blocked_request(body: BlockedRequestBody, org_id: str = Query("default")):
+def record_blocked_request(body: BlockedRequestBody, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     data = body.model_dump()
     if data.get("blocked_at") is None:
@@ -184,7 +185,7 @@ def record_blocked_request(body: BlockedRequestBody, org_id: str = Query("defaul
 
 @router.get("/virtual-patches", response_model=Dict[str, Any])
 def list_virtual_patches(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     active_only: bool = Query(True),
 ):
     eng = _get_engine()
@@ -193,7 +194,7 @@ def list_virtual_patches(
 
 
 @router.post("/virtual-patches", response_model=Dict[str, Any])
-def add_virtual_patch(body: VirtualPatchBody, org_id: str = Query("default")):
+def add_virtual_patch(body: VirtualPatchBody, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     data = body.model_dump()
     if data.get("expires_at") is None:
@@ -207,14 +208,14 @@ def add_virtual_patch(body: VirtualPatchBody, org_id: str = Query("default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/rate-limits", response_model=Dict[str, Any])
-def list_rate_limits(org_id: str = Query("default")):
+def list_rate_limits(org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     rules = eng.list_rate_limit_rules(org_id)
     return {"total": len(rules), "rate_limit_rules": rules}
 
 
 @router.post("/rate-limits", response_model=Dict[str, Any])
-def create_rate_limit(body: RateLimitBody, org_id: str = Query("default")):
+def create_rate_limit(body: RateLimitBody, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     try:
         rule = eng.create_rate_limit_rule(org_id, body.model_dump())
@@ -228,6 +229,6 @@ def create_rate_limit(body: RateLimitBody, org_id: str = Query("default")):
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", response_model=Dict[str, Any])
-def get_waf_stats(org_id: str = Query("default")):
+def get_waf_stats(org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     return eng.get_waf_stats(org_id)

@@ -79,7 +79,7 @@ class BaselineSet(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_posture_history(org_id: str = Query("default")):
+def list_posture_history(org_id: str = Depends(get_org_id)):
     """Get security posture history domain summary for the org."""
     return _get_engine().get_domain_summary(org_id=org_id)
 

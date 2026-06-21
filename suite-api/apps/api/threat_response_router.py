@@ -90,7 +90,7 @@ class ActionComplete(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_threat_response(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_threat_response(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get threat response summary for the org."""
     return _get_engine().get_response_summary(org_id=org_id)
 

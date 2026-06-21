@@ -19,6 +19,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -86,7 +87,7 @@ class CreateRuleRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/endpoints", response_model=Dict[str, Any])
-def register_endpoint(body: RegisterEndpointRequest, org_id: str = Query("default")):
+def register_endpoint(body: RegisterEndpointRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     try:
         endpoint = eng.register_endpoint(org_id, body.model_dump())
@@ -97,7 +98,7 @@ def register_endpoint(body: RegisterEndpointRequest, org_id: str = Query("defaul
 
 @router.get("/endpoints", response_model=Dict[str, Any])
 def list_endpoints(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     service_name: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -107,7 +108,7 @@ def list_endpoints(
 
 
 @router.get("/endpoints/{endpoint_id}", response_model=Dict[str, Any])
-def get_endpoint(endpoint_id: str, org_id: str = Query("default")):
+def get_endpoint(endpoint_id: str, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     endpoint = eng.get_endpoint(org_id, endpoint_id)
     if endpoint is None:
@@ -120,7 +121,7 @@ def get_endpoint(endpoint_id: str, org_id: str = Query("default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/incidents", response_model=Dict[str, Any])
-def record_incident(body: RecordIncidentRequest, org_id: str = Query("default")):
+def record_incident(body: RecordIncidentRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     data = body.model_dump()
     if data.get("detected_at") is None:
@@ -134,7 +135,7 @@ def record_incident(body: RecordIncidentRequest, org_id: str = Query("default"))
 
 @router.get("/incidents", response_model=Dict[str, Any])
 def list_incidents(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     endpoint_id: Optional[str] = Query(None),
     abuse_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -150,7 +151,7 @@ def list_incidents(
 def update_incident_status(
     incident_id: str,
     body: UpdateIncidentStatusRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     eng = _get_engine()
     try:
@@ -165,7 +166,7 @@ def update_incident_status(
 # ---------------------------------------------------------------------------
 
 @router.post("/rules", response_model=Dict[str, Any])
-def create_rule(body: CreateRuleRequest, org_id: str = Query("default")):
+def create_rule(body: CreateRuleRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     try:
         rule = eng.create_rule(org_id, body.model_dump())
@@ -176,7 +177,7 @@ def create_rule(body: CreateRuleRequest, org_id: str = Query("default")):
 
 @router.get("/rules", response_model=Dict[str, Any])
 def list_rules(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     rule_type: Optional[str] = Query(None),
     enabled: Optional[bool] = Query(None),
 ):
@@ -190,6 +191,6 @@ def list_rules(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", response_model=Dict[str, Any])
-def get_abuse_stats(org_id: str = Query("default")):
+def get_abuse_stats(org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     return eng.get_abuse_stats(org_id)

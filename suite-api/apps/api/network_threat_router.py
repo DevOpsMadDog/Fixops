@@ -80,7 +80,7 @@ class BaselineUpdate(BaseModel):
 
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_network_threats(org_id: str = Query("default")):
+def list_network_threats(org_id: str = Depends(get_org_id)):
     """Get network threat statistics for the org."""
     return _get_engine().get_threat_stats(org_id=org_id)
 

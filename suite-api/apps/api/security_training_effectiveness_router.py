@@ -83,7 +83,7 @@ class RetentionRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/")
-def list_training_effectiveness(org_id: str = Query("default")):
+def list_training_effectiveness(org_id: str = Depends(get_org_id)):
     """Get security training effectiveness summary for the org."""
     return _get_engine().get_summary(org_id=org_id)
 

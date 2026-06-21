@@ -12,6 +12,7 @@ from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ class FinalizeRequest(BaseModel):
 @router.post("/models", status_code=201)
 def create_model(
     payload: ModelCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new cyber threat model."""
     try:
@@ -106,7 +107,7 @@ def create_model(
 def add_attack_tree(
     model_id: str,
     payload: AttackTreeCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add an attack tree to a threat model."""
     try:
@@ -129,7 +130,7 @@ def mitigate_tree(
     tree_id: str,
     payload: MitigateRequest,
     model_id: str = Query(..., description="Parent model ID"),
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Mark an attack tree as mitigated (idempotent)."""
     result = _get_engine().mitigate_tree(
@@ -147,7 +148,7 @@ def mitigate_tree(
 def add_threat_actor(
     model_id: str,
     payload: ThreatActorCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a threat actor profile to a model."""
     try:
@@ -170,7 +171,7 @@ def add_threat_actor(
 def finalize_model(
     model_id: str,
     payload: FinalizeRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Finalize a threat model."""
     result = _get_engine().finalize_model(model_id, org_id, payload.reviewed_by)
@@ -182,7 +183,7 @@ def finalize_model(
 @router.get("/models/{model_id}")
 def get_model_detail(
     model_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return model with attack trees and threat actors."""
     result = _get_engine().get_model_detail(model_id, org_id)
@@ -192,12 +193,12 @@ def get_model_detail(
 
 
 @router.get("/unmitigated")
-def get_unmitigated_threats(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def get_unmitigated_threats(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Return all unmitigated attack trees with model names."""
     return _get_engine().get_unmitigated_threats(org_id)
 
 
 @router.get("/summary")
-def get_model_summary(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_model_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate summary across all models."""
     return _get_engine().get_model_summary(org_id)

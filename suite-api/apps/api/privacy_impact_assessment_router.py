@@ -94,7 +94,7 @@ class AssessmentApprove(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/")
-def list_privacy_impact(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_privacy_impact(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get privacy impact assessment summary for the org."""
     return _get_engine().get_summary(org_id)
 

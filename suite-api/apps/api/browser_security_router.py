@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -90,7 +91,7 @@ class UpdateExtensionStatusRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/policies", response_model=Dict[str, Any])
-def create_policy(body: CreatePolicyRequest, org_id: str = Query("default")):
+def create_policy(body: CreatePolicyRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     try:
         policy = eng.create_policy(org_id, body.model_dump())
@@ -101,7 +102,7 @@ def create_policy(body: CreatePolicyRequest, org_id: str = Query("default")):
 
 @router.get("/policies", response_model=Dict[str, Any])
 def list_policies(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     browser_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -111,7 +112,7 @@ def list_policies(
 
 
 @router.get("/policies/{policy_id}", response_model=Dict[str, Any])
-def get_policy(policy_id: str, org_id: str = Query("default")):
+def get_policy(policy_id: str, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     policy = eng.get_policy(org_id, policy_id)
     if policy is None:
@@ -124,7 +125,7 @@ def get_policy(policy_id: str, org_id: str = Query("default")):
 # ---------------------------------------------------------------------------
 
 @router.post("/events", response_model=Dict[str, Any])
-def record_event(body: RecordEventRequest, org_id: str = Query("default")):
+def record_event(body: RecordEventRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     data = body.model_dump()
     if data.get("event_at") is None:
@@ -138,7 +139,7 @@ def record_event(body: RecordEventRequest, org_id: str = Query("default")):
 
 @router.get("/events", response_model=Dict[str, Any])
 def list_events(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     event_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     blocked: Optional[bool] = Query(None),
@@ -153,7 +154,7 @@ def list_events(
 # ---------------------------------------------------------------------------
 
 @router.post("/extensions", response_model=Dict[str, Any])
-def register_extension(body: RegisterExtensionRequest, org_id: str = Query("default")):
+def register_extension(body: RegisterExtensionRequest, org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     try:
         ext = eng.register_extension(org_id, body.model_dump())
@@ -164,7 +165,7 @@ def register_extension(body: RegisterExtensionRequest, org_id: str = Query("defa
 
 @router.get("/extensions", response_model=Dict[str, Any])
 def list_extensions(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     risk_level: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ):
@@ -177,7 +178,7 @@ def list_extensions(
 def update_extension_status(
     ext_id: str,
     body: UpdateExtensionStatusRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     eng = _get_engine()
     try:
@@ -194,6 +195,6 @@ def update_extension_status(
 # ---------------------------------------------------------------------------
 
 @router.get("/stats", response_model=Dict[str, Any])
-def get_browser_stats(org_id: str = Query("default")):
+def get_browser_stats(org_id: str = Depends(get_org_id)):
     eng = _get_engine()
     return eng.get_browser_stats(org_id)

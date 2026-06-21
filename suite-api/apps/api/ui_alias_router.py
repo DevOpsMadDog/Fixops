@@ -31,6 +31,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Query, Request
+from apps.api.dependencies import get_org_id  # SPEC-034
 from fastapi.responses import JSONResponse
 
 # ---------------------------------------------------------------------------
@@ -82,7 +83,7 @@ asset_inventory_alias = APIRouter(
 
 @asset_inventory_alias.get("/groups", summary="Asset groups (alias → /api/v1/assets)")
 async def asset_inventory_groups(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50),
 ) -> Dict[str, Any]:
     """Proxy to the real assets list, grouped by asset_type."""
@@ -108,7 +109,7 @@ async def asset_inventory_groups(
 
 @asset_inventory_alias.get("", summary="Asset inventory list (alias → /api/v1/assets)")
 async def asset_inventory_list(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50),
 ) -> Dict[str, Any]:
     try:
@@ -168,7 +169,7 @@ container_security_alias = APIRouter(
 
 @container_security_alias.get("/images", summary="Container images (alias → /api/v1/container-posture/findings)")
 async def container_security_images(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50),
 ) -> Dict[str, Any]:
     try:
@@ -186,7 +187,7 @@ async def container_security_images(
 
 @container_security_alias.get("/runtime-threats", summary="Runtime threats (alias → /api/v1/containers)")
 async def container_security_runtime_threats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50),
 ) -> Dict[str, Any]:
     try:
@@ -203,7 +204,7 @@ async def container_security_runtime_threats(
 
 
 @container_security_alias.get("/stats", summary="Container security stats (alias)")
-async def container_security_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+async def container_security_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         if _csp_db_ok:
             db = _csp_db()
@@ -242,7 +243,7 @@ data_classification_alias = APIRouter(
 
 @data_classification_alias.get("/items", summary="Classified assets (alias → /api/v1/classification/assets)")
 async def data_classification_items(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50),
 ) -> Dict[str, Any]:
     try:
@@ -259,7 +260,7 @@ async def data_classification_items(
 
 
 @data_classification_alias.get("/stats", summary="Classification stats (alias → /api/v1/classification/stats)")
-async def data_classification_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+async def data_classification_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         if _dcr_ok:
             db = _dcr_db()
@@ -276,7 +277,7 @@ async def data_classification_stats(org_id: str = Query("default")) -> Dict[str,
 
 @data_classification_alias.get("/violations", summary="Classification violations (alias)")
 async def data_classification_violations(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50),
 ) -> Dict[str, Any]:
     try:
@@ -316,7 +317,7 @@ integration_health_alias = APIRouter(
 
 @integration_health_alias.get("/integrations", summary="List integrations (alias → /api/v1/integrations)")
 async def integration_health_list(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50),
 ) -> Dict[str, Any]:
     try:
@@ -334,7 +335,7 @@ async def integration_health_list(
 
 @integration_health_alias.get("/alerts", summary="Integration alerts (alias → /api/v1/integrations/alerts)")
 async def integration_health_alerts(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50),
 ) -> Dict[str, Any]:
     try:
@@ -351,7 +352,7 @@ async def integration_health_alerts(
 
 
 @integration_health_alias.get("/stats", summary="Integration health stats (alias)")
-async def integration_health_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+async def integration_health_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         if _ihr_ok:
             db = _ihr_db()
@@ -386,7 +387,7 @@ repos_alias = APIRouter(
 @repos_alias.get("/list", summary="Repo list (alias → /api/v1/assets filtered by type=repo)")
 async def repos_list(
     owner: str = Query(None),
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50),
 ) -> Dict[str, Any]:
     try:
@@ -435,7 +436,7 @@ security_awareness_alias = APIRouter(
 
 @security_awareness_alias.get("/campaigns", summary="Awareness campaigns (alias → /api/v1/awareness-campaigns/campaigns)")
 async def security_awareness_campaigns(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50),
 ) -> Dict[str, Any]:
     try:
@@ -453,7 +454,7 @@ async def security_awareness_campaigns(
 
 @security_awareness_alias.get("/trainings", summary="Training programs (alias → /api/v1/awareness-campaigns)")
 async def security_awareness_trainings(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50),
 ) -> Dict[str, Any]:
     try:
@@ -475,7 +476,7 @@ async def security_awareness_trainings(
 
 
 @security_awareness_alias.get("/completion", summary="Completion stats (alias)")
-async def security_awareness_completion(org_id: str = Query("default")) -> Dict[str, Any]:
+async def security_awareness_completion(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         if _acr_ok:
             db = _acr_db()
@@ -519,7 +520,7 @@ security_metrics_alias = APIRouter(
 
 @security_metrics_alias.get("/metrics", summary="Security metrics (alias → /api/v1/metrics)")
 async def security_metrics_metrics(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50),
 ) -> Dict[str, Any]:
     try:
@@ -536,7 +537,7 @@ async def security_metrics_metrics(
 
 
 @security_metrics_alias.get("/stats", summary="Security metrics stats (alias)")
-async def security_metrics_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+async def security_metrics_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         if _smr_ok:
             db = _smr_db()
@@ -551,7 +552,7 @@ async def security_metrics_stats(org_id: str = Query("default")) -> Dict[str, An
 
 @security_metrics_alias.get("/alerts", summary="Security metric alerts (alias)")
 async def security_metrics_alerts(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(20),
 ) -> Dict[str, Any]:
     try:
@@ -591,7 +592,7 @@ security_posture_alias = APIRouter(
 
 
 @security_posture_alias.get("/stats", summary="Posture stats (alias → /api/v1/posture-scoring/stats)")
-async def security_posture_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+async def security_posture_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         if _spsr_ok:
             db = _spsr_db()
@@ -612,7 +613,7 @@ async def security_posture_stats(org_id: str = Query("default")) -> Dict[str, An
 
 @security_posture_alias.get("/scores", summary="Posture scores (alias → /api/v1/posture-scoring/history)")
 async def security_posture_scores(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(30),
 ) -> Dict[str, Any]:
     try:
@@ -651,7 +652,7 @@ vuln_heatmap_alias = APIRouter(
 
 @vuln_heatmap_alias.get("/assets", summary="Vuln heatmap assets (alias → /api/v1/vuln-risk)")
 async def vuln_heatmap_assets(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(200),
 ) -> Dict[str, Any]:
     try:
@@ -668,7 +669,7 @@ async def vuln_heatmap_assets(
 
 
 @vuln_heatmap_alias.get("/stats", summary="Vuln heatmap stats (alias)")
-async def vuln_heatmap_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+async def vuln_heatmap_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         if _vrr_ok:
             db = _vrr_db()

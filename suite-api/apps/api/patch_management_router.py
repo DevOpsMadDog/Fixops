@@ -77,7 +77,7 @@ class DeploymentCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/", dependencies=[Depends(api_key_auth)])
-def list_patch_management(org_id: str = Query("default")) -> Dict[str, Any]:
+def list_patch_management(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """List patches for the org."""
     patches = _get_engine().list_patches(org_id=org_id)
     return {"org_id": org_id, "patches": patches, "total": len(patches)}

@@ -20,7 +20,8 @@ from __future__ import annotations
 import logging
 
 from core.unified_dashboard import DashboardLayout, get_unified_dashboard
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ def _dashboard():
     ),
 )
 def get_ciso_dashboard(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> DashboardLayout:
     try:
         return _dashboard().get_ciso_dashboard(org_id=org_id)
@@ -70,7 +71,7 @@ def get_ciso_dashboard(
     ),
 )
 def get_soc_dashboard(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> DashboardLayout:
     try:
         return _dashboard().get_soc_dashboard(org_id=org_id)
@@ -90,7 +91,7 @@ def get_soc_dashboard(
     ),
 )
 def get_compliance_dashboard(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> DashboardLayout:
     try:
         return _dashboard().get_compliance_dashboard(org_id=org_id)
@@ -110,7 +111,7 @@ def get_compliance_dashboard(
     ),
 )
 def get_developer_dashboard(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     user_email: str = Query("developer@org", description="User email for per-user filtering"),
 ) -> DashboardLayout:
     try:
@@ -131,7 +132,7 @@ def get_developer_dashboard(
     ),
 )
 def get_executive_dashboard(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> DashboardLayout:
     try:
         return _dashboard().get_executive_dashboard(org_id=org_id)
@@ -151,7 +152,7 @@ def get_executive_dashboard(
     ),
 )
 def get_real_time_feed(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> DashboardLayout:
     try:
         return _dashboard().get_real_time_feed(org_id=org_id)

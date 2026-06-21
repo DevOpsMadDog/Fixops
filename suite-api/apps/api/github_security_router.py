@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -284,7 +285,7 @@ def import_all_alerts(body: ImportRequest):
     summary="List import history",
 )
 def import_history(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ):
     """
     Return import history for the given organisation, most recent first.

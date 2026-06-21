@@ -28,6 +28,7 @@ from core.regulatory_reporting_engine import (
     ReportSubmit,
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 
 _logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ def _get_engine() -> RegulatoryReportingEngine:
 @router.post("/regulations", status_code=201)
 async def register_regulation(
     body: RegulationCreate,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Register a new regulation for the org."""
     try:
@@ -67,7 +68,7 @@ async def register_regulation(
 
 @router.get("/regulations")
 async def list_regulations(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     regulation_type: Optional[str] = Query(None, description="Filter by regulation type"),
 ) -> List[Dict[str, Any]]:
     """List regulations for the org, optionally filtered by type."""
@@ -78,7 +79,7 @@ async def list_regulations(
 async def update_compliance_score(
     reg_id: str,
     body: ComplianceScoreUpdate,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update compliance score for a regulation (clamped 0-100)."""
     try:
@@ -97,7 +98,7 @@ async def update_compliance_score(
 @router.post("/reports", status_code=201)
 async def create_report(
     body: ReportCreate,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new compliance report in draft status."""
     try:
@@ -110,7 +111,7 @@ async def create_report(
 async def submit_report(
     report_id: str,
     body: ReportSubmit,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Submit a draft report."""
     try:
@@ -121,7 +122,7 @@ async def submit_report(
 
 @router.get("/reports")
 async def list_reports(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     regulation_id: Optional[str] = Query(None, description="Filter by regulation ID"),
     status: Optional[str] = Query(None, description="Filter by status"),
 ) -> List[Dict[str, Any]]:
@@ -136,7 +137,7 @@ async def list_reports(
 
 @router.get("/stats")
 async def get_regulatory_stats(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return regulatory compliance statistics for the org."""
     return _get_engine().get_regulatory_stats(org_id)

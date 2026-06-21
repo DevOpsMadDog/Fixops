@@ -29,6 +29,7 @@ from core.audit_management_engine import (
     FindingResolve,
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 
 _logger = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ def _get_engine() -> AuditManagementEngine:
 @router.post("/audits", status_code=201)
 async def create_audit(
     body: AuditCreate,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new audit in planned status."""
     try:
@@ -68,7 +69,7 @@ async def create_audit(
 
 @router.get("/audits")
 async def list_audits(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     audit_type: Optional[str] = Query(None, description="Filter by audit type"),
     status: Optional[str] = Query(None, description="Filter by status"),
 ) -> List[Dict[str, Any]]:
@@ -79,7 +80,7 @@ async def list_audits(
 @router.get("/audits/{audit_id}")
 async def get_audit(
     audit_id: str,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a single audit by ID."""
     try:
@@ -91,7 +92,7 @@ async def get_audit(
 @router.put("/audits/{audit_id}/start")
 async def start_audit(
     audit_id: str,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Transition audit to in_progress status."""
     try:
@@ -104,7 +105,7 @@ async def start_audit(
 async def complete_audit(
     audit_id: str,
     body: AuditComplete,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Mark audit as completed with a summary."""
     try:
@@ -122,7 +123,7 @@ async def complete_audit(
 async def record_finding(
     audit_id: str,
     body: FindingCreate,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record a new finding against an audit."""
     try:
@@ -135,7 +136,7 @@ async def record_finding(
 async def resolve_finding(
     finding_id: str,
     body: FindingResolve,
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Resolve a finding with resolution text."""
     try:
@@ -153,7 +154,7 @@ async def resolve_finding(
 
 @router.get("/stats")
 async def get_audit_stats(
-    org_id: str = Query("default", description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return audit statistics for the org."""
     return _get_engine().get_audit_stats(org_id)

@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -84,7 +85,7 @@ class ApproveRequest(BaseModel):
 @router.post("/policies", response_model=Dict[str, Any], status_code=201)
 def create_policy(
     body: PolicyCreate,
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new enforcement policy."""
     try:
@@ -95,7 +96,7 @@ def create_policy(
 
 @router.get("/policies", response_model=List[Dict[str, Any]])
 def list_policies(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     policy_domain: Optional[str] = Query(None, description="Filter by policy_domain"),
     policy_type: Optional[str] = Query(None, description="Filter by policy_type"),
 ):
@@ -108,7 +109,7 @@ def list_policies(
 @router.get("/policies/{policy_id}", response_model=Dict[str, Any])
 def get_policy(
     policy_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return a single policy."""
     result = _get_engine(org_id).get_policy(org_id, policy_id)
@@ -121,7 +122,7 @@ def get_policy(
 def create_policy_version(
     policy_id: str,
     body: PolicyVersionCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Create a new version of an existing policy."""
     result = _get_engine(org_id).create_policy_version(
@@ -135,7 +136,7 @@ def create_policy_version(
 @router.post("/exceptions", response_model=Dict[str, Any], status_code=201)
 def record_exception(
     body: ExceptionCreate,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Submit a policy exception request."""
     try:
@@ -148,7 +149,7 @@ def record_exception(
 def approve_exception(
     exception_id: str,
     body: ApproveRequest,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Approve a pending policy exception."""
     result = _get_engine(org_id).approve_exception(
@@ -161,7 +162,7 @@ def approve_exception(
 
 @router.get("/exceptions", response_model=List[Dict[str, Any]])
 def list_exceptions(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     policy_id: Optional[str] = Query(None, description="Filter by policy_id"),
     status: Optional[str] = Query(None, description="Filter by status"),
 ):
@@ -173,7 +174,7 @@ def list_exceptions(
 
 @router.get("/stats", response_model=Dict[str, Any])
 def get_enforcement_stats(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ):
     """Return aggregated policy enforcement statistics."""
     return _get_engine(org_id).get_enforcement_stats(org_id)
@@ -196,7 +197,7 @@ def _devsecops():
 
 
 @router.get("/hooks/policy")
-def get_hook_policy(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_hook_policy(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return the active hook policy (the hooks dict) for the org, or {} if none."""
     try:
         rec = _devsecops().get_active_hook_policy(org_id)
@@ -207,7 +208,7 @@ def get_hook_policy(org_id: str = Query("default")) -> Dict[str, Any]:
 
 
 @router.put("/hooks/policy")
-def put_hook_policy(body: Dict[str, Any], org_id: str = Query("default")) -> Dict[str, Any]:
+def put_hook_policy(body: Dict[str, Any], org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Persist an edited hook policy (the hooks dict). Idempotent on content hash."""
     if not isinstance(body, dict) or not body:
         raise HTTPException(
@@ -223,7 +224,7 @@ def put_hook_policy(body: Dict[str, Any], org_id: str = Query("default")) -> Dic
 
 
 @router.get("/hooks/status", response_model=List[Dict[str, Any]])
-def get_hook_status(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def get_hook_status(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Derive a runtime-status list from the active policy's CONFIGURED hooks.
 
     Each configured stage becomes one row with status ``idle`` (configured, no

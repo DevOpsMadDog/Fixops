@@ -19,7 +19,8 @@ from core.tag_manager import (
     TagManager,
     get_tag_manager,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -104,7 +105,7 @@ def create_tag(req: CreateTagRequest) -> Tag:
 
 @router.get("", response_model=List[Tag])
 def list_tags(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     parent_id: Optional[str] = Query(None, description="Filter by parent tag ID"),
 ) -> List[Tag]:
     """List tags for an organisation, optionally filtered by parent."""
@@ -114,7 +115,7 @@ def list_tags(
 @router.get("/search", response_model=List[Tag])
 def search_tags(
     q: str = Query(..., description="Search query"),
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Tag]:
     """Full-text search tags by name or description."""
     return _mgr().search_tags(query=q, org_id=org_id)
@@ -122,7 +123,7 @@ def search_tags(
 
 @router.get("/hierarchy", response_model=List[Dict[str, Any]])
 def get_tag_hierarchy(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return the full tag hierarchy as a tree."""
     return _mgr().get_tag_hierarchy(org_id=org_id)
@@ -130,7 +131,7 @@ def get_tag_hierarchy(
 
 @router.get("/analytics", response_model=Dict[str, Any])
 def get_tag_analytics(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return tag analytics: most used, trending, usage by entity type."""
     return _mgr().get_tag_analytics(org_id=org_id)

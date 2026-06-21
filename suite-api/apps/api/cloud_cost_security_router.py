@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -116,7 +117,7 @@ def record_snapshot(req: SnapshotCreate) -> Dict[str, Any]:
 
 @router.get("/snapshots", summary="List cost snapshots", dependencies=[Depends(api_key_auth)])
 def list_snapshots(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     account_id: Optional[str] = Query(None),
     anomaly: Optional[bool] = Query(None),
 ) -> Dict[str, Any]:
@@ -145,7 +146,7 @@ def add_abandoned_resource(req: AbandonedResourceCreate) -> Dict[str, Any]:
 
 @router.get("/abandoned-resources", summary="List abandoned resources", dependencies=[Depends(api_key_auth)])
 def list_abandoned_resources(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -156,7 +157,7 @@ def list_abandoned_resources(
 @router.post("/abandoned-resources/{resource_id}/terminate", summary="Terminate resource", dependencies=[Depends(api_key_auth)])
 def terminate_resource(
     resource_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine()
     ok = engine.terminate_resource(org_id, resource_id)
@@ -175,7 +176,7 @@ def create_budget(req: BudgetCreate) -> Dict[str, Any]:
 
 
 @router.get("/budgets", summary="List cost budgets", dependencies=[Depends(api_key_auth)])
-def list_budgets(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def list_budgets(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     engine = _get_engine()
     return engine.list_budgets(org_id)
 
@@ -188,7 +189,7 @@ def record_anomaly(req: AnomalyCreate) -> Dict[str, Any]:
 
 @router.get("/anomalies", summary="List cost anomalies", dependencies=[Depends(api_key_auth)])
 def list_anomalies(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -199,7 +200,7 @@ def list_anomalies(
 @router.post("/anomalies/{anomaly_id}/resolve", summary="Resolve anomaly", dependencies=[Depends(api_key_auth)])
 def resolve_anomaly(
     anomaly_id: str,
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine()
     ok = engine.resolve_anomaly(org_id, anomaly_id)
@@ -209,7 +210,7 @@ def resolve_anomaly(
 
 
 @router.get("/stats", summary="Cloud cost security stats", dependencies=[Depends(api_key_auth)])
-def get_cost_stats(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_cost_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     engine = _get_engine()
     return engine.get_cost_stats(org_id)
 
@@ -255,7 +256,7 @@ def record_cost_item(req: CostItemCreate) -> Dict[str, Any]:
 
 @router.get("/items", summary="List cost items", dependencies=[Depends(api_key_auth)])
 def list_cost_items(
-    org_id: str = Query("default"),
+    org_id: str = Depends(get_org_id),
     cloud_provider: Optional[str] = Query(None),
     security_relevance: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -271,13 +272,13 @@ def flag_unused_resource(req: FlagResourceRequest) -> Dict[str, Any]:
 
 
 @router.get("/items/spend-breakdown", summary="Security spend breakdown", dependencies=[Depends(api_key_auth)])
-def get_security_spend_breakdown(org_id: str = Query("default")) -> Dict[str, Any]:
+def get_security_spend_breakdown(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     engine = _get_engine()
     return engine.get_security_spend_breakdown(org_id)
 
 
 @router.get("/items/anomalies", summary="Detect cost anomalies (MoM >50%)", dependencies=[Depends(api_key_auth)])
-def detect_cost_anomalies(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def detect_cost_anomalies(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     engine = _get_engine()
     return engine.detect_cost_anomalies(org_id)
 
@@ -293,6 +294,6 @@ def create_cost_policy(req: CostPolicyCreate) -> Dict[str, Any]:
 
 
 @router.get("/policies", summary="List cost policies", dependencies=[Depends(api_key_auth)])
-def list_cost_policies(org_id: str = Query("default")) -> List[Dict[str, Any]]:
+def list_cost_policies(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     engine = _get_engine()
     return engine.list_cost_policies(org_id)
