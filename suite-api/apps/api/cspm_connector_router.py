@@ -21,9 +21,12 @@ from pydantic import BaseModel, Field, field_validator
 
 try:
     from apps.api.auth_deps import api_key_auth
-except Exception:  # pragma: no cover - fallback for tests
+except Exception:  # pragma: no cover
+    # Fail CLOSED: refuse requests if auth can't be imported, rather than a
+    # silent no-op that authenticates everyone (feedback_router_auth_gap_pattern).
     def api_key_auth() -> None:  # type: ignore
-        return None
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
 
 logger = logging.getLogger(__name__)
 

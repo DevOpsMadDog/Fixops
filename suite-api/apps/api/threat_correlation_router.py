@@ -18,8 +18,11 @@ _logger = logging.getLogger(__name__)
 try:
     from apps.api.auth_deps import api_key_auth
 except ImportError:
+    # Fail CLOSED: if auth can't be imported, refuse requests rather than
+    # silently authenticating everyone as "anon" (feedback_router_auth_gap_pattern).
     def api_key_auth():
-        return "anon"
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
 
 router = APIRouter(
     prefix="/api/v1/threat-correlation",

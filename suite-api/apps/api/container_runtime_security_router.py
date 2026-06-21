@@ -34,7 +34,12 @@ try:  # SECURITY 2026-06-03: enforce api_key auth at router level (was missing â
     from apps.api.auth_deps import api_key_auth as _api_key_auth
     _AUTH_DEP = [Depends(_api_key_auth)]
 except Exception:  # pragma: no cover
-    _AUTH_DEP = []
+    # Fail CLOSED: if auth can't import, keep the router protected with a dep that
+    # refuses requests â€” never drop to an empty (open) dep list.
+    def _api_key_auth():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
+    _AUTH_DEP = [Depends(_api_key_auth)]
 router = APIRouter(
     prefix="/api/v1/container-runtime",
     tags=["Container Runtime Security"],
