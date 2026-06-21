@@ -101,6 +101,18 @@ jobs:
             -x --tb=short --timeout=30 -q \
             --override-ini="addopts=" \
             --override-ini="log_cli=false"
+      - name: Nuclei pentest gate (SPEC-002 — real connector or honest 503, no simulation)
+        run: |
+          python -m pytest tests/test_nuclei_pentest.py \
+            -x --tb=short --timeout=60 -q \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"
+      - name: Deception engine gate (SPEC-024)
+        run: |
+          python -m pytest tests/test_deception_engine.py tests/test_deception_honeypot_list.py \
+            -x --tb=short --timeout=30 -q \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"
       - name: Perf lockdown (benchmarks/)
         run: |
           python -m pytest tests/benchmarks/ \
