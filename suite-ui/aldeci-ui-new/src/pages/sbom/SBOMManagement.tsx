@@ -732,7 +732,8 @@ export default function SBOMManagement() {
           prev && prev.id === selectedSBOM.id ? { ...prev, components: mapped } : prev,
         );
       } catch {
-        // Silently fall back to mock components if API fails
+        // NO-MOCKS: on API failure leave components as-is — do NOT fabricate.
+        // (This catch is a no-op; the old comment claiming a mock fallback was wrong.)
       }
     })();
     return () => { cancelled = true; };

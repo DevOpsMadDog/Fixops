@@ -171,14 +171,15 @@ export default function AttackPaths() {
       const source = (p.source as string) || steps[0]?.node || (p.name as string)?.split('→')[0]?.replace('→','').trim() || undefined;
       const target = (p.target as string) || steps[steps.length - 1]?.node || (p.name as string)?.split('→').pop()?.trim() || undefined;
       const hops = (p.hops as number) || (p.hop_count as number) || steps.length || 0;
-      const likelihood = p.likelihood as number | undefined;
       return {
         ...p,
         source,
         target,
         hops,
         hop_count: hops,
-        blast_radius: (p.blast_radius as number) ?? (likelihood != null ? likelihood * 10 : undefined),
+        // NO-MOCKS: show blast_radius only when the backend provides it; do not
+        // fabricate it from likelihood (the previous `likelihood * 10` fallback).
+        blast_radius: (p.blast_radius as number) ?? undefined,
         name: p.name as string | undefined,
       } as AttackPath;
     });
