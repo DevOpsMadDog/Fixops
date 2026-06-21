@@ -1,6 +1,6 @@
 # SPEC-033 — UI↔API Contract Baseline (stop the FE/BE churn)
 
-- **Status**: IN PROGRESS (C1+C2 task implemented 2026-06-21; C3–C10 backlogged in Multica #9093–9101)
+- **Status**: IN PROGRESS — C1+C2, C4, C5, C6, C8, C9, C10 DONE (gated via `test_contract_*.py`); C3 (#9094, founder public-API decision) + C7 (#9101, UI consumer) remain
 - **Owner family**: Customer-Readiness / Contracts
 - **Depends on**: `docs/architecture/api-contracts.md`, `docs/GAP_MAP.md`
 - **Multica**: #9093 (C1+C2), #9094 (C3), #9095 (C6), #9096 (C10), #9097 (C4), #9098 (C5), #9099 (C8), #9100 (C9), #9101 (C7)
