@@ -23,7 +23,8 @@ try:
     from apps.api.auth_deps import api_key_auth
 except ImportError:  # pragma: no cover
     async def api_key_auth() -> None:  # type: ignore
-        return None
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
 
 
 router = APIRouter(

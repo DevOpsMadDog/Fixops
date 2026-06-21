@@ -25,7 +25,8 @@ try:
     from apps.api.auth_deps import api_key_auth
 except Exception:  # pragma: no cover
     def api_key_auth() -> None:  # type: ignore
-        return None
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
 
 logger = structlog.get_logger(__name__)
 _stdlib_logger = logging.getLogger(__name__)

@@ -19,7 +19,8 @@ try:
     from apps.api.auth_deps import api_key_auth
 except ImportError:
     def api_key_auth():
-        return "anon"
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
 
 router = APIRouter(
     prefix="/api/v1/security-maturity",

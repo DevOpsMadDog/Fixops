@@ -32,7 +32,8 @@ try:
     from apps.api.auth_deps import api_key_auth
 except ImportError:  # pragma: no cover — only in stripped-down test envs
     async def api_key_auth() -> str:
-        return "anon"
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="auth dependency unavailable")
 
 
 router = APIRouter(
