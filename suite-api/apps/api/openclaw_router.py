@@ -580,7 +580,7 @@ def get_scan_status(
 async def openclaw_index(org_id: str = Query("default")) -> Dict[str, Any]:
     """Return OpenClaw red-team campaign summary for the org."""
     try:
-        engine = _get_engine()
+        engine = _get_engine(org_id)
         campaigns = engine.list_campaigns(org_id=org_id) if hasattr(engine, "list_campaigns") else []
         count = len(campaigns)
     except Exception:
