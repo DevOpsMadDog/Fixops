@@ -113,6 +113,12 @@ jobs:
             -x --tb=short --timeout=30 -q \
             --override-ini="addopts=" \
             --override-ini="log_cli=false"
+      - name: Forensics engines gate (SPEC-025)
+        run: |
+          python -m pytest tests/test_digital_forensics_engine.py tests/test_forensics_readiness_engine.py tests/test_network_forensics_engine.py \
+            -x --tb=short --timeout=30 -q \
+            --override-ini="addopts=" \
+            --override-ini="log_cli=false"
       - name: Perf lockdown (benchmarks/)
         run: |
           python -m pytest tests/benchmarks/ \
