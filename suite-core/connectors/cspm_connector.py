@@ -46,6 +46,16 @@ from connectors._emit import emit_connector_event
 
 logger = logging.getLogger(__name__)
 
+
+def _cspm_demo_mode() -> bool:
+    """Return True only when FIXOPS_CSPM_DEMO=1/true/yes is set explicitly.
+
+    When False (the default), all CLI/boto3 fallbacks yield zero findings so
+    no fabricated data enters the pipeline (NO-MOCKS rule).
+    """
+    return os.getenv("FIXOPS_CSPM_DEMO", "").strip().lower() in ("1", "true", "yes")
+
+
 # ---------------------------------------------------------------------------
 # Embedded sample outputs (fallback when CLI not installed)
 # Sourced from each project's official docs / sample fixtures.
@@ -496,7 +506,14 @@ class CSPMConnector:
                     f"resources via boto3@{endpoint}"
                 )
         if raw_json is None:
-            raw_json = self._build_prowler_sample(org_id, account_id)
+            if _cspm_demo_mode():
+                raw_json = self._build_prowler_sample(org_id, account_id)
+            else:
+                raw_json = b"[]"
+                result.errors.append(
+                    "no real CSPM source (prowler CLI/boto3 unavailable); "
+                    "set FIXOPS_CSPM_DEMO=1 for sample data"
+                )
 
         return self._ingest_prowler(raw_json, result, account_id)
 
@@ -776,7 +793,17 @@ class CSPMConnector:
                 result.errors.append(f"checkov invocation error: {exc}")
 
         if raw_json is None:
-            raw_json = json.dumps(_CHECKOV_SAMPLE_TF).encode("utf-8")
+            if _cspm_demo_mode():
+                raw_json = json.dumps(_CHECKOV_SAMPLE_TF).encode("utf-8")
+            else:
+                raw_json = json.dumps({
+                    "check_type": "terraform",
+                    "results": {"passed_checks": [], "failed_checks": []},
+                }).encode("utf-8")
+                result.errors.append(
+                    "no real CSPM source (checkov CLI unavailable or no iac_dir); "
+                    "set FIXOPS_CSPM_DEMO=1 for sample data"
+                )
 
         return self._ingest_checkov(raw_json, result)
 
@@ -855,7 +882,17 @@ class CSPMConnector:
                 result.errors.append(f"trivy invocation error: {exc}")
 
         if raw_json is None:
-            raw_json = json.dumps(_TRIVY_CONFIG_SAMPLE).encode("utf-8")
+            if _cspm_demo_mode():
+                raw_json = json.dumps(_TRIVY_CONFIG_SAMPLE).encode("utf-8")
+            else:
+                # NO-MOCKS: honest-empty when no real trivy source.
+                raw_json = json.dumps(
+                    {"ArtifactName": "cspm-iac", "ArtifactType": "filesystem", "Results": []}
+                ).encode("utf-8")
+                result.errors.append(
+                    "no real CSPM source (trivy CLI unavailable); "
+                    "set FIXOPS_CSPM_DEMO=1 for sample data"
+                )
 
         return self._ingest_trivy(raw_json, result)
 
@@ -950,7 +987,14 @@ class CSPMConnector:
                 result.errors.append(f"cloudsploit invocation error: {exc}")
 
         if not raw_findings:
-            raw_findings = [dict(item) for item in _CLOUDSPLOIT_SAMPLE]
+            if _cspm_demo_mode():
+                raw_findings = [dict(item) for item in _CLOUDSPLOIT_SAMPLE]
+            else:
+                # NO-MOCKS: honest-empty when no real cloudsploit source.
+                result.errors.append(
+                    "no real CSPM source (cloudsploit CLI unavailable); "
+                    "set FIXOPS_CSPM_DEMO=1 for sample data"
+                )
 
         result.findings_count = len(raw_findings)
         engine = self._get_findings_engine()

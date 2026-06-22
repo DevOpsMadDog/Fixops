@@ -25,8 +25,12 @@ def isolated_engines(tmp_path):
 
 
 @pytest.fixture
-def connector(isolated_engines):
-    # Force CLI absence so the embedded sample fallback path runs.
+def connector(isolated_engines, monkeypatch):
+    # This fixture's purpose is to exercise the embedded SAMPLE path (CLI absent).
+    # Samples are now opt-in (NO-MOCKS): enable demo mode so these behaviour tests
+    # have data. The honest-empty default (flag unset) is covered by its own test
+    # and by tests/test_no_fake_cspm.py.
+    monkeypatch.setenv("FIXOPS_CSPM_DEMO", "1")
     return CSPMConnector(
         prowler_path=None,
         checkov_path=None,
@@ -71,14 +75,17 @@ def test_severity_mapping():
 # ---------------------------------------------------------------------------
 
 
-def test_scan_tenant_uses_fallback_when_cli_missing(connector):
+def test_scan_tenant_demo_mode_serves_samples(connector, monkeypatch):
+    # NO-MOCKS: sample data is OPT-IN via FIXOPS_CSPM_DEMO. This test exercises
+    # that explicit demo path (the honest-empty default is covered below).
+    monkeypatch.setenv("FIXOPS_CSPM_DEMO", "1")
     result = connector.scan_tenant(
         org_id="juice-shop-corp",
         provider="aws",
         run_agentless=False,
     )
     assert result["_summary"]["org_id"] == "juice-shop-corp"
-    # Three sample-driven tools each ingested at least one finding.
+    # Three sample-driven tools each ingested at least one finding (demo mode).
     assert result["prowler"]["used_real_cli"] is False
     assert result["prowler"]["ingested_count"] >= 5
     assert result["checkov"]["used_real_cli"] is False
@@ -88,6 +95,21 @@ def test_scan_tenant_uses_fallback_when_cli_missing(connector):
     # Trivy IaC config sample carries 2 misconfigurations.
     assert result["trivy"]["used_real_cli"] is False
     assert result["trivy"]["ingested_count"] >= 2
+
+
+def test_scan_tenant_honest_empty_without_demo_flag(connector, monkeypatch):
+    """NO-MOCKS default: no real CLI + no demo flag => ZERO fabricated findings."""
+    monkeypatch.delenv("FIXOPS_CSPM_DEMO", raising=False)
+    result = connector.scan_tenant(
+        org_id="honest-empty-corp",
+        provider="aws",
+        run_agentless=False,
+    )
+    for tool in ("prowler", "checkov", "trivy", "cloudsploit"):
+        assert result[tool]["ingested_count"] == 0, (
+            f"{tool} fabricated findings without FIXOPS_CSPM_DEMO: {result[tool]}"
+        )
+        assert result[tool]["used_real_cli"] is False
 
 
 def test_scan_tenant_includes_agentless_path(connector):
@@ -181,8 +203,10 @@ resource "aws_security_group" "open_ssh" {
         run_cloudsploit=False,
         run_agentless=False,
     )
-    # Either CLI succeeded OR sample fallback fired — both are valid integration
-    # paths; ingestion must be > 0 in both cases.
+    # NO-MOCKS: samples are opt-in, so a broken/unrunnable checkov yields honest-empty
+    # (not fabricated findings). Only assert real findings when the CLI actually ran.
+    if not r["checkov"].get("used_real_cli"):
+        pytest.skip(f"checkov CLI present but did not run: {r['checkov'].get('errors')}")
     assert r["checkov"]["findings_count"] >= 1
     assert r["checkov"]["ingested_count"] >= 1
 
