@@ -29,6 +29,7 @@ from core.security_query_language_engine import (
     get_engine,
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -117,7 +118,7 @@ async def save_query(payload: SaveRequest) -> Dict[str, Any]:
 
 
 @router.get("/queries", dependencies=[Depends(api_key_auth)])
-async def list_queries(org_id: str = Query(..., description="Tenant identifier")) -> Dict[str, Any]:
+async def list_queries(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         queries = get_engine().list_queries(org_id=org_id)
         return {"ok": True, "org_id": org_id, "queries": queries, "count": len(queries)}
@@ -128,7 +129,7 @@ async def list_queries(org_id: str = Query(..., description="Tenant identifier")
 @router.delete("/queries/{query_id}", dependencies=[Depends(api_key_auth)])
 async def delete_query(
     query_id: str,
-    org_id: str = Query(..., description="Tenant identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         ok = get_engine().delete_query(org_id=org_id, query_id=query_id)
@@ -153,7 +154,7 @@ async def get_schema() -> Dict[str, Any]:
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-async def get_stats(org_id: str = Query(..., description="Tenant identifier")) -> Dict[str, Any]:
+async def get_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return {"ok": True, **get_engine().stats(org_id=org_id)}
     except Exception as exc:  # noqa: BLE001
@@ -162,7 +163,7 @@ async def get_stats(org_id: str = Query(..., description="Tenant identifier")) -
 
 @router.get("/history", dependencies=[Depends(api_key_auth)])
 async def list_history(
-    org_id: str = Query(..., description="Tenant identifier"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=50, ge=1, le=1000),
 ) -> Dict[str, Any]:
     try:

@@ -80,7 +80,7 @@ class CreatePolicyRequest(BaseModel):
 
 @router.post("/workloads")
 def register_workload(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     body: RegisterWorkloadRequest = ...,
 ) -> Dict[str, Any]:
     """Register a new cloud workload."""

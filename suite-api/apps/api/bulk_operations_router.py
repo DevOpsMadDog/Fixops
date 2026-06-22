@@ -19,6 +19,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -161,7 +162,7 @@ def export_findings(req: ExportRequest):
 
 
 @router.get("/import-history", dependencies=[Depends(_verify_api_key)])
-def get_import_history(org_id: str = Query(..., description="Organisation ID")):
+def get_import_history(org_id: str = Depends(get_org_id)):
     """Return all import operations for the given org."""
     try:
         history = _get_engine().get_import_history(org_id=org_id)
@@ -172,7 +173,7 @@ def get_import_history(org_id: str = Query(..., description="Organisation ID")):
 
 
 @router.get("/export-history", dependencies=[Depends(_verify_api_key)])
-def get_export_history(org_id: str = Query(..., description="Organisation ID")):
+def get_export_history(org_id: str = Depends(get_org_id)):
     """Return all export operations for the given org."""
     try:
         history = _get_engine().get_export_history(org_id=org_id)
@@ -195,7 +196,7 @@ def get_field_mapping(format: str):
 
 
 @router.get("/stats", dependencies=[Depends(_verify_api_key)])
-def get_bulk_stats(org_id: str = Query(..., description="Organisation ID")):
+def get_bulk_stats(org_id: str = Depends(get_org_id)):
     """Return aggregate bulk operation stats for the given org."""
     try:
         stats = _get_engine().get_bulk_stats(org_id=org_id)

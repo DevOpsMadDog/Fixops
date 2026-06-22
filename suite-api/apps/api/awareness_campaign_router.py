@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -89,7 +90,7 @@ class RecordParticipationRequest(BaseModel):
 @router.post("/campaigns", dependencies=[Depends(api_key_auth)])
 def create_campaign(
     req: CreateCampaignRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new awareness campaign."""
     try:
@@ -112,7 +113,7 @@ def create_campaign(
 
 @router.get("/campaigns", dependencies=[Depends(api_key_auth)])
 def list_campaigns(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     campaign_type: Optional[str] = Query(default=None),
     campaign_status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -125,7 +126,7 @@ def list_campaigns(
 @router.get("/campaigns/{campaign_id}", dependencies=[Depends(api_key_auth)])
 def get_campaign(
     campaign_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Retrieve a single campaign by ID."""
     campaign = _get_engine().get_campaign(org_id, campaign_id)
@@ -138,7 +139,7 @@ def get_campaign(
 def update_campaign_status(
     campaign_id: str,
     req: UpdateStatusRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update campaign status."""
     try:
@@ -153,7 +154,7 @@ def update_campaign_status(
 def record_participation(
     campaign_id: str,
     req: RecordParticipationRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record a user participation result for a campaign."""
     try:
@@ -175,7 +176,7 @@ def record_participation(
 
 @router.get("/participations", dependencies=[Depends(api_key_auth)])
 def list_participations(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     campaign_id: Optional[str] = Query(default=None),
     result: Optional[str] = Query(default=None),
     department: Optional[str] = Query(default=None),
@@ -188,7 +189,7 @@ def list_participations(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_campaign_stats(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate campaign statistics."""
     return _get_engine().get_campaign_stats(org_id)

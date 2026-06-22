@@ -116,7 +116,7 @@ def list_access_governance(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
 @router.post("/entitlements", dependencies=[Depends(api_key_auth)])
 def grant_entitlement(
     req: GrantEntitlementRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Grant an entitlement to a user for a resource."""
     try:
@@ -136,7 +136,7 @@ def grant_entitlement(
 @router.post("/entitlements/{entitlement_id}/revoke", dependencies=[Depends(api_key_auth)])
 def revoke_entitlement(
     entitlement_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Revoke an entitlement by ID."""
     try:
@@ -148,7 +148,7 @@ def revoke_entitlement(
 @router.post("/sod/detect", dependencies=[Depends(api_key_auth)])
 def detect_sod_violations(
     req: DetectSodRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Detect SoD violations for a user against provided rules."""
     rules = [r.model_dump() for r in req.sod_rules]
@@ -163,7 +163,7 @@ def detect_sod_violations(
 def acknowledge_violation(
     violation_id: str,
     req: AcknowledgeViolationRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Acknowledge a SoD violation."""
     try:
@@ -179,7 +179,7 @@ def acknowledge_violation(
 @router.post("/roles", dependencies=[Depends(api_key_auth)])
 def create_role(
     req: CreateRoleRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new role definition."""
     try:
@@ -199,7 +199,7 @@ def create_role(
 def assign_role_to_user(
     role_id: str,
     req: AssignRoleRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Assign a role to a user (increments user_count, grants permissions)."""
     try:
@@ -215,7 +215,7 @@ def assign_role_to_user(
 @router.get("/users/{user_id}/entitlements", dependencies=[Depends(api_key_auth)])
 def get_user_entitlements(
     user_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(
         default=None, description="Filter: active | revoked | expired"
     ),
@@ -228,7 +228,7 @@ def get_user_entitlements(
 
 @router.get("/expiring", dependencies=[Depends(api_key_auth)])
 def get_expiring_entitlements(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     days_ahead: int = Query(
         default=30, ge=1, description="Look-ahead window in days"
     ),
@@ -241,7 +241,7 @@ def get_expiring_entitlements(
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
 def get_access_summary(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return access governance summary statistics."""
     return _get_engine().get_access_summary(org_id)

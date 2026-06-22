@@ -23,6 +23,7 @@ from core.breach_simulation import (
     get_breach_simulator,
 )
 from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
 
@@ -142,7 +143,7 @@ async def get_scenario_steps(scenario: str):
 @router.get("/scenarios/{scenario}/evaluate")
 async def evaluate_defenses(
     scenario: str,
-    org_id: str = Query(..., description="Organisation ID to evaluate defenses for"),
+    org_id: str = Depends(get_org_id),
 ):
     """Evaluate which defenses would trigger for a scenario without persisting."""
     try:

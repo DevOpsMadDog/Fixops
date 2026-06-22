@@ -17,7 +17,8 @@ from core.auto_evidence import (
     EvidenceSource,
     get_collector,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/v1/auto-evidence", tags=["auto-evidence"])
@@ -99,7 +100,7 @@ def collect_access_matrix(req: CollectRequest) -> AutoEvidence:
 
 @router.post("/collect/encryption-status", response_model=AutoEvidence)
 def collect_encryption_status(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     framework: str = Query("SOC2", description="Compliance framework"),
 ) -> AutoEvidence:
     """Pull FIPS encryption status as evidence."""
@@ -108,7 +109,7 @@ def collect_encryption_status(
 
 @router.post("/collect/backup-records", response_model=AutoEvidence)
 def collect_backup_records(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     framework: str = Query("SOC2", description="Compliance framework"),
 ) -> AutoEvidence:
     """Pull backup history as evidence."""
@@ -148,7 +149,7 @@ def verify_evidence(evidence_id: str) -> VerifyResponse:
 
 @router.get("/coverage", response_model=EvidenceCoverage)
 def get_coverage(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     framework: str = Query("SOC2", description="Compliance framework"),
 ) -> EvidenceCoverage:
     """Return evidence coverage report: which controls have fresh evidence."""
@@ -157,7 +158,7 @@ def get_coverage(
 
 @router.get("/", response_model=List[AutoEvidence])
 def list_evidence(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     framework: Optional[str] = Query(None, description="Filter by framework"),
     control_id: Optional[str] = Query(None, description="Filter by control ID"),
     source: Optional[EvidenceSource] = Query(None, description="Filter by evidence source"),

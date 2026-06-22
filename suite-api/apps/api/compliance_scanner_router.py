@@ -14,6 +14,7 @@ from typing import List, Optional
 from apps.api.auth_deps import api_key_auth
 from core.compliance_scanner_engine import ComplianceScannerEngine, ComplianceScanError
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -76,7 +77,7 @@ class UpdateTaskStatusRequest(BaseModel):
 
 
 @router.get("/", summary="Compliance scanner summary")
-def get_scanner_summary(org_id: str = Query(..., description="Organization identifier")) -> dict:
+def get_scanner_summary(org_id: str = Depends(get_org_id)) -> dict:
     """Return compliance scanner stats: profiles, results, checks, and task counts for an org."""
     try:
         return _get_engine().get_compliance_stats(org_id)

@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 
 from core.cloud_native_security_engine import get_engine
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ class MarkCompliantRequest(BaseModel):
 
 @router.get("/accounts")
 def list_accounts(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(None),
     _auth: bool = Depends(api_key_auth),
 ) -> List[Dict[str, Any]]:
@@ -88,7 +89,7 @@ def list_accounts(
 
 @router.post("/accounts", status_code=201)
 def register_account(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     body: RegisterAccountRequest = ...,
     _auth: bool = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -102,7 +103,7 @@ def register_account(
 
 @router.get("/misconfigurations")
 def list_misconfigurations(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(None),
     service: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
@@ -125,7 +126,7 @@ def list_misconfigurations(
 
 @router.post("/misconfigurations", status_code=201)
 def record_misconfiguration(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     body: RecordMisconfigRequest = ...,
     _auth: bool = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -140,7 +141,7 @@ def record_misconfiguration(
 @router.post("/misconfigurations/{finding_id}/mark-compliant")
 def mark_compliant(
     finding_id: str,
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     body: MarkCompliantRequest = ...,
     _auth: bool = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -161,7 +162,7 @@ def mark_compliant(
 @router.post("/accounts/{account_id}/posture-check")
 def run_posture_check(
     account_id: str,
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     _auth: bool = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Run a cloud posture check against an account."""
@@ -176,7 +177,7 @@ def run_posture_check(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     _auth: bool = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Get aggregate cloud security stats for an org."""

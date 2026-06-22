@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -106,7 +107,7 @@ class UpdateFindingStatusRequest(BaseModel):
 @router.post("/scans", dependencies=[Depends(api_key_auth)])
 def create_scan(
     req: CreateScanRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new vulnerability scan."""
     try:
@@ -127,7 +128,7 @@ def create_scan(
 
 @router.get("/scans", dependencies=[Depends(api_key_auth)])
 def list_scans(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     scanner_type: Optional[str] = Query(default=None),
     scan_status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -140,7 +141,7 @@ def list_scans(
 @router.get("/scans/{scan_id}", dependencies=[Depends(api_key_auth)])
 def get_scan(
     scan_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Retrieve a single scan by ID."""
     scan = _get_engine().get_scan(org_id, scan_id)
@@ -153,7 +154,7 @@ def get_scan(
 def update_scan_status(
     scan_id: str,
     req: UpdateScanStatusRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update scan status."""
     try:
@@ -170,7 +171,7 @@ def update_scan_status(
 def add_finding(
     scan_id: str,
     req: AddFindingRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a finding to a scan."""
     try:
@@ -196,7 +197,7 @@ def add_finding(
 
 @router.get("/findings", dependencies=[Depends(api_key_auth)])
 def list_findings(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     scan_id: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
     finding_status: Optional[str] = Query(default=None),
@@ -214,7 +215,7 @@ def list_findings(
 def update_finding_status(
     finding_id: str,
     req: UpdateFindingStatusRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update a finding's status."""
     try:
@@ -227,7 +228,7 @@ def update_finding_status(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_scan_stats(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate scan and finding statistics."""
     return _get_engine().get_scan_stats(org_id)

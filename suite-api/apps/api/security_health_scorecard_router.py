@@ -66,7 +66,7 @@ class SetTargetRequest(BaseModel):
 @router.post("/domains", dependencies=[Depends(api_key_auth)])
 def upsert_domain(
     req: UpsertDomainRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Upsert a scorecard domain. Status auto-computed from score/max_score ratio."""
     try:
@@ -84,7 +84,7 @@ def upsert_domain(
 
 @router.post("/snapshots", dependencies=[Depends(api_key_auth)])
 def take_snapshot(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Compute and persist a scorecard snapshot from current domain scores."""
     return _get_engine().take_snapshot(org_id)
@@ -93,7 +93,7 @@ def take_snapshot(
 @router.post("/targets", dependencies=[Depends(api_key_auth)])
 def set_target(
     req: SetTargetRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Upsert a score target for a domain."""
     return _get_engine().set_target(
@@ -108,7 +108,7 @@ def set_target(
 
 @router.get("/current", dependencies=[Depends(api_key_auth)])
 def get_current_scorecard(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return the latest snapshot plus all domains and targets."""
     return _get_engine().get_current_scorecard(org_id)
@@ -116,7 +116,7 @@ def get_current_scorecard(
 
 @router.get("/history", dependencies=[Depends(api_key_auth)])
 def get_snapshot_history(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(default=90, ge=1, le=730, description="Number of days to look back"),
 ) -> List[Dict[str, Any]]:
     """Return scorecard snapshots within the past N days."""
@@ -125,7 +125,7 @@ def get_snapshot_history(
 
 @router.get("/grade-trend", dependencies=[Depends(api_key_auth)])
 def get_grade_trend(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return chronological grade trend (date, grade, overall_score) per snapshot."""
     return _get_engine().get_grade_trend(org_id)
@@ -139,7 +139,7 @@ def get_root(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
 
 @router.get("/domains", dependencies=[Depends(api_key_auth)])
 def get_domains(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None, description="Filter by status: green | amber | red"),
 ) -> List[Dict[str, Any]]:
     """List scorecard domains, optionally filtered by status."""

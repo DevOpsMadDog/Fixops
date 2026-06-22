@@ -22,6 +22,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -212,7 +213,7 @@ def export_pbom(run_id: str) -> Dict[str, Any]:
     "/artifact/{sha256}/provenance", dependencies=[Depends(api_key_auth)]
 )
 def artifact_provenance(
-    sha256: str, org_id: str = Query(..., description="Organisation ID")
+    sha256: str, org_id: str = Depends(get_org_id)
 ) -> Dict[str, Any]:
     try:
         runs = _get_engine().find_runs_producing_artifact(
@@ -229,5 +230,5 @@ def artifact_provenance(
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def stats(org_id: str = Query(..., description="Organisation ID")) -> Dict[str, Any]:
+def stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().stats(org_id=org_id)

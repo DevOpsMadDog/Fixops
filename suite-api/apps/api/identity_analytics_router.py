@@ -67,7 +67,7 @@ class CreateCertificationRequest(BaseModel):
 
 @router.post("/identities")
 def register_identity(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     body: RegisterIdentityRequest = ...,
 ) -> Dict[str, Any]:
     """Register a new identity profile."""

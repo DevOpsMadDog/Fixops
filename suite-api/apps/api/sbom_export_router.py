@@ -158,14 +158,14 @@ def generate_spdx(req: GenerateRequest) -> Dict[str, Any]:
 
 
 @router.get("/projects", dependencies=[Depends(api_key_auth)])
-def list_projects(org_id: str = Query(..., description="Organisation ID")) -> list:
+def list_projects(org_id: str = Depends(get_org_id)) -> list:
     """List all projects with component counts."""
     return _get_engine().list_projects(org_id=org_id)
 
 
 @router.get("/diff", dependencies=[Depends(api_key_auth)])
 def diff_projects(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     left: Optional[str] = Query(None, description="Baseline project name"),
     right: Optional[str] = Query(None, description="Comparison project name"),
 ) -> Dict[str, Any]:
@@ -203,7 +203,7 @@ def diff_projects(
 @router.get("/projects/{project_name}/summary", dependencies=[Depends(api_key_auth)])
 def get_project_summary(
     project_name: str,
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return component count, vuln counts, ecosystem/license breakdown, latest export."""
     return _get_engine().get_project_summary(org_id=org_id, project_name=project_name)
@@ -212,7 +212,7 @@ def get_project_summary(
 @router.get("/projects/{project_name}/history", dependencies=[Depends(api_key_auth)])
 def get_export_history(
     project_name: str,
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> list:
     """Return SBOM export history for a project."""
     return _get_engine().get_export_history(org_id=org_id, project_name=project_name)
@@ -220,7 +220,7 @@ def get_export_history(
 
 @router.get("/search", dependencies=[Depends(api_key_auth)])
 def search_component(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     q: str = Query(..., description="Search query (name or purl)"),
 ) -> list:
     """Search components by name or purl."""
@@ -255,7 +255,7 @@ def list_formats() -> Dict[str, Any]:
 
 @router.get("/cyclonedx", dependencies=[Depends(api_key_auth)])
 def export_cyclonedx_get(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     project_name: str = Query(..., description="Project name"),
     version_tag: str = Query(default="1.0", description="SBOM version tag"),
     exported_by: str = Query(default="", description="Exporting user/system"),
@@ -274,7 +274,7 @@ def export_cyclonedx_get(
 
 @router.get("/spdx", dependencies=[Depends(api_key_auth)])
 def export_spdx_get(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     project_name: str = Query(..., description="Project name"),
     version_tag: str = Query(default="1.0", description="SBOM version tag"),
     exported_by: str = Query(default="", description="Exporting user/system"),

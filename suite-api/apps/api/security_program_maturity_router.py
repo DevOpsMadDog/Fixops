@@ -25,6 +25,7 @@ from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -105,7 +106,7 @@ def register_domain(req: RegisterDomainRequest) -> Dict[str, Any]:
 
 
 @router.get("/domains", summary="List all maturity domains for an org")
-def list_domains(org_id: str = Query(..., description="Organisation identifier")) -> List[Dict[str, Any]]:
+def list_domains(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     return _get_engine().list_domains(org_id=org_id)
 
 
@@ -147,7 +148,7 @@ def complete_assessment(assessment_id: str, req: CompleteAssessmentRequest) -> D
 
 
 @router.get("/assessments", summary="List assessments for an org")
-def list_assessments(org_id: str = Query(..., description="Organisation identifier")) -> List[Dict[str, Any]]:
+def list_assessments(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     return _get_engine().list_assessments(org_id=org_id)
 
 
@@ -179,15 +180,15 @@ def complete_improvement(improvement_id: str, req: CompleteImprovementRequest) -
 
 
 @router.get("/roadmap", summary="Get improvement roadmap ordered by priority then effort")
-def get_roadmap(org_id: str = Query(..., description="Organisation identifier")) -> List[Dict[str, Any]]:
+def get_roadmap(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     return _get_engine().get_roadmap(org_id=org_id)
 
 
 @router.get("/summary", summary="Get maturity summary for an org")
-def get_summary(org_id: str = Query(..., description="Organisation identifier")) -> Dict[str, Any]:
+def get_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().get_summary(org_id=org_id)
 
 
 @router.get("/profile", summary="Get full maturity profile with improvements per domain")
-def get_maturity_profile(org_id: str = Query(..., description="Organisation identifier")) -> List[Dict[str, Any]]:
+def get_maturity_profile(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     return _get_engine().get_maturity_profile(org_id=org_id)

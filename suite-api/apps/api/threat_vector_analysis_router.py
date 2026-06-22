@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -95,7 +96,7 @@ class CreateMitigationRequest(BaseModel):
 @router.post("/vectors", dependencies=[Depends(api_key_auth)])
 def record_vector(
     req: RecordVectorRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record a new threat vector."""
     try:
@@ -118,7 +119,7 @@ def record_vector(
 
 @router.get("/vectors", dependencies=[Depends(api_key_auth)])
 def list_vectors(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     vector_type: Optional[str] = Query(default=None),
     severity: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
@@ -132,7 +133,7 @@ def list_vectors(
 
 
 @router.post("/import-mitre", dependencies=[Depends(api_key_auth)])
-def import_mitre_techniques(org_id: str = Query(..., description="Organization ID")) -> Dict[str, Any]:
+def import_mitre_techniques(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Import MITRE ATT&CK techniques from STIX 2.1 bundle into the local DB.
 
     Downloads the enterprise-attack bundle from MITRE CTI GitHub (~10 MB),
@@ -195,7 +196,7 @@ def list_mitre_techniques(
 @router.get("/vectors/{vector_id}", dependencies=[Depends(api_key_auth)])
 def get_vector(
     vector_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Retrieve a single threat vector by ID."""
     vec = _get_engine().get_vector(org_id, vector_id)
@@ -208,7 +209,7 @@ def get_vector(
 def add_indicator(
     vector_id: str,
     req: AddIndicatorRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add an indicator to a threat vector."""
     try:
@@ -228,7 +229,7 @@ def add_indicator(
 
 @router.get("/indicators", dependencies=[Depends(api_key_auth)])
 def list_indicators(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     vector_id: Optional[str] = Query(default=None),
     indicator_type: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -242,7 +243,7 @@ def list_indicators(
 def create_mitigation(
     vector_id: str,
     req: CreateMitigationRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a mitigation plan for a threat vector."""
     try:
@@ -264,7 +265,7 @@ def create_mitigation(
 
 @router.get("/mitigations", dependencies=[Depends(api_key_auth)])
 def list_mitigations(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     vector_id: Optional[str] = Query(default=None),
     mitigation_status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -276,7 +277,7 @@ def list_mitigations(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_vector_stats(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate threat vector statistics."""
     return _get_engine().get_vector_stats(org_id)

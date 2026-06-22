@@ -69,7 +69,7 @@ class RiskCalculateRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/assets", dependencies=[Depends(api_key_auth)], status_code=201)
-def create_asset(body: AssetCreate, org_id: str = Query(..., description="Organisation ID")):
+def create_asset(body: AssetCreate, org_id: str = Depends(get_org_id)):
     """Register a new asset profile."""
     try:
         return _get_engine().register_asset(org_id, body.model_dump())

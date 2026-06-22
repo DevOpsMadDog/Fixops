@@ -17,6 +17,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -180,7 +181,7 @@ def heartbeat(session_id: str) -> Dict[str, Any]:
 
 @router.get("/sessions")
 def get_active_sessions(
-    org_id: str = Query(..., description="Organisation ID to filter sessions"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """List active IDE sessions for an organisation."""
     integration = _get_integration()
@@ -190,7 +191,7 @@ def get_active_sessions(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get aggregate IDE usage statistics for an organisation."""
     integration = _get_integration()
@@ -223,7 +224,7 @@ def findings_for_file(request: FindingsForFileRequest) -> Dict[str, Any]:
 
 @router.post("/project/summary")
 def project_summary(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return a project-level summary combining session stats and pattern catalogue."""
     integration = _get_integration()

@@ -15,6 +15,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -98,7 +99,7 @@ def run_full_scan(body: FullScanRequest) -> Dict[str, Any]:
 
 @router.get("/risks", summary="List external risks")
 def list_risks(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     risk_type: Optional[str] = Query(None, description="Filter by exposure type"),
     severity: Optional[str] = Query(None, description="Filter by severity"),
     limit: int = Query(100, ge=1, le=500, description="Max results"),
@@ -188,7 +189,7 @@ def get_certificates(domain: str) -> Dict[str, Any]:
 
 @router.get("/summary", summary="Aggregate risk summary for an org")
 def get_summary(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate DRP stats: total risks, breakdown by type and severity, recent findings."""
     engine = _get_engine()

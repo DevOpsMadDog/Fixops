@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 # Ensure suite-core is importable
@@ -129,7 +130,7 @@ async def get_playbook(playbook_id: str) -> Dict[str, Any]:
 @router.post("/{playbook_id}/install")
 async def install_playbook(
     playbook_id: str,
-    org_id: str = Query(..., description="Organisation ID to install into"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Install a playbook template into an organisation."""
     marketplace = _get_marketplace()

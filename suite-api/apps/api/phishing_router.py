@@ -195,7 +195,7 @@ def get_org_risk(org_id: str):
 @router.get("/users/susceptibility", response_model=Dict[str, Any])
 def get_user_susceptibility(
     email: str = Query(..., description="Employee email address"),
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ):
     """
     Return an individual employee's phishing susceptibility score (0.0–1.0).

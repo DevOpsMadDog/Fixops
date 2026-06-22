@@ -13,6 +13,7 @@ from typing import Any, Dict, Optional
 from apps.api.auth_deps import api_key_auth
 from core.password_policy_engine import PasswordPolicyEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -76,7 +77,7 @@ class AuditBody(BaseModel):
 
 @router.get("/policies")
 def list_policies(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: PasswordPolicyEngine = Depends(get_password_policy_engine),
     _: str = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -88,7 +89,7 @@ def list_policies(
 @router.post("/policies", status_code=201)
 def create_policy(
     body: PolicyBody,
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: PasswordPolicyEngine = Depends(get_password_policy_engine),
     _: str = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -106,7 +107,7 @@ def create_policy(
 def evaluate_password(
     policy_id: str,
     body: EvaluatePasswordBody,
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: PasswordPolicyEngine = Depends(get_password_policy_engine),
     _: str = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -125,7 +126,7 @@ def evaluate_password(
 
 @router.get("/violations")
 def list_violations(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None, description="Filter by status (open/remediated)"),
     engine: PasswordPolicyEngine = Depends(get_password_policy_engine),
     _: str = Depends(api_key_auth),
@@ -138,7 +139,7 @@ def list_violations(
 @router.post("/violations", status_code=201)
 def create_violation(
     body: ViolationBody,
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: PasswordPolicyEngine = Depends(get_password_policy_engine),
     _: str = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -150,7 +151,7 @@ def create_violation(
 @router.post("/violations/{violation_id}/remediate")
 def remediate_violation(
     violation_id: str,
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: PasswordPolicyEngine = Depends(get_password_policy_engine),
     _: str = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -168,7 +169,7 @@ def remediate_violation(
 
 @router.get("/audits")
 def list_audits(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: PasswordPolicyEngine = Depends(get_password_policy_engine),
     _: str = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -180,7 +181,7 @@ def list_audits(
 @router.post("/audits", status_code=201)
 def record_audit(
     body: AuditBody,
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: PasswordPolicyEngine = Depends(get_password_policy_engine),
     _: str = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -202,7 +203,7 @@ def record_audit(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: PasswordPolicyEngine = Depends(get_password_policy_engine),
     _: str = Depends(api_key_auth),
 ) -> Dict[str, Any]:

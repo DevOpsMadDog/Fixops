@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -112,7 +113,7 @@ class BenchmarkIn(BaseModel):
 @router.post("/accounts", summary="Register a cloud account")
 def add_account(
     body: AccountIn,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     try:
@@ -123,7 +124,7 @@ def add_account(
 
 @router.get("/accounts", summary="List cloud accounts")
 def list_accounts(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     provider: Optional[str] = Query(None, description="Filter by provider"),
 ) -> List[Dict[str, Any]]:
     engine = _get_engine(org_id)
@@ -137,7 +138,7 @@ def list_accounts(
 @router.post("/findings", summary="Create a cloud security finding")
 def add_finding(
     body: FindingIn,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     try:
@@ -148,7 +149,7 @@ def add_finding(
 
 @router.get("/findings", summary="List cloud security findings")
 def list_findings(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     account_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
@@ -169,7 +170,7 @@ def list_findings(
 @router.patch("/findings/{finding_id}/resolve", summary="Resolve a cloud finding")
 def resolve_finding(
     finding_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     updated = engine.resolve_finding(org_id, finding_id)
@@ -185,7 +186,7 @@ def resolve_finding(
 @router.post("/resources", summary="Register a cloud resource")
 def add_resource(
     body: ResourceIn,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     try:
@@ -196,7 +197,7 @@ def add_resource(
 
 @router.get("/resources", summary="List cloud resources")
 def list_resources(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     account_id: Optional[str] = Query(None),
     is_public: Optional[bool] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -211,7 +212,7 @@ def list_resources(
 @router.post("/benchmarks", summary="Save a benchmark run result")
 def add_benchmark_result(
     body: BenchmarkIn,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     try:
@@ -222,7 +223,7 @@ def add_benchmark_result(
 
 @router.get("/benchmarks", summary="List benchmark results")
 def list_benchmarks(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     account_id: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     engine = _get_engine(org_id)
@@ -235,7 +236,7 @@ def list_benchmarks(
 
 @router.get("/stats", summary="Get cloud security stats for org")
 def get_cloud_stats(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     return engine.get_cloud_stats(org_id)

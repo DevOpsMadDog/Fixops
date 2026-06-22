@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -98,7 +99,7 @@ class BulkAssignRequest(BaseModel):
 @router.post("/tags", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_tag(
     body: TagCreate,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new asset tag."""
     try:
@@ -109,7 +110,7 @@ def create_tag(
 
 @router.get("/tags", dependencies=[Depends(api_key_auth)])
 def list_tags(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     tag_category: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
     """List tags with optional category filter."""
@@ -119,7 +120,7 @@ def list_tags(
 @router.get("/tags/{tag_id}", dependencies=[Depends(api_key_auth)])
 def get_tag(
     tag_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Retrieve a single tag by ID."""
     tag = _get_engine().get_tag(org_id, tag_id)
@@ -135,7 +136,7 @@ def get_tag(
 @router.post("/assets", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_asset(
     body: AssetRegister,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Register a new asset."""
     try:
@@ -146,7 +147,7 @@ def register_asset(
 
 @router.get("/assets", dependencies=[Depends(api_key_auth)])
 def list_assets(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     asset_type: Optional[str] = Query(default=None),
     criticality: Optional[str] = Query(default=None),
     environment: Optional[str] = Query(default=None),
@@ -163,7 +164,7 @@ def list_assets(
 @router.get("/assets/{asset_id}", dependencies=[Depends(api_key_auth)])
 def get_asset(
     asset_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Retrieve a single asset by asset_id."""
     asset = _get_engine().get_asset(org_id, asset_id)
@@ -180,7 +181,7 @@ def get_asset(
 def assign_tag(
     asset_id: str,
     body: AssignTagRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Assign a tag to an asset."""
     try:
@@ -196,7 +197,7 @@ def assign_tag(
 @router.get("/assets/{asset_id}/tags", dependencies=[Depends(api_key_auth)])
 def list_asset_tags(
     asset_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all tags assigned to an asset."""
     return _get_engine().list_asset_tags(org_id, asset_id)
@@ -205,7 +206,7 @@ def list_asset_tags(
 @router.post("/bulk-assign", dependencies=[Depends(api_key_auth)], status_code=201)
 def bulk_tag_assets(
     body: BulkAssignRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Assign a tag to multiple assets at once."""
     return _get_engine().bulk_tag_assets(
@@ -219,7 +220,7 @@ def bulk_tag_assets(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_tag_stats(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregated asset tagging statistics."""
     return _get_engine().get_tag_stats(org_id)

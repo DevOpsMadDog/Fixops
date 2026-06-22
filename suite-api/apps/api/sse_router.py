@@ -21,6 +21,7 @@ from typing import AsyncGenerator, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, Query, Request
+from apps.api.dependencies import get_org_id  # SPEC-034
 from fastapi.responses import StreamingResponse
 
 _logger = logging.getLogger(__name__)
@@ -201,7 +202,7 @@ async def _sse_generator(
 )
 async def stream_events(
     request: Request,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     event_type: Optional[str] = Query(
         default=None,
         description="Filter by event type: alert | finding | incident | anomaly | audit",

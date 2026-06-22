@@ -21,7 +21,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -195,21 +196,21 @@ def record_spend(req: RecordSpendRequest) -> Dict[str, Any]:
 
 
 @router.get("/portfolio", summary="Get portfolio summary")
-def get_portfolio_summary(org_id: str = Query(..., description="Organisation ID")) -> Dict[str, Any]:
+def get_portfolio_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     return _get_engine().get_portfolio_summary(org_id=org_id)
 
 
 @router.get("/budgets/{fiscal_year}", summary="Get budget utilization for a fiscal year")
 def get_budget_utilization(
     fiscal_year: str,
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     return _get_engine().get_budget_utilization(org_id=org_id, fiscal_year=fiscal_year)
 
 
 @router.get("/investments", summary="List investments")
 def list_investments(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None, description="Filter by status"),
     investment_category: Optional[str] = Query(default=None, description="Filter by category"),
 ) -> List[Dict[str, Any]]:

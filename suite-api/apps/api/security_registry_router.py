@@ -103,7 +103,7 @@ class ReferenceCreate(BaseModel):
 @router.post("/artifacts", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_artifact(
     body: ArtifactRegister,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Register a new security artifact."""
     try:
@@ -114,7 +114,7 @@ def register_artifact(
 
 @router.get("/artifacts", dependencies=[Depends(api_key_auth)])
 def list_artifacts(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     artifact_type: Optional[str] = Query(default=None),
     artifact_status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -129,7 +129,7 @@ def list_artifacts(
 @router.get("/artifacts/{artifact_id}", dependencies=[Depends(api_key_auth)])
 def get_artifact(
     artifact_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Retrieve a single artifact by ID."""
     artifact = _get_engine().get_artifact(org_id, artifact_id)
@@ -142,7 +142,7 @@ def get_artifact(
 def update_artifact_status(
     artifact_id: str,
     body: ArtifactStatusUpdate,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update the status of an artifact."""
     try:
@@ -161,7 +161,7 @@ def update_artifact_status(
 def record_review(
     artifact_id: str,
     body: ReviewCreate,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record a review for an artifact."""
     try:
@@ -172,7 +172,7 @@ def record_review(
 
 @router.get("/reviews", dependencies=[Depends(api_key_auth)])
 def list_reviews(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     artifact_id: Optional[str] = Query(default=None),
     review_outcome: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -192,7 +192,7 @@ def list_reviews(
 def add_reference(
     artifact_id: str,
     body: ReferenceCreate,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a cross-reference between two artifacts."""
     try:
@@ -206,7 +206,7 @@ def add_reference(
 @router.get("/artifacts/{artifact_id}/references", dependencies=[Depends(api_key_auth)])
 def list_references(
     artifact_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all references for an artifact."""
     return _get_engine().list_references(org_id, artifact_id)
@@ -218,7 +218,7 @@ def list_references(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_registry_stats(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregated security registry statistics."""
     return _get_engine().get_registry_stats(org_id)

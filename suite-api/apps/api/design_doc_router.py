@@ -27,6 +27,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -137,7 +138,7 @@ async def extract_stride(req: ExtractRequest) -> Dict[str, Any]:
 
 
 @router.get("/ingests", response_model=List[Dict[str, Any]])
-async def list_ingests(org_id: str = Query(..., description="Org id")) -> List[Dict[str, Any]]:
+async def list_ingests(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     try:
         return _get_tme().list_ingested_docs(org_id=org_id)
     except ValueError as exc:
@@ -179,7 +180,7 @@ async def auto_model(req: AutoModelRequest) -> Dict[str, Any]:
 
 @router.get("/stride", response_model=List[Dict[str, Any]])
 async def list_stride(
-    org_id: str = Query(..., description="Org id"),
+    org_id: str = Depends(get_org_id),
     doc_ingest_id: Optional[str] = Query(None, description="Filter by ingest id"),
 ) -> List[Dict[str, Any]]:
     try:

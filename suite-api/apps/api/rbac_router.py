@@ -16,7 +16,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from core.rbac_engine import ROLES, RBACEngine
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -126,7 +127,7 @@ async def revoke_role(body: RevokeRoleRequest) -> Dict[str, Any]:
 )
 async def get_user_roles(
     user_id: str,
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     roles = _get_engine().get_user_roles(user_id=user_id, org_id=org_id)
     return {"user_id": user_id, "org_id": org_id, "roles": roles}
@@ -139,7 +140,7 @@ async def get_user_roles(
 )
 async def get_user_scopes(
     user_id: str,
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     scopes = _get_engine().get_user_scopes(user_id=user_id, org_id=org_id)
     return {"user_id": user_id, "org_id": org_id, "scopes": scopes}

@@ -35,6 +35,7 @@ from urllib.parse import urlparse
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field, field_validator
 
 _logger = logging.getLogger(__name__)
@@ -427,7 +428,7 @@ async def register_webhook(req: RegisterWebhookRequest) -> Dict[str, Any]:
 
 @router.get("", summary="List registered webhooks")
 async def list_webhooks(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     active_only: bool = Query(default=True, description="Return only active webhooks"),
 ) -> Dict[str, Any]:
     """List all registered webhooks for an organization."""
@@ -456,7 +457,7 @@ async def list_webhooks(
 @router.delete("/{webhook_id}", summary="Remove a webhook")
 async def delete_webhook(
     webhook_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Permanently remove a registered webhook."""
     try:
@@ -481,7 +482,7 @@ async def delete_webhook(
 @router.post("/test/{webhook_id}", summary="Send test payload to a webhook")
 async def test_webhook(
     webhook_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Send a test payload to verify the webhook endpoint is reachable."""
     try:

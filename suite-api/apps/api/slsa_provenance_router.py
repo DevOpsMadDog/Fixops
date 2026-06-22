@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -138,7 +139,7 @@ def verify_attestation(
 
 @router.get("/attestations", dependencies=[Depends(api_key_auth)])
 def list_attestations(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     subject_name: Optional[str] = Query(default=None, description="Filter by subject name"),
     builder_id: Optional[str] = Query(default=None, description="Filter by builder id"),
 ) -> List[Dict[str, Any]]:
@@ -163,7 +164,7 @@ def get_attestation(attestation_id: str) -> Dict[str, Any]:
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-def stats(org_id: str = Query(..., description="Organisation ID")) -> Dict[str, Any]:
+def stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate stats: counts by SLSA level + verification pass/fail rate."""
     try:
         return _get_engine().stats(org_id=org_id)

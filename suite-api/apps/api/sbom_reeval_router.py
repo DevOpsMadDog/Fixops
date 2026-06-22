@@ -22,6 +22,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -91,7 +92,7 @@ async def schedule_reeval(req: ScheduleReevalRequest) -> Dict[str, Any]:
 
 @router.get("/schedules")
 async def list_reeval_schedules(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     enabled: Optional[bool] = Query(default=None),
 ) -> Dict[str, Any]:
     """List re-eval schedules for an org; optionally filter by enabled flag."""
@@ -137,7 +138,7 @@ async def register_component_claim(req: ComponentClaimRequest) -> Dict[str, Any]
 
 @router.get("/component-claims")
 async def list_component_claims(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     purl: Optional[str] = Query(default=None, description="Filter by purl"),
 ) -> Dict[str, Any]:
     """List component claims; optionally filter by purl."""
@@ -152,7 +153,7 @@ async def list_component_claims(
 
 @router.get("/stats")
 async def sbom_reeval_stats(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return reeval + claim stats for an org."""
     eng = _get_engine()
@@ -175,7 +176,7 @@ async def sbom_reeval_stats(
 
 @router.get("/")
 async def sbom_reeval_overview(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Top-level SBOM re-eval overview: schedule counts and component claim summary."""
     eng = _get_engine()

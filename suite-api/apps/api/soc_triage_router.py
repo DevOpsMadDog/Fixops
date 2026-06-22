@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -120,7 +121,7 @@ def ingest_alert(
 
 @router.get("/alerts", summary="List alerts with optional filters")
 def list_alerts(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     classification: Optional[str] = Query(None),
@@ -135,7 +136,7 @@ def list_alerts(
 @router.get("/alerts/{alert_id}", summary="Retrieve a single alert")
 def get_alert(
     alert_id: str,
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     _auth: None = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     engine = _engine_for(org_id)
@@ -169,7 +170,7 @@ def update_verdict(
 
 @router.get("/stats", summary="Get triage statistics for an org")
 def get_triage_stats(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     _auth: None = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     engine = _engine_for(org_id)
@@ -178,7 +179,7 @@ def get_triage_stats(
 
 @router.get("/metrics", summary="Get daily triage metrics")
 def get_daily_metrics(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     days: int = Query(30, ge=1, le=365),
     _auth: None = Depends(api_key_auth),
 ) -> List[Dict[str, Any]]:
@@ -204,7 +205,7 @@ def create_rule(
 
 @router.get("/rules", summary="List triage rules for an org")
 def list_rules(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     _auth: None = Depends(api_key_auth),
 ) -> List[Dict[str, Any]]:
     engine = _engine_for(org_id)
@@ -230,7 +231,7 @@ def start_session(
 @router.post("/sessions/{session_id}/close", summary="Close a triage session")
 def close_session(
     session_id: str,
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     _auth: None = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     engine = _engine_for(org_id)

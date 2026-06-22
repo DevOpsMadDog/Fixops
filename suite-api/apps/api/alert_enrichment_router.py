@@ -112,7 +112,7 @@ def list_alert_enrichment(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
 @router.post("/alerts", dependencies=[Depends(api_key_auth)], status_code=201)
 def submit_alert(
     req: SubmitAlertRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Submit an alert for enrichment. Deduplicates on alert_id per org."""
     try:
@@ -132,7 +132,7 @@ def submit_alert(
 def enrich_alert(
     alert_id: str,
     req: EnrichAlertRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record an enrichment result for an alert."""
     try:
@@ -155,7 +155,7 @@ def enrich_alert(
 def mark_failed(
     alert_id: str,
     req: MarkFailedRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Mark enrichment as failed for an alert from a specific source."""
     try:
@@ -173,7 +173,7 @@ def mark_failed(
 def add_context(
     alert_id: str,
     req: AddContextRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update threat and asset context for an alert."""
     try:
@@ -190,7 +190,7 @@ def add_context(
 @router.post("/sources", dependencies=[Depends(api_key_auth)], status_code=201)
 def register_source(
     req: RegisterSourceRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Register an enrichment source. API key stored as SHA-256 hash."""
     try:
@@ -209,7 +209,7 @@ def register_source(
 def toggle_source(
     source_id: str,
     req: ToggleSourceRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Enable or disable an enrichment source."""
     try:
@@ -224,7 +224,7 @@ def toggle_source(
 
 @router.get("/queue", dependencies=[Depends(api_key_auth)])
 def get_enrichment_queue(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return pending alerts ordered by severity (critical first), then created_at."""
     return _get_engine().get_enrichment_queue(org_id)
@@ -233,7 +233,7 @@ def get_enrichment_queue(
 @router.get("/alerts/{alert_id}", dependencies=[Depends(api_key_auth)])
 def get_alert_detail(
     alert_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return enriched alert record plus enrichment history."""
     detail = _get_engine().get_alert_detail(alert_id, org_id)
@@ -244,7 +244,7 @@ def get_alert_detail(
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
 def get_enrichment_summary(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return enrichment summary statistics."""
     return _get_engine().get_enrichment_summary(org_id)
@@ -252,7 +252,7 @@ def get_enrichment_summary(
 
 @router.get("/high-risk", dependencies=[Depends(api_key_auth)])
 def get_high_risk_alerts(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     min_risk: float = Query(default=7.0, ge=0.0, description="Minimum risk score threshold"),
 ) -> List[Dict[str, Any]]:
     """Return enriched alerts with risk_score >= min_risk."""

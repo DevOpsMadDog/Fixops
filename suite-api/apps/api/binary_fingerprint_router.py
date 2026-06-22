@@ -22,6 +22,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -185,7 +186,7 @@ def check_known_bad(body: CheckBadBody) -> Dict[str, Any]:
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def stats(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return fingerprint counters for an org."""
     try:

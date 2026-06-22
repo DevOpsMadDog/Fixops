@@ -86,7 +86,7 @@ def list_compliance_calendar(org_id: str = Depends(get_org_id)) -> Dict[str, Any
 @router.post("/events", dependencies=[Depends(api_key_auth)])
 def create_event(
     req: CreateEventRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a compliance calendar event. Auto-creates a reminder record."""
     try:
@@ -109,7 +109,7 @@ def create_event(
 @router.post("/events/{event_id}/complete", dependencies=[Depends(api_key_auth)])
 def complete_event(
     event_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Mark a compliance event as completed. Creates next occurrence if recurring."""
     try:
@@ -122,7 +122,7 @@ def complete_event(
 
 @router.get("/upcoming", dependencies=[Depends(api_key_auth)])
 def get_upcoming_events(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     days_ahead: int = Query(default=30, ge=1, le=365),
 ) -> List[Dict[str, Any]]:
     """Return events due within the next N days."""
@@ -131,7 +131,7 @@ def get_upcoming_events(
 
 @router.get("/overdue", dependencies=[Depends(api_key_auth)])
 def get_overdue_events(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return events that are past their due_date and still upcoming."""
     return _get_engine().get_overdue_events(org_id)
@@ -140,7 +140,7 @@ def get_overdue_events(
 @router.post("/reminders/{reminder_id}/sent", dependencies=[Depends(api_key_auth)])
 def mark_reminder_sent(
     reminder_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Mark a reminder as sent."""
     try:
@@ -151,7 +151,7 @@ def mark_reminder_sent(
 
 @router.get("/reminders/due", dependencies=[Depends(api_key_auth)])
 def get_due_reminders(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return unsent reminders whose reminder_date is today or earlier."""
     return _get_engine().get_due_reminders(org_id)
@@ -160,7 +160,7 @@ def get_due_reminders(
 @router.post("/views", dependencies=[Depends(api_key_auth)])
 def create_view(
     req: CreateViewRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a named calendar view with framework/event_type filters."""
     return _get_engine().create_view(
@@ -174,7 +174,7 @@ def create_view(
 @router.get("/framework/{framework}", dependencies=[Depends(api_key_auth)])
 def get_events_by_framework(
     framework: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all events for a specific compliance framework."""
     return _get_engine().get_events_by_framework(org_id, framework)
@@ -182,7 +182,7 @@ def get_events_by_framework(
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
 def get_calendar_summary(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return calendar summary: upcoming/overdue counts, by_framework, by_type."""
     return _get_engine().get_calendar_summary(org_id)

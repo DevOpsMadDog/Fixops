@@ -96,7 +96,7 @@ def list_posture_trends(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
 @router.post("/datapoints", dependencies=[Depends(api_key_auth)])
 def record_datapoint(
     req: RecordDatapointRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Record a new security posture data point."""
     try:
@@ -116,7 +116,7 @@ def record_datapoint(
 def analyze_trend(
     metric_name: str,
     req: AnalyzeTrendRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Run trend analysis for a metric over the given period."""
     try:
@@ -131,7 +131,7 @@ def analyze_trend(
 
 @router.get("/trends", dependencies=[Depends(api_key_auth)])
 def list_trends(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     trend_label: Optional[str] = Query(
         default=None,
         description="Filter by: improving | declining | stable",
@@ -144,7 +144,7 @@ def list_trends(
 @router.get("/trends/{metric_name}", dependencies=[Depends(api_key_auth)])
 def get_trend(
     metric_name: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get the latest trend analysis for a specific metric."""
     trend = _get_engine().get_trend(org_id, metric_name)
@@ -159,7 +159,7 @@ def get_trend(
 @router.post("/targets", dependencies=[Depends(api_key_auth)])
 def set_target(
     req: SetTargetRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Set or update a posture target for a metric."""
     return _get_engine().set_target(
@@ -175,7 +175,7 @@ def set_target(
 def update_target_progress(
     metric_name: str,
     req: UpdateProgressRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update the current value and recompute gap/ETA for a target."""
     try:
@@ -190,7 +190,7 @@ def update_target_progress(
 
 @router.get("/targets", dependencies=[Depends(api_key_auth)])
 def get_targets(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all posture targets with on_track boolean."""
     return _get_engine().get_targets(org_id)
@@ -198,7 +198,7 @@ def get_targets(
 
 @router.get("/stagnating", dependencies=[Depends(api_key_auth)])
 def get_stagnating_metrics(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     threshold_days: int = Query(
         default=30, ge=1, description="Days without datapoints to be considered stagnating"
     ),
@@ -209,7 +209,7 @@ def get_stagnating_metrics(
 
 @router.get("/velocity-summary", dependencies=[Depends(api_key_auth)])
 def get_posture_velocity_summary(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return avg velocity per category plus fastest improving/declining metrics."""
     return _get_engine().get_posture_velocity_summary(org_id)

@@ -104,7 +104,7 @@ def list_security_baselines(org_id: str = Depends(get_org_id)) -> Dict[str, Any]
 @router.post("/baselines", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_baseline(
     req: CreateBaselineRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new security baseline in draft status."""
     try:
@@ -124,7 +124,7 @@ def create_baseline(
 def add_control(
     baseline_id: str,
     req: AddControlRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a control to a baseline."""
     try:
@@ -148,7 +148,7 @@ def add_control(
 @router.put("/baselines/{baseline_id}/publish", dependencies=[Depends(api_key_auth)])
 def publish_baseline(
     baseline_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Publish a baseline (status=active, published_at=now)."""
     try:
@@ -161,7 +161,7 @@ def publish_baseline(
 def run_assessment(
     baseline_id: str,
     req: RunAssessmentRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Run a baseline assessment against a target system."""
     try:
@@ -180,7 +180,7 @@ def run_assessment(
 @router.get("/baselines/{baseline_id}", dependencies=[Depends(api_key_auth)])
 def get_baseline_detail(
     baseline_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return baseline detail with controls and last 5 assessments."""
     detail = _get_engine().get_baseline_detail(baseline_id, org_id)
@@ -192,7 +192,7 @@ def get_baseline_detail(
 @router.get("/baselines/{baseline_id}/drift", dependencies=[Depends(api_key_auth)])
 def get_drift_report(
     baseline_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Compare last 2 assessments to detect control drift."""
     try:
@@ -204,7 +204,7 @@ def get_drift_report(
 @router.get("/baselines/{baseline_id}/trend", dependencies=[Depends(api_key_auth)])
 def get_compliance_trend(
     baseline_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return compliance trend across all assessments."""
     try:
@@ -215,7 +215,7 @@ def get_compliance_trend(
 
 @router.get("/baselines", dependencies=[Depends(api_key_auth)])
 def list_baselines(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None, description="draft | active | deprecated"),
 ) -> List[Dict[str, Any]]:
     """List baselines for an org, optionally filtered by status."""

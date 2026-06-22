@@ -106,7 +106,7 @@ class AddThreatRequest(BaseModel):
 @router.post("/briefs", dependencies=[Depends(api_key_auth)])
 def create_brief(
     req: CreateBriefRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new threat brief."""
     try:
@@ -131,7 +131,7 @@ def create_brief(
 
 @router.get("/briefs", dependencies=[Depends(api_key_auth)])
 def list_briefs(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     brief_type: Optional[str] = Query(default=None),
     distribution_status: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -146,7 +146,7 @@ def list_briefs(
 @router.get("/briefs/{brief_id}", dependencies=[Depends(api_key_auth)])
 def get_brief(
     brief_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Retrieve a single threat brief by ID."""
     brief = _get_engine().get_brief(org_id, brief_id)
@@ -159,7 +159,7 @@ def get_brief(
 def distribute_brief(
     brief_id: str,
     req: DistributeBriefRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Distribute a brief to a list of recipients."""
     try:
@@ -180,7 +180,7 @@ def distribute_brief(
 
 @router.get("/recipients", dependencies=[Depends(api_key_auth)])
 def list_recipients(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     brief_id: Optional[str] = Query(default=None),
     recipient_type: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
@@ -196,7 +196,7 @@ def list_recipients(
 def add_threat(
     brief_id: str,
     req: AddThreatRequest,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a threat record to a brief."""
     try:
@@ -218,7 +218,7 @@ def add_threat(
 
 @router.get("/threats", dependencies=[Depends(api_key_auth)])
 def list_threats(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     brief_id: Optional[str] = Query(default=None),
 ) -> List[Dict[str, Any]]:
     """List threat records with optional brief_id filter."""
@@ -227,7 +227,7 @@ def list_threats(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_brief_stats(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregate threat brief statistics."""
     return _get_engine().get_brief_stats(org_id)

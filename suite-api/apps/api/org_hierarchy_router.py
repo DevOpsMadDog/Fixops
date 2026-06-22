@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -78,7 +79,7 @@ class ParentUpdate(BaseModel):
 @router.post("", dependencies=[Depends(api_key_auth)], status_code=201)
 def create_org(
     body: OrgCreate,
-    org_id: str = Query(..., description="Tenant ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create an organisation node."""
     try:
@@ -92,7 +93,7 @@ def create_org(
 @router.get("/{pk}/children", dependencies=[Depends(api_key_auth)])
 def list_children(
     pk: str,
-    org_id: str = Query(..., description="Tenant ID"),
+    org_id: str = Depends(get_org_id),
     depth: int = Query(default=5, ge=1, le=50, description="Max BFS depth"),
 ) -> List[Dict[str, Any]]:
     """BFS — list descendants up to the given depth."""
@@ -109,7 +110,7 @@ def list_children(
 @router.get("/{pk}/ancestors", dependencies=[Depends(api_key_auth)])
 def get_ancestors(
     pk: str,
-    org_id: str = Query(..., description="Tenant ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Walk up — return ancestors, immediate parent first."""
     try:
@@ -127,7 +128,7 @@ def get_ancestors(
 def attach_policy(
     pk: str,
     body: PolicyAttach,
-    org_id: str = Query(..., description="Tenant ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Attach a policy ref to an org node (idempotent)."""
     try:
@@ -142,7 +143,7 @@ def attach_policy(
 def attach_waiver(
     pk: str,
     body: WaiverAttach,
-    org_id: str = Query(..., description="Tenant ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Attach a waiver ref to an org node (idempotent)."""
     try:
@@ -154,7 +155,7 @@ def attach_waiver(
 @router.get("/{pk}/effective-policies", dependencies=[Depends(api_key_auth)])
 def effective_policies(
     pk: str,
-    org_id: str = Query(..., description="Tenant ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return union of own + inherited policies from all ancestors."""
     try:
@@ -169,7 +170,7 @@ def effective_policies(
 @router.get("/{pk}/effective-waivers", dependencies=[Depends(api_key_auth)])
 def effective_waivers(
     pk: str,
-    org_id: str = Query(..., description="Tenant ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return union of own + inherited waivers from all ancestors."""
     try:
@@ -182,7 +183,7 @@ def effective_waivers(
 def move_org(
     pk: str,
     body: ParentUpdate,
-    org_id: str = Query(..., description="Tenant ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Re-parent an org, with cycle detection."""
     try:
@@ -194,7 +195,7 @@ def move_org(
 @router.delete("/{pk}", dependencies=[Depends(api_key_auth)])
 def delete_org(
     pk: str,
-    org_id: str = Query(..., description="Tenant ID"),
+    org_id: str = Depends(get_org_id),
     cascade: bool = Query(
         default=False, description="If True, cascades to delete all descendants"
     ),

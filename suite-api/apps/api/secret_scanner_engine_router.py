@@ -27,6 +27,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -167,7 +168,7 @@ class SuppressionCreate(BaseModel):
 @router.post("/jobs", dependencies=[Depends(api_key_auth)])
 def create_scan_job(
     payload: ScanJobCreate,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new scan job in pending state."""
     engine = _get_engine(org_id)
@@ -179,7 +180,7 @@ def create_scan_job(
 
 @router.get("/jobs", dependencies=[Depends(api_key_auth)])
 def list_scan_jobs(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     target_type: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -191,7 +192,7 @@ def list_scan_jobs(
 @router.get("/jobs/{job_id}", dependencies=[Depends(api_key_auth)])
 def get_scan_job(
     job_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get a scan job with its findings."""
     engine = _get_engine(org_id)
@@ -204,7 +205,7 @@ def get_scan_job(
 @router.post("/jobs/{job_id}/start", dependencies=[Depends(api_key_auth)])
 def start_scan(
     job_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Start a pending scan job (runs simulation synchronously).
 
@@ -232,7 +233,7 @@ def start_scan(
 
 @router.get("/findings", dependencies=[Depends(api_key_auth)])
 def list_findings(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     secret_type: Optional[str] = Query(None),
@@ -253,7 +254,7 @@ def list_findings(
 def update_finding(
     finding_id: str,
     payload: FindingUpdate,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update finding status and optional notes."""
     engine = _get_engine(org_id)
@@ -270,7 +271,7 @@ def update_finding(
 def validate_finding(
     finding_id: str,
     payload: FindingValidate,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Validate a finding as confirmed or false_positive."""
     engine = _get_engine(org_id)
@@ -284,7 +285,7 @@ def validate_finding(
 @router.post("/engine-patterns", dependencies=[Depends(api_key_auth)])
 def create_pattern(
     payload: PatternCreate,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a custom detection pattern."""
     engine = _get_engine(org_id)
@@ -296,7 +297,7 @@ def create_pattern(
 
 @router.get("/engine-patterns", dependencies=[Depends(api_key_auth)])
 def list_patterns(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all detection patterns for org."""
     engine = _get_engine(org_id)
@@ -306,7 +307,7 @@ def list_patterns(
 @router.post("/suppressions", dependencies=[Depends(api_key_auth)])
 def add_suppression(
     payload: SuppressionCreate,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a suppression rule for a file pattern + secret type."""
     engine = _get_engine(org_id)
@@ -318,7 +319,7 @@ def add_suppression(
 
 @router.get("/suppressions", dependencies=[Depends(api_key_auth)])
 def list_suppressions(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List all suppression rules for org."""
     engine = _get_engine(org_id)
@@ -327,7 +328,7 @@ def list_suppressions(
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def get_scanner_stats(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregated scanner stats for org."""
     engine = _get_engine(org_id)

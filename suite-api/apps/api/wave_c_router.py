@@ -622,7 +622,7 @@ def pbom_record_step(body: PBOMRecordStepRequest) -> Dict[str, Any]:
 )
 def pbom_artifact_propagation(
     digest: str = PathParam(..., min_length=8, description="Artifact sha256"),
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Walk all runs that produced an artifact, plus deployment targets.
 

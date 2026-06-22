@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -107,7 +108,7 @@ class RBACAnalysisRequest(BaseModel):
 @router.get("")
 @router.get("/")
 def get_kubernetes_posture_summary(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     _auth: bool = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """
@@ -140,7 +141,7 @@ def get_kubernetes_posture_summary(
 
 @router.get("/clusters")
 def list_clusters(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     _auth: bool = Depends(api_key_auth),
 ) -> List[Dict[str, Any]]:
     """List Kubernetes clusters for an org."""
@@ -153,7 +154,7 @@ def list_clusters(
 
 @router.post("/clusters", status_code=201)
 def register_cluster(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     body: RegisterClusterRequest = ...,
     _auth: bool = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -169,7 +170,7 @@ def register_cluster(
 def run_cis_benchmark(
     cluster_id: str,
     body: CISBenchmarkRequest,
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     _auth: bool = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Run a real checkov CIS Kubernetes Benchmark scan against manifest_path.
@@ -199,7 +200,7 @@ def get_rbac_analysis(
         ...,
         description="Path to directory or YAML file containing K8s RBAC manifests",
     ),
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     _auth: bool = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Perform real static RBAC analysis against K8s YAML manifests.
@@ -230,7 +231,7 @@ def get_rbac_analysis(
 
 @router.get("/findings")
 def list_findings(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     cluster_id: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     finding_type: Optional[str] = Query(None),
@@ -253,7 +254,7 @@ def list_findings(
 
 @router.post("/findings", status_code=201)
 def record_finding(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     body: RecordFindingRequest = ...,
     _auth: bool = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -268,7 +269,7 @@ def record_finding(
 @router.post("/findings/{finding_id}/resolve")
 def resolve_finding(
     finding_id: str,
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     body: ResolveFindingRequest = ...,
     _auth: bool = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -293,7 +294,7 @@ def resolve_finding(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     _auth: bool = Depends(api_key_auth),
 ) -> Dict[str, Any]:
     """Get aggregate Kubernetes security stats for an org."""

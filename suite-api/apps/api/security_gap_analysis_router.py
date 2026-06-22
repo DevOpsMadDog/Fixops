@@ -25,6 +25,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -114,7 +115,7 @@ def create_assessment(req: CreateAssessmentRequest) -> Dict[str, Any]:
 
 @router.get("/assessments", dependencies=[Depends(api_key_auth)])
 def list_assessments(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     framework: Optional[str] = Query(default=None, description="Filter by framework"),
 ) -> list:
     """List assessments for an org."""
@@ -124,7 +125,7 @@ def list_assessments(
 @router.get("/assessments/{assessment_id}", dependencies=[Depends(api_key_auth)])
 def get_assessment_detail(
     assessment_id: str,
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return assessment detail with gaps and remediation plans."""
     result = _get_engine().get_assessment_detail(assessment_id=assessment_id, org_id=org_id)
@@ -199,7 +200,7 @@ def complete_remediation(plan_id: str, req: CompleteRemediationRequest) -> Dict[
 
 @router.get("/summary", dependencies=[Depends(api_key_auth)])
 def get_gap_summary(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return aggregated gap summary: counts, by_framework, by_priority, critical_gaps."""
     return _get_engine().get_gap_summary(org_id=org_id)
@@ -207,7 +208,7 @@ def get_gap_summary(
 
 @router.get("/overdue", dependencies=[Depends(api_key_auth)])
 def get_overdue_gaps(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> list:
     """Return open/in_progress gaps past their due date."""
     return _get_engine().get_overdue_gaps(org_id=org_id)
@@ -215,7 +216,7 @@ def get_overdue_gaps(
 
 @router.get("/framework-coverage", dependencies=[Depends(api_key_auth)])
 def get_framework_coverage(
-    org_id: str = Query(..., description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> list:
     """Return per-framework latest coverage_pct, risk_level, and gap_count."""
     return _get_engine().get_framework_coverage(org_id=org_id)

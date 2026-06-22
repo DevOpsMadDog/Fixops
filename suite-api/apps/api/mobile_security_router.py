@@ -13,6 +13,7 @@ from typing import Any, Dict, Optional
 from apps.api.auth_deps import api_key_auth
 from core.mobile_security_engine import MobileSecurityEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -82,7 +83,7 @@ class MDMPolicyBody(BaseModel):
 
 @router.get("/devices")
 def list_devices(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     platform: Optional[str] = Query(None, description="Filter by platform (ios/android/windows_phone)"),
     compliance_status: Optional[str] = Query(None, description="Filter by compliance status"),
     engine: MobileSecurityEngine = Depends(get_mobile_security_engine),
@@ -96,7 +97,7 @@ def list_devices(
 @router.post("/devices", status_code=201)
 def register_device(
     body: DeviceBody,
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: MobileSecurityEngine = Depends(get_mobile_security_engine),
     _: str = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -109,7 +110,7 @@ def register_device(
 def update_device_compliance(
     device_id: str,
     body: DeviceComplianceBody,
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: MobileSecurityEngine = Depends(get_mobile_security_engine),
     _: str = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -129,7 +130,7 @@ def update_device_compliance(
 
 @router.get("/threats")
 def list_threats(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None, description="Filter by severity (critical/high/medium/low/info)"),
     engine: MobileSecurityEngine = Depends(get_mobile_security_engine),
     _: str = Depends(api_key_auth),
@@ -142,7 +143,7 @@ def list_threats(
 @router.post("/threats", status_code=201)
 def create_threat(
     body: ThreatBody,
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: MobileSecurityEngine = Depends(get_mobile_security_engine),
     _: str = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -158,7 +159,7 @@ def create_threat(
 
 @router.get("/policies")
 def list_mdm_policies(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: MobileSecurityEngine = Depends(get_mobile_security_engine),
     _: str = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -170,7 +171,7 @@ def list_mdm_policies(
 @router.post("/policies", status_code=201)
 def create_mdm_policy(
     body: MDMPolicyBody,
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: MobileSecurityEngine = Depends(get_mobile_security_engine),
     _: str = Depends(api_key_auth),
 ) -> Dict[str, Any]:
@@ -186,7 +187,7 @@ def create_mdm_policy(
 
 @router.get("/stats")
 def get_stats(
-    org_id: str = Query(..., description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
     engine: MobileSecurityEngine = Depends(get_mobile_security_engine),
     _: str = Depends(api_key_auth),
 ) -> Dict[str, Any]:

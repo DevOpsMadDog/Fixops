@@ -159,7 +159,7 @@ async def detect_conflicts(
     summary="List CVSS conflict groups for an org",
 )
 async def list_conflicts(
-    org_id: str = Query(..., description="Tenant identifier"),
+    org_id: str = Depends(get_org_id),
     min_spread: float = Query(default=0.0, ge=0.0, le=10.0),
     limit: int = Query(default=100, ge=1, le=500),
     _=Depends(_auth),

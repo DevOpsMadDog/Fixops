@@ -27,6 +27,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -105,7 +106,7 @@ class PatchWindowIn(BaseModel):
 @router.post("/patches", summary="Add a patch to the catalog")
 def add_patch(
     body: PatchIn,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     try:
@@ -116,7 +117,7 @@ def add_patch(
 
 @router.get("/patches", summary="List patches from catalog")
 def list_patches(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     vendor: Optional[str] = Query(None),
@@ -128,7 +129,7 @@ def list_patches(
 @router.patch("/patches/{patch_id}/approve", summary="Approve a patch")
 def approve_patch(
     patch_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     updated = engine.approve_patch(org_id, patch_id)
@@ -144,7 +145,7 @@ def approve_patch(
 @router.post("/deployments", summary="Create a patch deployment record")
 def deploy_patch(
     body: DeployPatchIn,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     try:
@@ -164,7 +165,7 @@ def deploy_patch(
 def update_deployment(
     deployment_id: str,
     body: UpdateDeploymentIn,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     try:
@@ -180,7 +181,7 @@ def update_deployment(
 
 @router.get("/deployments", summary="List patch deployments")
 def list_deployments(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     patch_id: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
@@ -196,7 +197,7 @@ def list_deployments(
 @router.post("/exceptions", summary="Create a patch exception")
 def add_exception(
     body: ExceptionIn,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     try:
@@ -207,7 +208,7 @@ def add_exception(
 
 @router.get("/exceptions", summary="List patch exceptions")
 def list_exceptions(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     engine = _get_engine(org_id)
     return engine.list_exceptions(org_id)
@@ -220,7 +221,7 @@ def list_exceptions(
 @router.post("/windows", summary="Create a maintenance window")
 def create_patch_window(
     body: PatchWindowIn,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     try:
@@ -231,7 +232,7 @@ def create_patch_window(
 
 @router.get("/windows", summary="List maintenance windows")
 def list_patch_windows(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     engine = _get_engine(org_id)
     return engine.list_patch_windows(org_id)
@@ -244,7 +245,7 @@ def list_patch_windows(
 @router.get("/cve/{cve_id}/patches", summary="Find patches addressing a specific CVE")
 def get_cve_patch_map(
     cve_id: str,
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     engine = _get_engine(org_id)
     return engine.get_cve_patch_map(org_id, cve_id)
@@ -256,7 +257,7 @@ def get_cve_patch_map(
 
 @router.get("/stats", summary="Get patch management stats for org")
 def get_patch_stats(
-    org_id: str = Query(..., description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_engine(org_id)
     return engine.get_patch_stats(org_id)

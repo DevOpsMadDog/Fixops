@@ -217,7 +217,7 @@ def batch_score(req: BatchScoreRequest) -> List[ScoreResponse]:
 
 
 @router.get("/stats", response_model=StatsResponse, summary="Priority distribution statistics")
-def get_stats(org_id: str = Query(..., description="Organization identifier")) -> StatsResponse:
+def get_stats(org_id: str = Depends(get_org_id)) -> StatsResponse:
     """Return count of saved scores per priority tier (P1/P2/P3/P4)."""
     scorer = get_scorer()
     try:
@@ -234,7 +234,7 @@ def get_stats(org_id: str = Query(..., description="Organization identifier")) -
     summary="Priority-ordered queue of saved scores",
 )
 def get_priority_queue(
-    org_id: str = Query(..., description="Organization identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return all persisted scores for the org sorted P1→P4, then by composite score."""
     scorer = get_scorer()
@@ -252,7 +252,7 @@ def get_priority_queue(
 )
 def get_trend(
     cve_id: str,
-    org_id: str = Query(..., description="Organization identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """Return chronological score history for a given CVE in the org."""
     scorer = get_scorer()
