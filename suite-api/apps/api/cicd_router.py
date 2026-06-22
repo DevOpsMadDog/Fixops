@@ -22,6 +22,7 @@ from core.cicd_integration import (
     ScanResult,
 )
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -183,7 +184,7 @@ def evaluate_result(body: EvaluateRequest) -> Dict[str, Any]:
 
 @router.get("/policies", summary="List all CI/CD policies")
 def list_policies(
-    org_id: str = Query("", description="Filter by organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return all stored policies, optionally filtered by ``org_id``."""
     engine = _get_engine()

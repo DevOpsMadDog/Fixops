@@ -11,6 +11,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -248,7 +249,7 @@ async def record_feedback(body: FeedbackRequest) -> Dict[str, Any]:
 
 @router.get("/stats", dependencies=[Depends(_verify_api_key)])
 async def get_stats(
-    org_id: str = Query("", description="Organisation ID filter"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return prioritization statistics: category distribution, avg score, top factors."""
     engine = _get_vuln_prio_engine()
