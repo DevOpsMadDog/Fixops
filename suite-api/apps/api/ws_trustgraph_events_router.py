@@ -68,7 +68,8 @@ from apps.api.auth_deps import (
     _decode_jwt,
     _load_api_tokens,
 )
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from fastapi import Depends, APIRouter, Query, WebSocket, WebSocketDisconnect
+from apps.api.dependencies import get_org_id  # SPEC-034
 
 try:
     # Canonical TrustGraph event bus — the real source of truth.
@@ -182,7 +183,7 @@ async def ws_trustgraph_events(
     websocket: WebSocket,
     api_key: Optional[str] = Query(None, description="API key (or JWT) for auth"),
     token: Optional[str] = Query(None, description="JWT (alias of api_key)"),
-    org_id: Optional[str] = Query(None, description="Restrict to events tagged with this org/tenant"),
+    org_id: str = Depends(get_org_id),
 ) -> None:
     """Stream TrustGraphEventBus events to a WebSocket client in real time.
 

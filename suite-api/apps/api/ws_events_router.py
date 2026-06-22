@@ -61,6 +61,7 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
+from apps.api.dependencies import get_org_id  # SPEC-034
 
 _logger = logging.getLogger(__name__)
 
@@ -216,7 +217,7 @@ async def ws_security_events(
             "Omit to receive all types."
         ),
     ),
-    org_id: Optional[str] = Query(None, description="Filter to a specific org/tenant"),
+    org_id: str = Depends(get_org_id),
 ) -> None:
     """WebSocket endpoint for real-time unified security event streaming.
 

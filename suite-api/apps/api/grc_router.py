@@ -31,7 +31,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from core.grc_engine import GRCEngine
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -129,7 +130,7 @@ def _org(org_id: Optional[str]) -> str:
 
 
 @router.get("/frameworks", response_model=List[Dict[str, Any]])
-async def list_frameworks(org_id: Optional[str] = Query(None)) -> List[Dict[str, Any]]:
+async def list_frameworks(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List all GRC frameworks for an organisation."""
     return _get_engine().list_frameworks(_org(org_id))
 
@@ -137,7 +138,7 @@ async def list_frameworks(org_id: Optional[str] = Query(None)) -> List[Dict[str,
 @router.post("/frameworks", response_model=Dict[str, Any], status_code=201)
 async def add_framework(
     payload: FrameworkCreate,
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Register a new compliance framework."""
     return _get_engine().add_framework(_org(org_id), payload.model_dump())
@@ -150,7 +151,7 @@ async def add_framework(
 
 @router.get("/controls", response_model=List[Dict[str, Any]])
 async def list_controls(
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
     framework_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -161,7 +162,7 @@ async def list_controls(
 @router.post("/controls", response_model=Dict[str, Any], status_code=201)
 async def add_control(
     payload: ControlCreate,
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Add a control to a framework."""
     data = payload.model_dump()
@@ -173,7 +174,7 @@ async def add_control(
 async def update_control_status(
     control_id: str,
     payload: ControlStatusUpdate,
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update a control's implementation status."""
     ok = _get_engine().update_control_status(
@@ -194,7 +195,7 @@ async def update_control_status(
 
 @router.get("/risks", response_model=List[Dict[str, Any]])
 async def list_risks(
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
@@ -205,7 +206,7 @@ async def list_risks(
 @router.post("/risks", response_model=Dict[str, Any], status_code=201)
 async def add_risk(
     payload: RiskCreate,
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Register a new risk in the risk register."""
     return _get_engine().add_risk(_org(org_id), payload.model_dump())
@@ -215,7 +216,7 @@ async def add_risk(
 async def update_risk(
     risk_id: str,
     payload: RiskUpdate,
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Partially update a risk record."""
     data = {k: v for k, v in payload.model_dump().items() if v is not None}
@@ -232,7 +233,7 @@ async def update_risk(
 
 @router.get("/assessments", response_model=List[Dict[str, Any]])
 async def list_assessments(
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
     framework_id: Optional[str] = Query(None),
 ) -> List[Dict[str, Any]]:
     """List GRC assessments for an org."""
@@ -242,7 +243,7 @@ async def list_assessments(
 @router.post("/assessments", response_model=Dict[str, Any], status_code=201)
 async def create_assessment(
     payload: AssessmentCreate,
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Create a new GRC assessment."""
     return _get_engine().create_assessment(_org(org_id), payload.model_dump())
@@ -254,6 +255,6 @@ async def create_assessment(
 
 
 @router.get("/stats", response_model=Dict[str, Any])
-async def get_grc_stats(org_id: Optional[str] = Query(None)) -> Dict[str, Any]:
+async def get_grc_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregated GRC statistics for an org."""
     return _get_engine().get_grc_stats(_org(org_id))

@@ -2885,7 +2885,7 @@ def record_activity_event(
 @activity_feed_gap.get("")
 @activity_feed_gap.get("/")
 async def list_activity_feed(
-    org_id: Optional[str] = Query(None, description="Filter by organization"),
+    org_id: str = Depends(get_org_id),
     category: Optional[str] = Query(
         None, description="Filter by category: discovery,attack,remediation,compliance,risk,intelligence,collaboration,system,ai"
     ),
@@ -2946,7 +2946,7 @@ async def list_activity_feed(
 
 @activity_feed_gap.get("/summary")
 async def activity_feed_summary(
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
     hours: int = Query(24, ge=1, le=720, description="Lookback window in hours"),
 ) -> Dict[str, Any]:
     """Summarize activity feed by category for the last N hours."""

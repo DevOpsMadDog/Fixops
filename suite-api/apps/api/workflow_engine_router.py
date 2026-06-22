@@ -28,7 +28,7 @@ from core.workflow_engine import (
     WorkflowCondition,
     WorkflowEngine,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
 from fastapi import Depends
 from pydantic import BaseModel, Field
@@ -101,7 +101,7 @@ async def get_templates() -> List[Dict[str, Any]]:
 
 @router.get("/executions")
 async def get_executions(
-    org_id: Optional[str] = Query(None, description="Filter by organization ID"),
+    org_id: str = Depends(get_org_id),
     workflow_id: Optional[str] = Query(None, description="Filter by workflow ID"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum records to return"),
 ) -> List[Dict[str, Any]]:
@@ -114,7 +114,7 @@ async def get_executions(
 
 @router.get("/stats")
 async def get_stats(
-    org_id: Optional[str] = Query(None, description="Filter by organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return workflow statistics."""
     return _get_engine().get_workflow_stats(org_id=org_id)
@@ -168,7 +168,7 @@ async def create_workflow(req: CreateWorkflowRequest) -> Dict[str, Any]:
 
 @router.get("")
 async def list_workflows(
-    org_id: Optional[str] = Query(None, description="Filter by organization ID"),
+    org_id: str = Depends(get_org_id),
     trigger: Optional[str] = Query(None, description="Filter by trigger type"),
 ) -> List[Dict[str, Any]]:
     """List workflows, optionally filtered by org and trigger type."""

@@ -27,6 +27,7 @@ from apps.api.auth_deps import api_key_auth
 from core.security_training import SecurityAwarenessTracker
 from core.training_tracker import TrainingCategory, TrainingCompletion, TrainingModule
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -157,7 +158,7 @@ async def record_completion(request: RecordCompletionRequest):
 @router.get("/users/{email}", response_model=List[Dict[str, Any]])
 async def get_user_training(
     email: str,
-    org_id: Optional[str] = Query(default=None, description="Filter by organisation"),
+    org_id: str = Depends(get_org_id),
 ):
     """Get a user's training history."""
     tracker = _get_tracker()

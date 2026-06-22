@@ -247,7 +247,7 @@ def triage_alert(
 @router.post("/bulk-triage", dependencies=[Depends(api_key_auth)])
 def bulk_triage(
     req: BulkTriageRequest,
-    org_id: Optional[str] = Query(default=None, description="Organization ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Apply the same triage action to multiple alerts at once.
 

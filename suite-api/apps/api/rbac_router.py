@@ -194,7 +194,7 @@ async def list_roles() -> RoleListResponse:
 )
 async def get_audit_log(
     user_id: Optional[str] = Query(default=None, description="Filter by user_id"),
-    org_id: Optional[str] = Query(default=None, description="Filter by org_id"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=100, ge=1, le=1000, description="Max entries to return"),
 ) -> AuditLogResponse:
     entries = _get_engine().get_audit_log(user_id=user_id, org_id=org_id, limit=limit)

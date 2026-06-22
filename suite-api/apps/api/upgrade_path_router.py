@@ -97,7 +97,7 @@ def bulk_resolve(payload: BulkResolveRequest) -> Dict[str, Any]:
 
 
 @router.get("/stats", summary="Upgrade path resolver statistics")
-def stats(org_id: Optional[str] = Query(None, description="Filter stats by org")) -> Dict[str, Any]:
+def stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregated statistics: vuln count, query count, resolution rate."""
     try:
         return _get_engine().stats(org_id=org_id)

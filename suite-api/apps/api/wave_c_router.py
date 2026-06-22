@@ -901,7 +901,7 @@ def air_gap_feed_status(
     "/tokens", summary="List ALL API tokens across tenants (admin)",
 )
 def admin_list_tokens(
-    org_id: Optional[str] = Query(None, description="Filter by org"),
+    org_id: str = Depends(get_org_id),
     include_revoked: bool = Query(False),
     limit: int = Query(200, ge=1, le=2000),
 ) -> Dict[str, Any]:

@@ -251,7 +251,7 @@ def start_hunt(body: StartHuntRequest) -> StartHuntResponse:
     summary="List active hunts with status",
 )
 def active_hunts(
-    org_id: Optional[str] = Query(None, description="Filter by organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> ActiveHuntsResponse:
     """
     List all active, pending, and in-analysis hunt workflows.

@@ -214,7 +214,7 @@ def delete_org(
 
 @router.get("/stats/summary", dependencies=[Depends(api_key_auth)])
 def stats(
-    org_id: Optional[str] = Query(default=None, description="Tenant filter"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return platform-wide or per-tenant stats."""
     return _get_engine().stats(org_id)

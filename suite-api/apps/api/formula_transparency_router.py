@@ -108,7 +108,7 @@ class FormulaHistoryBody(BaseModel):
     summary="GAP-043: Return full scoring formula transparency",
 )
 def formula_breakdown(
-    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    org_id: str = Depends(get_org_id),
     finding_id: Optional[str] = Query(
         default=None, description="Optional finding id for contributor values"
     ),
@@ -128,7 +128,7 @@ def formula_breakdown(
 )
 def formula_history_create(
     body: FormulaHistoryBody,
-    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    org_id: str = Depends(get_org_id),
     dep_org_id: Optional[str] = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_gov()
@@ -150,7 +150,7 @@ def formula_history_create(
     summary="GAP-043: List scoring-formula change history",
 )
 def formula_history_list(
-    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    org_id: str = Depends(get_org_id),
     dep_org_id: Optional[str] = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_gov()

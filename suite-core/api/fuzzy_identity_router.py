@@ -13,7 +13,8 @@ from typing import Any, Dict, List, Optional
 from core.event_bus import Event, EventType, get_event_bus
 from core.knowledge_brain import get_brain
 from core.services.fuzzy_identity import get_fuzzy_resolver
-from fastapi import APIRouter, Query
+from fastapi import Depends, APIRouter, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -147,7 +148,7 @@ async def resolve_batch(req: ResolveBatchRequest):
 @router.get("/similar", summary="Find similar canonical assets")
 async def find_similar(
     name: str = Query(...),
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
     threshold: float = Query(0.5),
     top_k: int = Query(10),
 ):
@@ -171,7 +172,7 @@ async def find_similar(
 
 @router.get("/canonical", summary="List canonical assets")
 async def list_canonical(
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(100),
 ):
     resolver = get_fuzzy_resolver()
@@ -179,7 +180,7 @@ async def list_canonical(
 
 
 @router.get("/stats", summary="Get resolution statistics")
-async def get_stats(org_id: Optional[str] = Query(None)):
+async def get_stats(org_id: str = Depends(get_org_id)):
     try:
         resolver = get_fuzzy_resolver()
         return resolver.get_resolution_stats(org_id=org_id)
@@ -204,7 +205,7 @@ async def fuzzy_identity_health():
 
 @router.get("/findings")
 async def list_identity_findings(
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
     min_aliases: int = Query(default=2, ge=1, description="Min alias count to flag as ambiguous"),
     limit: int = Query(default=100, ge=1, le=1000),
 ):

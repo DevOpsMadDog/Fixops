@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -92,7 +93,7 @@ def analyze_findings(body: AnalyzeRequest) -> Dict[str, Any]:
 
 @router.get("/exposure-cases", summary="List Exposure Cases")
 def list_exposure_cases(
-    org_id: Optional[str] = Query(default=None, description="Filter by org"),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(
         default=None, description="Filter by status: open | investigating | resolved"
     ),
@@ -136,7 +137,7 @@ def update_case_status(case_id: str, body: StatusUpdateRequest) -> Dict[str, Any
 
 @router.get("/stats", summary="Correlation statistics")
 def get_stats(
-    org_id: Optional[str] = Query(default=None, description="Filter by org")
+    org_id: str = Depends(get_org_id)
 ) -> Dict[str, Any]:
     """Return correlation statistics: reduction ratio, avg findings per case, etc."""
     correlator = _get_correlator()

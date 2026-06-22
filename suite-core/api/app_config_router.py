@@ -18,6 +18,7 @@ from core.app_config import (
     get_default_manager,
 )
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from apps.api.dependencies import get_org_id  # SPEC-034
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
@@ -207,7 +208,7 @@ def register_app(
     summary="List all apps",
 )
 def list_apps(
-    org_id: Optional[str] = Query(None, description="Filter by organisation ID"),
+    org_id: str = Depends(get_org_id),
     mgr: AppConfigManager = Depends(get_manager),
 ) -> List[AppSummary]:
     """Return a list of all registered, non-deleted apps.

@@ -167,7 +167,7 @@ async def add_vendor(req: AddVendorRequest) -> Dict[str, Any]:
 
 @router.get("", summary="List vendors")
 async def list_vendors(
-    org_id: Optional[str] = Query(default=None),
+    org_id: str = Depends(get_org_id),
     tier: Optional[str] = Query(default=None, description="Filter by tier"),
 ) -> Dict[str, Any]:
     """List vendors, optionally filtered by org or risk tier."""

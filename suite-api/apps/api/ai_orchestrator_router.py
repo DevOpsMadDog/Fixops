@@ -312,7 +312,7 @@ def _resolve_org_id(org_id: Optional[str], fallback: Optional[str]) -> str:
 )
 def register_context_requirement(
     body: ContextRequirementRequest,
-    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    org_id: str = Depends(get_org_id),
     dep_org_id: Optional[str] = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Assign an LLM context tier (metadata/targeted/full_file) to a rule."""
@@ -331,7 +331,7 @@ def register_context_requirement(
     summary="GAP-061: List registered rule context requirements",
 )
 def list_context_requirements(
-    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    org_id: str = Depends(get_org_id),
     dep_org_id: Optional[str] = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _require_ai_gov()
@@ -346,7 +346,7 @@ def list_context_requirements(
 )
 def preflight_estimate(
     body: PreflightRequest,
-    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    org_id: str = Depends(get_org_id),
     dep_org_id: Optional[str] = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _require_ai_gov()
@@ -414,7 +414,7 @@ teammates_router = APIRouter(
 )
 def teammates_suggest_fix(
     body: SuggestFixBody,
-    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    org_id: str = Depends(get_org_id),
     dep_org_id: Optional[str] = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _require_ai_advisor()
@@ -431,7 +431,7 @@ def teammates_suggest_fix(
 )
 def teammates_draft_exception(
     body: DraftExceptionBody,
-    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    org_id: str = Depends(get_org_id),
     dep_org_id: Optional[str] = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _require_ai_advisor()
@@ -450,7 +450,7 @@ def teammates_draft_exception(
 )
 def teammates_auto_triage(
     body: AutoTriageBody,
-    org_id: Optional[str] = Query(default=None, description="Tenant org_id"),
+    org_id: str = Depends(get_org_id),
     dep_org_id: Optional[str] = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _require_ai_advisor()

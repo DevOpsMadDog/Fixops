@@ -20,6 +20,7 @@ from typing import Any, Dict, Optional
 
 from core.event_stream import EventChannel, EventStream, StreamEvent
 from fastapi import Depends, APIRouter, HTTPException, Query, WebSocket, status
+from apps.api.dependencies import get_org_id  # SPEC-034
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
@@ -68,7 +69,7 @@ class PublishResponse(BaseModel):
 )
 async def sse_stream(
     channel: EventChannel,
-    org_id: Optional[str] = Query(None, description="Filter to this org"),
+    org_id: str = Depends(get_org_id),
     replay: bool = Query(True, description="Replay last 10 events on connect"),
     api_key: Optional[str] = Query(None, description="Optional API key"),
 ) -> StreamingResponse:
@@ -115,7 +116,7 @@ async def sse_stream(
 async def websocket_stream(
     websocket: WebSocket,
     channel: EventChannel,
-    org_id: Optional[str] = Query(None, description="Filter to this org"),
+    org_id: str = Depends(get_org_id),
     api_key: Optional[str] = Query(None, description="Optional API key"),
 ) -> None:
     """
@@ -207,7 +208,7 @@ async def get_stats() -> Dict[str, Any]:
 async def get_recent(
     channel: EventChannel,
     limit: int = Query(default=20, ge=1, le=200),
-    org_id: Optional[str] = Query(None, description="Filter to this org"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """
     Return the last *limit* events from *channel*, newest first.

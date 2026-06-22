@@ -17,7 +17,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -103,7 +104,7 @@ def deduplicate(body: DeduplicateRequest) -> Dict[str, Any]:
 
 @router.get("/groups", summary="List dedup groups")
 def list_groups(
-    org_id: Optional[str] = Query(default=None, description="Filter by org"),
+    org_id: str = Depends(get_org_id),
     strategy: Optional[str] = Query(
         default=None,
         description="Filter by strategy: exact_cve | fuzzy_title | same_file_line | cross_scanner | component_version",

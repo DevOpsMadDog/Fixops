@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
 from fastapi import Depends
 from pydantic import BaseModel
@@ -104,7 +104,7 @@ def create_playbook(request: CreatePlaybookRequest) -> Dict[str, Any]:
 
 @router.get("/playbooks")
 def list_playbooks(
-    org_id: Optional[str] = Query(default=None),
+    org_id: str = Depends(get_org_id),
     type: Optional[str] = Query(default=None),  # noqa: A002
 ) -> Dict[str, Any]:
     """List playbooks with optional filters."""
@@ -226,7 +226,7 @@ def cancel_execution(execution_id: str) -> Dict[str, Any]:
 
 @router.get("/executions")
 def list_executions(
-    org_id: Optional[str] = Query(default=None),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
     """List executions with optional filters."""

@@ -156,7 +156,7 @@ def record_transfer(body: TransferRequest) -> Dict[str, Any]:
 
 @router.get("/bundle/list", dependencies=[Depends(api_key_auth)])
 def list_bundles(
-    org_id: Optional[str] = Query(default=None),
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = Query(default=None),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> List[Dict[str, Any]]:
@@ -168,7 +168,7 @@ def list_bundles(
 
 
 @router.get("/bundle/stats", dependencies=[Depends(api_key_auth)])
-def get_bundle_stats(org_id: Optional[str] = Query(default=None)) -> Dict[str, Any]:
+def get_bundle_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregated bundle stats (counts by status, size, entries by type)."""
     return _get_engine().stats(org_id=org_id)
 

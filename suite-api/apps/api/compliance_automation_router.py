@@ -24,7 +24,8 @@ from core.compliance_engine import (
     POAMStatus,
     RemediationPriority,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/compliance", tags=["Compliance Automation"])
@@ -309,7 +310,7 @@ async def update_poam_status(poam_id: str, body: UpdatePOAMStatusRequest) -> Dic
 @router.post("/report/{framework}", summary="Generate audit-ready compliance report")
 async def generate_report(
     framework: str,
-    org_id: Optional[str] = Query(None, description="Organisation identifier"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """
     Generate an audit-ready compliance report for a single framework.

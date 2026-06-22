@@ -30,6 +30,7 @@ from core.runtime_protection import (
     ThreatLevel,
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 
 _logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ def _get_engine():
 # ---------------------------------------------------------------------------
 
 
-def _get_org_id(org_id: Optional[str] = Query(None)) -> str:
+def _get_org_id(org_id: str = Depends(get_org_id)) -> str:
     return org_id or "default"
 
 

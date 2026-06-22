@@ -30,6 +30,7 @@ from typing import Optional
 from apps.api.auth_deps import api_key_auth
 from core.cache_layer import TTL_COMPLIANCE, cache_endpoint
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -273,7 +274,7 @@ def get_score_trend(
 @router.get("/{framework}/report", dependencies=[Depends(api_key_auth)])
 def generate_report(
     framework: str,
-    org_id: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
 ):
     """Generate an audit-ready compliance report for a framework."""
     _validate_framework(framework)
