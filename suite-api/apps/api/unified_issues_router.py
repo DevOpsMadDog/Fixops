@@ -20,6 +20,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ class DiffRequest(BaseModel):
 @router.get("", summary="Unified issues queue")
 @router.get("/", summary="Unified issues queue (trailing slash)")
 def list_issues(
-    org_id: str = Query(..., min_length=1),
+    org_id: str = Depends(get_org_id),
     severity: Optional[str] = Query(None, description="critical|high|medium|low|info"),
     status: Optional[str] = Query(None, description="open|resolved|triaging|…"),
     source: Optional[str] = Query(None, description="findings|exposures|alerts"),
@@ -68,7 +69,7 @@ def list_issues(
 
 
 @router.get("/counts", summary="Issue counts per source")
-def counts(org_id: str = Query(..., min_length=1)) -> Dict[str, Any]:
+def counts(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         data = _engine().issue_counts_by_source(org_id=org_id)
     except ValueError as exc:
@@ -79,7 +80,7 @@ def counts(org_id: str = Query(..., min_length=1)) -> Dict[str, Any]:
 @router.post("/diff", summary="Diff two scans (new/unchanged/resolved)")
 def diff(
     payload: DiffRequest,
-    org_id: str = Query(..., min_length=1),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _engine().compute_diff(
@@ -93,7 +94,7 @@ def diff(
 
 @router.get("/diff-history", summary="List scans available for diffing")
 def diff_history(
-    org_id: str = Query(..., min_length=1),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(20, ge=1, le=200),
 ) -> Dict[str, Any]:
     try:
@@ -104,7 +105,7 @@ def diff_history(
 
 
 @router.get("/stats", summary="Unified issue stats (counts + by severity/status)")
-def stats(org_id: str = Query(..., min_length=1)) -> Dict[str, Any]:
+def stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     try:
         return _engine().issue_stats(org_id=org_id)
     except ValueError as exc:

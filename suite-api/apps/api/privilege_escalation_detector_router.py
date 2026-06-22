@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field, field_validator
 
 try:
@@ -113,7 +114,7 @@ def record_event(body: PrivilegeEventRequest) -> Dict[str, Any]:
 
 @router.get("/events")
 def list_events(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
     user_id: Optional[str] = Query(default=None, max_length=256),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> List[Dict[str, Any]]:
@@ -127,7 +128,7 @@ def list_events(
 @router.get("/events/{event_id}/analyze")
 def analyze_event(
     event_id: str,
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _engine().detect_anomalous_escalation(org_id=org_id, event_id=event_id)
@@ -159,7 +160,7 @@ def create_rule(body: DetectionRuleRequest) -> Dict[str, Any]:
 
 @router.get("/rules")
 def list_rules(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     try:
         return _engine().list_detection_rules(org_id=org_id)
@@ -170,7 +171,7 @@ def list_rules(
 
 @router.get("/heatmap")
 def get_heatmap(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
     hours: int = Query(default=24, ge=1, le=720),
 ) -> Dict[str, Any]:
     try:
@@ -199,7 +200,7 @@ def build_attack_path(body: ADAttackPathRequest) -> Dict[str, Any]:
 
 @router.get("/stats")
 def stats(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _engine().get_detection_stats(org_id=org_id)

@@ -20,6 +20,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -149,7 +150,7 @@ def auto_group(payload: AutoGroupRequest) -> Dict[str, Any]:
 
 @router.get("/groups")
 def list_groups(
-    org_id: str = Query(..., min_length=1),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(50, ge=1, le=500),
 ) -> Dict[str, Any]:
     """List composite alert groups for an org."""
@@ -175,7 +176,7 @@ def get_group(group_id: str) -> Dict[str, Any]:
 
 
 @router.get("/stats")
-def stats(org_id: str = Query(..., min_length=1)) -> Dict[str, Any]:
+def stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Aggregate stats for composite alert groups belonging to an org."""
     try:
         groups = _get_ml_engine().list_composite_groups(org_id=org_id, limit=500)

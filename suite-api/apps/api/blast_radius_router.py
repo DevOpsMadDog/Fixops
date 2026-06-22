@@ -20,6 +20,7 @@ from typing import Any, Dict
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -93,7 +94,7 @@ async def tag_crown_jewel(payload: CrownJewelTag) -> Dict[str, Any]:
 
 
 @router.get("/crown-jewels", dependencies=[Depends(api_key_auth)])
-async def list_crown_jewels(org_id: str = Query(..., min_length=1)) -> Dict[str, Any]:
+async def list_crown_jewels(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     engine = _get_asset_engine()
     tags = engine.list_crown_jewels(org_id)
     return {"org_id": org_id, "count": len(tags), "crown_jewels": tags}
@@ -115,14 +116,14 @@ async def compute_blast_radius(payload: BlastRadiusCompute) -> Dict[str, Any]:
 @router.get("/score-breakdown/{entity_ref}", dependencies=[Depends(api_key_auth)])
 async def score_breakdown(
     entity_ref: str = Path(..., min_length=1),
-    org_id: str = Query(..., min_length=1),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     engine = _get_risk_engine()
     return engine.get_score_breakdown(org_id, entity_ref)
 
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
-async def stats(org_id: str = Query(..., min_length=1)) -> Dict[str, Any]:
+async def stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     asset_engine = _get_asset_engine()
     crown_jewels = asset_engine.list_crown_jewels(org_id)
     assets = asset_engine.list_assets(org_id)

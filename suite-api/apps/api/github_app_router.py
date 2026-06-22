@@ -21,6 +21,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -126,7 +127,7 @@ async def receive_webhook(
 
 
 @router.get("/installations", dependencies=[Depends(api_key_auth)])
-def list_installations(org_id: str = Query(..., min_length=1)) -> Dict[str, Any]:
+def list_installations(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """List GitHub App installations for an org."""
     engine = _get_engine()
     rows = engine.list_github_app_installations(org_id=org_id)

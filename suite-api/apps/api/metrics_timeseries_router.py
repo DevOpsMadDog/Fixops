@@ -22,6 +22,7 @@ from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -84,7 +85,7 @@ class ExportRequest(BaseModel):
 
 @router.get("/available")
 def available_metrics(
-    org_id: str = Query(..., min_length=1, max_length=256),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """List all metric keys available for an org (kpi ∪ aggregator)."""
     try:
@@ -115,7 +116,7 @@ def export_timeseries(payload: ExportRequest) -> Dict[str, Any]:
 
 @router.get("/posture")
 def posture_timeseries(
-    org_id: str = Query(..., min_length=1, max_length=256),
+    org_id: str = Depends(get_org_id),
     days: int = Query(90, ge=1, le=365),
 ) -> Dict[str, Any]:
     """Daily posture_score timeseries for the last N days."""
@@ -130,7 +131,7 @@ def posture_timeseries(
 
 @router.get("/stats")
 def timeseries_stats(
-    org_id: str = Query(..., min_length=1, max_length=256),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Summary stats across all timeseries engines."""
     try:

@@ -84,7 +84,7 @@ async def analyze_repo(req: AnalyzeRepoRequest) -> Dict[str, Any]:
 
 @router.get("/analyses")
 async def list_analyses(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
     repo_ref: Optional[str] = Query(default=None, max_length=512),
 ) -> List[Dict[str, Any]]:
     """List analyses for an org, optionally filtered by repo_ref."""
@@ -130,7 +130,7 @@ async def feed_data_classification(analysis_id: str) -> Dict[str, Any]:
 
 @router.get("/stats")
 async def get_stats(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Aggregate per-org stats across all analyses."""
     engine = _get_engine()

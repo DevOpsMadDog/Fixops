@@ -20,6 +20,7 @@ from typing import Any, Dict, List
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -69,7 +70,7 @@ class CustomQueryRequest(BaseModel):
 
 @router.get("/risk-summary")
 def risk_summary(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _engine().cross_domain_risk_summary(org_id=org_id)
@@ -80,7 +81,7 @@ def risk_summary(
 
 @router.get("/asset-vulnerability")
 def asset_vulnerability(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     try:
         return _engine().asset_vulnerability_correlation(org_id=org_id)
@@ -91,7 +92,7 @@ def asset_vulnerability(
 
 @router.get("/threat-intel-correlation")
 def threat_intel_correlation(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
     ioc: str = Query(..., min_length=1, max_length=512),
 ) -> Dict[str, Any]:
     try:
@@ -103,7 +104,7 @@ def threat_intel_correlation(
 
 @router.get("/compliance-trend")
 def compliance_trend(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     try:
         return _engine().compliance_posture_trend(org_id=org_id)
@@ -114,7 +115,7 @@ def compliance_trend(
 
 @router.get("/executive-dashboard")
 def executive_dashboard(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _engine().executive_dashboard_data(org_id=org_id)

@@ -109,7 +109,7 @@ def build_repo_tree(body: TreeBuildRequest) -> Dict[str, Any]:
 
 @router.get("/tree")
 def get_repo_tree(
-    org_id: str = Query("default", min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
     repo_ref: str = Query(..., min_length=1, max_length=256),
 ) -> Dict[str, Any]:
     record = _get_engine().get_repo_tree(org_id=org_id, repo_ref=repo_ref)
@@ -120,7 +120,7 @@ def get_repo_tree(
 
 @router.get("/file-content")
 def get_file_content(
-    org_id: str = Query("default", min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
     repo_ref: str = Query(..., min_length=1, max_length=256),
     path: str = Query(..., min_length=1, max_length=4096),
     root_path: Optional[str] = Query(None, max_length=4096),
@@ -143,7 +143,7 @@ def get_file_content(
 
 @router.get("/snapshots")
 def list_analysis_snapshots(
-    org_id: str = Query("default", min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
     repo_ref: str = Query(..., min_length=1, max_length=256),
     limit: int = Query(20, ge=1, le=200),
 ) -> Dict[str, Any]:
@@ -202,6 +202,6 @@ def diff_snapshots(body: DiffRequest) -> Dict[str, Any]:
 
 @router.get("/stats")
 def stats(
-    org_id: str = Query("default", min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     return _get_engine().stats(org_id=org_id)

@@ -49,6 +49,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -318,7 +319,7 @@ async def autofix_webhook(
     x_github_event: Optional[str] = Header(default=None),
     x_installation_id: Optional[str] = Header(default=None),
     installation_id: Optional[str] = Query(default=None),
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Receive a GitHub `pull_request` webhook and fan out to autofix.
 

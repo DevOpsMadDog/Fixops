@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -109,7 +110,7 @@ def add_technique(body: TechniqueRequest) -> Dict[str, Any]:
 
 @router.get("/techniques")
 def list_techniques(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     try:
         return _engine().get_techniques(org_id=org_id)
@@ -135,7 +136,7 @@ def log_detection(body: DetectionRequest) -> Dict[str, Any]:
 
 @router.get("/detections")
 def list_detections(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
     technique_id: Optional[str] = Query(default=None, max_length=64),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> List[Dict[str, Any]]:
@@ -148,7 +149,7 @@ def list_detections(
 
 @router.get("/coverage")
 def coverage(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _engine().get_coverage(org_id=org_id)
@@ -159,7 +160,7 @@ def coverage(
 
 @router.get("/gaps")
 def gaps(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     try:
         return _engine().get_gaps(org_id=org_id)
@@ -170,7 +171,7 @@ def gaps(
 
 @router.get("/heatmap")
 def heatmap(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _engine().get_heatmap(org_id=org_id)

@@ -26,7 +26,8 @@ from core.onboarding import (
     OnboardingStep,
     StepStatus,
 )
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import Depends, APIRouter, HTTPException, Path, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -141,7 +142,7 @@ def start_onboarding(body: StartRequest) -> OnboardingProgressResponse:
 
 
 @router.get("/progress", response_model=OnboardingProgressResponse)
-def get_progress(org_id: str = Query(..., min_length=1, max_length=255)) -> OnboardingProgressResponse:
+def get_progress(org_id: str = Depends(get_org_id)) -> OnboardingProgressResponse:
     """Get current onboarding progress for an organisation."""
     try:
         progress = _get_manager().get_progress(org_id)
@@ -183,7 +184,7 @@ def skip_step(
 @router.get("/steps/{step}/config", response_model=StepConfigResponse)
 def get_step_config(
     step: str = Path(..., description="Onboarding step name"),
-    org_id: str = Query(..., min_length=1, max_length=255),
+    org_id: str = Depends(get_org_id),
 ) -> StepConfigResponse:
     """Retrieve configuration stored when a step was completed."""
     step_enum = _parse_step(step)
@@ -199,7 +200,7 @@ def reset_onboarding(body: ResetRequest) -> OnboardingProgressResponse:
 
 
 @router.get("/checklist", response_model=ChecklistResponse)
-def get_checklist(org_id: str = Query(..., min_length=1, max_length=255)) -> ChecklistResponse:
+def get_checklist(org_id: str = Depends(get_org_id)) -> ChecklistResponse:
     """Pre-flight checklist showing what is configured vs still missing."""
     data = _get_manager().get_checklist(org_id)
     current_step = data.get("current_step")

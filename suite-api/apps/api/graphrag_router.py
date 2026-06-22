@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 try:
@@ -146,7 +147,7 @@ def query_with_trace(body: TracedQueryRequest) -> Dict[str, Any]:
 
 @router.get("/traced-history")
 def traced_history(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(default=50, ge=1, le=500),
 ) -> List[Dict[str, Any]]:
     try:
@@ -158,7 +159,7 @@ def traced_history(
 
 @router.get("/traced-stats")
 def traced_stats(
-    org_id: str = Query(..., min_length=1, max_length=128),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     try:
         return _engine().traced_stats(org_id=org_id)

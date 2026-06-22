@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -121,7 +122,7 @@ def ingest_record(req: IngestRecordRequest) -> Dict[str, Any]:
 
 @router.get("/sources", dependencies=[Depends(api_key_auth)])
 def list_sources(
-    org_id: str = Query(..., min_length=1),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """List all universal-ingest sources registered for an org."""
     try:
@@ -157,7 +158,7 @@ def siem_forward(req: SIEMForwardRequest) -> Dict[str, Any]:
 
 @router.get("/stats", dependencies=[Depends(api_key_auth)])
 def stats(
-    org_id: str = Query(..., min_length=1),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Ingestion counters + available SIEM adapters for this org."""
     try:
