@@ -260,3 +260,6 @@ docs/openapi_*.json
 
 # OMC plugin local tooling state (not source — aldeci-core does not track it)
 .omc/
+.playwright-cli/
+reports/*.log
+**/reports/coverage/coverage.xml
