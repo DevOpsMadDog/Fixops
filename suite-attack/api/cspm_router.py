@@ -22,7 +22,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
 
 from core.cspm_engine import (
@@ -112,7 +113,7 @@ def _not_configured_503(exc: CSPMNotConfiguredError) -> HTTPException:
 
 @router.get("/posture", summary="Overall cloud security posture score")
 def get_posture(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> OrgPosture:
     """Return the aggregated cloud security posture for the org.
 
@@ -127,7 +128,7 @@ def get_posture(
 
 @router.get("/findings", summary="List CSPM misconfigurations", response_model=List[CSPMFinding])
 def list_findings(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     status: Optional[FindingStatus] = Query(None, description="Filter by status"),
     severity: Optional[Severity] = Query(None, description="Filter by severity"),
 ) -> List[CSPMFinding]:
@@ -140,7 +141,7 @@ def list_findings(
 
 @router.get("/resources", summary="Cloud resource inventory", response_model=List[CloudResource])
 def list_resources(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> List[CloudResource]:
     """Return the full cloud resource inventory for an org."""
     try:
@@ -176,7 +177,7 @@ def register_resource(req: RegisterResourceRequest) -> CloudResource:
 
 @router.get("/benchmarks", summary="CIS benchmark compliance status")
 def get_benchmarks(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return CIS Benchmark compliance status grouped by cloud provider.
 
@@ -208,7 +209,7 @@ def trigger_scan(req: TriggerScanRequest) -> ScanResult:
 
 @router.get("/drift", summary="Configuration drift detection results")
 def get_drift(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return configuration drift events detected against the saved baseline.
 
@@ -228,7 +229,7 @@ def get_drift(
 
 @router.post("/baseline", summary="Save current state as drift baseline")
 def save_baseline(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Snapshot the current resource state as the baseline for drift detection."""
     try:
@@ -304,7 +305,7 @@ def resolve_finding(finding_id: str) -> CSPMFinding:
 
 @router.get("/scans", summary="Recent scan history")
 def list_scans(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     limit: int = Query(10, ge=1, le=100, description="Max results"),
 ) -> Dict[str, Any]:
     """Return recent CSPM scan results for an org."""
@@ -411,7 +412,7 @@ def add_allowlist_entry(req: AddAllowlistRequest) -> AllowlistEntry:
     response_model=List[AllowlistEntry],
 )
 def list_allowlist_entries(
-    org_id: str = Query("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
     rule_id: Optional[str] = Query(None, description="Filter by CSPM rule ID"),
 ) -> List[AllowlistEntry]:
     """Return all allowlist entries for an org, optionally filtered by rule ID."""

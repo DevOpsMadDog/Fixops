@@ -19,6 +19,7 @@ import re
 _ROOTS = [
     pathlib.Path(__file__).resolve().parent.parent / "suite-api" / "apps" / "api",
     pathlib.Path(__file__).resolve().parent.parent / "suite-core" / "api",
+    pathlib.Path(__file__).resolve().parent.parent / "suite-attack" / "api",
 ]
 # org_id annotated as a Query-defaulted param (the spoofable pattern).
 _PATTERN = re.compile(r"\borg_id\s*:\s*(?:Optional\[str\]|str)\s*=\s*Query\(")

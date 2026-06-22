@@ -14,7 +14,8 @@ import logging
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, field_validator
 
 _logger = logging.getLogger(__name__)
@@ -426,7 +427,7 @@ async def list_scan_profiles() -> Dict[str, Any]:
 
 
 @router.get("/stats")
-async def get_dast_stats(org_id: Optional[str] = Query(None)) -> Dict[str, Any]:
+async def get_dast_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate DAST scan statistics."""
     from core.dast_scanner import get_dast_scanner
     scanner = get_dast_scanner()
