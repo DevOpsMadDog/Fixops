@@ -11,12 +11,13 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from apps.api.dependencies import get_org_id
 from core.network_analyzer import (
     FlowDirection,
     ZoneType,
     get_network_analyzer,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,7 @@ class AddFlowRequest(BaseModel):
 
 
 @router.post("/zones", response_model=Dict[str, Any], status_code=201)
-def create_zone(req: DefineZoneRequest) -> Dict[str, Any]:
+def create_zone(req: DefineZoneRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Define a new network zone."""
     analyzer = get_network_analyzer()
     try:
@@ -64,6 +65,7 @@ def create_zone(req: DefineZoneRequest) -> Dict[str, Any]:
             assets=req.assets,
             trust_level=req.trust_level,
             metadata=req.metadata,
+            org_id=org_id,
         )
         return zone.to_dict()
     except Exception as exc:
@@ -72,17 +74,17 @@ def create_zone(req: DefineZoneRequest) -> Dict[str, Any]:
 
 
 @router.get("/zones", response_model=List[Dict[str, Any]])
-def list_zones() -> List[Dict[str, Any]]:
+def list_zones(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """List all network zones."""
     analyzer = get_network_analyzer()
-    return [z.to_dict() for z in analyzer.list_zones()]
+    return [z.to_dict() for z in analyzer.list_zones(org_id=org_id)]
 
 
 @router.get("/zones/{zone_id}", response_model=Dict[str, Any])
-def get_zone(zone_id: str) -> Dict[str, Any]:
+def get_zone(zone_id: str, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get a single zone by ID."""
     analyzer = get_network_analyzer()
-    zone = analyzer.get_zone(zone_id)
+    zone = analyzer.get_zone(zone_id, org_id=org_id)
     if zone is None:
         raise HTTPException(status_code=404, detail=f"Zone '{zone_id}' not found")
     return zone.to_dict()
@@ -94,7 +96,7 @@ def get_zone(zone_id: str) -> Dict[str, Any]:
 
 
 @router.post("/flows", response_model=Dict[str, Any], status_code=201)
-def add_flow(req: AddFlowRequest) -> Dict[str, Any]:
+def add_flow(req: AddFlowRequest, org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Record an observed network flow between two zones."""
     analyzer = get_network_analyzer()
     try:
@@ -105,6 +107,7 @@ def add_flow(req: AddFlowRequest) -> Dict[str, Any]:
             protocol=req.protocol,
             direction=req.direction,
             metadata=req.metadata,
+            org_id=org_id,
         )
         return flow.to_dict()
     except ValueError as exc:
@@ -117,10 +120,11 @@ def add_flow(req: AddFlowRequest) -> Dict[str, Any]:
 @router.get("/flows", response_model=List[Dict[str, Any]])
 def list_flows(
     allowed: Optional[bool] = Query(None, description="Filter by allowed status"),
+    org_id: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
     """List recorded network flows."""
     analyzer = get_network_analyzer()
-    return [f.to_dict() for f in analyzer.list_flows(allowed=allowed)]
+    return [f.to_dict() for f in analyzer.list_flows(allowed=allowed, org_id=org_id)]
 
 
 # ---------------------------------------------------------------------------
@@ -129,46 +133,46 @@ def list_flows(
 
 
 @router.get("/analysis/segmentation", response_model=Dict[str, Any])
-def analyze_segmentation() -> Dict[str, Any]:
+def analyze_segmentation(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Check all flows against zone segmentation policies."""
     try:
         analyzer = get_network_analyzer()
-        return analyzer.analyze_segmentation()
+        return analyzer.analyze_segmentation(org_id=org_id)
     except Exception:
         return {"zones": [], "violations": [], "score": 0}
 
 
 @router.post("/analysis/detect-violations", response_model=List[Dict[str, Any]])
-def detect_violations() -> List[Dict[str, Any]]:
+def detect_violations(org_id: str = Depends(get_org_id)) -> List[Dict[str, Any]]:
     """Detect and persist unauthorized cross-zone traffic violations."""
     analyzer = get_network_analyzer()
-    violations = analyzer.detect_violations()
+    violations = analyzer.detect_violations(org_id=org_id)
     return [v.to_dict() for v in violations]
 
 
 @router.get("/analysis/zone-matrix", response_model=Dict[str, Any])
-def get_zone_matrix() -> Dict[str, Any]:
+def get_zone_matrix(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get zone-to-zone communication matrix."""
     analyzer = get_network_analyzer()
-    return analyzer.get_zone_matrix()
+    return analyzer.get_zone_matrix(org_id=org_id)
 
 
 @router.get("/analysis/lateral-movement", response_model=Dict[str, Any])
-def get_lateral_movement_risk() -> Dict[str, Any]:
+def get_lateral_movement_risk(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Assess lateral movement risk across the network."""
     analyzer = get_network_analyzer()
-    return analyzer.get_lateral_movement_risk()
+    return analyzer.get_lateral_movement_risk(org_id=org_id)
 
 
 @router.get("/analysis/segmentation-score", response_model=Dict[str, Any])
-def get_micro_segmentation_score() -> Dict[str, Any]:
+def get_micro_segmentation_score(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get micro-segmentation score (0-100)."""
     analyzer = get_network_analyzer()
-    return analyzer.get_micro_segmentation_score()
+    return analyzer.get_micro_segmentation_score(org_id=org_id)
 
 
 @router.get("/stats", response_model=Dict[str, Any])
-def get_network_stats() -> Dict[str, Any]:
+def get_network_stats(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return aggregate network statistics."""
     analyzer = get_network_analyzer()
-    return analyzer.get_network_stats()
+    return analyzer.get_network_stats(org_id=org_id)

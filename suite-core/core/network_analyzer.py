@@ -221,7 +221,8 @@ class NetworkAnalyzer:
                     assets TEXT NOT NULL,
                     trust_level INTEGER NOT NULL,
                     metadata TEXT NOT NULL,
-                    created_at TEXT NOT NULL
+                    created_at TEXT NOT NULL,
+                    org_id TEXT NOT NULL DEFAULT 'default'
                 );
 
                 CREATE TABLE IF NOT EXISTS flows (
@@ -234,7 +235,8 @@ class NetworkAnalyzer:
                     allowed INTEGER NOT NULL,
                     risk_score REAL NOT NULL,
                     metadata TEXT NOT NULL,
-                    observed_at TEXT NOT NULL
+                    observed_at TEXT NOT NULL,
+                    org_id TEXT NOT NULL DEFAULT 'default'
                 );
 
                 CREATE TABLE IF NOT EXISTS violations (
@@ -244,7 +246,8 @@ class NetworkAnalyzer:
                     rule_violated TEXT NOT NULL,
                     severity TEXT NOT NULL,
                     detected_at TEXT NOT NULL,
-                    metadata TEXT NOT NULL
+                    metadata TEXT NOT NULL,
+                    org_id TEXT NOT NULL DEFAULT 'default'
                 );
 
                 CREATE INDEX IF NOT EXISTS idx_flows_source ON flows(source_zone);
@@ -252,9 +255,21 @@ class NetworkAnalyzer:
                 CREATE INDEX IF NOT EXISTS idx_flows_allowed ON flows(allowed);
                 CREATE INDEX IF NOT EXISTS idx_violations_severity ON violations(severity);
                 CREATE INDEX IF NOT EXISTS idx_violations_flow ON violations(flow_id);
+                CREATE INDEX IF NOT EXISTS idx_zones_org ON zones(org_id);
+                CREATE INDEX IF NOT EXISTS idx_flows_org ON flows(org_id);
+                CREATE INDEX IF NOT EXISTS idx_violations_org ON violations(org_id);
                 """
             )
             conn.commit()
+            # Idempotent migrations for existing DBs that predate the org_id column.
+            for table in ("zones", "flows", "violations"):
+                try:
+                    conn.execute(
+                        f"ALTER TABLE {table} ADD COLUMN org_id TEXT NOT NULL DEFAULT 'default'"
+                    )
+                    conn.commit()
+                except sqlite3.OperationalError:
+                    pass  # column already exists
         finally:
             conn.close()
 
@@ -270,6 +285,7 @@ class NetworkAnalyzer:
         assets: Optional[List[str]] = None,
         trust_level: int = 50,
         metadata: Optional[Dict[str, Any]] = None,
+        org_id: str = "default",
     ) -> NetworkZone:
         """Create a network zone with CIDRs and trust level."""
         zone = NetworkZone(
@@ -283,7 +299,9 @@ class NetworkAnalyzer:
         conn = self._get_connection()
         try:
             conn.execute(
-                "INSERT INTO zones VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                """INSERT INTO zones
+                   (id, name, type, cidrs, assets, trust_level, metadata, created_at, org_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     zone.id,
                     zone.name,
@@ -293,6 +311,7 @@ class NetworkAnalyzer:
                     zone.trust_level,
                     json.dumps(zone.metadata),
                     zone.created_at.isoformat(),
+                    org_id,
                 ),
             )
             conn.commit()
@@ -300,20 +319,24 @@ class NetworkAnalyzer:
             conn.close()
         return zone
 
-    def get_zone(self, zone_id: str) -> Optional[NetworkZone]:
+    def get_zone(self, zone_id: str, org_id: str = "default") -> Optional[NetworkZone]:
         """Retrieve a zone by ID."""
         conn = self._get_connection()
         try:
-            row = conn.execute("SELECT * FROM zones WHERE id = ?", (zone_id,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM zones WHERE id = ? AND org_id = ?", (zone_id, org_id)
+            ).fetchone()
             return self._row_to_zone(row) if row else None
         finally:
             conn.close()
 
-    def list_zones(self) -> List[NetworkZone]:
-        """List all defined zones."""
+    def list_zones(self, org_id: str = "default") -> List[NetworkZone]:
+        """List all defined zones for the given org."""
         conn = self._get_connection()
         try:
-            rows = conn.execute("SELECT * FROM zones ORDER BY created_at").fetchall()
+            rows = conn.execute(
+                "SELECT * FROM zones WHERE org_id = ? ORDER BY created_at", (org_id,)
+            ).fetchall()
             return [z for z in (self._row_to_zone(r) for r in rows) if z is not None]
         finally:
             conn.close()
@@ -345,6 +368,7 @@ class NetworkAnalyzer:
         protocol: str = "tcp",
         direction: Optional[FlowDirection] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        org_id: str = "default",
     ) -> NetworkFlow:
         """
         Record an observed network flow between two zones.
@@ -352,8 +376,8 @@ class NetworkAnalyzer:
         Automatically determines if the flow is allowed per zone policy and
         calculates a risk score.
         """
-        src = self.get_zone(source_zone)
-        dst = self.get_zone(dest_zone)
+        src = self.get_zone(source_zone, org_id=org_id)
+        dst = self.get_zone(dest_zone, org_id=org_id)
 
         if src is None:
             raise ValueError(f"Source zone '{source_zone}' not found")
@@ -388,7 +412,10 @@ class NetworkAnalyzer:
         conn = self._get_connection()
         try:
             conn.execute(
-                "INSERT INTO flows VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                """INSERT INTO flows
+                   (id, source_zone, dest_zone, ports, protocol, direction,
+                    allowed, risk_score, metadata, observed_at, org_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     flow.id,
                     flow.source_zone,
@@ -400,6 +427,7 @@ class NetworkAnalyzer:
                     flow.risk_score,
                     json.dumps(flow.metadata),
                     flow.observed_at.isoformat(),
+                    org_id,
                 ),
             )
             conn.commit()
@@ -407,25 +435,29 @@ class NetworkAnalyzer:
             conn.close()
         return flow
 
-    def get_flow(self, flow_id: str) -> Optional[NetworkFlow]:
+    def get_flow(self, flow_id: str, org_id: str = "default") -> Optional[NetworkFlow]:
         """Retrieve a flow by ID."""
         conn = self._get_connection()
         try:
-            row = conn.execute("SELECT * FROM flows WHERE id = ?", (flow_id,)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM flows WHERE id = ? AND org_id = ?", (flow_id, org_id)
+            ).fetchone()
             return self._row_to_flow(row) if row else None
         finally:
             conn.close()
 
-    def list_flows(self, allowed: Optional[bool] = None) -> List[NetworkFlow]:
-        """List flows, optionally filtered by allowed status."""
+    def list_flows(self, allowed: Optional[bool] = None, org_id: str = "default") -> List[NetworkFlow]:
+        """List flows for the given org, optionally filtered by allowed status."""
         conn = self._get_connection()
         try:
             if allowed is None:
-                rows = conn.execute("SELECT * FROM flows ORDER BY observed_at").fetchall()
+                rows = conn.execute(
+                    "SELECT * FROM flows WHERE org_id = ? ORDER BY observed_at", (org_id,)
+                ).fetchall()
             else:
                 rows = conn.execute(
-                    "SELECT * FROM flows WHERE allowed = ? ORDER BY observed_at",
-                    (1 if allowed else 0,),
+                    "SELECT * FROM flows WHERE org_id = ? AND allowed = ? ORDER BY observed_at",
+                    (org_id, 1 if allowed else 0),
                 ).fetchall()
             return [f for f in (self._row_to_flow(r) for r in rows) if f is not None]
         finally:
@@ -452,15 +484,15 @@ class NetworkAnalyzer:
     # Analysis
     # ------------------------------------------------------------------
 
-    def analyze_segmentation(self) -> Dict[str, Any]:
+    def analyze_segmentation(self, org_id: str = "default") -> Dict[str, Any]:
         """
         Check all recorded flows against zone policies.
 
         Returns a summary with total flows, policy-compliant flows, violations,
         and an overall compliance percentage.
         """
-        flows = self.list_flows()
-        zones = {z.id: z for z in self.list_zones()}
+        flows = self.list_flows(org_id=org_id)
+        zones = {z.id: z for z in self.list_zones(org_id=org_id)}
 
         total = len(flows)
         compliant = 0
@@ -495,17 +527,17 @@ class NetworkAnalyzer:
             "violations": policy_violations,
         }
 
-    def detect_violations(self) -> List[SegmentationViolation]:
+    def detect_violations(self, org_id: str = "default") -> List[SegmentationViolation]:
         """
         Find all unauthorized cross-zone flows and persist new violations.
 
         Returns the full list of violations (persisted + newly detected).
         """
-        flows = self.list_flows()
-        zones = {z.id: z for z in self.list_zones()}
+        flows = self.list_flows(org_id=org_id)
+        zones = {z.id: z for z in self.list_zones(org_id=org_id)}
 
         # Load already-persisted violation flow IDs to avoid duplicates
-        existing_flow_ids = self._get_violation_flow_ids()
+        existing_flow_ids = self._get_violation_flow_ids(org_id=org_id)
 
         new_violations: List[SegmentationViolation] = []
 
@@ -526,24 +558,28 @@ class NetworkAnalyzer:
                 rule_violated=reason,
                 severity=severity,
             )
-            self._persist_violation(violation)
+            self._persist_violation(violation, org_id=org_id)
             new_violations.append(violation)
 
-        return self._load_all_violations()
+        return self._load_all_violations(org_id=org_id)
 
-    def _get_violation_flow_ids(self) -> set:
+    def _get_violation_flow_ids(self, org_id: str = "default") -> set:
         conn = self._get_connection()
         try:
-            rows = conn.execute("SELECT flow_id FROM violations").fetchall()
+            rows = conn.execute(
+                "SELECT flow_id FROM violations WHERE org_id = ?", (org_id,)
+            ).fetchall()
             return {r["flow_id"] for r in rows}
         finally:
             conn.close()
 
-    def _persist_violation(self, v: SegmentationViolation) -> None:
+    def _persist_violation(self, v: SegmentationViolation, org_id: str = "default") -> None:
         conn = self._get_connection()
         try:
             conn.execute(
-                "INSERT INTO violations VALUES (?, ?, ?, ?, ?, ?, ?)",
+                """INSERT INTO violations
+                   (id, flow_id, flow_json, rule_violated, severity, detected_at, metadata, org_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     v.id,
                     v.flow.id,
@@ -552,17 +588,19 @@ class NetworkAnalyzer:
                     v.severity.value,
                     v.detected_at.isoformat(),
                     json.dumps(v.metadata),
+                    org_id,
                 ),
             )
             conn.commit()
         finally:
             conn.close()
 
-    def _load_all_violations(self) -> List[SegmentationViolation]:
+    def _load_all_violations(self, org_id: str = "default") -> List[SegmentationViolation]:
         conn = self._get_connection()
         try:
             rows = conn.execute(
-                "SELECT * FROM violations ORDER BY detected_at DESC"
+                "SELECT * FROM violations WHERE org_id = ? ORDER BY detected_at DESC",
+                (org_id,),
             ).fetchall()
             result = []
             for row in rows:
@@ -615,15 +653,15 @@ class NetworkAnalyzer:
     # Zone communication matrix
     # ------------------------------------------------------------------
 
-    def get_zone_matrix(self) -> Dict[str, Any]:
+    def get_zone_matrix(self, org_id: str = "default") -> Dict[str, Any]:
         """
         Build a zone-to-zone communication matrix.
 
         Returns a dict keyed by (source_zone_name, dest_zone_name) with
         flow count, allowed count, and average risk score.
         """
-        zones = {z.id: z for z in self.list_zones()}
-        flows = self.list_flows()
+        zones = {z.id: z for z in self.list_zones(org_id=org_id)}
+        flows = self.list_flows(org_id=org_id)
 
         matrix: Dict[str, Dict[str, Any]] = {}
 
@@ -671,15 +709,15 @@ class NetworkAnalyzer:
     # Lateral movement risk
     # ------------------------------------------------------------------
 
-    def get_lateral_movement_risk(self) -> Dict[str, Any]:
+    def get_lateral_movement_risk(self, org_id: str = "default") -> Dict[str, Any]:
         """
         Assess lateral movement paths through the network.
 
         Identifies high-risk same-trust-level flows and multi-hop paths
         that could enable privilege escalation or data exfiltration.
         """
-        zones = {z.id: z for z in self.list_zones()}
-        flows = self.list_flows()
+        zones = {z.id: z for z in self.list_zones(org_id=org_id)}
+        flows = self.list_flows(org_id=org_id)
 
         lateral_flows = [f for f in flows if f.direction == FlowDirection.LATERAL]
         high_risk_paths: List[Dict[str, Any]] = []
@@ -737,7 +775,7 @@ class NetworkAnalyzer:
     # Micro-segmentation score
     # ------------------------------------------------------------------
 
-    def get_micro_segmentation_score(self) -> Dict[str, Any]:
+    def get_micro_segmentation_score(self, org_id: str = "default") -> Dict[str, Any]:
         """
         Compute a 0-100 micro-segmentation score.
 
@@ -747,8 +785,8 @@ class NetworkAnalyzer:
         - Absence of high-risk lateral movement
         - Average trust differential between communicating zones
         """
-        zones = self.list_zones()
-        flows = self.list_flows()
+        zones = self.list_zones(org_id=org_id)
+        flows = self.list_flows(org_id=org_id)
 
         if not zones:
             return {
@@ -812,28 +850,38 @@ class NetworkAnalyzer:
     # Stats
     # ------------------------------------------------------------------
 
-    def get_network_stats(self) -> Dict[str, Any]:
-        """Return aggregate network statistics."""
+    def get_network_stats(self, org_id: str = "default") -> Dict[str, Any]:
+        """Return aggregate network statistics for the given org."""
         conn = self._get_connection()
         try:
-            zone_count = conn.execute("SELECT COUNT(*) FROM zones").fetchone()[0]
-            flow_count = conn.execute("SELECT COUNT(*) FROM flows").fetchone()[0]
+            zone_count = conn.execute(
+                "SELECT COUNT(*) FROM zones WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
+            flow_count = conn.execute(
+                "SELECT COUNT(*) FROM flows WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
             allowed_count = conn.execute(
-                "SELECT COUNT(*) FROM flows WHERE allowed = 1"
+                "SELECT COUNT(*) FROM flows WHERE org_id = ? AND allowed = 1", (org_id,)
             ).fetchone()[0]
             denied_count = conn.execute(
-                "SELECT COUNT(*) FROM flows WHERE allowed = 0"
+                "SELECT COUNT(*) FROM flows WHERE org_id = ? AND allowed = 0", (org_id,)
             ).fetchone()[0]
-            violation_count = conn.execute("SELECT COUNT(*) FROM violations").fetchone()[0]
-            avg_risk = conn.execute("SELECT AVG(risk_score) FROM flows").fetchone()[0] or 0.0
+            violation_count = conn.execute(
+                "SELECT COUNT(*) FROM violations WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
+            avg_risk = conn.execute(
+                "SELECT AVG(risk_score) FROM flows WHERE org_id = ?", (org_id,)
+            ).fetchone()[0] or 0.0
 
             zone_type_rows = conn.execute(
-                "SELECT type, COUNT(*) as cnt FROM zones GROUP BY type"
+                "SELECT type, COUNT(*) as cnt FROM zones WHERE org_id = ? GROUP BY type",
+                (org_id,),
             ).fetchall()
             zone_by_type = {r["type"]: r["cnt"] for r in zone_type_rows}
 
             severity_rows = conn.execute(
-                "SELECT severity, COUNT(*) as cnt FROM violations GROUP BY severity"
+                "SELECT severity, COUNT(*) as cnt FROM violations WHERE org_id = ? GROUP BY severity",
+                (org_id,),
             ).fetchall()
             violations_by_severity = {r["severity"]: r["cnt"] for r in severity_rows}
 
