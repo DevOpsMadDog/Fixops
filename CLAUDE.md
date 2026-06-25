@@ -257,12 +257,14 @@ _2026-05-05 session: 25 sweeps, 9 real bugs caught + closed, 0 shipped, 0 vulns 
 
 | Layer | Count | How to check |
 |-------|-------|--------------|
-| Backend engines | **463** (measured 2026-05-05; unchanged) | `ls suite-core/core/*_engine.py \| wc -l` |
-| API routers | **798** (measured 2026-05-05; unchanged) | `ls suite-api/apps/api/*_router.py \| wc -l` |
-| API routes mounted | **6722** (post 2026-05-03 night session — was 8792, **-2070 silent dups shaved**; check next session — boot ~10s) | `python -c "from apps.api.app import create_app; print(len(create_app().routes))"` |
-| Frontend pages | **~289** (239 measured 2026-05-05 + ~50 panel files added 2026-05-04 night; recount next session) | `find suite-ui/aldeci-ui-new/src/pages -name "*.tsx" \| wc -l` |
+| Backend engines | **464** (measured 2026-06-26) | `ls suite-core/core/*_engine.py \| wc -l` |
+| API routers | **813** (measured 2026-06-26) | `ls suite-api/apps/api/*_router.py \| wc -l` |
+| API routes mounted | **8346** (measured 2026-06-26; stable across the SPEC-034 codemod — boot ~14s local / ~3min in-container) | `python -c "from apps.api.app import create_app; print(len(create_app().routes))"` |
+| Frontend pages | **299** (measured 2026-06-26) | `find suite-ui/aldeci-ui-new/src/pages -name "*.tsx" \| wc -l` |
 | Multica board | **3095 done / 0 todo / 1 cancelled** (verified 2026-05-02 evening — board clean, scrum sync `7654b681`) | `docker exec` psql query (see Stack v2 row) |
-| Beast Mode tests | **1078+ passing (13-file canonical + 84 new tests from 2026-05-05 qa wave), zero regressions** (2026-05-05) + **42/42 hub smoke** + **10/10 DoD E2E smoke** + **perf=182 markers / owasp=47 markers** | `pytest tests/test_phase*.py ... -q` |
+| Beast Mode tests | **756 passing (13-file canonical smoke), zero regressions** (2026-06-26) + **broad gate suite 1433/0** (import-sweep + tenancy(SPEC-034) + fail-closed-auth + contracts + owasp-lockdown + ui-routing + ingest-first + real-moat + customer-journey) | `pytest tests/test_phase*.py ... -q` |
+| Test files | **1469** (measured 2026-06-26) | `ls tests/test_*.py \| wc -l` |
+| CI gates (regression-gates.yml) | **25 blocking steps** on PR→main; deployed to fly aldeci (v76, 2026-06-26) | `grep -c '^      - name:' .github/workflows/regression-gates.yml` |
 | Session lockdown tests | **5/5 files present** (all created 2026-05-05 night session: test_health, test_owasp_regression_lockdown, test_engine_router_import_sweep, test_no_unsafe_asyncio_run, test_no_unawaited_coroutines_at_import) | `ls tests/test_*lockdown* tests/test_health.py tests/test_engine_router_import_sweep.py tests/test_no_unsafe_asyncio_run.py tests/test_no_unawaited_coroutines_at_import.py \| wc -l` |
 | Production build | **live — 3.10s build time** (Vite 6, suite-ui/aldeci-ui-new) | `cd suite-ui/aldeci-ui-new && npm run build` |
 | Graphify graph | **184,684 nodes / 577,447 edges / 9,029 communities** (last refreshed 2026-05-03 04:10 — run `graphify update . --no-llm` to refresh) | `graphify update . --no-llm` |
