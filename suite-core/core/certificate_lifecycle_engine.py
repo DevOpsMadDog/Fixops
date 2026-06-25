@@ -392,7 +392,9 @@ class CertificateLifecycleEngine:
             "org_id": org_id,
             "total": total,
             "active": active_count,
+            "valid": active_count,  # UI alias (CertificateManagerPanel reads stats.valid)
             "expiring_30d": expiring_30d,
+            "expiring_soon": expiring_30d,  # UI alias (panel reads stats.expiring_soon)
             "expired": expired_count,
             "revoked": revoked_count,
             "by_type": {r["cert_type"]: r["cnt"] for r in by_type_rows},
