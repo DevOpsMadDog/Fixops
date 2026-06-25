@@ -23,7 +23,7 @@ Brain Pipeline + TrustGraph correlation. See memory: intelligence-layer ingest-f
 | GET | /api/v1/threat-intel/cves/recent | recently-cached CVEs (EPSS-enriched) | api_key | yes |
 | GET | /api/v1/threat-intel/iocs | IOC list `{total, iocs[], offset, limit}` | api_key | yes |
 | GET | /api/v1/threat-intel/kev | CISA KEV catalog (cached) | api_key | yes |
-| GET | /api/v1/threat-intel/summary | aggregate TI summary | api_key | yes |
+| GET | /api/v1/threat-intel/feeds/summary | aggregate feed/IOC summary (real route; was mis-documented as `/threat-intel/summary`, which has no implementation or UI consumer) | api_key | yes |
 | GET | /api/v1/feeds/status | feed-manager health + total_feeds | api_key | n/a |
 | GET | /api/v1/feeds/nvd/recent | recent NVD CVEs `{cves[], count, severity_filter}` | api_key | yes |
 | GET | /api/v1/ioc-enrichment/ · /stats | IOC stats `{total, by_type, by_severity, enriched_count, watchlist_count}` | api_key | yes |
