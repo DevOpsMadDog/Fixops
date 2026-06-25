@@ -385,6 +385,7 @@ class SecurityPostureScoringEngine:
             total_controls = len(all_rows)
             implemented_count = sum(1 for r in all_rows if r["control_status"] == "implemented")
             gaps_count = sum(1 for r in all_rows if r["control_status"] == "not_implemented")
+            partial_count = sum(1 for r in all_rows if r["control_status"] == "partial")
 
             # Overall weighted score (all domains)
             tw_actual = 0.0
@@ -415,7 +416,11 @@ class SecurityPostureScoringEngine:
             "org_id": org_id,
             "overall_score": overall_score,
             "by_domain": by_domain,
+            "domain_scores": by_domain,  # UI alias (PostureScoringPanel reads domain_scores)
             "total_controls": total_controls,
             "implemented_count": implemented_count,
+            "implemented": implemented_count,  # UI alias
             "gaps_count": gaps_count,
+            "not_implemented": gaps_count,  # UI alias
+            "partial": partial_count,  # UI reads stats.partial
         }
