@@ -430,10 +430,13 @@ class PKIManagementEngine:
 
         return {
             "total_certs": total,
+            "total_certificates": total,  # UI alias (PKIPanel reads total_certificates)
             "active_certs": active,
+            "active_certificates": active,  # UI alias
             "expired_certs": expired,
             "revoked_certs": revoked,
             "expiring_30d": expiring_30d,
+            "expiring_soon": expiring_30d,  # UI alias
             "total_cas": total_cas,
             "by_cert_type": {r["cert_type"]: r["cnt"] for r in by_cert_type_rows},
             "by_key_algorithm": {r["key_algorithm"]: r["cnt"] for r in by_key_algo_rows},

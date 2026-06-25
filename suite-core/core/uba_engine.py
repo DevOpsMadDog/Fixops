@@ -670,7 +670,10 @@ class UBAEngine:
         return {
             "total_users": total_users,
             "high_risk_count": high_risk_count,
+            "high_risk_users": high_risk_count,  # UI alias (UBAPanel reads high_risk_users)
             "alerts_open": alerts_open,
+            "open_alerts": alerts_open,  # UI alias
             "anomalous_events_today": anomalous_events_today,
+            "anomalous_events": anomalous_events_today,  # UI alias
             "top_risk_users": [dict(r) for r in top_risk_rows],
         }
