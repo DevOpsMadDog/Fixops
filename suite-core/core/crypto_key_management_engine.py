@@ -366,16 +366,36 @@ class CryptoKeyManagementEngine:
                     (org_id,),
                 ).fetchone()[0]
 
+                active = conn.execute(
+                    "SELECT COUNT(*) FROM crypto_keys WHERE org_id = ? AND status = 'active'",
+                    (org_id,),
+                ).fetchone()[0]
+
+                expired = conn.execute(
+                    """
+                    SELECT COUNT(*) FROM crypto_keys
+                    WHERE org_id = ? AND status = 'active'
+                      AND expiry_date != '' AND expiry_date < ?
+                    """,
+                    (org_id, now_iso),
+                ).fetchone()[0]
+
                 total_usages = conn.execute(
                     "SELECT COUNT(*) FROM key_usage_log WHERE org_id = ?", (org_id,)
                 ).fetchone()[0]
 
+        by_type = {r["key_type"]: r["cnt"] for r in by_type_rows}
         return {
             "org_id": org_id,
             "total_keys": total,
-            "by_type": {r["key_type"]: r["cnt"] for r in by_type_rows},
+            "total": total,  # UI alias (CryptoKeysPanel reads stats.total)
+            "by_type": by_type,
+            "by_algorithm": by_type,  # UI alias (key_type is the algorithm)
             "by_purpose": {r["purpose"]: r["cnt"] for r in by_purpose_rows},
             "expiring_soon_30d": expiring_soon,
+            "expiring_soon": expiring_soon,  # UI alias
+            "active": active,
+            "expired": expired,
             "revoked": revoked,
             "total_usage_events": total_usages,
         }

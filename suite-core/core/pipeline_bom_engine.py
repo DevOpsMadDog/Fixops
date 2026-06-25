@@ -680,6 +680,21 @@ class PipelineBOMEngine:
                     GROUP BY d.environment""",
                 (org_id,),
             ).fetchall()
+            # UI breakdowns (PipelineBOMPanel reads runs_by_status/artifact_types/ci_providers)
+            runs_by_status_rows = conn.execute(
+                "SELECT status, COUNT(*) AS c FROM pipeline_runs WHERE org_id = ? GROUP BY status",
+                (org_id,),
+            ).fetchall()
+            ci_provider_rows = conn.execute(
+                "SELECT ci_provider, COUNT(*) AS c FROM pipeline_runs WHERE org_id = ? GROUP BY ci_provider",
+                (org_id,),
+            ).fetchall()
+            artifact_type_rows = conn.execute(
+                """SELECT a.artifact_type, COUNT(*) AS c FROM pipeline_artifacts a
+                     JOIN pipeline_runs r ON r.id = a.pipeline_run_id
+                    WHERE r.org_id = ? GROUP BY a.artifact_type""",
+                (org_id,),
+            ).fetchall()
 
         total_runs = runs_row["c"] if runs_row else 0
         completed_runs = completed_row["c"] if completed_row else 0
@@ -707,7 +722,11 @@ class PipelineBOMEngine:
             "signed_artifacts": signed_artifacts,
             "sign_rate_pct": sign_rate,
             "total_deploys": deploy_row["c"] if deploy_row else 0,
+            "total_deployments": deploy_row["c"] if deploy_row else 0,  # UI alias
             "deploys_by_env": {r["environment"]: r["c"] for r in env_rows},
+            "runs_by_status": {r["status"]: r["c"] for r in runs_by_status_rows},
+            "ci_providers": {r["ci_provider"]: r["c"] for r in ci_provider_rows},
+            "artifact_types": {r["artifact_type"]: r["c"] for r in artifact_type_rows},
         }
 
 
