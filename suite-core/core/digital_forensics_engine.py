@@ -453,6 +453,21 @@ class DigitalForensicsEngine:
                 (org_id,),
             ).fetchone()[0]
 
+            total_cases = conn.execute(
+                "SELECT COUNT(*) FROM forensic_cases WHERE org_id=?",
+                (org_id,),
+            ).fetchone()[0]
+
+            closed_cases = conn.execute(
+                "SELECT COUNT(*) FROM forensic_cases WHERE org_id=? AND status='closed'",
+                (org_id,),
+            ).fetchone()[0]
+
+            critical_cases = conn.execute(
+                "SELECT COUNT(*) FROM forensic_cases WHERE org_id=? AND priority='critical'",
+                (org_id,),
+            ).fetchone()[0]
+
             evidence_items = conn.execute(
                 "SELECT COUNT(*) FROM evidence_items WHERE org_id=?",
                 (org_id,),
@@ -481,6 +496,9 @@ class DigitalForensicsEngine:
 
         return {
             "open_cases": open_cases,
+            "total_cases": total_cases,
+            "closed_cases": closed_cases,
+            "critical_cases": critical_cases,
             "evidence_items": evidence_items,
             "analyses_completed": analyses_completed,
             "avg_case_duration_days": avg_duration,
