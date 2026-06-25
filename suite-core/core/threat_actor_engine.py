@@ -504,6 +504,15 @@ class ThreatActorEngine:
                 "SELECT COUNT(*) FROM actors WHERE org_id = ?", (org_id,)
             ).fetchone()[0]
 
+            active_actors = conn.execute(
+                "SELECT COUNT(*) FROM actors WHERE org_id = ? AND active = 1", (org_id,)
+            ).fetchone()[0]
+
+            avg_threat_row = conn.execute(
+                "SELECT AVG(threat_score) FROM actors WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
+            avg_threat_score = round(float(avg_threat_row), 2) if avg_threat_row is not None else 0.0
+
             active_campaigns = conn.execute(
                 "SELECT COUNT(*) FROM campaigns WHERE org_id = ? AND status = 'active'",
                 (org_id,),
@@ -544,6 +553,9 @@ class ThreatActorEngine:
 
         return {
             "actor_count": actor_count,
+            "total_actors": actor_count,  # UI alias (ThreatActorsPanel reads total_actors)
+            "active_actors": active_actors,
+            "avg_threat_score": avg_threat_score,
             "active_campaigns": active_campaigns,
             "total_iocs": total_iocs,
             "watchlist_size": watchlist_size,
