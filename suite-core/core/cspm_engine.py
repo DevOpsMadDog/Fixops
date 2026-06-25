@@ -14,6 +14,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 import uuid
@@ -989,7 +990,16 @@ class _BaseProviderAdapter:
     _SEED_FINDINGS: List[Tuple[str, str, str, str, str, List[str]]] = []
 
     def list_resources(self, account_id: str) -> List[Dict[str, Any]]:
-        """Return seeded resources belonging to the given account_id."""
+        """Return resources for the account.
+
+        NO-MOCKS: the per-provider _SEED_RESOURCES are demo/sample data for
+        providers without a real connector wired (OCI/Alibaba/IBM). They are
+        served ONLY when FIXOPS_CSPM_DEMO=1; by default this returns [] so
+        endpoints (multi-csp scan/coverage/stats) never present fabricated cloud
+        inventory as real.
+        """
+        if os.getenv("FIXOPS_CSPM_DEMO", "").strip().lower() not in ("1", "true", "yes"):
+            return []
         out: List[Dict[str, Any]] = []
         for i, res in enumerate(self._SEED_RESOURCES):
             out.append(

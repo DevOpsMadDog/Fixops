@@ -9,6 +9,7 @@ Multi-tenant via org_id.  Thread-safe via RLock.  SQLite WAL for concurrency.
 from __future__ import annotations
 
 import logging
+import os
 import sqlite3
 import threading
 import uuid
@@ -670,7 +671,14 @@ class _BaseWorkloadAdapter:
     _SEED_FINDINGS: List[Tuple[str, str, str, str, str]] = []
 
     def list_resources(self, account_id: str) -> List[Dict[str, Any]]:
-        """Return seeded workloads belonging to the given account_id."""
+        """Return workloads for the account.
+
+        NO-MOCKS: _SEED_WORKLOADS are demo data for providers without a real
+        connector; served only when FIXOPS_CSPM_DEMO=1, else [] (so multi-csp
+        endpoints never present fabricated workloads as real).
+        """
+        if os.getenv("FIXOPS_CSPM_DEMO", "").strip().lower() not in ("1", "true", "yes"):
+            return []
         out: List[Dict[str, Any]] = []
         for i, w in enumerate(self._SEED_WORKLOADS):
             out.append(

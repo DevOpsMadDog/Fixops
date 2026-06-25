@@ -14,6 +14,15 @@ import pathlib
 
 import pytest
 
+
+@pytest.fixture(autouse=True)
+def _enable_cspm_demo(monkeypatch):
+    # These tests exercise the seeded multi-CSP demo adapters (OCI/Alibaba/IBM
+    # have no real connector). Samples are opt-in via FIXOPS_CSPM_DEMO (NO-MOCKS);
+    # enable it so the seeded path under test has data. The honest-empty default
+    # (flag unset) is covered by test_multi_csp_adapters_honest_empty_without_demo.
+    monkeypatch.setenv("FIXOPS_CSPM_DEMO", "1")
+
 # Add suite paths (sitecustomize normally does this, but be safe in isolation)
 _ROOT = pathlib.Path(__file__).resolve().parents[1]
 for sub in ("suite-core", "suite-api/apps"):
@@ -326,3 +335,16 @@ def test_multi_csp_org_id_isolation(client):
     assert r1.status_code == 200 and r2.status_code == 200
     assert r1.json()["org_id"] == "org-A"
     assert r2.json()["org_id"] == "org-B"
+
+
+def test_multi_csp_adapters_honest_empty_without_demo(monkeypatch):
+    """NO-MOCKS default: without FIXOPS_CSPM_DEMO, seeded adapters return [] so
+    no fabricated cloud inventory is surfaced as real."""
+    monkeypatch.delenv("FIXOPS_CSPM_DEMO", raising=False)
+    from core.cspm_engine import get_provider_adapter as _cspm
+    from core.cnapp_engine import get_workload_adapter as _cnapp
+    for prov in ("oci", "alibaba", "ibm"):
+        assert _cspm(prov).list_resources("acct") == [], f"{prov} cspm leaked seeds without demo flag"
+        wl = _cnapp(prov)
+        if wl is not None:
+            assert wl.list_resources("acct") == [], f"{prov} cnapp leaked seeds without demo flag"
