@@ -587,6 +587,15 @@ class IdentityGovernanceEngine:
                 (org_id,),
             ).fetchone()[0]
 
+            open_reviews = conn.execute(
+                "SELECT COUNT(*) FROM access_reviews WHERE org_id = ? AND status != 'completed'",
+                (org_id,),
+            ).fetchone()[0]
+
+            total_policies = conn.execute(
+                "SELECT COUNT(*) FROM access_policies WHERE org_id = ?", (org_id,)
+            ).fetchone()[0]
+
             # Revocation rate across completed reviews
             total_revoked = conn.execute(
                 "SELECT SUM(revoked_count) FROM access_reviews WHERE org_id = ? AND status = 'completed'",
@@ -604,7 +613,11 @@ class IdentityGovernanceEngine:
             "by_status": by_status,
             "total_entitlements": total_entitlements,
             "orphaned_count": orphaned_count,
+            "orphaned_entitlements": orphaned_count,  # UI alias (GovernanceReviewsPanel)
             "excessive_count": excessive_count,
+            "excessive_entitlements": excessive_count,  # UI alias
+            "open_reviews": open_reviews,
+            "total_policies": total_policies,
             "revocation_rate": revocation_rate,
             "avg_risk_score": round(avg_risk, 4),
             "overdue_reviews": overdue_reviews,

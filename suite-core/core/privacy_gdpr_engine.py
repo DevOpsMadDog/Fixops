@@ -703,5 +703,6 @@ class PrivacyGDPREngine:
             "total_incidents": total_incidents,
             "incidents_requiring_notification": incidents_requiring_notification,
             "processing_activities": processing_activities,
+            "total_processing_activities": processing_activities,  # UI alias (PrivacyGDPRPanel)
             "data_types_inventory": sorted(data_types_set),
         }
