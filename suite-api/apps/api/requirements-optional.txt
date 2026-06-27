@@ -3,8 +3,13 @@
 # Install these only when you have the necessary credentials or network
 # permission to pull from the respective upstream repositories.
 
-# Snyk SARIF converter (private Git repository).
-snyk-to-sarif @ git+https://github.com/snyk/snyk-to-sarif.git
+# Snyk SARIF converter — UNAVAILABLE (the git repo is deleted/private and the
+# package is not on PyPI), so this line is commented out: leaving the broken
+# `git+` URL made `pip install -r requirements-optional.txt` hard-fail and block
+# every other optional dep below. Snyk ingestion still works without it:
+# normalizers.py falls back to a built-in converter, and core/scanner_parsers.py
+# parses `snyk test --json` natively. Re-enable only if a real source appears.
+# snyk-to-sarif @ git+https://github.com/snyk/snyk-to-sarif.git
 
 # Vector similarity search optional extras.
 chromadb>=0.4.24

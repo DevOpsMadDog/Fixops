@@ -1383,8 +1383,10 @@ class InputNormalizer:
                 matched = snyk_markers.intersection(original_data.keys())
                 if matched:
                     logger.error(
-                        "Snyk JSON payload detected but snyk-to-sarif is not installed. "
-                        "Install it via `pip install snyk-to-sarif` or upload SARIF directly.",
+                        "Snyk JSON payload detected at the SARIF normalizer. Ingest Snyk "
+                        "output via the scanner-ingest API (scanner_type=snyk, parsed natively "
+                        "by core/scanner_parsers.py), or upload SARIF directly. "
+                        "(The optional snyk-to-sarif converter is unavailable upstream.)",
                         extra={"markers": sorted(matched)},
                     )
             raise ValueError("The provided document is not a valid SARIF log")
