@@ -109,3 +109,35 @@ After **every** change:
 ## Honest scope note
 Phase 1 is a safe, mechanical quick win. Phases 2–3 are a multi-week refactor with real boot-crash
 risk on 8,346 routes — do them incrementally, per-domain, gate-verified, never in one big sweep.
+
+---
+
+## Phase 1 progress — 2026-07-10 (autonomous safe-set COMPLETE)
+
+**6 verified batches. 8346 → 7940 routes (−406). Distinct (method,path) held at 7532
+the entire time → ZERO functionality lost.** Every batch verified by distinct-path
+invariance (the definitive test) + boot + all-survivors-authenticated. Commits
+0061cb07, b9438404, 54f6f338, a3e54a45, 52192988, eef6f85e.
+
+- ✅ **All 42 all-auth redundant routers deduped** (the safe autonomous set is done).
+- Remaining duplicates (~408 entries) are all in founder-decision categories below.
+
+### FOUNDER DECISIONS (yielded — genuine blockers)
+
+**A. Live auth-bypass — 3 NAC endpoints (SECURITY, decide first):**
+`GET/POST /api/v1/nac/policies`, `GET /api/v1/nac/stats` are served **unauthenticated**
+(an authenticated mount exists but is shadowed). Decision: is NAC meant to be public
+(unlikely) or should the authenticated mount win? If fix → remove/reorder the unauth
+mount so auth wins. (Slack /api/v1/slack/* unauth is INTENTIONAL — signature-verified
+webhooks — leave.)
+
+**B. 14 mixed auth/unauth routers** — for each, decide if the unauth mount is intentional
+(webhooks/bots) or a shadow to remove. Only 6 are live-unauth (3 NAC + 3 Slack); the rest
+are dead shadows (safe to remove for hygiene).
+
+**C. 129 different-handler collisions** — same path, DIFFERENT code (e.g.
+api_security_engine_router vs api_security_mgmt_router). Pick the canonical handler per
+path. Needs a worksheet + founder review; cannot be auto-deduped.
+
+### Before merge to main
+Full change-gate suite + a fly canary (this touches routing on the deployed app).
