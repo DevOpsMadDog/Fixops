@@ -1743,15 +1743,6 @@ def register_platform_routers(
     except ImportError:
         pass
 
-    # LLM Loop Metrics telemetry (apps/api/)
-    try:
-        from apps.api.llm_loop_metrics_router import (
-            router as llm_loop_metrics_router,  # noqa: PLC0415
-        )
-        app.include_router(llm_loop_metrics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted LLM Loop Metrics router (wave-6)")
-    except ImportError:
-        pass
 
     # Developer Risk Profiles (apps/api/)
     try:
@@ -1809,25 +1800,7 @@ def register_platform_routers(
 
     # _extra_apps_routers Platform entries
 
-    # Analytics Dashboard (apps/api/)
-    try:
-        from apps.api.analytics_dashboard_router import (
-            router as analytics_dashboard_router,  # noqa: PLC0415
-        )
-        app.include_router(analytics_dashboard_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted Analytics Dashboard router (wave-6)")
-    except ImportError:
-        pass
 
-    # Analytics Routes (apps/api/)
-    try:
-        from apps.api.analytics_routes import (
-            router as analytics_routes_router,  # noqa: PLC0415
-        )
-        app.include_router(analytics_routes_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted Analytics Routes router (wave-6)")
-    except ImportError:
-        pass
 
     # API Key Management (apps/api/)
     try:
@@ -1837,13 +1810,6 @@ def register_platform_routers(
     except ImportError:
         pass
 
-    # Backup (apps/api/)
-    try:
-        from apps.api.backup_router import router as backup_router  # noqa: PLC0415
-        app.include_router(backup_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
-        _logger.info("Mounted Backup router (wave-6)")
-    except ImportError:
-        pass
 
     # Backup DR Validator (apps/api/)
     try:
@@ -1855,25 +1821,7 @@ def register_platform_routers(
     except ImportError:
         pass
 
-    # Changelog (apps/api/)
-    try:
-        from apps.api.changelog_router import (
-            router as changelog_router,  # noqa: PLC0415
-        )
-        app.include_router(changelog_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted Changelog router (wave-6)")
-    except ImportError:
-        pass
 
-    # Dashboard Builder (apps/api/)
-    try:
-        from apps.api.dashboard_builder_router import (
-            router as dashboard_builder_router,  # noqa: PLC0415
-        )
-        app.include_router(dashboard_builder_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted Dashboard Builder router (wave-6)")
-    except ImportError:
-        pass
 
     # Developer Portal (apps/api/)
     try:
@@ -1921,35 +1869,8 @@ def register_platform_routers(
     except ImportError:
         pass
 
-    # Integration Health (apps/api/)
-    try:
-        from apps.api.integration_health_router import (
-            router as integration_health_router,  # noqa: PLC0415
-        )
-        app.include_router(integration_health_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted Integration Health router (wave-6)")
-    except ImportError:
-        pass
 
-    # Metrics Aggregator (apps/api/)
-    try:
-        from apps.api.metrics_aggregator_router import (
-            router as metrics_aggregator_router,  # noqa: PLC0415
-        )
-        app.include_router(metrics_aggregator_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted Metrics Aggregator router (wave-6)")
-    except ImportError:
-        pass
 
-    # Notifications (apps/api/)
-    try:
-        from apps.api.notification_router import (
-            router as notification_router,  # noqa: PLC0415
-        )
-        app.include_router(notification_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted Notifications router (wave-6)")
-    except ImportError:
-        pass
 
     # Posture (apps/api/)
     try:
@@ -1997,25 +1918,7 @@ def register_platform_routers(
     except ImportError:
         pass
 
-    # Rate Limits (apps/api/)
-    try:
-        from apps.api.rate_limit_router import (
-            router as rate_limit_router,  # noqa: PLC0415
-        )
-        app.include_router(rate_limit_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
-        _logger.info("Mounted Rate Limits router (wave-6)")
-    except ImportError:
-        pass
 
-    # Tenant Rate Limiter (apps/api/)
-    try:
-        from apps.api.tenant_rate_limiter_router import (
-            router as tenant_rate_limiter_router,  # noqa: PLC0415
-        )
-        app.include_router(tenant_rate_limiter_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("admin:all"))])
-        _logger.info("Mounted Tenant Rate Limiter router (wave-6)")
-    except ImportError:
-        pass
 
     # Retention (apps/api/)
     try:
@@ -2047,23 +1950,7 @@ def register_platform_routers(
     except ImportError:
         pass
 
-    # Tags (apps/api/)
-    try:
-        from apps.api.tag_router import router as tag_router  # noqa: PLC0415
-        app.include_router(tag_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted Tags router (wave-6)")
-    except ImportError:
-        pass
 
-    # User Analytics (apps/api/)
-    try:
-        from apps.api.user_analytics_router import (
-            router as user_analytics_router,  # noqa: PLC0415
-        )
-        app.include_router(user_analytics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted User Analytics router (wave-6)")
-    except ImportError:
-        pass
 
     # Versioning (apps/api/)
     try:
@@ -2077,43 +1964,9 @@ def register_platform_routers(
     except ImportError:
         pass
 
-    # Webhook Events (apps/api/)
-    try:
-        from apps.api.webhook_events_router import (
-            router as webhook_events_router,  # noqa: PLC0415
-        )
-        app.include_router(webhook_events_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted Webhook Events router (wave-6)")
-    except ImportError:
-        pass
 
-    # Workflow Engine (apps/api/)
-    try:
-        from apps.api.workflow_engine_router import (
-            router as workflow_engine_router,  # noqa: PLC0415
-        )
-        app.include_router(workflow_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
-        _logger.info("Mounted Workflow Engine router (wave-6)")
-    except ImportError:
-        pass
 
-    # GraphRAG (apps/api/)
-    try:
-        from apps.api.graphrag_router import router as graphrag_router  # noqa: PLC0415
-        app.include_router(graphrag_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted GraphRAG router (wave-6)")
-    except ImportError:
-        pass
 
-    # DuckDB Analytics (apps/api/)
-    try:
-        from apps.api.duckdb_analytics_router import (
-            router as duckdb_analytics_router,  # noqa: PLC0415
-        )
-        app.include_router(duckdb_analytics_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted DuckDB Analytics router (wave-6)")
-    except ImportError:
-        pass
 
     _logger.info("Platform sub-app: wave-6 loop-bound routers registered")
 
