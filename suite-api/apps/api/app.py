@@ -3513,7 +3513,6 @@ def create_app() -> FastAPI:
     app.include_router(support_router, dependencies=[Depends(_verify_api_key)])
     _logger.info("Mounted Support router at /api/v1/support")
     if evidence_chain_router:
-        app.include_router(evidence_chain_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
         _logger.info("Mounted Evidence Chain router")
 
     app.include_router(policy_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])

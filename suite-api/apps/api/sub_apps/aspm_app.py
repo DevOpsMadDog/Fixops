@@ -802,7 +802,6 @@ def register_aspm_routers(
         from apps.api.fix_engine_router import (
             router as fix_engine_router,  # noqa: PLC0415
         )
-        app.include_router(fix_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted Fix Engine router (wave-6)")
     except ImportError:
         pass

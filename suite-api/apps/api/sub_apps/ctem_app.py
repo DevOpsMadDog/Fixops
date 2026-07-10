@@ -401,7 +401,6 @@ def register_ctem_routers(
         from apps.api.threat_intel_sharing_router import (
             router as threat_intel_sharing_router,
         )
-        app.include_router(threat_intel_sharing_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Threat Intel Sharing router at /api/v1/threat-sharing")
     except Exception as _e:
         _logger.warning("Threat Intel Sharing router not loaded: %s", _e)
@@ -1463,7 +1462,6 @@ def register_ctem_routers(
         from apps.api.incident_response_router import (
             router as incident_response_router,  # noqa: PLC0415
         )
-        app.include_router(incident_response_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
         _logger.info("Mounted Incident Response router (wave-6)")
     except ImportError:
         pass
