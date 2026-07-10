@@ -61,12 +61,30 @@ Expected route count after: **~5,000–6,000 distinct** (drop the 814 dups + fol
 ### Phase 0 — Freeze
 No new routers. Any new endpoint joins an existing domain module. (Enforce via a CI check counting routers.)
 
-### Phase 1 — Kill the 729 duplicate groups  ← START HERE (safe, high-ROI)
-For each duplicate `(method, path)`: keep the **canonical** mount (the one in the owning domain module),
-remove the shadow mounts. **No functionality loss** — only one handler was ever reachable.
-- Deterministic, scriptable: enumerate dups, diff the handlers (flag the ~131 where handlers *differ* —
-  those need a human to pick the correct one), auto-drop the identical ones.
-- Verify after each batch: `import` the app + `len(create_app().routes)` drops by the removed count + smoke.
+### Phase 1 — Kill the 729 duplicate groups  ← IN PROGRESS
+**CRITICAL FINDING (pilot, 2026-07-10): duplicate dedup is SECURITY-SENSITIVE, not mechanical.**
+The 729 groups split: **600 "identical-handler" (same module.fn) + 129 different-handler shadow
+collisions.** But even the 600 "identical" ones are NOT uniformly safe — many mount the SAME endpoint
+function with **different auth dependencies** across mounts (e.g. `evidence_chain_router` was mounted
+3×: two authenticated, one with NO auth). Which mount wins is **registration-order-dependent**, so:
+- Blindly removing "a duplicate" can delete the authenticated mount and leave an **unauthenticated**
+  one exposed → a NEW vulnerability. Dedup must be **auth-aware**.
+- Some duplicates are latent **auth-shadow security bugs** that dedup should FIX (keep the
+  authenticated first-winner; remove unauth/redundant mounts).
+
+**Root cause:** routers are mounted via 182 direct `include_router` calls in `app.py` **plus** 5 sub-app
+registrars (aspm/cspm/ctem/grc/platform). 644 redundant mounts come from **70 modules** double/triple-mounted
+across these paths.
+
+**Safe per-module procedure (proven on the pilot):**
+1. Find every mount of the router (app.py + all registrars); record each mount's auth dependencies.
+2. Keep exactly ONE mount: the **authenticated, first-registered** one (the current winner). Remove the rest
+   (dead unauth shadows first — pure security win; then redundant authenticated mounts).
+3. Verify: `create_app()` boots + route count drops by the exact expected delta + **all surviving routes
+   for that path carry auth deps** (0 unauth survivors) + change-gate smoke.
+4. Commit atomically per module.
+
+Pilot done: `evidence_chain_router` — removed dead unauth shadow, 8346→8332, 0 unauth survivors (commit 0061cb07).
 
 ### Phase 2 — Collapse sprawl into domain modules
 Per domain (start with the worst: security 104, analytics 34): move routes into one module `APIRouter`,
