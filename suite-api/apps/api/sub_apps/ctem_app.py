@@ -67,10 +67,6 @@ def register_ctem_routers(
     except ImportError:
         ctem_pipeline_router = None  # type: ignore[assignment]
     if ctem_pipeline_router:
-        app.include_router(
-            ctem_pipeline_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
-        )
         _logger.info("Mounted CTEM Pipeline router")
 
     # Threat Intel Correlation — threat actors and campaigns

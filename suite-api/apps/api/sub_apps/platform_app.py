@@ -1180,7 +1180,6 @@ def register_platform_routers(
         from apps.api.api_analytics_router import (
             router as api_analytics_router,  # noqa: PLC0415
         )
-        app.include_router(api_analytics_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted API Analytics router")
     except ImportError as exc:
         _logger.warning("api_analytics_router not available: %s", exc)
@@ -1189,7 +1188,6 @@ def register_platform_routers(
         from apps.api.api_gateway_router import (
             router as api_gateway_router,  # noqa: PLC0415
         )
-        app.include_router(api_gateway_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted API Gateway Security router")
     except ImportError as exc:
         _logger.warning("api_gateway_router not available: %s", exc)
@@ -1486,7 +1484,6 @@ def register_platform_routers(
         from apps.api.council_enhanced_router import (
             router as council_enhanced_router,  # noqa: PLC0415
         )
-        app.include_router(council_enhanced_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted Council Enhanced router")
     except ImportError as exc:
         _logger.warning("council_enhanced_router not available: %s", exc)
@@ -1495,7 +1492,6 @@ def register_platform_routers(
         from apps.api.llm_council_router import (
             router as llm_council_router,  # noqa: PLC0415
         )
-        app.include_router(llm_council_router, dependencies=[Depends(_verify_api_key)])
         _logger.info("Mounted LLM Council Status router at /api/v1/llm/council/status")
     except ImportError as exc:
         _logger.warning("llm_council_router not available: %s", exc)
@@ -1532,10 +1528,6 @@ def register_platform_routers(
     try:
         from apps.api.app_config_router import (
             router as app_config_router,  # noqa: PLC0415
-        )
-        app.include_router(
-            app_config_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
         )
         _logger.info("Mounted APP_ID Configuration router")
     except ImportError as exc:
@@ -1793,7 +1785,6 @@ def register_platform_routers(
     # SIEM (suite-integrations/api/)
     try:
         from api.siem_router import router as siem_router  # noqa: PLC0415
-        app.include_router(siem_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:integrations"))])
         _logger.info("Mounted SIEM router (wave-6)")
     except ImportError:
         pass
@@ -1854,7 +1845,6 @@ def register_platform_routers(
         from apps.api.feed_registry_router import (
             router as feed_registry_router,  # noqa: PLC0415
         )
-        app.include_router(feed_registry_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:feeds"))])
         _logger.info("Mounted Feed Registry router (wave-6)")
     except ImportError:
         pass
