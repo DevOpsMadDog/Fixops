@@ -1346,55 +1346,20 @@ def register_grc_routers(
 
     # _extra_apps_routers GRC entries
 
-    # Compliance Planner (apps/api/)
-    try:
-        from apps.api.compliance_planner_router import (
-            router as compliance_planner_router,  # noqa: PLC0415
-        )
-        app.include_router(compliance_planner_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
-        _logger.info("Mounted Compliance Planner router (wave-6)")
-    except ImportError:
-        pass
+    # Compliance Planner wave-6 re-mount REMOVED (Phase-1 dedup): duplicate of the
+    # authenticated early mount (~L156). See docs/ROUTER_DEDUP_WORKSHEET_2026-07-10.md.
 
-    # Evidence Collector (apps/api/)
-    try:
-        from apps.api.evidence_collector_router import (
-            router as evidence_collector_router,  # noqa: PLC0415
-        )
-        app.include_router(evidence_collector_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
-        _logger.info("Mounted Evidence Collector router (wave-6)")
-    except ImportError:
-        pass
+    # Evidence Collector wave-6 re-mount REMOVED (Phase-1 dedup): duplicate of the
+    # authenticated early mount (~L170).
 
-    # Exception Policy (apps/api/)
-    try:
-        from apps.api.exception_policy_router import (
-            router as exception_policy_router,  # noqa: PLC0415
-        )
-        app.include_router(exception_policy_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))])
-        _logger.info("Mounted Exception Policy router (wave-6)")
-    except ImportError:
-        pass
+    # Exception Policy wave-6 re-mount REMOVED (Phase-1 dedup): duplicate of the
+    # authenticated early mount (~L182).
 
-    # Executive Report (apps/api/)
-    try:
-        from apps.api.executive_report_router import (
-            router as executive_report_router,  # noqa: PLC0415
-        )
-        app.include_router(executive_report_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
-        _logger.info("Mounted Executive Report router (wave-6)")
-    except ImportError:
-        pass
+    # Executive Report wave-6 re-mount REMOVED (Phase-1 dedup): duplicate of the
+    # authenticated early mount (~L194).
 
-    # Executive Security Reports (apps/api/)
-    try:
-        from apps.api.exec_security_reports_router import (
-            router as exec_security_reports_router,  # noqa: PLC0415
-        )
-        app.include_router(exec_security_reports_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:evidence"))])
-        _logger.info("Mounted Executive Security Reports router (wave-6)")
-    except ImportError:
-        pass
+    # Executive Security Reports wave-6 re-mount REMOVED (Phase-1 dedup): duplicate
+    # of the authenticated early mount (~L208).
 
     # Risk Acceptance: mounted ONCE above (~L1076) with _verify_api_key.
     # GAP_MAP #17: this was a second, shadowed mount that added a router-level
@@ -1425,15 +1390,8 @@ def register_grc_routers(
     except ImportError:
         pass
 
-    # Vendor Scorecard (apps/api/)
-    try:
-        from apps.api.vendor_scorecard_router import (
-            router as vendor_scorecard_router,  # noqa: PLC0415
-        )
-        app.include_router(vendor_scorecard_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted Vendor Scorecard router (wave-6)")
-    except ImportError:
-        pass
+    # Vendor Scorecard wave-6 re-mount REMOVED (Phase-1 dedup): duplicate of the
+    # authenticated early mount (~L234).
 
     # Security Scorecard Engine (apps/api/)
     try:
@@ -1455,15 +1413,8 @@ def register_grc_routers(
     except ImportError:
         pass
 
-    # Regulatory Tracker Engine (apps/api/)
-    try:
-        from apps.api.regulatory_tracker_engine_router import (
-            router as regulatory_tracker_engine_router,  # noqa: PLC0415
-        )
-        app.include_router(regulatory_tracker_engine_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))])
-        _logger.info("Mounted Regulatory Tracker Engine router (wave-6)")
-    except ImportError:
-        pass
+    # Regulatory Tracker Engine wave-6 re-mount REMOVED (Phase-1 dedup): duplicate
+    # of the authenticated early mount (~L222).
 
     # Questionnaire Engine (apps/api/)
     try:
