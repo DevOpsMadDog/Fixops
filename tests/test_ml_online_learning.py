@@ -892,3 +892,42 @@ class TestEdgeCases:
         bundle = _TrainedBundle(model=model, scaler=scaler)
         assert bundle.model is model
         assert bundle.scaler is scaler
+
+    def test_single_flight_guard_prevents_concurrent_training(
+        self, pipeline, sample_feedback_decision_correct
+    ):
+        """Single-flight guard: retrain_now() rejects if training already in progress."""
+        import threading
+
+        # Force the buffer to be ready for retrain
+        for _ in range(3):
+            pipeline._buffer.add(FeedbackConverter.convert(sample_feedback_decision_correct))
+
+        # Manually set training_in_progress to simulate an ongoing training run
+        with pipeline._lock:
+            pipeline._training_in_progress = True
+
+        # Now retrain_now() should be rejected
+        result = pipeline.retrain_now()
+        assert not result.success
+        assert "in progress" in result.rejection_reason.lower() or "training" in result.rejection_reason.lower()
+
+        # Clean up
+        with pipeline._lock:
+            pipeline._training_in_progress = False
+
+    def test_training_in_progress_cleared_after_retrain(
+        self, pipeline, sample_feedback_decision_correct
+    ):
+        """_training_in_progress flag must be False after retrain completes."""
+        # Ensure buffer is ready
+        for _ in range(3):
+            pipeline._buffer.add(FeedbackConverter.convert(sample_feedback_decision_correct))
+
+        assert not pipeline._training_in_progress
+
+        # Run retrain (will set and then clear the flag)
+        pipeline.retrain_now()
+
+        # After completion, flag must be cleared
+        assert not pipeline._training_in_progress

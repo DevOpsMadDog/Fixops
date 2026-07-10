@@ -421,3 +421,74 @@ class TestEPSSCalibration:
         assert enricher._estimate_epss_from_severity({"severity": "high"}) == 0.10
         assert enricher._estimate_epss_from_severity({"severity": "medium"}) == 0.03
         assert enricher._estimate_epss_from_severity({"severity": "low"}) == 0.01
+
+
+# ---------------------------------------------------------------------------
+# Tests for the new enrich() method (per-CVE enrichment)
+# ---------------------------------------------------------------------------
+
+class TestEnrichMethod:
+    """Tests for ThreatEnricher.enrich() — per-CVE-ID enrichment dict."""
+
+    def test_enrich_empty_returns_empty_dict(self, enricher: ThreatEnricher):
+        """enrich([]) returns an empty dict, not None or error."""
+        result = enricher.enrich([], skip_api=True)
+        assert result == {}
+
+    def test_enrich_returns_dict_keyed_by_cve_id(self, enricher: ThreatEnricher):
+        """enrich() returns a mapping CVE ID → enrichment data."""
+        cve_ids = ["CVE-2021-44228", "CVE-2022-22965"]
+        result = enricher.enrich(cve_ids, skip_api=True)
+        assert set(result.keys()) == set(cve_ids)
+
+    def test_enrich_result_has_required_fields(self, enricher: ThreatEnricher):
+        """Each per-CVE result must contain epss, kev, cvss, kev_details."""
+        result = enricher.enrich(["CVE-2021-44228"], skip_api=True)
+        entry = result["CVE-2021-44228"]
+        assert "epss" in entry
+        assert "kev" in entry
+        assert "cvss" in entry
+        assert "kev_details" in entry
+
+    def test_enrich_kev_true_for_known_kev_cve(self, enricher: ThreatEnricher):
+        """CVEs in the KEV catalog should have kev=True in enrich() output."""
+        mock_kev = {
+            "catalogVersion": "2024.01.01",
+            "vulnerabilities": [
+                {"cveID": "CVE-2021-44228", "vendorProject": "Apache", "product": "Log4j"},
+            ],
+        }
+        with patch("core.ml.threat_enricher._fetch_json", return_value=mock_kev):
+            enricher._load_kev_catalog(skip_api=False)
+
+        result = enricher.enrich(["CVE-2021-44228"], skip_api=True)
+        assert result["CVE-2021-44228"]["kev"] is True
+        assert result["CVE-2021-44228"]["kev_details"] is not None
+
+    def test_enrich_kev_false_for_unknown_cve(self, enricher: ThreatEnricher):
+        """Unknown CVEs should have kev=False."""
+        result = enricher.enrich(["CVE-9999-99999"], skip_api=True)
+        assert result["CVE-9999-99999"]["kev"] is False
+        assert result["CVE-9999-99999"]["kev_details"] is None
+
+    def test_enrich_epss_populated_from_cache(self, enricher: ThreatEnricher):
+        """If EPSS is in cache, enrich() should return it."""
+        enricher._epss_cache["CVE-2021-44228"] = 0.97
+        result = enricher.enrich(["CVE-2021-44228"], skip_api=True)
+        assert result["CVE-2021-44228"]["epss"] == 0.97
+
+    def test_enrich_multiple_cves(self, enricher: ThreatEnricher):
+        """enrich() handles a batch of CVEs correctly."""
+        cves = ["CVE-2021-44228", "CVE-2022-22965", "CVE-2023-12345"]
+        result = enricher.enrich(cves, skip_api=True)
+        assert len(result) == 3
+        for cve in cves:
+            assert cve in result
+            assert isinstance(result[cve]["kev"], bool)
+
+    def test_enrich_none_epss_when_not_cached(self, enricher: ThreatEnricher):
+        """When EPSS not in cache and skip_api=True, epss should be None."""
+        # Clear any cache
+        enricher._epss_cache.clear()
+        result = enricher.enrich(["CVE-9999-11111"], skip_api=True)
+        assert result["CVE-9999-11111"]["epss"] is None

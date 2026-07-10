@@ -434,3 +434,47 @@ class TestComplianceEngine:
         assert isinstance(posture, CompliancePosture)
         assert posture.framework == Framework.PCI_DSS
         assert posture.total_controls == len(PCI_DSS_CONTROLS)
+
+
+class TestGenerateAuditBundle:
+    """Tests for generate_audit_bundle — verifies category field is present."""
+
+    @pytest.fixture
+    def engine(self, tmp_path):
+        db = ComplianceDB(db_path=str(tmp_path / "compliance_ab.db"))
+        return ComplianceEngine(db=db)
+
+    def test_audit_bundle_controls_have_category(self, engine):
+        """Controls returned by generate_audit_bundle must include 'category'."""
+        # Seed some assessments so controls_with_evidence is non-empty
+        findings = [
+            {"id": "f-ab-1", "cwe": "CWE-287", "severity": "high", "title": "Auth Bypass"},
+            {"id": "f-ab-2", "cwe": "CWE-862", "severity": "high", "title": "Missing Authz"},
+            {"id": "f-ab-3", "cwe": "CWE-89",  "severity": "critical", "title": "SQL Injection"},
+        ]
+        engine.map_findings_to_controls(findings)
+        bundle = engine.generate_audit_bundle(Framework.SOC2, app_id="test-app")
+        assert "controls" in bundle
+        for ctrl in bundle["controls"]:
+            assert "category" in ctrl, (
+                f"Control {ctrl.get('control_id')} missing 'category' field"
+            )
+            assert ctrl["category"] is not None, (
+                f"Control {ctrl.get('control_id')} has None category"
+            )
+
+    def test_audit_bundle_controls_have_title(self, engine):
+        """Controls in audit bundle must include a non-empty 'title' field."""
+        findings = [
+            {"id": "f-ab-4", "cwe": "CWE-79", "severity": "medium", "title": "XSS"},
+        ]
+        engine.map_findings_to_controls(findings)
+        bundle = engine.generate_audit_bundle(Framework.SOC2, app_id="test-app-2")
+        for ctrl in bundle["controls"]:
+            assert "title" in ctrl
+
+    def test_audit_bundle_structure(self, engine):
+        """generate_audit_bundle returns expected top-level keys."""
+        bundle = engine.generate_audit_bundle(Framework.PCI_DSS, app_id="test-app-3")
+        required_keys = {"bundle_id", "generated_at", "framework", "posture", "controls", "gaps"}
+        assert required_keys <= set(bundle.keys())
