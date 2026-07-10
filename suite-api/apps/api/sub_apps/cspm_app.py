@@ -204,8 +204,13 @@ def register_cspm_routers(
 
     try:
         from apps.api.nac_router import router as nac_router
-        app.include_router(nac_router)
-        _logger.info("Mounted NAC router at /api/v1/nac")
+        # SECURITY FIX (2026-07-10): nac_router previously mounted with NO auth,
+        # shadowing the authenticated network_access_control_router at the same
+        # /api/v1/nac prefix -> /nac/policies + /nac/stats served UNAUTHENTICATED.
+        # Require an API key (no OAuth scope: the product's primary auth is API-key,
+        # and router-level scopes 403 under it — see GAP_MAP #17).
+        app.include_router(nac_router, dependencies=[Depends(_verify_api_key)])
+        _logger.info("Mounted NAC router at /api/v1/nac (authenticated)")
     except ImportError:
         pass
 
