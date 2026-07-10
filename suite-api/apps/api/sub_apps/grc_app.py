@@ -75,10 +75,6 @@ def register_grc_routers(
     except ImportError:
         risk_register_router = None  # type: ignore[assignment]
     if risk_register_router:
-        app.include_router(
-            risk_register_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
         _logger.info("Mounted Risk Register router")
 
     # IR Playbook Engine — NIST 800-61 incident response, evidence chain, regulatory notifications
@@ -87,10 +83,6 @@ def register_grc_routers(
     except ImportError:
         ir_playbook_router = None  # type: ignore[assignment]
     if ir_playbook_router:
-        app.include_router(
-            ir_playbook_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
-        )
         _logger.info("Mounted IR Playbook Engine router")
 
     # IR Playbook Runner — 5 built-in playbooks, real actions
@@ -101,10 +93,6 @@ def register_grc_routers(
     except ImportError:
         ir_playbook_runner_router = None  # type: ignore[assignment]
     if ir_playbook_runner_router:
-        app.include_router(
-            ir_playbook_runner_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("write:findings"))],
-        )
         _logger.info("Mounted IR Playbook Runner router")
 
     # Security Policy Document Generator
@@ -113,10 +101,6 @@ def register_grc_routers(
     except ImportError:
         policy_generator_router = None  # type: ignore[assignment]
     if policy_generator_router:
-        app.include_router(
-            policy_generator_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
         _logger.info("Mounted Policy Generator router")
 
     # Compliance Reports — multi-framework reporting
@@ -127,10 +111,6 @@ def register_grc_routers(
     except ImportError:
         compliance_reports_router = None  # type: ignore[assignment]
     if compliance_reports_router:
-        app.include_router(
-            compliance_reports_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
-        )
         _logger.info("Mounted Compliance Reports router")
 
     # Evidence Chain router — tamper-proof cryptographic audit trail (early mount)
@@ -308,10 +288,6 @@ def register_grc_routers(
     try:
         from apps.api.compliance_automation_router import (
             router as compliance_automation_router,
-        )
-        app.include_router(
-            compliance_automation_router,
-            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:findings"))],
         )
         _logger.info("Mounted Compliance Automation router at /api/v1/compliance")
     except Exception as _e:
