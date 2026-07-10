@@ -461,13 +461,10 @@ def register_grc_routers(
     except ImportError:
         pass
 
-    # Evidence Chain (late-bound variant — after all other routes)
-    try:
-        from apps.api.evidence_chain_router import router as _evidence_chain_late
-        app.include_router(_evidence_chain_late)
-        _logger.info("Mounted Evidence Chain router at /api/v1/evidence-chain (late)")
-    except ImportError:
-        pass
+    # Evidence Chain late-bound unauthenticated mount REMOVED (2026-07-10):
+    # it re-mounted evidence_chain_router with NO auth dependencies, shadowed (dead)
+    # behind the authenticated early mount above. Removing the unauth shadow +
+    # dead routes. See docs/ROUTER_CONSOLIDATION_PLAN_2026-07-09.md Phase 1.
 
     # Compliance Evidence
     try:
