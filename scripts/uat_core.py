@@ -106,10 +106,16 @@ def uat():
     payload = {"findings": [{"id": str(f.get("id", uuid.uuid4())), "title": f.get("title", "f"),
                              "severity": f.get("severity", "medium")} for f in findings[:5]] or
                             [{"id": "1", "title": "SQLi", "severity": "high"}], "org_id": ORG_A}
-    r = requests.post(f"{BASE}/api/v1/pipeline/pipeline/run", json=payload, headers=h(ORG_A), timeout=120)
+    r = requests.post(f"{BASE}/api/v1/pipeline/run", json=payload, headers=h(ORG_A), timeout=180)
     vb = r.json() if r.ok else {}
-    verdict = vb.get("verdict") or vb.get("decision") or (vb.get("result") or {}).get("verdict")
-    check("UC6 AI council verdict returned", r.status_code == 200 and verdict is not None, f"HTTP {r.status_code}, verdict={verdict}")
+    verdict = vb.get("verdict") or {}
+    decision = verdict.get("decision") if isinstance(verdict, dict) else verdict
+    source = verdict.get("source") if isinstance(verdict, dict) else None
+    check("UC6 AI council verdict returned", r.status_code == 200 and decision is not None,
+          f"HTTP {r.status_code}, decision={decision}, source={source}")
+    # UC6b: with a key present, the verdict must come from the REAL council, not the heuristic fallback
+    check("UC6b verdict is REAL council (not heuristic)", source in ("council", "consensus"),
+          f"source={source} (heuristic fallback = key not wired / no findings critical)")
 
     # UC7 evidence bundle
     r = requests.get(f"{BASE}/api/v1/pipeline/evidence/packs", headers=h(ORG_A), timeout=30)

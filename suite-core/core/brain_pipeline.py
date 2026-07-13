@@ -3482,8 +3482,11 @@ class BrainPipeline:
                     "ci_width": pred.confidence_width,
                 })
             else:
-                # Fallback: deterministic weighted formula
-                cvss = f.get("cvss_score", 5.0)
+                # Fallback: deterministic weighted formula.
+                # Derive CVSS from severity when the finding has no cvss_score
+                # (e.g. plain SARIF / severity-only input) so severity drives risk.
+                _dsev = str(f.get("severity", "medium")).lower().strip()
+                cvss = f.get("cvss_score") or self._SEVERITY_TO_CVSS.get(_dsev, 5.0)
                 epss = f.get("epss_score", 0.1)
                 kev_boost = 1.5 if f.get("in_kev") else 1.0
                 # [V5] Unreachable findings get 40% risk reduction
@@ -3500,6 +3503,19 @@ class BrainPipeline:
                 )
                 f["risk_score"] = risk
                 f["risk_model_version"] = "deterministic-1.0"
+
+            # Severity floor (BOTH ML and deterministic paths): the scanner's
+            # severity is analyst ground-truth — risk must not fall below its band.
+            # Without this, critical findings lacking CVSS/asset/EPSS data scored
+            # ~0.27, were never classified critical, and the LLM council never
+            # fired on real SARIF input (the moat was dead for the demo path).
+            _sev_floor = {"critical": 0.9, "high": 0.75, "medium": 0.5,
+                          "low": 0.25, "info": 0.1}.get(
+                              str(f.get("severity", "medium")).lower().strip(), 0.0)
+            if _sev_floor > risk:
+                risk = _sev_floor
+                f["risk_score"] = risk
+                f["risk_severity_floor_applied"] = True
 
             scores.append(risk)
 
