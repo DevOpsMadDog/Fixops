@@ -14,6 +14,7 @@ Endpoints:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -223,7 +224,11 @@ async def run_pipeline(
         evidence_timeframe_days=req.evidence_timeframe_days,
         policy_rules=req.policy_rules,
     )
-    result = pipeline.run(inp)
+    # pipeline.run() is a synchronous ~O(findings) + blocking-LLM call (50s+ with the
+    # real council). Run it in a worker thread so it does NOT block the event loop —
+    # otherwise /health returns 000 and all concurrent requests reset during a run
+    # (failed container healthchecks / orchestrator restarts). Caught by real UAT.
+    result = await asyncio.to_thread(pipeline.run, inp)
     result_dict = result.to_dict()
     # Issue 2: inject top-level verdict derived from real pipeline step outputs
     result_dict["verdict"] = _extract_verdict(result_dict)
