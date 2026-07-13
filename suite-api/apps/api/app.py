@@ -5522,7 +5522,11 @@ def create_app() -> FastAPI:
             scheduler = ConnectorScheduler(registry)
             # Store on app state so shutdown hook can stop it
             app.state.connector_scheduler = scheduler
-            await scheduler.start()
+            # start() is an INFINITE pull loop — it MUST run as a background task.
+            # Awaiting it blocks the startup event forever (app never becomes ready,
+            # readiness probe fails, process is killed). Real container UAT caught this.
+            import asyncio as _asyncio
+            app.state.connector_scheduler_task = _asyncio.create_task(scheduler.start())
             _logger.info("ConnectorScheduler started (background pull loop)")
         except ImportError as exc:
             _logger.info("ConnectorScheduler skipped (module not available): %s", exc)
