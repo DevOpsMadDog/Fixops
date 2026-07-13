@@ -5507,13 +5507,19 @@ def create_app() -> FastAPI:
                 ConnectorScheduler,
                 register_all_existing_connectors,
             )
+            from connectors.connector_registry import ConnectorRegistry
 
-            count = register_all_existing_connectors()
+            # registry + settings are REQUIRED args — omitting them crashed the
+            # scheduler startup every boot. Empty settings = connectors register in
+            # an unconfigured state and are configured on-demand via
+            # /api/v1/connectors/{name} (no vendor creds needed at boot).
+            registry = ConnectorRegistry()
+            count = register_all_existing_connectors(registry, {})
             _logger.info(
                 "Connector framework: registered %d existing connectors", count
             )
 
-            scheduler = ConnectorScheduler()
+            scheduler = ConnectorScheduler(registry)
             # Store on app state so shutdown hook can stop it
             app.state.connector_scheduler = scheduler
             await scheduler.start()

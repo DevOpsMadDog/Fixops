@@ -59,12 +59,21 @@ def check(name, cond, detail=""):
 def uat():
     print(f"\nFixOps-Core UAT against {BASE}\n" + "=" * 64)
 
-    # UC1 health
-    try:
-        r = requests.get(f"{BASE}/health", timeout=10)
-        check("UC1 health endpoint 200", r.status_code == 200, f"HTTP {r.status_code}")
-    except Exception as e:
-        check("UC1 health endpoint 200", False, f"unreachable: {e}"); return
+    # UC1 health — retry through container startup flap (workers spinning up)
+    import time
+    status = None
+    for _ in range(12):
+        try:
+            r = requests.get(f"{BASE}/health", timeout=10)
+            status = r.status_code
+            if status == 200:
+                break
+        except Exception:
+            status = None
+        time.sleep(5)
+    check("UC1 health endpoint 200", status == 200, f"HTTP {status}")
+    if status != 200:
+        return
 
     # UC9 auth enforcement — protected endpoint WITHOUT key must be rejected
     r = requests.get(f"{BASE}/api/v1/findings", headers={"X-Org-ID": ORG_A}, timeout=15)
