@@ -188,7 +188,7 @@ class OpusCTOEscalation:
             from core.llm_providers import AnthropicMessagesProvider, OpenRouterChatProvider
 
             # Prefer direct Anthropic API if key is available; fall back to OpenRouter
-            # which can route anthropic/claude-3.5-sonnet without an Anthropic key.
+            # which can route anthropic/claude-sonnet-4.5 without an Anthropic key.
             # This ensures escalation is NEVER silently skipped just because
             # ANTHROPIC_API_KEY is absent — which it is on this deployment.
             anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
@@ -199,7 +199,7 @@ class OpusCTOEscalation:
                 )
             else:
                 # No direct Anthropic key — route through OpenRouter instead.
-                # anthropic/claude-3.5-sonnet is the best available escalation
+                # anthropic/claude-sonnet-4.5 is the best available escalation
                 # model on OpenRouter that doesn't require a direct vendor key.
                 or_key = next(
                     (
@@ -229,12 +229,12 @@ class OpusCTOEscalation:
                     )
                 opus_provider = OpenRouterChatProvider(
                     name="escalation-cto",
-                    model="anthropic/claude-3.5-sonnet",
+                    model="anthropic/claude-sonnet-4.5",
                     api_key_envs=("OPENROUTER_API_KEY", "MULEROUTER_API_KEY", "FIXOPS_OPENROUTER_KEY"),
                     timeout=60.0,
                     style="analyst",
                 )
-                logger.info("Escalation via OpenRouter (anthropic/claude-3.5-sonnet)")
+                logger.info("Escalation via OpenRouter (anthropic/claude-sonnet-4.5)")
 
             # Verify key is available (redundant for OR path but guards direct Anthropic)
             if not getattr(opus_provider, "api_key", None):

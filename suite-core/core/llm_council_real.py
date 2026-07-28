@@ -61,10 +61,10 @@ _DEFAULT_MODELS: list[str] = [
     "deepseek/deepseek-chat-v3.1",
     "qwen/qwen3-next-80b-a3b-instruct",
     "meta-llama/llama-3.3-70b-instruct",
-    "anthropic/claude-3.5-haiku",
+    "anthropic/claude-haiku-4.5",
 ]
 
-_OPUS_MODEL = "claude-opus-4-5"          # escalation target
+_OPUS_MODEL = "anthropic/claude-sonnet-4.5"          # escalation target (via OpenRouter)
 _VOTE_LABELS = frozenset({"approve", "reject", "escalate"})
 
 # Per-model HTTP timeout (free models can be slow)

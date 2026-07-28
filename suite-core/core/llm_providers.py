@@ -763,9 +763,17 @@ class OpenRouterProvider(BaseLLMProvider):
             try:
                 parsed = json.loads(content)
             except json.JSONDecodeError as json_exc:
-                raise ValueError(
-                    f"OpenRouter returned non-JSON content: {content[:100]}"
-                ) from json_exc
+                # Some models (e.g. Claude Haiku 4.5) wrap JSON in a markdown
+                # ```json ... ``` fence or add prose — extract the first {...}
+                # object before giving up (same fallback the other providers use).
+                # Without this the model is silently dropped (council 4/5 not 5/5).
+                json_match = _extract_json_from_text(content)
+                if json_match:
+                    parsed = json.loads(json_match)
+                else:
+                    raise ValueError(
+                        f"OpenRouter returned non-JSON content: {content[:100]}"
+                    ) from json_exc
         except requests.Timeout as exc:
             metadata = {
                 "mode": "fallback",
@@ -2098,9 +2106,17 @@ class OpenRouterChatProvider(BaseLLMProvider):
             try:
                 parsed = json.loads(content)
             except json.JSONDecodeError as exc:
-                raise ValueError(
-                    f"OpenRouter returned non-JSON content: {content[:120]}"
-                ) from exc
+                # Models like Claude Haiku 4.5 / Gemini 2.5 Flash wrap JSON in a
+                # ```json ... ``` fence or add prose. Extract the {...} object
+                # before giving up — otherwise the model is silently dropped from
+                # the council (was firing 4/5 instead of 5/5).
+                json_match = _extract_json_from_text(content)
+                if json_match:
+                    parsed = json.loads(json_match)
+                else:
+                    raise ValueError(
+                        f"OpenRouter returned non-JSON content: {content[:120]}"
+                    ) from exc
 
             # Extract usage for cost accounting (paid models include this).
             usage = resp_json.get("usage", {})

@@ -2058,15 +2058,15 @@ class CouncilFactory:
             "Code Analyst (Llama 3.3 70B)",
         ),
         (
-            "anthropic/claude-3.5-haiku",
+            "anthropic/claude-haiku-4.5",
             "adversary_modeling",
             0.88,
-            "Adversary Modeler (Claude 3.5 Haiku)",
+            "Adversary Modeler (Claude Haiku 4.5)",
         ),
     ]
 
     #: Escalation model — routes through OpenRouter so no direct ANTHROPIC key needed.
-    ESCALATION_MODEL = "anthropic/claude-3.5-sonnet"
+    ESCALATION_MODEL = "anthropic/claude-sonnet-4.5"
 
     def create_default_council(
         self,
