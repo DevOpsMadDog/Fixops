@@ -2397,14 +2397,41 @@ def create_app() -> FastAPI:
         except (OSError, TypeError, ValueError) as exc:
             _logger.warning("openapi: cache persist failed (%s: %s)", type(exc).__name__, exc)
 
+    _CORE_MODE = os.getenv("FIXOPS_CORE_MODE", "").strip() in ("1", "true", "True")
+    _CORE_PREFIXES = (
+        "/health", "/api/v1/health", "/api/v1/orgs", "/api/v1/auth",
+        "/api/v1/scanner-ingest", "/api/v1/connectors",
+        "/api/v1/findings", "/api/v1/security-findings",
+        "/api/v1/deduplication", "/api/v1/risk-scoring",
+        "/api/v1/pipeline", "/api/v1/evidence", "/api/v1/evidence-chain",
+        "/api/v1/compliance",
+    )
+
+    def _apply_core_mode(schema: Dict[str, Any]) -> Dict[str, Any]:
+        """CORE MODE (FIXOPS_CORE_MODE=1): advertise ONLY the value-path surface so
+        the product presents as a focused ASPM decision engine, not 800 routes.
+        Schema-only — routes stay mounted/functional, just not shown in /docs.
+        Returns a filtered COPY; the full schema is what gets disk-cached."""
+        if not _CORE_MODE:
+            return schema
+        paths = schema.get("paths", {})
+        core = {p: item for p, item in paths.items()
+                if any(p == pref or p.startswith(pref) for pref in _CORE_PREFIXES)}
+        out = dict(schema)
+        out["paths"] = core
+        out["info"] = {**schema.get("info", {}),
+                       "x-core-mode": "Focused value-path API surface (full API remains available)."}
+        return out
+
     def _capped_openapi() -> Dict[str, Any]:
         if app.openapi_schema:
             return app.openapi_schema
         # Disk-cache fast-path: avoid the 14s rebuild on cold start.
         cached = _load_openapi_cache()
         if cached is not None:
-            app.openapi_schema = cached
-            return cached
+            filtered = _apply_core_mode(cached)
+            app.openapi_schema = filtered
+            return filtered
         from fastapi.openapi.utils import get_openapi
 
         skipped: List[str] = []
@@ -2488,9 +2515,12 @@ def create_app() -> FastAPI:
         if running_sha:
             schema.setdefault("info", {})["x-build-sha"] = running_sha
 
-        app.openapi_schema = schema
+        # Always disk-cache the FULL schema; core-mode filtering happens on return
+        # so a core-mode run and a normal run never poison each other's cache.
         _save_openapi_cache(schema)
-        return schema
+        filtered = _apply_core_mode(schema)
+        app.openapi_schema = filtered
+        return filtered
 
     app.openapi = _capped_openapi  # type: ignore[method-assign]
 
