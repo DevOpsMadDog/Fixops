@@ -405,6 +405,26 @@ export default function FindingExplorer() {
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, page]);
 
+  // Adaptive columns: enrichment fields (EPSS/KEV/reachability/MPTE/FAIL/risk) only
+  // exist for CVE-backed findings. For SAST/SARIF results they are all empty, which
+  // previously rendered a half-blank 15-column grid that read as a broken product.
+  // Hide any column with no data in the current result set instead of showing "—".
+  const cols = useMemo(() => {
+    const any = (fn: (f: Finding) => unknown) => filtered.some((f) => {
+      const v = fn(f);
+      return v !== undefined && v !== null && v !== "" && v !== false;
+    });
+    return {
+      cve: any((f) => f.cve || f.cve_id),
+      epss: any((f) => f.epss_score),
+      kev: any((f) => f.kev),
+      reach: any((f) => f.reachable),
+      mpte: any((f) => f.mpte_verdict),
+      fail: any((f) => f.fail_score),
+      risk: any((f) => f.risk_priority),
+    };
+  }, [filtered]);
+
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
   function toggleSort(field: string) {
@@ -737,23 +757,23 @@ export default function FindingExplorer() {
                         <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("title")}>
                           <span className="flex items-center">Title <SortIcon field="title" sortField={sortField} sortDir={sortDir} /></span>
                         </TableHead>
-                        <TableHead>CVE</TableHead>
-                        <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("epss_score")}>
+                        {cols.cve && <TableHead>CVE</TableHead>}
+                        {cols.epss && (<TableHead className="cursor-pointer select-none" onClick={() => toggleSort("epss_score")}>
                           <span className="flex items-center">EPSS <SortIcon field="epss_score" sortField={sortField} sortDir={sortDir} /></span>
-                        </TableHead>
-                        <TableHead>KEV</TableHead>
-                        <TableHead>Reachability</TableHead>
+                        </TableHead>)}
+                        {cols.kev && <TableHead>KEV</TableHead>}
+                        {cols.reach && <TableHead>Reachability</TableHead>}
                         <TableHead>Scanner</TableHead>
                         <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("status")}>
                           <span className="flex items-center">Status <SortIcon field="status" sortField={sortField} sortDir={sortDir} /></span>
                         </TableHead>
-                        <TableHead>MPTE</TableHead>
-                        <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("fail_score")}>
+                        {cols.mpte && <TableHead>MPTE</TableHead>}
+                        {cols.fail && (<TableHead className="cursor-pointer select-none" onClick={() => toggleSort("fail_score")}>
                           <span className="flex items-center">FAIL <SortIcon field="fail_score" sortField={sortField} sortDir={sortDir} /></span>
-                        </TableHead>
-                        <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("risk_priority")}>
+                        </TableHead>)}
+                        {cols.risk && (<TableHead className="cursor-pointer select-none" onClick={() => toggleSort("risk_priority")}>
                           <span className="flex items-center">Risk <SortIcon field="risk_priority" sortField={sortField} sortDir={sortDir} /></span>
-                        </TableHead>
+                        </TableHead>)}
                         <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("created_at")}>
                           <span className="flex items-center">Age <SortIcon field="created_at" sortField={sortField} sortDir={sortDir} /></span>
                         </TableHead>
@@ -789,42 +809,49 @@ export default function FindingExplorer() {
                                 <SeverityBadge severity={finding.severity} />
                               </TableCell>
                               <TableCell className="font-mono text-xs text-muted-foreground">
-                                {finding.finding_id || finding.id || `F-${idx + 1}`}
+                                {/* Full 36-char UUIDs dominated the row; show a short
+                                    handle and keep the full id on hover + copy. */}
+                                <span title={finding.finding_id || finding.id || ""}>
+                                  {(() => {
+                                    const fid = finding.finding_id || finding.id || `F-${idx + 1}`;
+                                    return fid.length > 10 ? `${fid.slice(0, 8)}…` : fid;
+                                  })()}
+                                </span>
                               </TableCell>
                               <TableCell className="max-w-[280px]">
                                 <span className="truncate block font-medium text-sm">{finding.title || "Untitled"}</span>
                               </TableCell>
-                              <TableCell className="font-mono text-xs">
+                              {cols.cve && (<TableCell className="font-mono text-xs">
                                 {(finding.cve || finding.cve_id) ? (
                                   <span className="text-blue-400 hover:underline">{finding.cve || finding.cve_id}</span>
                                 ) : (
                                   <span className="text-muted-foreground">—</span>
                                 )}
-                              </TableCell>
-                              <TableCell>
+                              </TableCell>)}
+                              {cols.epss && (<TableCell>
                                 <EpssBadge score={finding.epss_score} percentile={finding.epss_percentile} />
-                              </TableCell>
-                              <TableCell>
+                              </TableCell>)}
+                              {cols.kev && (<TableCell>
                                 <KevBadge isKev={finding.kev} dueDate={finding.kev_due_date} />
-                              </TableCell>
-                              <TableCell>
+                              </TableCell>)}
+                              {cols.reach && (<TableCell>
                                 <ReachabilityBadge reachable={finding.reachable} />
-                              </TableCell>
+                              </TableCell>)}
                               <TableCell className="text-xs">
                                 <Badge variant="outline" className="text-xs">{finding.scanner || finding.source_tool || "—"}</Badge>
                               </TableCell>
                               <TableCell>
                                 <StatusBadge status={finding.status} />
                               </TableCell>
-                              <TableCell>
+                              {cols.mpte && (<TableCell>
                                 <MpteBadge verdict={finding.mpte_verdict} />
-                              </TableCell>
-                              <TableCell>
+                              </TableCell>)}
+                              {cols.fail && (<TableCell>
                                 <FailScoreBadge score={finding.fail_score} />
-                              </TableCell>
-                              <TableCell>
+                              </TableCell>)}
+                              {cols.risk && (<TableCell>
                                 <RiskPriorityBadge finding={finding} />
-                              </TableCell>
+                              </TableCell>)}
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                                 {getAgeDays(finding.created_at)}
                               </TableCell>
