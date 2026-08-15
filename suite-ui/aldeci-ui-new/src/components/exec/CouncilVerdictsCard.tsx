@@ -273,7 +273,7 @@ export function CouncilVerdictsCard() {
         {!loading && (
           <div className="pt-3 flex justify-end">
             <Button variant="ghost" size="sm" className="h-7 text-[11px] text-muted-foreground gap-1" asChild>
-              <a href="/brain/consensus">
+              <a href="/brain?tab=consensus">
                 Full Council View <ChevronRight className="h-3 w-3" />
               </a>
             </Button>

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { NavLink, Link, Outlet, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { billingApi, type BillingTier } from "@/lib/api";
+import { billingApi, buildApiUrl, getStoredAuthToken, type BillingTier } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { UpgradeDialog } from "@/components/billing/UpgradeDialog";
 import { ErrorState } from "@/components/shared/ErrorState";
@@ -352,6 +352,107 @@ const adminItems: AdminNavItem[] = [
 ];
 
 // Flat navGroups derived from sections — used for breadcrumbs
+/**
+ * CORE MODE — the value-path screens.
+ *
+ * The platform carries hundreds of secondary pages. When the server reports
+ * core_mode (FIXOPS_CORE_MODE=1) the sidebar shows only the path a customer
+ * actually buys — ingest -> findings -> AI verdict -> evidence — so the product
+ * presents as a focused tool instead of a sprawl. Nothing is deleted: every route
+ * still resolves for anyone who deep-links to it, it is just not advertised.
+ */
+const CORE_NAV: NavSection[] = [
+  {
+    section: "Overview",
+    icon: Crown,
+    groups: [
+      {
+        label: "Posture",
+        icon: Crown,
+        items: [{ label: "Security Dashboard", to: "/executive", icon: Crown }],
+      },
+    ],
+  },
+  {
+    section: "Findings",
+    icon: Search,
+    groups: [
+      {
+        label: "Ingest & Triage",
+        icon: Search,
+        items: [
+          { label: "Import Scan", to: "/import", icon: Upload },
+          { label: "All Findings", to: "/discover", icon: Bug },
+          { label: "Exposure Cases", to: "/remediate/cases", icon: Layers },
+        ],
+      },
+    ],
+  },
+  {
+    section: "AI Decisions",
+    icon: Brain,
+    groups: [
+      {
+        label: "Council",
+        icon: Brain,
+        items: [
+          { label: "AI Council", to: "/brain?tab=consensus", icon: Brain, badge: "AI" },
+          { label: "Copilot Agents", to: "/ai/agents", icon: Bot },
+        ],
+      },
+    ],
+  },
+  {
+    section: "Respond",
+    icon: ShieldCheck,
+    groups: [
+      {
+        label: "Incidents",
+        icon: ShieldCheck,
+        items: [{ label: "Incidents", to: "/incidents", icon: ShieldCheck }],
+      },
+    ],
+  },
+  {
+    section: "Evidence",
+    icon: FileText,
+    groups: [
+      {
+        label: "Compliance",
+        icon: FileText,
+        items: [
+          { label: "Compliance Coverage", to: "/comply/coverage", icon: FileText },
+          { label: "Reports & Evidence", to: "/comply/reports", icon: FileText },
+        ],
+      },
+    ],
+  },
+];
+
+/** Reads core_mode from the server so one build serves both modes. */
+function useCoreMode(): boolean {
+  const [coreMode, setCoreMode] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(buildApiUrl("/api/v1/app-config"), {
+          headers: { "X-API-Key": getStoredAuthToken() || "" },
+        });
+        if (!res.ok) return;
+        const cfg = await res.json();
+        if (!cancelled) setCoreMode(Boolean(cfg?.platform?.core_mode));
+      } catch {
+        /* default: full nav */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return coreMode;
+}
+
 const navGroups: NavGroup[] = navSections.flatMap((s) => s.groups);
 
 // ── Tooltip wrapper ────────────────────────────────────────────────────────
@@ -894,17 +995,22 @@ export function WorkspaceLayout() {
   const collapsed = preferences.sidebarCollapsed;
   const copilotOpen = preferences.copilotOpen;
   const userRole = user?.role ?? "viewer";
+  const coreMode = useCoreMode();
 
-  // Filter items by role across all sections
-  const filteredSections = navSections.map((s) => ({
-    ...s,
-    groups: s.groups
-      .map((g) => ({
-        ...g,
-        items: g.items.filter((item) => !item.roles || item.roles.includes(userRole)),
-      }))
-      .filter((g) => g.items.length > 0),
-  }));
+  // Filter items by role, then (in core mode) down to the value-path screens.
+  const filteredSections = (coreMode ? CORE_NAV : navSections)
+    .map((s) => ({
+      ...s,
+      groups: s.groups
+        .map((g) => ({
+          ...g,
+          items: g.items.filter(
+            (item) => !item.roles || item.roles.includes(userRole),
+          ),
+        }))
+        .filter((g) => g.items.length > 0),
+    }))
+    .filter((s) => s.groups.length > 0);
 
   const filteredNavGroups = filteredSections.flatMap((s) => s.groups);
 

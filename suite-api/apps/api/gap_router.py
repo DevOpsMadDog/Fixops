@@ -1714,6 +1714,12 @@ async def get_app_config():
     """Get application configuration — reads from environment and connector status."""
     import os
     mode = os.environ.get("FIXOPS_MODE", "enterprise")
+    # CORE MODE: when FIXOPS_CORE_MODE=1 the product presents only the value-path
+    # surface (ingest -> findings -> AI verdict -> evidence). The UI reads this to
+    # hide the long tail of secondary screens, matching the API's own core-mode
+    # OpenAPI filtering, so the product presents as a focused tool rather than a
+    # sprawl of hundreds of pages.
+    core_mode = os.environ.get("FIXOPS_CORE_MODE", "").strip() in ("1", "true", "True")
     # Check which features are available by trying imports
     features = {}
     for feat, module in [
@@ -1749,6 +1755,7 @@ async def get_app_config():
             "version": "2.0.0",
             "mode": mode,
             "license": "active",
+            "core_mode": core_mode,
         },
         "features": features,
         "limits": {
