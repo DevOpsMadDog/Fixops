@@ -86,7 +86,16 @@ interface ComplianceFramework {
   passed?: number;
   failed?: number;
   total?: number;
+  total_controls?: number;
+  passing?: number;
   status?: string;
+  status_breakdown?: {
+    passing?: number;
+    failing?: number;
+    not_started?: number;
+    stale?: number;
+    not_assessed?: number;
+  };
 }
 
 interface ComplianceStatus {
@@ -290,10 +299,21 @@ export default function CISODashboard() {
   const slaCompliance = execSummary?.sla_compliance_pct;
   const remediationRate = execSummary?.remediation_rate_pct;
 
-  // Derive overall compliance % from framework scores
+  // Derive overall compliance % from framework scores.
   const avgCompliance = compliance.length > 0
     ? Math.round(compliance.reduce((acc, f) => acc + (f.score ?? 0), 0) / compliance.length)
     : undefined;
+
+  // "0%" and "no controls assessed yet" are NOT the same thing. Reporting an
+  // unassessed program as "0% — Needs work" implies it failed; it hasn't run.
+  const assessedControls = compliance.reduce((acc, f) => {
+    const b = f.status_breakdown;
+    if (!b) return acc + (f.passing ?? 0);
+    return acc + (b.passing ?? 0) + (b.failing ?? 0) + (b.stale ?? 0);
+  }, 0);
+  const totalControls = compliance.reduce(
+    (acc, f) => acc + (f.total_controls ?? f.total ?? 0), 0);
+  const complianceNotAssessed = compliance.length > 0 && assessedControls === 0;
 
   if (loading) {
     return (
@@ -401,10 +421,16 @@ export default function CISODashboard() {
         />
         <KpiCard
           title="Compliance"
-          value={avgCompliance !== undefined ? `${avgCompliance}%` : "—"}
+          value={complianceNotAssessed ? "Not assessed" : (avgCompliance !== undefined ? `${avgCompliance}%` : "—")}
           icon={ShieldCheck}
-          trend={avgCompliance !== undefined ? (avgCompliance >= 80 ? "up" : "down") : undefined}
-          trendLabel={avgCompliance !== undefined ? (avgCompliance >= 80 ? "Passing" : "Needs work") : undefined}
+          trend={complianceNotAssessed || avgCompliance === undefined ? undefined : (avgCompliance >= 80 ? "up" : "down")}
+          trendLabel={
+            complianceNotAssessed
+              ? `0 of ${totalControls} controls assessed`
+              : avgCompliance !== undefined
+                ? (avgCompliance >= 80 ? "Passing" : "Needs work")
+                : undefined
+          }
         />
       </div>
 
