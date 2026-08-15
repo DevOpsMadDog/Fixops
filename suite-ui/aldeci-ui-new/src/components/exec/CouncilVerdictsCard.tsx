@@ -38,10 +38,10 @@ interface CouncilVerdict {
   confidence: number;
   escalated_to_opus: boolean;
   escalation_reason: string | null;
-  member_votes: MemberVote[];
+  member_votes?: MemberVote[];
   latency_ms: number;
   cost_usd: number;
-  mitre_mappings: string[];
+  mitre_mappings?: string[];
 }
 
 interface RecentResponse {
@@ -123,10 +123,10 @@ function VerdictRow({ verdict, index }: { verdict: CouncilVerdict; index: number
               Opus
             </Badge>
           )}
-          {verdict.mitre_mappings.length > 0 && (
+          {(verdict.mitre_mappings ?? []).length > 0 && (
             <span className="text-[10px] text-muted-foreground font-mono">
-              {verdict.mitre_mappings[0]}
-              {verdict.mitre_mappings.length > 1 && ` +${verdict.mitre_mappings.length - 1}`}
+              {(verdict.mitre_mappings ?? [])[0]}
+              {(verdict.mitre_mappings ?? []).length > 1 && ` +${(verdict.mitre_mappings ?? []).length - 1}`}
             </span>
           )}
         </div>
@@ -143,9 +143,9 @@ function VerdictRow({ verdict, index }: { verdict: CouncilVerdict; index: number
         </div>
 
         {/* Per-model vote chips */}
-        {verdict.member_votes.length > 0 && (
+        {(verdict.member_votes ?? []).length > 0 && (
           <div className="flex flex-wrap gap-1 pt-0.5">
-            {verdict.member_votes.map((mv, i) => (
+            {(verdict.member_votes ?? []).map((mv, i) => (
               <span
                 key={mv.member + i}
                 className={cn(

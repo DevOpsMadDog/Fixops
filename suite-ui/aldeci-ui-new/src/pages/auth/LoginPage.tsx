@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,38 +44,38 @@ interface SSOProvider {
 const FEATURES = [
   {
     icon: Zap,
-    label: "Replace $50K/yr tools",
-    sub: "Self-hosted for $35–60/month",
-  },
-  {
-    icon: Users,
-    label: "30 Personas, 6 RBAC roles",
-    sub: "CISO to SOC T1 analyst",
+    label: "Ingest what you already scan",
+    sub: "60+ formats — SARIF, Snyk, Trivy, SBOM. No agents.",
   },
   {
     icon: Cpu,
-    label: "344+ Engines",
-    sub: "ASPM · CTEM · CSPM unified",
+    label: "Multi-model AI council",
+    sub: "5-vendor consensus verdicts — never fabricated",
   },
   {
     icon: Lock,
-    label: "Karpathy LLM Consensus",
-    sub: "4 free models + Opus escalation",
+    label: "Self-hosted & air-gap ready",
+    sub: "Your security data never leaves your perimeter",
+  },
+  {
+    icon: Users,
+    label: "Signed compliance evidence",
+    sub: "EU AI Act · NIST 800-53 · SSDF",
   },
 ];
 
 const STAT_PILLS = [
-  { value: "574+", label: "API Routers" },
-  { value: "8,910+", label: "Tests" },
-  { value: "296+", label: "UI Pages" },
+  { value: "60+", label: "Scanner formats" },
+  { value: "5", label: "AI council models" },
+  { value: "100%", label: "Self-hosted" },
 ];
 
+// Who the platform is BUILT FOR (honest — not a claim of existing customers).
 const TRUSTED_BY = [
-  "Fortune 500",
-  "Gov Contractors",
-  "FinServ",
-  "HealthTech",
-  "SaaS Unicorns",
+  "Defense & Gov",
+  "Regulated FinServ",
+  "Critical Infrastructure",
+  "Air-gapped Programs",
 ];
 
 // ── Animations ────────────────────────────────────────────────────────────────
@@ -98,10 +98,20 @@ export default function LoginPage() {
   usePageTitle("Sign In");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login, loading } = useAuth();
+  const { login, loginWithApiKey, loading } = useAuth();
 
   const [activeTab, setActiveTab] = useState<Tab>("credentials");
   const [error, setError] = useState<string | null>(null);
+
+  // Where to land after sign-in. RequireAuth sends `?from=<deep link>`; `next`
+  // is also honoured. Previously only `next` was read, so every guard-initiated
+  // redirect silently dropped the user's deep link.
+  const redirectTarget = useMemo(() => {
+    const target = searchParams.get("from") ?? searchParams.get("next");
+    // Only allow same-origin relative paths (no open redirect).
+    if (target && target.startsWith("/") && !target.startsWith("//")) return target;
+    return "/";
+  }, [searchParams]);
 
   // Credentials
   const [email, setEmail] = useState("");
@@ -129,8 +139,7 @@ export default function LoginPage() {
       }
       try {
         await login(email.trim(), password);
-        const next = searchParams.get("next") ?? "/executive";
-        navigate(next, { replace: true });
+        navigate(redirectTarget, { replace: true });
       } catch (err: unknown) {
         const msg =
           (err as { response?: { data?: { detail?: string } } })?.response?.data
@@ -138,7 +147,7 @@ export default function LoginPage() {
         setError(msg);
       }
     },
-    [email, password, login, navigate],
+    [email, password, login, navigate, redirectTarget],
   );
 
   const handleTabChange = useCallback(
@@ -169,7 +178,7 @@ export default function LoginPage() {
   }, []);
 
   const handleApiKeySubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       setError(null);
       const trimmed = apiKey.trim();
@@ -177,11 +186,16 @@ export default function LoginPage() {
         setError("API key is required.");
         return;
       }
-      setStoredAuthStrategy("token");
-      setStoredAuthToken(trimmed);
-      navigate("/", { replace: true });
+      try {
+        // Validates the key against the API before activating the session, so a
+        // bad key shows a real error instead of silently bouncing to /login.
+        await loginWithApiKey(trimmed);
+        navigate(redirectTarget, { replace: true });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "API key sign-in failed.");
+      }
     },
-    [apiKey, navigate],
+    [apiKey, loginWithApiKey, navigate, redirectTarget],
   );
 
   const handleQuickSSO = useCallback(async () => {
@@ -386,7 +400,7 @@ export default function LoginPage() {
         {/* Bottom: Social proof */}
         <motion.div {...fadeUp(0.65)} className="relative z-10 pt-8 border-t" style={{ borderColor: "oklch(0.22 0.01 250 / 0.6)" }}>
           <p className="text-xs mb-3" style={{ color: "oklch(0.45 0.01 250)" }}>
-            Trusted by enterprise security teams in
+            Built for environments that can't use cloud security SaaS
           </p>
           <div className="flex flex-wrap gap-2">
             {TRUSTED_BY.map((label) => (
@@ -817,7 +831,7 @@ export default function LoginPage() {
           style={{ color: "oklch(0.32 0.01 250)" }}
         >
           <Lock className="h-3 w-3" />
-          <span>256-bit TLS · SOC 2 ready · Self-hosted</span>
+          <span>TLS 1.3 · Self-hosted · Air-gap capable</span>
         </motion.div>
       </div>
     </div>

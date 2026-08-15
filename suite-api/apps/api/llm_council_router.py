@@ -127,6 +127,80 @@ def _get_configured_providers() -> List[Dict[str, Any]]:
     return result
 
 
+def _real_council_models() -> List[str]:
+    """The actual model IDs that vote on every pipeline verdict.
+
+    Sourced from the council factory's canonical roster so /status reflects what
+    really runs (5 cross-vendor models via OpenRouter) instead of a count of
+    per-vendor API keys. Returns [] when no council can be built (no key set) —
+    honest degradation, never a fabricated roster.
+    """
+    try:
+        from core.llm_council import CouncilFactory
+
+        specs = getattr(CouncilFactory, "PIPELINE_COUNCIL_MODELS", None)
+        if specs:
+            return [s[0] for s in specs if isinstance(s, (list, tuple)) and s]
+    except Exception as exc:  # noqa: BLE001 — status must never raise
+        logger.debug("Could not resolve real council roster: %s", exc)
+    return []
+
+
+def _verdicts_from_pipeline_runs(limit: int) -> List[Dict[str, Any]]:
+    """Real council verdicts, read from persisted Brain-Pipeline runs.
+
+    The council instance the pipeline used is not the one this router builds, so
+    its in-memory history is unreachable here. Every pipeline run persists its
+    `llm_consensus` step output (decision, confidence, per-model participation,
+    cost) — that is the durable, truthful record, so we surface it.
+    Never raises; returns [] when nothing has run yet.
+    """
+    out: List[Dict[str, Any]] = []
+    try:
+        from core.brain_pipeline import get_brain_pipeline
+
+        runs = get_brain_pipeline().list_runs(limit=limit) or []
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("Could not load pipeline runs for /recent: %s", exc)
+        return out
+
+    for run in runs:
+        run_d = run if isinstance(run, dict) else getattr(run, "to_dict", lambda: {})()
+        steps = run_d.get("steps") or []
+        step = next(
+            (s for s in steps if (s.get("name") if isinstance(s, dict) else None) == "llm_consensus"),
+            None,
+        )
+        if not step:
+            continue
+        o = step.get("output") or {}
+        if not o.get("decision"):
+            continue
+        out.append(
+            {
+                "timestamp": run_d.get("finished_at") or run_d.get("started_at"),
+                "finding_id": run_d.get("run_id"),
+                "action": o.get("decision"),
+                "confidence": o.get("confidence"),
+                "escalated_to_opus": bool(o.get("escalated")),
+                "escalation_reason": o.get("escalation_reason"),
+                # Per-model vote detail isn't persisted on the run; report how many
+                # members actually responded rather than inventing individual votes.
+                "member_votes": [],
+                "members_responded": o.get("providers_responded"),
+                "consensus_pct": o.get("consensus_pct"),
+                "latency_ms": o.get("latency_ms"),
+                "cost_usd": o.get("cost_usd"),
+                "method": o.get("method"),
+                # UI renders mitre_mappings.length — always send a list.
+                "mitre_mappings": o.get("mitre_techniques") or [],
+            }
+        )
+        if len(out) >= limit:
+            break
+    return out
+
+
 def _get_recent_verdict() -> Optional[Dict[str, Any]]:
     """Try to pull the most recent verdict from the LLM council history.
 
@@ -196,10 +270,21 @@ async def council_status() -> Dict[str, Any]:
 
     recent_verdict = _get_recent_verdict()
 
+    # Report the REAL council composition, not just how many vendor API keys are
+    # present. The pipeline runs a fixed cross-vendor council through OpenRouter,
+    # so counting env-vars under-reported it (the UI showed "2 models" while 5
+    # models actually voted on every verdict).
+    council_models = _real_council_models()
+    if council_models:
+        member_count = len(council_models)
+        consensus_enabled = member_count > 1
+        warning = None
+
     return {
         "providers": providers,
         "configured_providers": [p["name"] for p in configured],
         "member_count": member_count,
+        "council_models": council_models,
         "consensus_enabled": consensus_enabled,
         "recent_verdict": recent_verdict,
         "warning": warning,
@@ -249,7 +334,15 @@ async def council_recent(
         history = council.history  # List[CouncilVerdict]
     except Exception as exc:  # noqa: BLE001
         logger.debug("Could not load council history for /recent: %s", exc)
-        return {"verdicts": [], "total": 0, "error": str(exc)}
+        history = []
+
+    # A freshly-constructed council has an EMPTY in-memory history — the verdicts
+    # the product actually produced live on persisted Brain-Pipeline runs. Reading
+    # only the throwaway instance made the dashboard show "No verdicts yet" even
+    # right after a real 5-model consensus ran. Fall back to the persisted runs.
+    if not history:
+        persisted = _verdicts_from_pipeline_runs(limit)
+        return {"verdicts": persisted, "total": len(persisted), "source": "pipeline_runs"}
 
     # history is oldest-first; we want newest-first
     recent = list(reversed(history))[:limit]

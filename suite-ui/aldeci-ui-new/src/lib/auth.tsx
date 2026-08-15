@@ -11,6 +11,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { Navigate, useLocation } from "react-router-dom";
 import {
   authApi,
+  buildApiUrl,
   setStoredAuthToken,
   setStoredAuthStrategy,
   getStoredAuthToken,
@@ -88,6 +89,8 @@ interface AuthState {
   isAuthenticated: boolean;
   /** Perform email+password login.  Stores JWT on success. */
   login: (email: string, password: string) => Promise<void>;
+  /** Validate + activate an API key session.  Throws if the key is rejected. */
+  loginWithApiKey: (apiKey: string) => Promise<void>;
   /** Clear the session and redirect to /login. */
   logout: () => void;
   /** Check whether the current user has the required role(s). */
@@ -215,6 +218,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  /**
+   * API-key login.  Previously the LoginPage wrote the key straight to
+   * localStorage and navigated — which never updated this provider's React
+   * state, so RequireAuth immediately bounced the user back to /login with NO
+   * error shown (the product was effectively un-loginable via API key).
+   *
+   * Now we VALIDATE the key against the API first and only then activate the
+   * session, so a bad key produces a real error instead of a silent bounce.
+   */
+  const loginWithApiKey = useCallback(async (apiKey: string) => {
+    const key = apiKey.trim();
+    if (!key) throw new Error("API key is required.");
+    setLoading(true);
+    try {
+      const res = await fetch(buildApiUrl("/api/v1/orgs"), {
+        headers: { "X-API-Key": key },
+      });
+      if (res.status === 401 || res.status === 403) {
+        throw new Error("That API key was rejected. Check the key and try again.");
+      }
+      if (!res.ok) {
+        throw new Error(`Could not reach the FixOps API (HTTP ${res.status}). Is the server running?`);
+      }
+      const apiUser: AuthUser = {
+        id: "api-key",
+        email: "",
+        first_name: "API",
+        last_name: "User",
+        role: "admin" as UserRole,
+      };
+      setStoredAuthStrategy("token");
+      setStoredAuthToken(key);
+      persistUser(apiUser);
+      setUser(apiUser);
+    } catch (err) {
+      // Network failure surfaces as a TypeError from fetch — make it readable.
+      if (err instanceof TypeError) {
+        throw new Error("Could not reach the FixOps API. Is the server running?");
+      }
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(() => {
     clearJwtTokens();
     setStoredAuthToken(null);
@@ -249,8 +297,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, logout]);
 
   const value = useMemo<AuthState>(
-    () => ({ user, loading, isAuthenticated, login, logout, hasRole, hasScope }),
-    [user, loading, isAuthenticated, login, logout, hasRole, hasScope],
+    () => ({ user, loading, isAuthenticated, login, loginWithApiKey, logout, hasRole, hasScope }),
+    [user, loading, isAuthenticated, login, loginWithApiKey, logout, hasRole, hasScope],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
