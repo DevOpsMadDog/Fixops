@@ -614,6 +614,12 @@ export default function App() {
             <Route path="/validate" element={<Navigate to="/validate/offensive" replace />} />
             <Route path="/issues" element={<Navigate to="/findings" replace />} />
             <Route path="/remediate" element={<Navigate to="/remediate/cases" replace />} />
+            {/* Workspace-root deep links. The sidebar buttons switch section without
+                navigating, so these bare URLs (shared/bookmarked/typed) previously
+                fell through to the 404 page even though the workspace exists. */}
+            <Route path="/protect" element={<Navigate to="/remediate/cases" replace />} />
+            <Route path="/respond" element={<Navigate to="/incidents" replace />} />
+            <Route path="/comply" element={<Navigate to="/comply/coverage" replace />} />
             <Route path="/admin" element={<Navigate to="/admin/audit-log" replace />} />
             <Route path="/asset-graph" element={<Navigate to="/arch-graph" replace />} />
             <Route path="/comply/soc2" element={<SOC2Evidence />} />
