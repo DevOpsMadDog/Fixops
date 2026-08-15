@@ -465,7 +465,9 @@ async def query_findings(
             "status": st or "open",
             "title": _norm(f, "title") or _norm(f, "message") or _norm(f, "description"),
             "file_path": _norm(f, "file_path") or _norm(f, "location"),
-            "scanner": _norm(f, "scanner") or _norm(f, "tool"),
+            # Findings persist the producing tool as `source_tool`; without it in
+            # this fallback chain the Scanner column was permanently blank in the UI.
+            "scanner": _norm(f, "scanner") or _norm(f, "tool") or _norm(f, "source_tool"),
             "cve_id": _norm(f, "cve_id"),
             "app_id": _norm(f, "app_id"),
         })

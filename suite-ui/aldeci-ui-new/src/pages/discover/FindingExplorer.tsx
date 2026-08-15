@@ -203,6 +203,10 @@ interface Finding {
   severity?: string;
   status?: string;
   scanner?: string;
+  /** API returns the producing tool as `source_tool`; `scanner` is the legacy alias. */
+  source_tool?: string;
+  /** analytics/findings returns the CVE as `cve_id`. */
+  cve_id?: string;
   app?: string;
   application?: string;
   cve?: string;
@@ -492,7 +496,7 @@ export default function FindingExplorer() {
             </Button>
             <Button variant="outline" size="sm" className="gap-2" onClick={() => {
               const csv = ["ID,Title,Severity,Status,CVE,Scanner,Created", ...allFindings.map(f =>
-                `"${f.finding_id || f.id}","${f.title}","${f.severity}","${f.status}","${f.cve || ""}","${f.scanner || ""}","${f.created_at || ""}"`
+                `"${f.finding_id || f.id}","${f.title}","${f.severity}","${f.status}","${f.cve || ""}","${f.scanner || f.source_tool || ""}","${f.created_at || ""}"`
               )].join("\n");
               const blob = new Blob([csv], { type: "text/csv" });
               const url = URL.createObjectURL(blob);
@@ -640,7 +644,7 @@ export default function FindingExplorer() {
                     file: f.file,
                     line: f.line,
                     rule: f.rule,
-                    scanner: f.scanner,
+                    scanner: f.scanner || f.source_tool,
                   }));
                   const { data } = await autofixApi.bulkGenerate(findings);
                   toast.success(`Generated ${data?.count || findings.length} fixes`);
@@ -656,7 +660,7 @@ export default function FindingExplorer() {
                 const ids = Array.from(selectedRows);
                 const selected = allFindings.filter(f => ids.includes(f.id || f.finding_id || ""));
                 const csv = ["ID,Title,Severity,Status,CVE,Scanner,Created", ...selected.map(f =>
-                  `"${f.finding_id || f.id}","${f.title}","${f.severity}","${f.status}","${f.cve || ""}","${f.scanner || ""}","${f.created_at || ""}"`
+                  `"${f.finding_id || f.id}","${f.title}","${f.severity}","${f.status}","${f.cve || ""}","${f.scanner || f.source_tool || ""}","${f.created_at || ""}"`
                 )].join("\n");
                 const blob = new Blob([csv], { type: "text/csv" });
                 const url = URL.createObjectURL(blob);
@@ -791,8 +795,8 @@ export default function FindingExplorer() {
                                 <span className="truncate block font-medium text-sm">{finding.title || "Untitled"}</span>
                               </TableCell>
                               <TableCell className="font-mono text-xs">
-                                {finding.cve ? (
-                                  <span className="text-blue-400 hover:underline">{finding.cve}</span>
+                                {(finding.cve || finding.cve_id) ? (
+                                  <span className="text-blue-400 hover:underline">{finding.cve || finding.cve_id}</span>
                                 ) : (
                                   <span className="text-muted-foreground">—</span>
                                 )}
@@ -807,7 +811,7 @@ export default function FindingExplorer() {
                                 <ReachabilityBadge reachable={finding.reachable} />
                               </TableCell>
                               <TableCell className="text-xs">
-                                <Badge variant="outline" className="text-xs">{finding.scanner || "—"}</Badge>
+                                <Badge variant="outline" className="text-xs">{finding.scanner || finding.source_tool || "—"}</Badge>
                               </TableCell>
                               <TableCell>
                                 <StatusBadge status={finding.status} />
@@ -845,7 +849,7 @@ export default function FindingExplorer() {
                                       <UserCheck className="h-3.5 w-3.5 mr-2" /> Triage
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => {
-                                      navigate(`/remediate?search=${encodeURIComponent(finding.cve || finding.title || finding.finding_id || "")}&severity=${finding.severity || ""}`);
+                                      navigate(`/remediate?search=${encodeURIComponent(finding.cve || finding.cve_id || finding.title || finding.finding_id || "")}&severity=${finding.severity || ""}`);
                                     }}>
                                       <Wrench className="h-3.5 w-3.5 mr-2" /> Create Remediation Task
                                     </DropdownMenuItem>
@@ -856,7 +860,7 @@ export default function FindingExplorer() {
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => {
-                                      navigate(`/validate/mpte?finding=${encodeURIComponent(finding.cve || finding.finding_id || "")}`);
+                                      navigate(`/validate/mpte?finding=${encodeURIComponent(finding.cve || finding.cve_id || finding.finding_id || "")}`);
                                     }}>
                                       <ExternalLink className="h-3.5 w-3.5 mr-2" /> Validate with MPTE
                                     </DropdownMenuItem>
