@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sqlite3
 import threading
 import uuid
@@ -125,13 +126,35 @@ class ExposureCase:
         return d
 
 
+def _default_case_db_path() -> str:
+    """Absolute, CWD-independent path for the exposure-case store.
+
+    The default used to be the bare relative name "fixops_exposure_cases.db",
+    so the file resolved against whatever CWD the importing process had. In the
+    container that produced TWO separate databases (/app/fixops_exposure_cases.db
+    and /app/suite-api/fixops_exposure_cases.db) holding different orgs' cases —
+    the API read one while the pipeline wrote the other, so the Cases page showed
+    0 cases for data that existed. Anchor on FIXOPS_DATA_DIR so there is exactly
+    one store regardless of CWD.
+    """
+    data_dir = os.getenv("FIXOPS_DATA_DIR") or os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "data"
+    )
+    try:
+        os.makedirs(data_dir, exist_ok=True)
+    except OSError:
+        return os.path.abspath("fixops_exposure_cases.db")
+    return os.path.abspath(os.path.join(data_dir, "fixops_exposure_cases.db"))
+
+
 class ExposureCaseManager:
     """Manages Exposure Case lifecycle with SQLite persistence and Knowledge Graph integration."""
 
     _instance: Optional["ExposureCaseManager"] = None
     _lock = threading.Lock()
 
-    def __init__(self, db_path: str = "fixops_exposure_cases.db") -> None:
+    def __init__(self, db_path: Optional[str] = None) -> None:
+        db_path = db_path or _default_case_db_path()
         self.db_path = db_path
         self._conn_lock = threading.Lock()
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
@@ -141,7 +164,7 @@ class ExposureCaseManager:
 
     @classmethod
     def get_instance(
-        cls, db_path: str = "fixops_exposure_cases.db"
+        cls, db_path: Optional[str] = None
     ) -> "ExposureCaseManager":
         if cls._instance is None:
             with cls._lock:
@@ -641,6 +664,10 @@ def severity_to_priority(severity: str) -> CasePriority:
     )
 
 
-def get_case_manager(db_path: str = "fixops_exposure_cases.db") -> ExposureCaseManager:
-    """Get the global ExposureCaseManager instance."""
+def get_case_manager(db_path: Optional[str] = None) -> ExposureCaseManager:
+    """Get the global ExposureCaseManager instance.
+
+    db_path defaults to the absolute, CWD-independent store (see
+    _default_case_db_path) so every caller shares one database.
+    """
     return ExposureCaseManager.get_instance(db_path=db_path)
