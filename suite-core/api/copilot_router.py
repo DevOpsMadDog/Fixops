@@ -2174,6 +2174,185 @@ def _language_adapt_fix(fix: str, language: Optional[str]) -> str:
 # ---------------------------------------------------------------------------
 
 
+_STRUCTURED_KEYS = {
+    "recommended_action",
+    "confidence",
+    "mitre_techniques",
+    "compliance_concerns",
+    "attack_vectors",
+    "reasoning",
+}
+
+
+def _render_payload(payload: Any, skip: Optional[set] = None, _depth: int = 0) -> str:
+    """Render an arbitrary model JSON payload as readable markdown.
+
+    Free-form copilot questions come back in whatever shape the model chooses, so
+    we present the content rather than dropping it because a fixed key is missing.
+    """
+    skip = skip or set()
+    if isinstance(payload, str):
+        return payload.strip()
+    if isinstance(payload, (int, float, bool)):
+        return str(payload)
+    if isinstance(payload, list):
+        lines = []
+        for item in payload[:20]:
+            rendered = _render_payload(item, skip, _depth + 1)
+            if rendered:
+                lines.append(f"- {rendered}" if _depth == 0 else rendered)
+        return "\n".join(lines)
+    if isinstance(payload, dict):
+        blocks = []
+        for key, value in payload.items():
+            if key in skip:
+                continue
+            rendered = _render_payload(value, skip, _depth + 1)
+            if not rendered:
+                continue
+            label = str(key).replace("_", " ").strip().capitalize()
+            if "\n" in rendered:
+                blocks.append(f"**{label}:**\n{rendered}")
+            else:
+                blocks.append(f"**{label}:** {rendered}")
+        return "\n\n".join(blocks)
+    return ""
+
+
+def _live_security_context(org_id: str) -> str:
+    """Snapshot of the org's REAL security state, used to ground copilot answers.
+
+    Returns "" when nothing can be read, so callers fall back to the static
+    knowledge base rather than inventing an answer about the customer's estate.
+    """
+    parts: List[str] = []
+    try:
+        from core.security_findings_engine import SecurityFindingsEngine  # noqa: PLC0415
+
+        findings = (SecurityFindingsEngine().list_findings(org_id=org_id) or [])[:50]
+        if findings:
+            by_sev: Dict[str, int] = {}
+            for f in findings:
+                d = f if isinstance(f, dict) else getattr(f, "__dict__", {})
+                sev = str(d.get("severity", "unknown")).lower()
+                by_sev[sev] = by_sev.get(sev, 0) + 1
+            parts.append(
+                "Current findings for this tenant: "
+                + ", ".join(f"{c} {sv}" for sv, c in sorted(by_sev.items()))
+                + f" (total {len(findings)})."
+            )
+            titles = []
+            for f in findings[:8]:
+                d = f if isinstance(f, dict) else getattr(f, "__dict__", {})
+                if d.get("title"):
+                    titles.append(f"- [{d.get('severity','?')}] {d.get('title')}")
+            if titles:
+                parts.append("Representative findings:\n" + "\n".join(titles))
+    except Exception as exc:  # noqa: BLE001 — context gathering is best-effort
+        logger.debug("copilot: findings context unavailable: %s", exc)
+
+    try:
+        from core.brain_pipeline import get_brain_pipeline  # noqa: PLC0415
+
+        for run in (get_brain_pipeline().list_runs(limit=5) or []):
+            rd = run if isinstance(run, dict) else getattr(run, "to_dict", lambda: {})()
+            step = None
+            for x in (rd.get("steps") or []):
+                if isinstance(x, dict) and x.get("name") == "llm_consensus":
+                    step = x
+                    break
+            out = (step or {}).get("output") or {}
+            if out.get("decision"):
+                parts.append(
+                    "Latest AI council verdict: "
+                    f"{out.get('decision')} (confidence {out.get('confidence')}, "
+                    f"{out.get('providers_responded')} models responded)."
+                )
+                break
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("copilot: verdict context unavailable: %s", exc)
+
+    return "\n".join(parts)
+
+
+def _answer_from_live_data(question: str, org_id: str) -> Optional[str]:
+    """Answer with a REAL LLM call grounded in this tenant's data.
+
+    Returns None when no live context exists or no LLM is configured, so the
+    caller degrades to the static knowledge base. A generic template must never
+    be presented as an AI answer about the customer's environment.
+    """
+    context = _live_security_context(org_id)
+    if not context:
+        return None
+    try:
+        # Use the SAME pinned-model provider the AI council uses. The legacy
+        # LLMProviderManager still points its "openrouter" entry at a model that
+        # is no longer free ("This model is unavailable for free"), so it silently
+        # degrades to a heuristic — which must never be shown as an AI answer.
+        from core.llm_providers import OpenRouterChatProvider  # noqa: PLC0415
+
+        prompt = (
+            "You are the security copilot for a self-hosted ASPM platform. Answer the "
+            "user's question using ONLY the tenant data below. Be concise and specific, "
+            "and reference the actual findings. If the data does not answer the "
+            "question, say so plainly instead of guessing.\n\n"
+            f"=== TENANT SECURITY DATA ===\n{context}\n\n"
+            f"=== QUESTION ===\n{question}\n"
+        )
+        provider = OpenRouterChatProvider(
+            name="security-copilot",
+            model="google/gemini-2.5-flash",
+            api_key_envs=("OPENROUTER_API_KEY", "MULEROUTER_API_KEY", "FIXOPS_OPENROUTER_KEY"),
+            timeout=45.0,
+            style="analyst",
+        )
+        resp = provider.analyse(
+            prompt=prompt,
+            context={"question": question, "org_id": org_id},
+            default_action="review",
+            default_confidence=0.5,
+            default_reasoning="",
+            system_prompt=(
+                "You are a precise security copilot. Ground every claim in the tenant "
+                "data provided. Never invent findings."
+            ),
+        )
+        md = getattr(resp, "metadata", {}) or {}
+        if not resp or md.get("mode") != "remote":
+            return None
+        # The provider maps the model's JSON into a fixed security-analysis schema
+        # and can leave `reasoning` empty even on a successful remote call, so read
+        # the raw payload (authoritative) and fall back to the mapped field.
+        raw = md.get("raw_payload") or {}
+        body = (raw.get("reasoning") or resp.reasoning or "").strip()
+        if not body:
+            # The model answers free-form questions with whatever JSON shape suits
+            # them (e.g. {"most_critical_findings": [...]}), so don't insist on a
+            # "reasoning" key — render the payload readably instead of discarding
+            # a perfectly good answer and falling back to boilerplate.
+            body = _render_payload(raw, skip=_STRUCTURED_KEYS)
+        if not body:
+            return None
+        parts = [body]
+        action = raw.get("recommended_action")
+        if action:
+            parts.append(f"**Recommended action:** {action}")
+        techniques = raw.get("mitre_techniques") or []
+        if techniques:
+            parts.append("**MITRE ATT&CK:** " + ", ".join(str(t) for t in techniques))
+        concerns = raw.get("compliance_concerns") or []
+        if concerns:
+            parts.append("**Compliance exposure:** " + ", ".join(str(c) for c in concerns))
+        vectors = raw.get("attack_vectors") or []
+        if vectors:
+            parts.append("**Attack vectors:** " + ", ".join(str(v) for v in vectors))
+        return "\n\n".join(parts)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("copilot: grounded LLM answer unavailable: %s", exc)
+    return None
+
+
 @router.post(
     "/ask",
     response_model=AskResponse,
@@ -2185,7 +2364,10 @@ def _language_adapt_fix(fix: str, language: Optional[str]) -> str:
     ),
     tags=["copilot"],
 )
-async def ask_security_question(request: AskRequest) -> AskResponse:
+async def ask_security_question(
+    request: AskRequest,
+    org_id: str = Depends(get_org_id),
+) -> AskResponse:
     """Answer a natural-language security question using built-in knowledge.
 
     Designed for the **Junior Developer** persona (Rachel Kim) who needs
@@ -2255,6 +2437,25 @@ async def ask_security_question(request: AskRequest) -> AskResponse:
 
     # Match question to CWE knowledge
     matched_cwe_id, entry = _match_cwe(request.question, hint_cwe)
+
+    # When no specific CWE matched, the static entry is generic OWASP boilerplate
+    # that ignores the question and knows nothing about this tenant (asking "what
+    # are my most critical findings?" returned a Top-10 primer). Try a REAL LLM
+    # answer grounded in the org's live findings/verdicts first; fall back to the
+    # static text only when no LLM/context is available.
+    if matched_cwe_id == "GENERAL":
+        grounded = _answer_from_live_data(request.question, org_id)
+        if grounded:
+            logger.info("Copilot /ask: source=llm_grounded_live_data org=%s", org_id)
+            return AskResponse(
+                answer=grounded,
+                suggested_fix=_language_adapt_fix(entry["fix"], ctx.language),
+                severity_context=entry["severity"],
+                references=[AskReference(**r) for r in entry["references"]],
+                related_findings=[],
+                matched_cwe=None,
+                source="llm_grounded_live_data",
+            )
 
     # Adapt fix for the requested language
     fix = _language_adapt_fix(entry["fix"], ctx.language)
