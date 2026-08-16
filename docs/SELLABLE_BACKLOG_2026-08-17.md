@@ -34,7 +34,7 @@ measured reason it exists, and the check that closes it.
 |---|---|---|---|
 | ~~C1~~ | ~~`FIXOPS_PROFILE` switch~~ — **DONE** `15039942`: `scif` turns on egress guard + FIPS, refuses to boot on a reachable cloud key, and rejects a typo'd profile rather than defaulting | 001 | ✅ `create_app()` raises `ProfileViolation`; commercial unaffected (7,940 routes, UAT 11/11); 14 tests |
 | C2 | Populate the council member set from profile; remove vendor names from council logic. **Partly present**: `_enforce_air_gap_providers()` already swaps external providers for `AirGapLLMProvider` and fails closed under ENFORCED | 002 | Council runs against a fake member set with no vendor reference in its code path |
-| C3 | Replace `cost_usd > 0` as proof-of-real-call with a per-member response fingerprint — local inference legitimately costs nothing | 002 | Real-call detection passes for local models; fabricated verdicts still quarantined |
+| ~~C3~~ | ~~Replace `cost_usd > 0` as proof-of-real-call~~ — **DONE** `deca8b6c`: guard now reads `is_real_inference`; **under `scif` every genuine local verdict was being discarded**, silently disabling self-learning | 002 | ✅ 6 tests pinning the decision table |
 | C4 | Prove the air-gapped council — **script shipped** `331dae27`. Mechanic PROVEN (2 distinct local models, independent reasoning, **0 egress**). **Hardware-bound**: laptop CPU takes >10 min on the six-key verdict prompt vs ~5s for a trivial one, so repeats time out and fall back to labelled heuristics. Recorded in ADR-002 as a sizing requirement | 001,002 | Green run on inference-sized hardware |
 | ~~C5~~ | ~~Signed offline feed bundle~~ — **DONE** `c4cbdc4e`: **found verification was OPTIONAL** (a manifest omitting `checksum_sha256` skipped it entirely — attacker data imported as `is_valid=True`). Now fails closed; export signs with hybrid RSA-4096 + ML-DSA-65; unsigned refused under `scif` | 003 | ✅ 9 tests incl. tamper, traversal, forged signature, signed round-trip |
 | C6 | Record feed-bundle version on every enrichment; surface bundle age and mark stale | 003 | A prioritisation decision is explainable months later |
@@ -54,7 +54,7 @@ measured reason it exists, and the check that closes it.
 |---|---|---|---|
 | ~~E1~~ | ~~Lint rule for relative / `parents[N]` data paths~~ — **DONE** `331dae27`: ratchets debt (155 files, 360 uses) and rejects escapes outright; **found 2 more repo-escaping paths + a hardcoded `/home/user/...` dev path** | 006 | ✅ 4 tests; both escapes fixed |
 | E2 | Migrate the **155 files** (measured; earlier 91 was a narrower pattern) that hardcode relative DB paths and ignore `FIXOPS_DATA_DIR` | 006 | Ratchet in `test_no_relative_db_paths.py` reaches 0 |
-| E3 | Startup assertion: no two stores share a basename across locations | 006 | Boot fails loudly on a split store |
+| ~~E3~~ | ~~Startup split-store check~~ — **DONE** `<pending>`: warns by default (a pre-existing split can't be fixed during a restart), fatal under `FIXOPS_STRICT_STORES=1`. Live: named all 49 on the legacy container and still served | 006 | ✅ 9 tests |
 
 ## Track F — Sharpen the wedge
 
