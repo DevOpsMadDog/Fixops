@@ -4,6 +4,23 @@ import sys
 
 sys.setrecursionlimit(5000)  # 453+ routers chain FastAPI lifespans recursively
 
+# ── Anchor the data directory before ANY engine is imported ────────────────
+# Engines bind their SQLite paths at import time from FIXOPS_DATA_DIR. Where
+# that default was relative, the store's location depended on the launch
+# directory, so the same logical database could exist twice with one copy
+# silently empty (measured 2026-08-16: 49 duplicated names, 13 diverged).
+#
+# sitecustomize.py sets this too, but a Python install that ships its own
+# stdlib sitecustomize shadows the repo's copy, so it cannot be relied on
+# alone. Setting it here as well makes the anchor hold wherever the app runs.
+# An explicit FIXOPS_DATA_DIR from the environment always wins.
+import os
+from pathlib import Path as _Path
+
+os.environ.setdefault(
+    "FIXOPS_DATA_DIR", str(_Path(__file__).resolve().parents[3] / ".fixops_data")
+)
+
 import csv
 import hashlib
 import importlib.util

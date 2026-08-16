@@ -79,11 +79,30 @@ docs/
 !requirements*.txt
 LICENSE
 
-# Database files for local dev (but keep data/ for Docker seeding)
+# Local databases must NEVER enter the image.
+#
+# `COPY suite-*/ ./suite-*/` sweeps the whole build context, so any SQLite file
+# a developer created while running locally gets baked in. Measured 2026-08-16:
+# 53 stale *.db files / ~80 MB under suite-api/ and suite-core/, dated April-June,
+# containing 1,425 dedup clusters and 3,047 events from our OWN dogfooding runs.
+# A customer deploying that image starts with our findings in their tenant —
+# a NO-MOCKS violation at deploy time, plus 80 MB of dead weight.
+#
+# A fresh install must start empty and populate through real ingestion:
+# feeds sync on first boot, findings arrive via the ingest API.
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
 .fixops_data/
-# Include data/ and *.db for enterprise seeded image
-!data/
-!data/**
+data/
+**/data/*.db
+**/.fixops_data/
+
+# Reference policy bundles are real reference data (not tenant data) — keep them.
+!suite-api/data/policies/
+!suite-api/data/policies/**
 
 # Large artifacts not needed in containers
 artefacts/

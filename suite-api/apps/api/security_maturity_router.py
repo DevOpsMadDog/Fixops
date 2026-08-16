@@ -7,6 +7,8 @@ Prefix: /api/v1/security-maturity
 from __future__ import annotations
 
 import logging
+import os
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -35,13 +37,25 @@ router = APIRouter(
 _engine = None
 
 
+def _data_dir() -> Path:
+    """Resolve the anchored data directory (matches the rest of the API)."""
+    base = Path(os.environ.get("FIXOPS_DATA_DIR", "data"))
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
 def _get_engine():
     global _engine
     if _engine is None:
         from pathlib import Path
 
         from core.security_maturity_engine import SecurityMaturityEngine
-        db_path = str(Path(__file__).resolve().parents[4] / ".fixops_data" / "security_maturity.db")
+
+        # parents[4] from suite-api/apps/api/ overshoots the repo root and lands
+        # on "/", so this tried to create /.fixops_data and every request to
+        # /stats died with PermissionError -> HTTP 500. Use the anchored data
+        # directory instead of counting path segments.
+        db_path = str(_data_dir() / "security_maturity.db")
         _engine = SecurityMaturityEngine(db_path)
     return _engine
 

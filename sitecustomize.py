@@ -57,3 +57,20 @@ for suite in _SUITE_PATHS:
         suite_str = str(suite_path)
         if suite_str not in sys.path:
             sys.path.insert(0, suite_str)
+
+
+# ── Anchor the data directory to the project root ──────────────────────────
+# Engines resolve their SQLite files from FIXOPS_DATA_DIR. Where that default
+# was left relative (``"data"`` / ``".fixops_data"``), the path resolved against
+# the current working directory, so the same logical store landed in two files
+# depending on where the process was started from — one of them silently empty.
+#
+# Measured 2026-08-16 in the running container: 49 database names existed in two
+# locations and 13 had genuinely diverged (dedup clusters 5,898 rows vs 0,
+# TrustGraph 250 vs 38). Anchoring the default here makes the location
+# independent of the launch directory for every engine that reads this variable.
+#
+# An explicit FIXOPS_DATA_DIR from the environment always wins.
+import os  # noqa: E402  (deliberately after the sys.path bootstrap)
+
+os.environ.setdefault("FIXOPS_DATA_DIR", str(_PROJECT_ROOT / ".fixops_data"))

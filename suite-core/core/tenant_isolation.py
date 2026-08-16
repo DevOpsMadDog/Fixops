@@ -89,6 +89,17 @@ except Exception:  # noqa: BLE001
 
 _DATA_ROOT = Path(_os.getenv("ALDECI_DATA_ROOT", "data"))
 
+# Tenant directories and the platform's own subdirectories share this root, so a
+# directory name alone cannot say which is which. Every tenant directory carries
+# this marker file; anything without it is platform storage, not a customer.
+#
+# Without the marker, `list_tenants()` reported the platform's own folders as
+# tenants — measured 2026-08-16, `GET /api/v1/tenants` returned 20 entries, all
+# of them system directories ("backups", "keys", "evidence", "uploads", …) and
+# not one real customer. `delete_tenant_data()` would then happily rmtree the
+# directory an admin picked from that list.
+_TENANT_MARKER = ".aldeci-tenant"
+
 
 def _data_root() -> Path:
     """Return the current data root path (respects ALDECI_DATA_ROOT env var)."""
@@ -224,6 +235,11 @@ def ensure_tenant_directory(org_id: str) -> Path:
 
     tenant_dir = _data_root() / org_id.strip()
     tenant_dir.mkdir(parents=True, exist_ok=True)
+    # Stamp the directory so it can be told apart from the platform's own
+    # subdirectories, which live in the same root (see _TENANT_MARKER).
+    marker = tenant_dir / _TENANT_MARKER
+    if not marker.exists():
+        marker.write_text(org_id.strip(), encoding="utf-8")
     logger.debug("Tenant directory ensured: %s", tenant_dir)
     return tenant_dir
 
@@ -357,7 +373,9 @@ def list_tenants() -> List[str]:
     if not root.exists():
         return []
     return sorted(
-        p.name for p in root.iterdir() if p.is_dir()
+        p.name
+        for p in root.iterdir()
+        if p.is_dir() and (p / _TENANT_MARKER).exists()
     )
 
 
@@ -377,6 +395,16 @@ def delete_tenant_data(org_id: str) -> None:
     tenant_dir = _data_root() / org_id.strip()
     if not tenant_dir.exists():
         raise FileNotFoundError(f"Tenant directory not found: {tenant_dir}")
+
+    # Refuse to delete anything that is not a stamped tenant directory. The data
+    # root also holds platform storage ("backups", "keys", "evidence", …), and an
+    # unguarded rmtree here would destroy it irrecoverably.
+    if not (tenant_dir / _TENANT_MARKER).exists():
+        raise ValueError(
+            f"Refusing to delete {tenant_dir}: not a tenant directory "
+            f"(missing {_TENANT_MARKER} marker). Platform storage is not deletable "
+            "through the tenant API."
+        )
 
     shutil.rmtree(tenant_dir)
     logger.warning("Tenant data deleted: org_id=%s path=%s", org_id, tenant_dir)

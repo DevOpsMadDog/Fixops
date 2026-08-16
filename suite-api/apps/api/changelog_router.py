@@ -230,6 +230,18 @@ def get_recent_changelog(limit: int = Query(50, ge=1, le=500, description="Max c
         )
     except subprocess.TimeoutExpired:
         raise HTTPException(status_code=500, detail="Git operation timed out")
+    except (FileNotFoundError, NotADirectoryError):
+        # The runtime image intentionally ships without a git binary and without
+        # the .git directory, so a deployed instance has no commit history to read.
+        # That is an absent optional source, not a server fault — reporting it as a
+        # 500 made a healthy container look broken on every probe.
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Changelog source unavailable: this deployment has no git history. "
+                "The endpoint is intended for development checkouts."
+            ),
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching changelog: {str(e)}")
 
