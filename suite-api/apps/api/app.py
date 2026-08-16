@@ -7527,6 +7527,17 @@ def create_app() -> FastAPI:
 
     _order_routes_specific_before_parameterised(app)
 
+    # Select the deployment posture (ADR-001). Under `scif` this turns on the egress
+    # guard and FIPS, then refuses to start if a cloud LLM credential is reachable —
+    # inside an accreditation boundary a warning is not a control. `commercial` is the
+    # default and validates nothing, so this is a no-op for existing deployments.
+    try:
+        from core.deployment_profile import apply_profile_defaults
+
+        apply_profile_defaults()
+    except ImportError:  # pragma: no cover — core not on path in some tooling contexts
+        _logger.debug("deployment_profile unavailable; profile not applied")
+
     return app
 
 
