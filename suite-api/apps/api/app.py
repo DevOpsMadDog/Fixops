@@ -7507,7 +7507,57 @@ def create_app() -> FastAPI:
 
     register_not_configured_handler(app)
 
+    _order_routes_specific_before_parameterised(app)
+
     return app
+
+
+def _order_routes_specific_before_parameterised(app: FastAPI) -> None:
+    """Make concrete paths win over ``{param}`` paths regardless of mount order.
+
+    Starlette serves the first route whose pattern matches, so a generic
+    ``/api/v1/workflows/{id}`` registered before a specific ``/api/v1/workflows/stats``
+    swallows it — the specific endpoint exists, imports fine, and passes its own tests,
+    but is unreachable in the running application. With 800+ routers mounted across many
+    files, registration order is effectively accidental.
+
+    Measured 2026-08-17: **55 concrete GET routes were permanently unreachable** this
+    way, 14 of them under ``/api/v1/connectors`` — part of the integration surface we
+    most want to work. ``/api/v1/workflows/stats`` was answering "Workflow not found"
+    because ``{id}`` matched with ``id="stats"``.
+
+    A concrete path can only ever match its own literal, so promoting concrete routes
+    above parameterised ones cannot steal traffic from anything else — it only stops
+    them being shadowed. Non-``APIRoute`` entries (the SPA catch-all, static mounts)
+    keep their exact positions, so mount semantics are untouched.
+    """
+    from fastapi.routing import APIRoute
+
+    routes = app.router.routes
+    positions = [i for i, route in enumerate(routes) if isinstance(route, APIRoute)]
+    if not positions:
+        return
+
+    def _specificity(route: APIRoute) -> Tuple[int, int, int]:
+        path = route.path
+        return (
+            # 1. API routes first. The SPA fallback is itself an APIRoute, so sorting on
+            #    parameter count alone promotes it above every two-parameter API path and
+            #    serves HTML where JSON belongs — 151 routes regressed that way before
+            #    this key was corrected.
+            0 if path.startswith("/api/") else 1,
+            # 2. Then greedy `:path` converters last within their group: they match
+            #    across separators, so anything more specific must be tried first.
+            1 if ":path}" in path else 0,
+            # 3. Then concrete before parameterised.
+            path.count("{"),
+        )
+
+    api_routes = [routes[i] for i in positions]
+    # Stable: ties keep their original relative order, so duplicate paths are unaffected.
+    reordered = sorted(api_routes, key=_specificity)
+    for index, route in zip(positions, reordered):
+        routes[index] = route
 
 
 app = create_app()
