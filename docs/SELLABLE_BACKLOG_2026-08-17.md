@@ -32,7 +32,7 @@ measured reason it exists, and the check that closes it.
 
 | # | Task | ADR | Done when |
 |---|---|---|---|
-| C1 | Introduce `FIXOPS_PROFILE ∈ {commercial, scif}`; `scif` enforces egress guard + FIPS and **fails closed** if a cloud provider is configured | 001 | `create_app()` raises under `scif` + cloud provider; egress refused at socket layer |
+| ~~C1~~ | ~~`FIXOPS_PROFILE` switch~~ — **DONE** `15039942`: `scif` turns on egress guard + FIPS, refuses to boot on a reachable cloud key, and rejects a typo'd profile rather than defaulting | 001 | ✅ `create_app()` raises `ProfileViolation`; commercial unaffected (7,940 routes, UAT 11/11); 14 tests |
 | C2 | Populate the council member set from profile; remove vendor names from council logic. **Partly present**: `_enforce_air_gap_providers()` already swaps external providers for `AirGapLLMProvider` and fails closed under ENFORCED | 002 | Council runs against a fake member set with no vendor reference in its code path |
 | C3 | Replace `cost_usd > 0` as proof-of-real-call with a per-member response fingerprint — local inference legitimately costs nothing | 002 | Real-call detection passes for local models; fabricated verdicts still quarantined |
 | C4 | Prove the air-gapped council — **script shipped** `331dae27` (`scripts/prove_airgap_council.py`): socket trip-wire, requires `is_real_inference=True` from ≥2 distinct local models. First run PROVEN (2 models, independent reasoning, 0 egress); needs a clean repeat on non-thrashing hardware | 001,002 | Green run recorded as evidence |
@@ -43,7 +43,7 @@ measured reason it exists, and the check that closes it.
 
 | # | Task | ADR | Done when |
 |---|---|---|---|
-| D1 | Flip `FIXOPS_CORE_MODE` to default-on; full surface becomes opt-in | 005 | Default OpenAPI path count within core budget; UAT 11/11 |
+| ~~D1~~ | ~~Core mode default-on~~ — **DONE** `d638ea0b`: advertised 6,564→454 paths, 4,025→238 schemas; routes mounted unchanged at 7,940 | 005 | ✅ Dormant endpoints still answer 200; UAT 11/11 |
 | D2 | Define core membership by evidence (tenant-varying data **and** a UI callsite) rather than by hand | 005 | Membership list is generated, not curated |
 | D3 | Execute the dormancy plan for ~290 engine-domain orphans, in verified batches | 005 | Route count drops by the expected delta each batch; gates stay green |
 | D4 | CI check: no UI route may point at an endpoint hidden in core mode | 005 | Guard fails a deliberate mismatch |
