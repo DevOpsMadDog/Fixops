@@ -3272,6 +3272,19 @@ def create_app() -> FastAPI:
     # ── ASPM — Application Security Posture Management ────────────────────────
     # Wave-1 extraction: all standalone ASPM include_router blocks moved to
     # suite-api/apps/api/sub_apps/aspm_app.py (registrar pattern).
+    # Suite-Feeds router (real-time vulnerability intelligence).
+    # MUST be mounted BEFORE the sub-app registrars: platform_app mounts
+    # feed_manager_router which owns the generic POST /api/v1/feeds/{feed_id}/refresh.
+    # FastAPI serves the FIRST matching route, so the generic handler was shadowing
+    # the specific /feeds/kev/refresh and /feeds/epss/refresh endpoints — every feed
+    # sync returned {"detail":"Feed not found: kev"}, which is why EPSS/KEV
+    # enrichment had zero data and findings showed no CVE/EPSS/KEV columns.
+    if feeds_router:
+        app.include_router(
+            feeds_router,
+            dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:feeds"))],
+        )
+
     from apps.api.sub_apps.aspm_app import register_aspm_routers as _reg_aspm
     _reg_aspm(app, _verify_api_key, _require_scope, _logger)
     # ── CSPM — Cloud Security Posture Management ─────────────────────────────
@@ -3598,9 +3611,7 @@ def create_app() -> FastAPI:
         )
         _logger.info("Mounted Feed Registry router at /api/v1/feeds/registry")
 
-    # Suite-Feeds router (real-time vulnerability intelligence)
-    if feeds_router:
-        app.include_router(feeds_router, dependencies=[Depends(_verify_api_key), Depends(_require_scope("read:feeds"))])
+    # Suite-Feeds router is mounted EARLY (before the sub-app registrars) — see note there.
 
     # Knowledge Brain router (central intelligence graph — from suite-core/api/)
     try:
