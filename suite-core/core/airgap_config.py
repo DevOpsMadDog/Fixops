@@ -548,13 +548,32 @@ class OfflineVulnDBManager:
 
             manifest = json.loads(manifest_file.read_text())
 
-            # Verify integrity
+            # Verify integrity — FAIL CLOSED.
+            #
+            # This previously read `if expected_checksum and ...`, so a manifest that
+            # simply omitted `checksum_sha256` skipped verification altogether. An
+            # attacker supplying a bundle only had to leave the field out, and the
+            # contents were imported and recorded as valid. Demonstrated 2026-08-17.
+            #
+            # In an air-gapped deployment the bundle is the *only* route by which data
+            # enters the accreditation boundary, so this is the one control that must
+            # never be optional.
             actual_checksum = _compute_file_sha256(db_file)
-            expected_checksum = manifest.get("checksum_sha256", "")
-            if expected_checksum and actual_checksum != expected_checksum:
+            expected_checksum = str(manifest.get("checksum_sha256", "")).strip()
+            if not expected_checksum:
+                raise ValueError(
+                    "Bundle manifest has no checksum_sha256 — refusing to import "
+                    "unverifiable data. Regenerate the bundle with export_to_bundle()."
+                )
+            if actual_checksum != expected_checksum:
                 raise ValueError(
                     f"Checksum mismatch: expected {expected_checksum}, got {actual_checksum}"
                 )
+
+            # Verify the hybrid RSA-4096 + ML-DSA-65 signature when one is present, and
+            # require one under the scif profile: an accredited site must be able to
+            # prove where a bundle came from, not merely that it is internally consistent.
+            self._verify_bundle_signature(manifest, actual_checksum)
 
             # Validate content
             cve_count, errors = self._validate_db_file(db_file)
@@ -582,6 +601,103 @@ class OfflineVulnDBManager:
         logger.info("Imported vuln DB: %d CVEs, version=%s", cve_count, db_info.version)
         _emit_event("airgap.vuln_db_imported", {"version": db_info.version, "cve_count": cve_count, "bundle_path": bundle_path})
         return db_info
+
+    def _sign_content_hash(self, content_hash: str) -> Optional[Dict[str, Any]]:
+        """Sign a bundle's content hash, returning the envelope as a dict.
+
+        Returns ``None`` when signing is unavailable (no crypto module or no key
+        material). Export then produces an unsigned bundle, which import will accept
+        outside an accredited boundary and refuse inside one — the failure surfaces where
+        it matters rather than silently at export time.
+        """
+        try:
+            from core.quantum_crypto import HybridQuantumSigner
+
+            envelope = HybridQuantumSigner().sign(content_hash.encode("utf-8"))
+            return envelope.to_dict() if hasattr(envelope, "to_dict") else dict(envelope)
+        except Exception as exc:  # noqa: BLE001 — export must not fail on signing
+            logger.warning(
+                "Bundle export could not sign (%s: %s) — producing an UNSIGNED bundle. "
+                "It will be refused by a scif-profile import.",
+                type(exc).__name__,
+                exc,
+            )
+            return None
+
+    def _verify_bundle_signature(
+        self, manifest: Dict[str, Any], content_hash: str
+    ) -> None:
+        """Verify a bundle's hybrid signature, and require one under the scif profile.
+
+        The signature covers the database checksum rather than the archive, so a bundle
+        can be repacked for different transfer media without resigning while still being
+        bound to exactly the content it vouches for.
+
+        Args:
+            manifest: Parsed ``manifest.json``.
+            content_hash: SHA-256 of the database file, already verified against the
+                manifest.
+
+        Raises:
+            ValueError: The signature is present and invalid, or absent where required.
+        """
+        signature = manifest.get("signature")
+
+        required = False
+        try:
+            from core.deployment_profile import DeploymentProfile, get_profile
+
+            required = get_profile() is DeploymentProfile.SCIF
+        except Exception:  # noqa: BLE001 — profile module optional in some tooling
+            required = os.getenv("FIXOPS_AIRGAP_MODE", "").strip().lower() == "enforced"
+
+        if not signature:
+            if required:
+                raise ValueError(
+                    "Bundle is unsigned and the deployment profile requires a signature. "
+                    "An accredited site must be able to establish provenance, not merely "
+                    "internal consistency."
+                )
+            logger.warning(
+                "Importing an UNSIGNED vulnerability bundle (version=%s). Provenance "
+                "cannot be established; acceptable only outside an accredited boundary.",
+                manifest.get("version", "unknown"),
+            )
+            return
+
+        try:
+            from core.quantum_crypto import HybridQuantumSigner, HybridSignature
+        except ImportError as exc:
+            raise ValueError(
+                "Bundle carries a signature but the crypto module is unavailable, so it "
+                "cannot be verified — refusing rather than importing unverified data."
+            ) from exc
+
+        try:
+            # from_dict, not the constructor: to_dict() emits a nested
+            # {"classical": {...}, "quantum": {...}} shape that __init__ cannot consume,
+            # so HybridSignature(**payload) raises and every signed bundle would be
+            # rejected as unverifiable.
+            envelope = (
+                signature
+                if isinstance(signature, HybridSignature)
+                else HybridSignature.from_dict(signature)
+            )
+            result = HybridQuantumSigner().verify(content_hash.encode("utf-8"), envelope)
+        except Exception as exc:  # noqa: BLE001 — any failure is a refusal
+            raise ValueError(f"Bundle signature could not be verified: {exc}") from exc
+
+        if not result.get("valid"):
+            raise ValueError(
+                f"Bundle signature is invalid: {result}. The bundle has been altered "
+                "since signing, or was signed by an untrusted key."
+            )
+
+        logger.info(
+            "Bundle signature verified (classical=%s quantum=%s)",
+            result.get("classical_valid"),
+            result.get("quantum_valid"),
+        )
 
     def _validate_db_file(self, db_file: Path) -> Tuple[int, List[str]]:
         """Validate the gzip-compressed vulnerability database file."""
@@ -627,6 +743,14 @@ class OfflineVulnDBManager:
             "exported_at": _utcnow(),
             "exported_by": "fixops-airgap",
         }
+
+        # Sign the content hash with the same hybrid RSA-4096 + ML-DSA-65 scheme used
+        # for evidence bundles. The docstring has always described this as a "signed"
+        # bundle; until now nothing signed it, so a recipient could establish internal
+        # consistency but never provenance.
+        signature = self._sign_content_hash(checksum)
+        if signature is not None:
+            manifest["signature"] = signature
 
         output_file = Path(output_path)
         _ensure_dir(output_file.parent)
