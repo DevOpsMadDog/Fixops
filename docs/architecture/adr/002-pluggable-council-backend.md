@@ -46,10 +46,33 @@ member set is configuration.**
    quarantines `$0` runs; that check must be backend-agnostic rather than keyed on
    cloud cost, since local inference legitimately costs nothing.
 
+## Measured, 2026-08-17
+
+The mechanism works and the sizing requirement is real — both established by running it.
+
+**Proven:** with `FIXOPS_AIRGAP_MODE=enforced`, two distinct local models
+(`qwen2.5:1.5b`, `qwen2.5:0.5b`) each produced their own reasoning about a Log4Shell
+finding, both correctly recommending immediate remediation, with **zero non-loopback
+connections** recorded by a socket-level trip-wire. `scripts/prove_airgap_council.py`
+reproduces this and fails if any member falls back to a heuristic or a single outbound
+connection occurs.
+
+**The constraint:** on laptop CPU the same call is not reliably repeatable. A trivial
+prompt returns in ~5s, but the council's real prompt — which asks for a six-key JSON
+verdict — exceeded **ten minutes** and timed out. The provider then does exactly the
+right thing: it labels the result `[heuristic: local model unavailable]` and sets
+`is_real_inference=False` rather than presenting a default as a model's judgement.
+
+So the honest position is that the air-gapped council is **architecturally proven and
+hardware-bound**. It is not a laptop feature. `scif` deployments need inference capacity
+sized for the verdict prompt, and that is a line item in the deployment guide, not a
+detail to discover during accreditation.
+
 ## Consequences
 
 - `scif` requires GPU capacity at the customer site. This becomes a documented sizing
-  requirement, not a surprise during accreditation.
+  requirement, not a surprise during accreditation — see the measurement above, where
+  undersized inference turns every verdict into an honest heuristic fallback.
 - The `cost_usd > 0` heuristic we currently use as proof-of-real-call **breaks under
   local inference** and must be replaced by a per-member response fingerprint. This is a
   real correctness item, not a rename.

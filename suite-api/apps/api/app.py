@@ -7330,6 +7330,16 @@ def create_app() -> FastAPI:
     except Exception as _e:
         _logger.warning("integration_health_router unavailable: %s", _e)
 
+    # What a tenant CAN connect, alongside what it already has. GET /api/v1/integrations
+    # correctly returns [] for a new org, which left the Integrations screen empty for a
+    # product sold on the breadth of what it ingests. See ADR-007 / ADR-009.
+    try:
+        from apps.api.integration_catalog_router import router as _integration_catalog_router
+        app.include_router(_integration_catalog_router)
+        _logger.info("Mounted integration_catalog_router at /api/v1/integrations/catalog")
+    except Exception as _e:
+        _logger.warning("integration_catalog_router unavailable: %s", _e)
+
     # 5. siem_router (suite-integrations) — loaded at module level but never include_router'd
     # Real class: SIEMEngine (not SIEMConnector); real module: integrations.siem_engine
     if siem_router is not None:
