@@ -23,7 +23,7 @@ measured reason it exists, and the check that closes it.
 |---|---|---|---|
 | B1 | Delete the duplicate Python SDK (`aldeci_client` **or** `aldeci_security_intelligence_platform_client` — 4,465 files each, identical) | 004 | One client name remains |
 | B2 | Untrack `sdks/` (12,189 files, 134 MB); generate clients in CI from the OpenAPI spec and publish as versioned packages | 004 | `git ls-files sdks/ \| wc -l` → 0; repo ~5,772 tracked files |
-| B3 | CI guard: fail on any newly tracked file carrying a `generated ... do not edit` header | 004 | Guard fails a deliberate test commit |
+| B3 | CI guard: fail on any newly tracked build artifact — a `generated ... do not edit` header **or** a content-hashed bundle (`suite-integrations/mpte-aldeci/index-B8aPzWeF.js` is one such Vite output already committed, 391 functions in 936 minified lines) | 004 | Guard fails a deliberate test commit; the existing bundle is untracked or justified |
 | B4 | Share the duplicated contract models (`CapabilityResponse` ×46, `ScanRequest` ×24) instead of re-declaring per router | 004 | Duplicate class-name count materially below 4,213 |
 
 ## Track C — Make the SCIF profile real
