@@ -65,13 +65,23 @@ class GenerateFixRequest(BaseModel):
         fid = values.get("finding_id")
         if fid:
             try:
+                import os
                 import sqlite3
                 from pathlib import Path
-                # Try known locations for analytics.db
+
+                # Resolve through the anchored data directory (ADR-006). This list
+                # previously began with a hardcoded "/home/user/workspace/Fixops/..."
+                # — one developer's machine, shipped in production code — and then
+                # tried parents[3], which from suite-core/api/ overshoots the repo
+                # root, and parents[2], which does not. The same logical database was
+                # therefore reachable at two different depths from one file, so which
+                # copy a caller saw depended on which candidate existed first.
+                _root = Path(os.environ.get("FIXOPS_DATA_DIR", "")) or (
+                    Path(__file__).resolve().parents[2] / "data"
+                )
                 db_path = None
                 for candidate in [
-                    Path("/home/user/workspace/Fixops/data/analytics.db"),
-                    Path(__file__).parents[3] / "data" / "analytics.db",
+                    _root / "analytics.db",
                     Path(__file__).resolve().parents[2] / "data" / "analytics.db",
                 ]:
                     if candidate.exists():

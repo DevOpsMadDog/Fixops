@@ -31,6 +31,7 @@ import logging
 import sqlite3
 import time
 from dataclasses import dataclass
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
@@ -62,7 +63,14 @@ SCAN_FEATURE_NAMES = [
 DEFAULT_CONTAMINATION = 0.05  # 5% expected anomaly rate
 
 # Path to the findings data directory (one DB per tenant: findings_{tenant_id}.db)
-_FINDINGS_DATA_DIR = Path(__file__).resolve().parents[4] / "data"
+#
+# parents[4] from suite-core/core/ml/ overshoots the repository root — in a container
+# that resolves to "/", so this pointed at an unwritable "/data". Resolve through the
+# anchored data directory instead (ADR-006); parents[3] is the repo root and is only the
+# fallback when FIXOPS_DATA_DIR is unset.
+_FINDINGS_DATA_DIR = Path(
+    os.environ.get("FIXOPS_DATA_DIR") or (Path(__file__).resolve().parents[3] / "data")
+)
 
 # Minimum number of distinct scan snapshots required before we trust real history
 _MIN_REAL_SCANS = 3
