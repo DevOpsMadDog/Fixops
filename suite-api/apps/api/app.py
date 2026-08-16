@@ -38,7 +38,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import SpooledTemporaryFile
 from types import SimpleNamespace
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple
 
 # Auto-load .env file so FIXOPS_API_TOKEN, FIXOPS_JWT_SECRET etc. are
 # available without manual `export` commands.
@@ -2438,6 +2438,41 @@ def create_app() -> FastAPI:
         out["paths"] = core
         out["info"] = {**schema.get("info", {}),
                        "x-core-mode": "Focused value-path API surface (full API remains available)."}
+
+        # Prune schemas no retained path can reach.
+        #
+        # Filtering paths alone left all 4,025 component schemas in place, so the
+        # "focused" spec was still 4.74 MB and a generated client still emitted a model
+        # file per schema — which is how the committed SDK reached 4,465 files per
+        # language. Walk $ref from the retained paths, transitively, and keep only what
+        # is actually referenced. See ADR-004 and ADR-005.
+        components = schema.get("components") or {}
+        schemas = components.get("schemas") or {}
+        if schemas:
+            def _refs(node: Any) -> Iterator[str]:
+                if isinstance(node, dict):
+                    ref = node.get("$ref")
+                    if isinstance(ref, str) and ref.startswith("#/components/schemas/"):
+                        yield ref.rsplit("/", 1)[-1]
+                    for value in node.values():
+                        yield from _refs(value)
+                elif isinstance(node, list):
+                    for value in node:
+                        yield from _refs(value)
+
+            reachable: set = set()
+            queue = list(_refs(core))
+            while queue:
+                name = queue.pop()
+                if name in reachable or name not in schemas:
+                    continue
+                reachable.add(name)
+                queue.extend(_refs(schemas[name]))
+
+            out["components"] = {
+                **components,
+                "schemas": {k: v for k, v in schemas.items() if k in reachable},
+            }
         return out
 
     def _capped_openapi() -> Dict[str, Any]:
