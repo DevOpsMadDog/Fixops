@@ -14,7 +14,7 @@ measured reason it exists, and the check that closes it.
 |---|---|---|---|
 | ~~A1~~ | ~~Unify credential-gated responses~~ — **DONE** `83c7eb6b`: `NotConfigured` + central handler; 14 routers migrated | 007 | ✅ kong/harbor/servicenow return 200 + `configured:false` + `required_env`; 35 tests |
 | ~~A2~~ | ~~Fix the 4 remaining 404s~~ — **DONE** `e08685f1`: they were never missing. **55 concrete routes were unreachable behind earlier `{param}` routes** (14 under `/api/v1/connectors`); route ordering fixed once, after mount | — | ✅ Shadowed 55 → 0; all four return real data; 3 guard tests |
-| A3 | Render not-configured as an onboarding affordance ("Connect Qualys"), not an error | 007 | A tenant with zero connectors sees next steps, never red |
+| ~~A3~~ | ~~Not-configured as onboarding, not error~~ — **DONE** `50e3b945`: `/api/v1/integrations/catalog` generated from the runtime declarations; a fresh tenant sees 14 connectable integrations with exact env vars. UI already rendered unconfigured as neutral, not red | 007,009 | ✅ 6 tests incl. catalogue-matches-runtime |
 | ~~A4~~ | ~~Rebuild the image~~ — **DONE** `a5b28b6c`: `.dockerignore` needed `**/` (Go filepath.Match doesn't cross `/`); stale DBs 53→11→**0**, image 2.89→2.69 GB | 006 | ✅ Clean image booted in 30s, **UAT 11/11**, fresh install reports 0 findings / 0 tenants / feeds `empty` |
 
 ## Track B — Shrink the repo to its real size
@@ -35,8 +35,8 @@ measured reason it exists, and the check that closes it.
 | ~~C1~~ | ~~`FIXOPS_PROFILE` switch~~ — **DONE** `15039942`: `scif` turns on egress guard + FIPS, refuses to boot on a reachable cloud key, and rejects a typo'd profile rather than defaulting | 001 | ✅ `create_app()` raises `ProfileViolation`; commercial unaffected (7,940 routes, UAT 11/11); 14 tests |
 | C2 | Populate the council member set from profile; remove vendor names from council logic. **Partly present**: `_enforce_air_gap_providers()` already swaps external providers for `AirGapLLMProvider` and fails closed under ENFORCED | 002 | Council runs against a fake member set with no vendor reference in its code path |
 | C3 | Replace `cost_usd > 0` as proof-of-real-call with a per-member response fingerprint — local inference legitimately costs nothing | 002 | Real-call detection passes for local models; fabricated verdicts still quarantined |
-| C4 | Prove the air-gapped council — **script shipped** `331dae27` (`scripts/prove_airgap_council.py`): socket trip-wire, requires `is_real_inference=True` from ≥2 distinct local models. First run PROVEN (2 models, independent reasoning, 0 egress); needs a clean repeat on non-thrashing hardware | 001,002 | Green run recorded as evidence |
-| C5 | Build the signed offline feed bundle (KEV + EPSS + NVD) with manifest, hybrid RSA-4096 + ML-DSA-65 signature, idempotent import | 003 | Tampered bundle refused; enrichment identical after live sync vs bundle import |
+| C4 | Prove the air-gapped council — **script shipped** `331dae27`. Mechanic PROVEN (2 distinct local models, independent reasoning, **0 egress**). **Hardware-bound**: laptop CPU takes >10 min on the six-key verdict prompt vs ~5s for a trivial one, so repeats time out and fall back to labelled heuristics. Recorded in ADR-002 as a sizing requirement | 001,002 | Green run on inference-sized hardware |
+| ~~C5~~ | ~~Signed offline feed bundle~~ — **DONE** `c4cbdc4e`: **found verification was OPTIONAL** (a manifest omitting `checksum_sha256` skipped it entirely — attacker data imported as `is_valid=True`). Now fails closed; export signs with hybrid RSA-4096 + ML-DSA-65; unsigned refused under `scif` | 003 | ✅ 9 tests incl. tamper, traversal, forged signature, signed round-trip |
 | C6 | Record feed-bundle version on every enrichment; surface bundle age and mark stale | 003 | A prioritisation decision is explainable months later |
 
 ## Track D — Narrow the surface
