@@ -40,6 +40,31 @@ The consequences are not cosmetic:
 - Two copies guarantee drift: nothing keeps them in step, and nothing tells us which is
   canonical.
 
+## Correction, 2026-08-17 (found while implementing)
+
+Two facts discovered during implementation change the *order* of this work, though not
+the decision:
+
+1. **No SDK generator exists anywhere in the repo**, and **the platform's own OpenAPI
+   spec is not committed** — the only OpenAPI files are test fixtures for sample apps.
+   The SDKs were generated once, by hand, from a spec that no longer exists. Untracking
+   them today would destroy the only copy rather than move it to a pipeline. The spec and
+   generator must therefore come *first*.
+2. **The SDK's size was caused by the spec, not the generator.** Core mode filtered
+   paths (6,564 → 454) but left all 4,025 component schemas, and a client emits one model
+   file per schema — which is exactly how 4,465 files per language arose. Pruning
+   unreachable schemas (shipped in `d9068e51`) takes the core spec to **238 schemas /
+   1.07 MB**, so a regenerated client should be roughly seventeen times smaller.
+
+**The SDK must be generated from the core-mode spec, not the full one.** A client for
+6,564 endpoints — half of them dormant — is not a client anyone wants.
+
+Revised sequence: commit the core spec → add the generator → verify it reproduces a
+working client → *then* untrack `sdks/`.
+
+The duplicate Python client was deleted immediately (`c2c67f36`, 4,465 files) because it
+required none of the above: nothing imported it and nothing built it.
+
 ## Decision
 
 **Remove generated SDKs from version control and produce them in CI from the OpenAPI

@@ -12,7 +12,7 @@ measured reason it exists, and the check that closes it.
 
 | # | Task | ADR | Done when |
 |---|---|---|---|
-| A1 | Unify credential-gated responses: 10 integrations returning 503 (`github`, `harbor`, `hashicorp-vault`, `kong`, `n8n`, `servicenow`, `elasticsearch`, `deployment`, `guardrails`, `license`) return 200 + `configured: false` + required env vars | 007 | No integration domain returns 5xx with credentials absent; health is `healthy` with zero integrations configured |
+| ~~A1~~ | ~~Unify credential-gated responses~~ — **DONE** `83c7eb6b`: `NotConfigured` + central handler; 14 routers migrated | 007 | ✅ kong/harbor/servicenow return 200 + `configured:false` + `required_env`; 35 tests |
 | A2 | Fix the 4 remaining 404s on routes that should exist (`changes/health`, `k8s/rbac`, `posture-benchmark/latest`, `workflows/stats`) | — | All four return 200 or a documented 501 |
 | A3 | Render not-configured as an onboarding affordance ("Connect Qualys"), not an error | 007 | A tenant with zero connectors sees next steps, never red |
 | A4 | Rebuild and redeploy the image — it still carries ~80 MB of stale dev databases and none of the 2026-08-16 fixes | 006 | Fresh image contains 0 `*.db` under `suite-*/`; UAT 11/11 against it |
@@ -21,8 +21,10 @@ measured reason it exists, and the check that closes it.
 
 | # | Task | ADR | Done when |
 |---|---|---|---|
-| B1 | Delete the duplicate Python SDK (`aldeci_client` **or** `aldeci_security_intelligence_platform_client` — 4,465 files each, identical) | 004 | One client name remains |
-| B2 | Untrack `sdks/` (12,189 files, 134 MB); generate clients in CI from the OpenAPI spec and publish as versioned packages | 004 | `git ls-files sdks/ \| wc -l` → 0; repo ~5,772 tracked files |
+| ~~B1~~ | ~~Delete the duplicate Python SDK~~ — **DONE** `c2c67f36`: removed `aldeci_security_intelligence_platform_client` (4,465 files); tracked 17,975 → 13,510 | 004 | ✅ One client name remains; its 48 tests pass |
+| B2a | **Commit the core OpenAPI spec** — none exists today; the SDKs came from a spec that is gone | 004 | Core spec (454 paths / 238 schemas) tracked |
+| B2b | **Write the SDK generator** against the core spec, verify it produces a working client | 004 | Regenerated client passes the 48 existing tests |
+| B2c | Untrack `sdks/` (7,724 remaining files) and publish versioned packages — **only after B2a+B2b** | 004 | `git ls-files sdks/ \| wc -l` → 0 |
 | B3 | CI guard: fail on any newly tracked build artifact — a `generated ... do not edit` header **or** a content-hashed bundle (`suite-integrations/mpte-aldeci/index-B8aPzWeF.js` is one such Vite output already committed, 391 functions in 936 minified lines) | 004 | Guard fails a deliberate test commit; the existing bundle is untracked or justified |
 | B4 | Share the duplicated contract models (`CapabilityResponse` ×46, `ScanRequest` ×24) instead of re-declaring per router | 004 | Duplicate class-name count materially below 4,213 |
 
