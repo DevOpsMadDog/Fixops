@@ -13,9 +13,9 @@ measured reason it exists, and the check that closes it.
 | # | Task | ADR | Done when |
 |---|---|---|---|
 | ~~A1~~ | ~~Unify credential-gated responses~~ — **DONE** `83c7eb6b`: `NotConfigured` + central handler; 14 routers migrated | 007 | ✅ kong/harbor/servicenow return 200 + `configured:false` + `required_env`; 35 tests |
-| A2 | Fix the 4 remaining 404s on routes that should exist (`changes/health`, `k8s/rbac`, `posture-benchmark/latest`, `workflows/stats`) | — | All four return 200 or a documented 501 |
+| ~~A2~~ | ~~Fix the 4 remaining 404s~~ — **DONE** `e08685f1`: they were never missing. **55 concrete routes were unreachable behind earlier `{param}` routes** (14 under `/api/v1/connectors`); route ordering fixed once, after mount | — | ✅ Shadowed 55 → 0; all four return real data; 3 guard tests |
 | A3 | Render not-configured as an onboarding affordance ("Connect Qualys"), not an error | 007 | A tenant with zero connectors sees next steps, never red |
-| A4 | Rebuild and redeploy the image — it still carries ~80 MB of stale dev databases and none of the 2026-08-16 fixes | 006 | Fresh image contains 0 `*.db` under `suite-*/`; UAT 11/11 against it |
+| ~~A4~~ | ~~Rebuild the image~~ — **DONE** `a5b28b6c`: `.dockerignore` needed `**/` (Go filepath.Match doesn't cross `/`); stale DBs 53→11→**0**, image 2.89→2.69 GB | 006 | ✅ Clean image booted in 30s, **UAT 11/11**, fresh install reports 0 findings / 0 tenants / feeds `empty` |
 
 ## Track B — Shrink the repo to its real size
 
