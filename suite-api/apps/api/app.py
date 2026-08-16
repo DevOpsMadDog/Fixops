@@ -2414,7 +2414,25 @@ def create_app() -> FastAPI:
         except (OSError, TypeError, ValueError) as exc:
             _logger.warning("openapi: cache persist failed (%s: %s)", type(exc).__name__, exc)
 
-    _CORE_MODE = os.getenv("FIXOPS_CORE_MODE", "").strip() in ("1", "true", "True")
+    # Core mode is the DEFAULT shipping surface; the full API is opt-in (ADR-005).
+    #
+    # Probing all 745 API domains live showed 168 (22%) return data that differs per
+    # tenant, 396 return identical bytes for everyone, and 371 have no UI callsite at
+    # all. Advertising 6,564 paths therefore invites a buyer to open screens with nothing
+    # behind them — and hollowness reads worse than an error, because an error looks like
+    # a bug while hollowness looks like a lie.
+    #
+    # Nothing is unmounted: every route still resolves and still serves. This governs
+    # only what the product *advertises* — the OpenAPI surface and, via /api/v1/app-config,
+    # the navigation. Set FIXOPS_CORE_MODE=0 for the full surface in development or for a
+    # customer licensed to a broader set.
+    _CORE_MODE = os.getenv("FIXOPS_CORE_MODE", "1").strip().lower() not in (
+        "0",
+        "false",
+        "no",
+        "off",
+        "",
+    )
     _CORE_PREFIXES = (
         "/health", "/api/v1/health", "/api/v1/orgs", "/api/v1/auth",
         "/api/v1/scanner-ingest", "/api/v1/connectors",

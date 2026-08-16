@@ -92,3 +92,57 @@ def test_core_mode_still_advertises_the_value_path(spec: Dict[str, Any]) -> None
     joined = " ".join(paths)
     for expected in ("/api/v1/findings", "/api/v1/pipeline"):
         assert expected in joined, f"core spec no longer advertises {expected}"
+
+
+def test_core_mode_is_the_default_and_routes_stay_mounted() -> None:
+    """Core mode ships by default; the full surface is opt-in (ADR-005).
+
+    The distinction that matters: this governs what the product *advertises*, not what
+    it serves. Every route must still be mounted and resolvable — a customer calling a
+    dormant endpoint directly still gets a real answer, they just are not invited to.
+    """
+    import os
+    import subprocess
+    import sys
+
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parents[1]
+    env = {k: v for k, v in os.environ.items() if k != "FIXOPS_CORE_MODE"}
+    env["PYTHONPATH"] = os.pathsep.join(
+        str(repo / p)
+        for p in (
+            "suite-api",
+            "suite-core",
+            "suite-attack",
+            "suite-feeds",
+            "suite-evidence-risk",
+            "suite-integrations",
+        )
+    ) + os.pathsep + str(repo)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from apps.api.app import create_app;"
+            "a=create_app();s=a.openapi();"
+            "print(len(s.get('paths',{})), len(a.routes))",
+        ],
+        cwd=repo,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
+    assert result.returncode == 0, result.stderr[-2000:]
+    advertised, mounted = (int(x) for x in result.stdout.strip().splitlines()[-1].split())
+
+    assert advertised < 1000, (
+        f"with no FIXOPS_CORE_MODE set the app advertises {advertised} paths — "
+        "core mode is not the default"
+    )
+    assert mounted > 5000, (
+        f"only {mounted} routes are mounted; core mode must hide routes from the spec, "
+        "never unmount them"
+    )
