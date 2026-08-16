@@ -131,6 +131,7 @@ import {
   Rocket,
   Webhook,
   type LucideIcon,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CopilotSidebar } from "./CopilotSidebar";
@@ -389,13 +390,14 @@ const CORE_NAV: NavSection[] = [
     ],
   },
   {
-    section: "AI Decisions",
+    section: "Intelligence",
     icon: Brain,
     groups: [
       {
-        label: "Council",
+        label: "Engines",
         icon: Brain,
         items: [
+          { label: "Intelligence", to: "/intelligence", icon: Sparkles },
           { label: "AI Council", to: "/brain?tab=consensus", icon: Brain, badge: "AI" },
           { label: "Copilot Agents", to: "/ai/agents", icon: Bot },
         ],

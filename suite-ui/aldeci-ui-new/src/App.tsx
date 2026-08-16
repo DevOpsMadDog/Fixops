@@ -480,6 +480,8 @@ const ExceptionsHub = lazy(() => import("@/pages/ExceptionsHub"));
 const IncidentExtensionsHub = lazy(() => import("@/pages/IncidentExtensionsHub"));
 // Phase 3 §2.23 (Compliance Coverage / Gap sub-cluster) — ComplianceCoverageHub at /comply/coverage
 const ComplianceCoverageHub = lazy(() => import("@/pages/ComplianceCoverageHub"));
+// Intelligence — live status of the differentiating engines (feeds, council, graph, MPTE, learning)
+const IntelligenceHub = lazy(() => import("@/pages/IntelligenceHub"));
 // Phase 3 Data Discovery / DSPM sub-cluster — DataDiscoveryHub at /discover/dspm (2026-05-02)
 const DataDiscoveryHub = lazy(() => import("@/pages/DataDiscoveryHub"));
 const ViolationLifecycleTimeline = lazy(() => import("@/pages/ViolationLifecycleTimeline"));
@@ -944,6 +946,7 @@ export default function App() {
 
             {/* Cloud Compliance + Endpoint Compliance */}
             {/* Phase 3 §2.23 ComplianceCoverageHub fold — canonical hub + legacy redirects */}
+            <Route path="/intelligence" element={<IntelligenceHub />} />
             <Route path="/comply/coverage" element={<ComplianceCoverageHub />} />
             <Route path="/cloud-compliance" element={<Navigate to="/comply/coverage?tab=cloud" replace />} />
             <Route path="/endpoint-compliance" element={<Navigate to="/comply/coverage?tab=endpoint" replace />} />
