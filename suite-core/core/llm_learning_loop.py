@@ -376,21 +376,35 @@ class LLMLearningLoop:
                 self._run_pipeline_blocking, finding, org_id
             )
 
-            # Honesty guard: ONLY verdicts from a real LLM call (cost_usd > 0) may
-            # enter the learning signal. A $0 verdict means a deterministic /
-            # placeholder fallback produced it — persisting it would poison DPO
-            # training with fabricated data (this is exactly what created the
-            # 5,196 fake "confidence 0.5 / $0" rows). Drop it, don't learn from it.
+            # Honesty guard: ONLY verdicts produced by a real model call may enter the
+            # learning signal. A fallback verdict is fabricated data, and persisting it
+            # poisons DPO training — exactly what created the 5,196 bogus
+            # "confidence 0.5 / $0" rows.
+            #
+            # The signal is `is_real_inference`, which every provider sets, NOT cost.
+            # Cost was the original test and it silently breaks air-gapped deployments:
+            # local inference legitimately costs $0, so under the scif profile every
+            # genuine local verdict was being discarded and the self-learning loop
+            # quietly stopped working — the failure mode ADR-002 warned about.
+            #
+            # Cost remains the fallback for verdicts recorded before providers reported
+            # the flag, so the original protection still applies to historical rows.
             _raw = verdict.get("raw_verdict", {}) or {}
+            _meta = _raw.get("metadata", {}) or {}
             try:
-                _cost = float(_raw.get("cost_usd", 0) or 0)
+                _cost = float(_raw.get("cost_usd", _meta.get("cost_usd", 0)) or 0)
             except (TypeError, ValueError):
                 _cost = 0.0
-            if _cost <= 0:
+
+            _real_flag = _raw.get("is_real_inference", _meta.get("is_real_inference"))
+            _is_real = bool(_real_flag) if _real_flag is not None else _cost > 0
+
+            if not _is_real:
                 logger.warning(
-                    "llm_learning_loop: skipping non-real verdict (cost_usd=%.6f) for "
-                    "finding %s — not a genuine LLM call, excluded from learning signal",
-                    _cost, finding.get("finding_id"),
+                    "llm_learning_loop: skipping non-real verdict for finding %s "
+                    "(is_real_inference=%s, cost_usd=%.6f) — not a genuine model call, "
+                    "excluded from learning signal",
+                    finding.get("finding_id"), _real_flag, _cost,
                 )
                 return
 
