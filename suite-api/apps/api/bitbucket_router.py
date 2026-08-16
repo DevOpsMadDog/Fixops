@@ -18,7 +18,7 @@ GET  /2.0/repositories/{ws}/{repo}/commit/{sha}/statuses                    — 
 
 When ``BITBUCKET_USER`` / ``BITBUCKET_APP_PASSWORD`` are unset the capability
 summary reports ``status="unavailable"`` and lookup endpoints respond with
-HTTP 503.
+HTTP 200 and ``configured=false`` (see ADR-007).
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ import logging
 from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import Depends, APIRouter, Body, HTTPException, Query, Response
+from apps.api.not_configured import NotConfigured
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
 
@@ -113,12 +114,9 @@ PR_STATE = Literal["OPEN", "MERGED", "DECLINED", "SUPERSEDED"]
 
 
 def _raise_unavailable() -> None:
-    raise HTTPException(
-        status_code=503,
-        detail={
-            "error": "bitbucket_unavailable",
-            "message": "BITBUCKET_USER and BITBUCKET_APP_PASSWORD env vars are not configured",
-        },
+    raise NotConfigured(
+        service="bitbucket",
+        message="BITBUCKET_USER and BITBUCKET_APP_PASSWORD env vars are not configured",
     )
 
 

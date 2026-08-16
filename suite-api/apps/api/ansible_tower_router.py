@@ -16,7 +16,7 @@ GET    /api/v2/projects                                 — list projects
 GET    /api/v2/credentials                              — list credentials
 
 When ``TOWER_HOST`` / ``TOWER_OAUTH_TOKEN`` are unset the capability summary
-reports ``status="unavailable"`` and lookup endpoints respond with HTTP 503.
+reports ``status="unavailable"`` and lookup endpoints respond with HTTP 200 and ``configured=false`` (see ADR-007).
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ import logging
 from typing import Any, Dict, List, Optional, Union
 
 from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.not_configured import NotConfigured
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
 
@@ -82,12 +83,9 @@ class JobTemplateLaunchRequest(BaseModel):
 
 
 def _raise_unavailable() -> None:
-    raise HTTPException(
-        status_code=503,
-        detail={
-            "error": "ansible_tower_unavailable",
-            "message": "TOWER_HOST and TOWER_OAUTH_TOKEN environment variables are not configured",
-        },
+    raise NotConfigured(
+        service="ansible_tower",
+        message="TOWER_HOST and TOWER_OAUTH_TOKEN environment variables are not configured",
     )
 
 

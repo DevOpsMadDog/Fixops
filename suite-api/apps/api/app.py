@@ -7465,6 +7465,13 @@ def create_app() -> FastAPI:
     else:
         _logger.warning("React UI dist not found at %s — SPA not served", _ui_dist)
 
+    # An integration without credentials is a configuration state, not a fault:
+    # render NotConfigured as 200 so unconnected tools read as an onboarding step
+    # rather than an outage. See ADR-007.
+    from apps.api.not_configured import register_not_configured_handler
+
+    register_not_configured_handler(app)
+
     return app
 
 

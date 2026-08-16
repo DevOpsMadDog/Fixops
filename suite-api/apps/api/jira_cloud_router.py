@@ -14,7 +14,7 @@ POST   /rest/api/3/issue/{key}/transitions             — transition an issue
 GET    /rest/api/3/project                             — list projects
 
 When ``JIRA_URL`` / ``JIRA_AUTH`` are unset the capability summary reports
-``status="unavailable"`` and the lookup endpoints respond with HTTP 503.
+``status="unavailable"`` and the lookup endpoints respond with HTTP 200 and ``configured=false`` (see ADR-007).
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.not_configured import NotConfigured
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
 
@@ -94,12 +95,9 @@ class TransitionRequest(BaseModel):
 
 
 def _raise_unavailable() -> None:
-    raise HTTPException(
-        status_code=503,
-        detail={
-            "error": "jira_cloud_unavailable",
-            "message": "JIRA_URL and JIRA_AUTH environment variables are not configured",
-        },
+    raise NotConfigured(
+        service="jira_cloud",
+        message="JIRA_URL and JIRA_AUTH environment variables are not configured",
     )
 
 

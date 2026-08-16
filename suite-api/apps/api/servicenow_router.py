@@ -18,7 +18,7 @@ GET     /api/now/table/cmdb_ci                       — list CMDB CIs
 
 When ``SERVICENOW_URL`` / ``SERVICENOW_USER`` / ``SERVICENOW_PASSWORD`` are
 unset the capability summary reports ``status="unavailable"`` and the lookup
-endpoints respond with HTTP 503.
+endpoints respond with HTTP 200 and ``configured=false`` (see ADR-007).
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Response
+from apps.api.not_configured import NotConfigured
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -114,15 +115,12 @@ class IncidentUpdateRequest(BaseModel):
 
 
 def _raise_unavailable() -> None:
-    raise HTTPException(
-        status_code=503,
-        detail={
-            "error": "servicenow_unavailable",
-            "message": (
-                "SERVICENOW_URL, SERVICENOW_USER, and SERVICENOW_PASSWORD "
-                "environment variables are not configured"
-            ),
-        },
+    raise NotConfigured(
+        service="servicenow",
+        message=(
+            "SERVICENOW_URL, SERVICENOW_USER, and SERVICENOW_PASSWORD "
+            "environment variables are not configured"
+        ),
     )
 
 

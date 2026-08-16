@@ -22,7 +22,7 @@ POST   /api/v4/projects/{id}/jobs/{job_id}/retry                  — retry job
 POST   /api/v4/projects/{id}/jobs/{job_id}/cancel                 — cancel job
 
 When ``GITLAB_TOKEN`` is unset the capability summary reports
-``status="unavailable"`` and lookup endpoints respond with HTTP 503.
+``status="unavailable"`` and lookup endpoints respond with HTTP 200 and ``configured=false`` (see ADR-007).
 """
 
 from __future__ import annotations
@@ -31,6 +31,7 @@ import logging
 from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import Depends, APIRouter, Body, HTTPException, Query, Response
+from apps.api.not_configured import NotConfigured
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
 
@@ -221,12 +222,9 @@ JOB_SCOPE = Literal[
 
 
 def _raise_unavailable() -> None:
-    raise HTTPException(
-        status_code=503,
-        detail={
-            "error": "gitlab_pipeline_unavailable",
-            "message": "GITLAB_TOKEN environment variable is not configured",
-        },
+    raise NotConfigured(
+        service="gitlab_pipeline",
+        message="GITLAB_TOKEN environment variable is not configured",
     )
 
 

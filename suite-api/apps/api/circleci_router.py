@@ -16,7 +16,7 @@ GET    /api/v2/workflow/{workflow_id}/job                  — list workflow job
 GET    /api/v2/project/{project_slug:path}/insights/workflows/{workflow_name} — workflow insights
 
 When ``CIRCLECI_TOKEN`` is unset the capability summary reports
-``status="unavailable"`` and lookup endpoints respond with HTTP 503.
+``status="unavailable"`` and lookup endpoints respond with HTTP 200 and ``configured=false`` (see ADR-007).
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, APIRouter, Body, HTTPException, Query
+from apps.api.not_configured import NotConfigured
 from pydantic import BaseModel, ConfigDict, Field
 from apps.api.auth_deps import api_key_auth
 
@@ -242,12 +243,9 @@ class WorkflowInsights(BaseModel):
 
 
 def _raise_unavailable() -> None:
-    raise HTTPException(
-        status_code=503,
-        detail={
-            "error": "circleci_unavailable",
-            "message": "CIRCLECI_TOKEN environment variable is not configured",
-        },
+    raise NotConfigured(
+        service="circleci",
+        message="CIRCLECI_TOKEN environment variable is not configured",
     )
 
 

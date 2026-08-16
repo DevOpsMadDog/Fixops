@@ -20,7 +20,7 @@ GET    /snis                                               list SNIs
 GET    /status                                             Kong node status (db, server, memory)
 
 When ``KONG_ADMIN_URL`` is unset the capability summary reports
-``status="unavailable"`` and lookup endpoints respond with HTTP 503.
+``status="unavailable"`` and lookup endpoints respond with HTTP 200 and ``configured=false`` (see ADR-007).
 ``KONG_ADMIN_TOKEN`` is **optional** — Kong Admin API on private networks
 typically runs unauthenticated.
 """
@@ -31,6 +31,7 @@ import logging
 from typing import Optional
 
 from fastapi import Depends, APIRouter, HTTPException, Path, Query
+from apps.api.not_configured import NotConfigured
 from apps.api.auth_deps import api_key_auth
 
 logger = logging.getLogger(__name__)
@@ -59,12 +60,9 @@ def _get_engine():
 
 
 def _raise_unavailable() -> None:
-    raise HTTPException(
-        status_code=503,
-        detail={
-            "error": "kong_admin_unavailable",
-            "message": "KONG_ADMIN_URL environment variable is not configured",
-        },
+    raise NotConfigured(
+        service="kong_admin",
+        message="KONG_ADMIN_URL environment variable is not configured",
     )
 
 

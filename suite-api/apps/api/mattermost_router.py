@@ -19,7 +19,7 @@ POST   /api/v4/files                           — upload one or more files
 
 When ``MATTERMOST_URL`` / ``MATTERMOST_TOKEN`` are unset the capability
 summary reports ``status="unavailable"`` and the lookup endpoints respond
-with HTTP 503.
+with HTTP 200 and ``configured=false`` (see ADR-007).
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, APIRouter, File, Form, HTTPException, Query, UploadFile
+from apps.api.not_configured import NotConfigured
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
 
@@ -89,12 +90,9 @@ class PostUpdateRequest(BaseModel):
 
 
 def _raise_unavailable() -> None:
-    raise HTTPException(
-        status_code=503,
-        detail={
-            "error": "mattermost_unavailable",
-            "message": "MATTERMOST_URL and MATTERMOST_TOKEN environment variables are not configured",
-        },
+    raise NotConfigured(
+        service="mattermost",
+        message="MATTERMOST_URL and MATTERMOST_TOKEN environment variables are not configured",
     )
 
 

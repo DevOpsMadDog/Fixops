@@ -15,7 +15,7 @@ POST   /job/{name}/build                   — trigger a build (201)
 
 When ``JENKINS_URL`` / ``JENKINS_USER`` / ``JENKINS_TOKEN`` are unset the
 capability summary reports ``status="unavailable"`` and lookup endpoints
-respond with HTTP 503.
+respond with HTTP 200 and ``configured=false``.
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.not_configured import NotConfigured
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
 
@@ -161,12 +162,9 @@ class BuildTriggered(BaseModel):
 
 
 def _raise_unavailable() -> None:
-    raise HTTPException(
-        status_code=503,
-        detail={
-            "error": "jenkins_ci_unavailable",
-            "message": "JENKINS_URL, JENKINS_USER and JENKINS_TOKEN environment variables are not configured",
-        },
+    raise NotConfigured(
+        service="jenkins_ci",
+        message="JENKINS_URL, JENKINS_USER and JENKINS_TOKEN environment variables are not configured",
     )
 
 

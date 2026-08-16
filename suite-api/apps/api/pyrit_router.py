@@ -16,7 +16,7 @@ GET  /api/v1/datasets/seed-prompts         — built-in adversarial prompt datas
 
 When ``PYRIT_RUNNER_URL`` is unset the capability summary reports
 ``status="unavailable"`` and *action* endpoints (attacks/run, runs/...) respond
-with HTTP 503. *Catalog* endpoints (converters/scorers/orchestrators) still
+with HTTP 200 and ``configured=false`` (see ADR-007). *Catalog* endpoints (converters/scorers/orchestrators) still
 return their built-in (informational) catalog so the UI can render the form.
 """
 
@@ -26,6 +26,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from apps.api.not_configured import NotConfigured
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -110,12 +111,9 @@ class AttackRunRequest(BaseModel):
 
 
 def _raise_unavailable() -> None:
-    raise HTTPException(
-        status_code=503,
-        detail={
-            "error": "pyrit_unavailable",
-            "message": "PYRIT_RUNNER_URL environment variable is not configured",
-        },
+    raise NotConfigured(
+        service="pyrit",
+        message="PYRIT_RUNNER_URL environment variable is not configured",
     )
 
 

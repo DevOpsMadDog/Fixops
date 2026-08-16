@@ -16,7 +16,7 @@ GET /v1/projects/{project}/locations/{location}/repositories/{repository:path}:g
 GET /v1/projects/{project}/locations/{location}/repositories/{repository:path}/files           — list files
 
 When ``GOOGLE_APPLICATION_CREDENTIALS`` is unset the capability summary reports
-``status="unavailable"`` and lookup endpoints respond with HTTP 503.
+``status="unavailable"`` and lookup endpoints respond with HTTP 200 and ``configured=false`` (see ADR-007).
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, APIRouter, HTTPException, Path as FPath, Query
+from apps.api.not_configured import NotConfigured
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
 
@@ -223,13 +224,10 @@ class FilesResponse(BaseModel):
 
 
 def _raise_unavailable() -> None:
-    raise HTTPException(
-        status_code=503,
-        detail={
-            "error": "gar_unavailable",
-            "message": "GOOGLE_APPLICATION_CREDENTIALS environment variable is "
+    raise NotConfigured(
+        service="gar",
+        message="GOOGLE_APPLICATION_CREDENTIALS environment variable is "
             "not configured (or points to an invalid keyfile)",
-        },
     )
 
 

@@ -17,7 +17,7 @@ GET  /ccx/api/staffing/v6/{tenant}/orgChart/{org_id}/managementChain            
 
 When ``WORKDAY_TENANT`` / ``WORKDAY_BASE_URL`` / ``WORKDAY_USERNAME`` /
 ``WORKDAY_PASSWORD`` are unset, the capability summary reports
-``status="unavailable"`` and the lookup endpoints respond with HTTP 503.
+``status="unavailable"`` and the lookup endpoints respond with HTTP 200 and ``configured=false`` (see ADR-007).
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, APIRouter, HTTPException, Query
+from apps.api.not_configured import NotConfigured
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
 
@@ -70,15 +71,12 @@ class CapabilitySummary(BaseModel):
 
 
 def _raise_unavailable() -> None:
-    raise HTTPException(
-        status_code=503,
-        detail={
-            "error": "workday_unavailable",
-            "message": (
-                "WORKDAY_TENANT, WORKDAY_BASE_URL, WORKDAY_USERNAME, and "
-                "WORKDAY_PASSWORD environment variables are not configured"
-            ),
-        },
+    raise NotConfigured(
+        service="workday",
+        message=(
+            "WORKDAY_TENANT, WORKDAY_BASE_URL, WORKDAY_USERNAME, and "
+            "WORKDAY_PASSWORD environment variables are not configured"
+        ),
     )
 
 

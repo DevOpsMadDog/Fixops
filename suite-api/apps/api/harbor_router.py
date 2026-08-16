@@ -21,7 +21,7 @@ POST   /api/v2.0/projects/{project_name}/scanner                                
 
 When ``HARBOR_URL`` / ``HARBOR_USERNAME`` / ``HARBOR_PASSWORD`` are unset the
 capability summary reports ``status="unavailable"`` and lookup endpoints
-respond with HTTP 503.
+respond with HTTP 200 and ``configured=false``.
 """
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, APIRouter, HTTPException, Query, Response
+from apps.api.not_configured import NotConfigured
 from pydantic import BaseModel, Field
 from apps.api.auth_deps import api_key_auth
 
@@ -272,13 +273,10 @@ class ProjectScannerUpdated(BaseModel):
 
 
 def _raise_unavailable() -> None:
-    raise HTTPException(
-        status_code=503,
-        detail={
-            "error": "harbor_registry_unavailable",
-            "message": "HARBOR_URL, HARBOR_USERNAME and HARBOR_PASSWORD environment "
+    raise NotConfigured(
+        service="harbor_registry",
+        message="HARBOR_URL, HARBOR_USERNAME and HARBOR_PASSWORD environment "
             "variables are not configured",
-        },
     )
 
 
