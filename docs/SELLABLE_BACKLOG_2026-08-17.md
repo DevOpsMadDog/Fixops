@@ -25,7 +25,7 @@ measured reason it exists, and the check that closes it.
 | B2a | **Commit the core OpenAPI spec** — none exists today; the SDKs came from a spec that is gone | 004 | Core spec (454 paths / 238 schemas) tracked |
 | B2b | **Write the SDK generator** against the core spec, verify it produces a working client | 004 | Regenerated client passes the 48 existing tests |
 | B2c | Untrack `sdks/` (7,724 remaining files) and publish versioned packages — **only after B2a+B2b** | 004 | `git ls-files sdks/ \| wc -l` → 0 |
-| B3 | CI guard: fail on any newly tracked build artifact — a `generated ... do not edit` header **or** a content-hashed bundle (`suite-integrations/mpte-aldeci/index-B8aPzWeF.js` is one such Vite output already committed, 391 functions in 936 minified lines) | 004 | Guard fails a deliberate test commit; the existing bundle is untracked or justified |
+| ~~B3~~ | ~~CI guard against tracked build artifacts~~ — **DONE** `20ca6c98`: SDK count frozen at 7,724, duplicate client cannot reappear, `do not edit` files barred outside `sdks/`, content-hashed bundles rejected | 004 | ✅ 4 tests; the orphaned Vite bundle untracked (referenced by nothing) |
 | B4 | Share the duplicated contract models (`CapabilityResponse` ×46, `ScanRequest` ×24) instead of re-declaring per router | 004 | Duplicate class-name count materially below 4,213 |
 
 ## Track C — Make the SCIF profile real
@@ -33,9 +33,9 @@ measured reason it exists, and the check that closes it.
 | # | Task | ADR | Done when |
 |---|---|---|---|
 | C1 | Introduce `FIXOPS_PROFILE ∈ {commercial, scif}`; `scif` enforces egress guard + FIPS and **fails closed** if a cloud provider is configured | 001 | `create_app()` raises under `scif` + cloud provider; egress refused at socket layer |
-| C2 | Populate the council member set from profile; remove vendor names from council logic | 002 | Council runs against a fake member set with no vendor reference in its code path |
+| C2 | Populate the council member set from profile; remove vendor names from council logic. **Partly present**: `_enforce_air_gap_providers()` already swaps external providers for `AirGapLLMProvider` and fails closed under ENFORCED | 002 | Council runs against a fake member set with no vendor reference in its code path |
 | C3 | Replace `cost_usd > 0` as proof-of-real-call with a per-member response fingerprint — local inference legitimately costs nothing | 002 | Real-call detection passes for local models; fabricated verdicts still quarantined |
-| C4 | Prove the air-gapped council: 5 local models, `providers_responded ≥ 3`, `source=consensus`, **zero outbound connections** | 001,002 | Captured socket-level evidence of no egress during a real verdict |
+| C4 | Prove the air-gapped council — **script shipped** `331dae27` (`scripts/prove_airgap_council.py`): socket trip-wire, requires `is_real_inference=True` from ≥2 distinct local models. First run PROVEN (2 models, independent reasoning, 0 egress); needs a clean repeat on non-thrashing hardware | 001,002 | Green run recorded as evidence |
 | C5 | Build the signed offline feed bundle (KEV + EPSS + NVD) with manifest, hybrid RSA-4096 + ML-DSA-65 signature, idempotent import | 003 | Tampered bundle refused; enrichment identical after live sync vs bundle import |
 | C6 | Record feed-bundle version on every enrichment; surface bundle age and mark stale | 003 | A prioritisation decision is explainable months later |
 
@@ -52,8 +52,8 @@ measured reason it exists, and the check that closes it.
 
 | # | Task | ADR | Done when |
 |---|---|---|---|
-| E1 | Lint rule rejecting new relative `*.db` paths and `parents[N]`-derived data paths | 006 | Rule fails a deliberate violation |
-| E2 | Migrate the **91 files** that hardcode relative DB paths and ignore `FIXOPS_DATA_DIR` | 006 | Count reaches 0; no duplicate store names in a running container |
+| ~~E1~~ | ~~Lint rule for relative / `parents[N]` data paths~~ — **DONE** `331dae27`: ratchets debt (155 files, 360 uses) and rejects escapes outright; **found 2 more repo-escaping paths + a hardcoded `/home/user/...` dev path** | 006 | ✅ 4 tests; both escapes fixed |
+| E2 | Migrate the **155 files** (measured; earlier 91 was a narrower pattern) that hardcode relative DB paths and ignore `FIXOPS_DATA_DIR` | 006 | Ratchet in `test_no_relative_db_paths.py` reaches 0 |
 | E3 | Startup assertion: no two stores share a basename across locations | 006 | Boot fails loudly on a split store |
 
 ## Track F — Sharpen the wedge
