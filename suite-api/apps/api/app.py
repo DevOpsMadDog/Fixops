@@ -7548,6 +7548,16 @@ def create_app() -> FastAPI:
     except ImportError:  # pragma: no cover — core not on path in some tooling contexts
         _logger.debug("deployment_profile unavailable; profile not applied")
 
+    # Report databases that exist in two places (ADR-006 E3). Warns by default because a
+    # pre-existing split cannot be resolved during a restart; FIXOPS_STRICT_STORES=1
+    # makes it fatal, which is what a fresh install and CI should run with.
+    try:
+        from core.store_integrity import check_store_integrity
+
+        check_store_integrity()
+    except ImportError:  # pragma: no cover
+        _logger.debug("store_integrity unavailable; split-store check skipped")
+
     return app
 
 
