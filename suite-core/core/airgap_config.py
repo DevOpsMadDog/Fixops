@@ -767,19 +767,38 @@ class LocalLLMRouter:
     """Routes LLM requests to local backends in air-gapped environments."""
 
     OLLAMA_DEFAULT = "http://localhost:11434"
-    VLLM_DEFAULT = "http://localhost:8000"
+    # 8001, not 8000: the FixOps API itself listens on 8000 in every container we ship
+    # (Dockerfile EXPOSE 8000, uvicorn --port 8000), so probing 8000 for a vLLM server
+    # interrogates our own API. This also matches the documented default in
+    # llm_providers.VLLMSelfHostedProvider, which the two modules previously disagreed on.
+    VLLM_DEFAULT = "http://localhost:8001"
     LLAMACPP_DEFAULT = "http://localhost:8080"
 
     def __init__(self, config: Optional[LocalLLMConfig] = None):
         self.config = config or LocalLLMConfig()
 
+    def _backend_urls(self) -> List[Tuple["LLMBackend", str, str]]:
+        """Backends to probe, honouring deployment overrides.
+
+        An air-gapped site rarely runs inference on our defaults, so the endpoint has to
+        be configurable or detection is decorative.
+        """
+        vllm = os.getenv("FIXOPS_VLLM_URL", "").strip() or self.VLLM_DEFAULT
+        # llm_providers documents FIXOPS_VLLM_URL with the OpenAI-style "/v1" suffix;
+        # strip it here so the probe path is not doubled up.
+        if vllm.endswith("/v1"):
+            vllm = vllm[: -len("/v1")]
+        ollama = os.getenv("OLLAMA_HOST", "").strip() or self.OLLAMA_DEFAULT
+        llamacpp = os.getenv("FIXOPS_LLAMACPP_URL", "").strip() or self.LLAMACPP_DEFAULT
+        return [
+            (LLMBackend.OLLAMA, ollama.rstrip("/"), "/api/tags"),
+            (LLMBackend.VLLM, vllm.rstrip("/"), "/v1/models"),
+            (LLMBackend.LLAMACPP, llamacpp.rstrip("/"), "/v1/models"),
+        ]
+
     def detect_available_backend(self) -> LocalLLMConfig:
         """Probe local backends to find an available LLM service."""
-        backends = [
-            (LLMBackend.OLLAMA, self.OLLAMA_DEFAULT, "/api/tags"),
-            (LLMBackend.VLLM, self.VLLM_DEFAULT, "/v1/models"),
-            (LLMBackend.LLAMACPP, self.LLAMACPP_DEFAULT, "/v1/models"),
-        ]
+        backends = self._backend_urls()
         for backend, base_url, probe_path in backends:
             url = f"{base_url}{probe_path}"
             if self._probe_endpoint(url):
@@ -797,12 +816,26 @@ class LocalLLMRouter:
         return LocalLLMConfig(backend=LLMBackend.NONE.value, available=False)
 
     def _probe_endpoint(self, url: str, timeout: float = 1.5) -> bool:
-        """Quick HTTP probe — returns True if endpoint responds."""
+        """Quick HTTP probe — returns True if the endpoint answers.
+
+        A probe must never raise: "this backend is absent" is the ordinary case, not an
+        error. The previous except clause listed ``ValueError, KeyError, RuntimeError,
+        TypeError, AttributeError`` — none of which ``urlopen`` raises for a refused
+        connection. It raises ``URLError`` (an ``OSError``), so probing a closed port
+        propagated out of ``detect_available_backend`` and aborted the whole loop at the
+        first backend.
+
+        The consequence was specific and severe: an air-gapped deployment running vLLM
+        but not Ollama would fail at the Ollama probe, never reach the vLLM probe, and be
+        reported as having no local backend at all — which under ENFORCED mode makes the
+        council refuse to start. A correctly configured SCIF install would not boot.
+        """
         import urllib.request
+
         try:
             with urllib.request.urlopen(url, timeout=timeout):  # nosemgrep: dynamic-urllib-use-detected  # nosec
                 return True
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+        except Exception:  # noqa: BLE001 — a probe reports absence, it never raises
             return False
 
     def _get_first_model(self, backend: LLMBackend, base_url: str) -> str:
