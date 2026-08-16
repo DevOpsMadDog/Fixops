@@ -107,19 +107,26 @@ def _dockerignore_patterns() -> list[str]:
     ]
 
 
-def test_dockerignore_excludes_local_databases() -> None:
+def test_dockerignore_excludes_local_databases_recursively() -> None:
     """No SQLite file may enter the image via the build context.
 
     ``COPY suite-*/ ./suite-*/`` copies whole directories, so a developer's local
-    databases are swept in unless excluded. Measured 2026-08-16: 53 stale *.db
-    files totalling ~80 MB, holding 1,425 dedup clusters and 3,047 events from our
-    own dogfooding runs, were present in the built image.
+    databases are swept in unless excluded. Measured 2026-08-16: 53 stale *.db files
+    totalling ~80 MB, holding 1,425 dedup clusters and 3,047 events from our own
+    dogfooding runs, were present in the built image.
+
+    The pattern must be recursive. ``.dockerignore`` matches with Go's
+    ``filepath.Match``, where ``*`` does not cross a path separator, so a bare ``*.db``
+    excludes only databases at the context root. An earlier version of this test
+    asserted exactly that and passed while the rebuilt image still carried 11 databases
+    and ~80 MB — every one of them in a subdirectory.
     """
     patterns = _dockerignore_patterns()
-    for required in ("*.db", "*.db-wal", "*.db-shm"):
-        assert required in patterns, (
-            f".dockerignore is missing {required!r}; local databases would be baked "
-            "into the image and ship a developer's data to customers"
+    for suffix in ("db", "db-wal", "db-shm"):
+        recursive = f"**/*.{suffix}"
+        assert recursive in patterns, (
+            f".dockerignore is missing {recursive!r}. A bare '*.{suffix}' only matches "
+            "the context root, so databases in subdirectories still ship."
         )
 
 

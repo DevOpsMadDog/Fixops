@@ -90,15 +90,20 @@ LICENSE
 #
 # A fresh install must start empty and populate through real ingestion:
 # feeds sync on first boot, findings arrive via the ingest API.
-*.db
-*.db-wal
-*.db-shm
-*.sqlite
-*.sqlite3
-.fixops_data/
-data/
-**/data/*.db
+#
+# NOTE the `**/` prefixes. .dockerignore matches with Go's filepath.Match, where `*`
+# does NOT cross a path separator — so a bare `*.db` only excludes databases sitting at
+# the build-context root. The first attempt used bare patterns and still shipped 11
+# databases / ~80 MB (feeds.db at 49 MB, finding_correlator.db at 25 MB), because every
+# one of them lives in a subdirectory.
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/*.sqlite
+**/*.sqlite3
 **/.fixops_data/
+**/.aldeci/
+data/
 
 # Reference policy bundles are real reference data (not tenant data) — keep them.
 !suite-api/data/policies/
