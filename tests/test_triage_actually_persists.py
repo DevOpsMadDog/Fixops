@@ -64,13 +64,13 @@ def test_status_update_is_readable_afterwards(engine) -> None:
     org = "acme"
     finding_id = _ingest(engine, org)
 
-    updated = engine.update_status(finding_id, org, "accepted")
+    updated = engine.update_status(finding_id, org, "suppressed")
     assert updated, "update_status reported nothing — the write did not land"
 
     stored = engine.get_finding(finding_id, org) if hasattr(engine, "get_finding") else None
     if stored is None:
         pytest.skip("engine exposes no single-finding read")
-    assert stored.get("status") == "accepted"
+    assert stored.get("status") == "suppressed"
 
 
 def test_updating_an_unknown_finding_reports_failure(engine) -> None:
@@ -79,7 +79,7 @@ def test_updating_an_unknown_finding_reports_failure(engine) -> None:
     If this ever returns something truthy, the endpoint goes back to reporting
     'processed' for work it did not do.
     """
-    assert not engine.update_status("does-not-exist-0000", "acme", "accepted")
+    assert not engine.update_status("does-not-exist-0000", "acme", "suppressed")
 
 
 def test_another_tenant_cannot_triage_your_finding(engine) -> None:
@@ -88,7 +88,7 @@ def test_another_tenant_cannot_triage_your_finding(engine) -> None:
     before = engine.get_finding(finding_id, "acme")
     assert before, "fixture finding was not recorded"
 
-    assert not engine.update_status(finding_id, "globex", "dismissed"), (
+    assert not engine.update_status(finding_id, "globex", "false-positive"), (
         "a different org was able to change this finding's status"
     )
 
@@ -122,3 +122,99 @@ def test_the_router_writes_to_the_store_the_ui_reads() -> None:
     assert "finding_not_found" in triage, (
         "bulk triage no longer distinguishes a missing finding from a successful update"
     )
+
+
+# ---------------------------------------------------------------------------
+# The other action buttons. Each was found broken by clicking it, not by review.
+# ---------------------------------------------------------------------------
+
+
+def test_an_unknown_status_is_refused_rather_than_stored(engine) -> None:
+    """The engine declared a status vocabulary and never enforced it.
+
+    The Finding Explorer sends ``action="triage"``, which was written through as the
+    literal status "triage" — a value no filter, funnel or report can interpret, stored
+    without complaint. Rejecting it is how a caller finds out it is wrong.
+    """
+    finding_id = _ingest(engine, "acme")
+    with pytest.raises(ValueError, match="Invalid status"):
+        engine.update_status(finding_id, "acme", "triage")
+
+
+def test_every_valid_status_is_accepted(engine) -> None:
+    """Enforcement must not be so strict that legitimate transitions break."""
+    from core.security_findings_engine import _VALID_STATUSES
+
+    finding_id = _ingest(engine, "acme")
+    for status in sorted(_VALID_STATUSES):
+        assert engine.update_status(finding_id, "acme", status), (
+            f"valid status {status!r} was rejected"
+        )
+
+
+def test_ui_actions_all_map_to_a_valid_status() -> None:
+    """Every action the UI can send must land on a status the engine accepts.
+
+    The Finding Explorer sends 'triage' and 'archived'; neither is in the engine's
+    vocabulary, so both need an explicit mapping or the button silently writes garbage.
+    """
+    from core.security_findings_engine import _VALID_STATUSES
+
+    from apps.api.gap_router import _TRIAGE_STATUS
+    from apps.api.bulk_router import _UI_STATUS
+
+    for action, status in _TRIAGE_STATUS.items():
+        assert status in _VALID_STATUSES, (
+            f"triage action {action!r} maps to {status!r}, which the engine rejects"
+        )
+    for label, status in _UI_STATUS.items():
+        assert status in _VALID_STATUSES, (
+            f"UI status {label!r} maps to {status!r}, which the engine rejects"
+        )
+
+    # The two the UI actually sends today must be covered.
+    assert "triage" in _TRIAGE_STATUS
+    assert "archived" in _UI_STATUS
+
+
+def test_bulk_update_and_assign_use_the_store_the_ui_reads() -> None:
+    """Both read AnalyticsDB while the list comes from SecurityFindingsEngine.
+
+    Every Archive and Assign click therefore answered "Finding not found" for findings
+    plainly visible on screen — honest, but the button could never work.
+    """
+    from pathlib import Path
+
+    source = (
+        Path(__file__).resolve().parents[1] / "suite-api" / "apps" / "api" / "bulk_router.py"
+    ).read_text(encoding="utf-8")
+
+    for handler in ("bulk_update_findings", "bulk_assign_findings"):
+        body = source[source.index(f"async def {handler}(") :][:1800]
+        assert "SecurityFindingsEngine" in body, (
+            f"{handler} no longer writes through SecurityFindingsEngine — it will report "
+            "'Finding not found' for findings the UI is showing"
+        )
+
+
+def test_autofix_audit_uses_a_method_that_exists() -> None:
+    """AutoFix generated a fix, then died auditing it.
+
+    ``AuditLogger.log_autofix_application`` does not exist — the class exposes
+    ``log(AuditEvent)`` — so the call raised AttributeError *after* the work succeeded and
+    the endpoint answered HTTP 500. Auditing must never discard a completed action.
+    """
+    from pathlib import Path
+
+    from core.audit_logger import AuditLogger
+
+    source = (
+        Path(__file__).resolve().parents[1] / "suite-core" / "api" / "autofix_router.py"
+    ).read_text(encoding="utf-8")
+
+    calls = [
+        line for line in source.splitlines()
+        if line.strip().startswith("_audit.log_autofix_application(")
+    ]
+    assert not calls, f"autofix calls a non-existent audit method: {calls}"
+    assert hasattr(AuditLogger, "log"), "AuditLogger.log went away; the helper needs updating"

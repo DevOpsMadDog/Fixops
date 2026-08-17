@@ -472,7 +472,21 @@ class SecurityFindingsEngine:
         status: str,
         assigned_to: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-        """Update finding status; if resolved, set resolved_at and update last_seen."""
+        """Update finding status; if resolved, set resolved_at and update last_seen.
+
+        Raises:
+            ValueError: ``status`` is not one of ``_VALID_STATUSES``.
+
+        The module has always declared a status vocabulary but never enforced it here, so
+        any caller could write anything. A UI action that sent ``action="triage"``
+        therefore stored the literal string "triage" as a finding's status — a value no
+        filter, funnel or report knows how to interpret, written without complaint.
+        Rejecting an unknown status is the only way a caller learns it is wrong.
+        """
+        if status not in _VALID_STATUSES:
+            raise ValueError(
+                f"Invalid status {status!r}. Valid statuses: {sorted(_VALID_STATUSES)}"
+            )
         now = _now_iso()
         with self._lock:
             with self._conn() as conn:

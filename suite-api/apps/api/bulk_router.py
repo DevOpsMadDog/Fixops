@@ -28,6 +28,7 @@ from core.persistent_store import get_persistent_store
 from core.policy_db import PolicyDB
 from core.services.deduplication import ClusterStatus, DeduplicationService
 from fastapi import Depends, APIRouter, BackgroundTasks, HTTPException, Query
+from apps.api.dependencies import get_org_id
 from pydantic import BaseModel, Field, field_validator
 from apps.api.auth_deps import api_key_auth
 
@@ -1115,12 +1116,72 @@ async def cancel_job(job_id: str) -> Dict[str, Any]:
 # ── Legacy endpoints wired to real AnalyticsDB / PolicyDB ──────────────
 
 
-@router.post("/findings/update", response_model=BulkOperationResponse)
-async def bulk_update_findings(request: BulkUpdateRequest):
-    """Bulk update findings in AnalyticsDB.
+# UI vocabulary -> the statuses SecurityFindingsEngine recognises. "archived" is not one
+# of them; a customer archiving a finding means they consider it closed.
+_UI_STATUS = {
+    "archived": "resolved",
+    "accepted": "suppressed",
+    "dismissed": "false-positive",
+    "triaged": "in-progress",
+    "open": "open",
+    "in-progress": "in-progress",
+    "resolved": "resolved",
+    "suppressed": "suppressed",
+    "false-positive": "false-positive",
+}
 
-    Supported update fields: status, metadata (merged).
+
+@router.post("/findings/update", response_model=BulkOperationResponse)
+async def bulk_update_findings(
+    request: BulkUpdateRequest, org_id: str = Depends(get_org_id)
+):
+    """Bulk update findings in the store the Finding Explorer reads.
+
+    This read AnalyticsDB while the UI's list comes from SecurityFindingsEngine, so every
+    Archive click answered "Finding not found" for findings plainly visible on screen.
+    Honest, but useless — the button could never work. Verified by hand 2026-08-17.
     """
+    from core.security_findings_engine import SecurityFindingsEngine
+
+    engine = SecurityFindingsEngine()
+    success = 0
+    errors: List[Dict[str, Any]] = []
+
+    raw_status = request.updates.get("status") if request.updates else None
+    if raw_status is not None:
+        mapped = _UI_STATUS.get(str(raw_status).strip().lower())
+        if mapped is None:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "unknown_status",
+                    "status": raw_status,
+                    "valid": sorted(set(_UI_STATUS.values())),
+                },
+            )
+        raw_status = mapped
+
+    for finding_id in request.ids:
+        try:
+            if raw_status is None:
+                errors.append({"id": finding_id, "error": "no supported update supplied"})
+                continue
+            if engine.update_status(finding_id, org_id, raw_status):
+                success += 1
+            else:
+                errors.append({"id": finding_id, "error": "Finding not found"})
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
+            errors.append({"id": finding_id, "error": str(exc)})
+
+    return BulkOperationResponse(
+        success_count=success,
+        failure_count=len(errors),
+        errors=errors,
+    )
+
+
+async def _legacy_bulk_update_findings(request: BulkUpdateRequest):
+    """Retained for reference; superseded by the engine-backed handler above."""
     db = get_analytics_db()
     success = 0
     errors: List[Dict[str, Any]] = []
@@ -1181,8 +1242,48 @@ async def bulk_delete_findings(request: BulkDeleteRequest):
 
 
 @router.post("/findings/assign", response_model=BulkOperationResponse)
-async def bulk_assign_findings(request: BulkAssignRequest):
-    """Bulk assign findings to a user via AnalyticsDB metadata update."""
+async def bulk_assign_findings(
+    request: BulkAssignRequest, org_id: str = Depends(get_org_id)
+):
+    """Bulk assign findings, writing to the store the Finding Explorer reads.
+
+    Like bulk update, this read AnalyticsDB while the UI list comes from
+    SecurityFindingsEngine, so assigning a visible finding answered "Finding not found".
+    Assignment is a first-class column on the finding, not metadata on a different record.
+    """
+    from core.security_findings_engine import SecurityFindingsEngine
+
+    engine = SecurityFindingsEngine()
+    success = 0
+    errors: List[Dict[str, Any]] = []
+
+    for finding_id in request.ids:
+        try:
+            current = engine.get_finding(finding_id, org_id)
+            if not current:
+                errors.append({"id": finding_id, "error": "Finding not found"})
+                continue
+            # Preserve the existing status: assigning someone is not a triage decision.
+            updated = engine.update_status(
+                finding_id,
+                org_id,
+                current.get("status") or "open",
+                assigned_to=request.assignee,
+            )
+            if updated:
+                success += 1
+            else:
+                errors.append({"id": finding_id, "error": "Finding not found"})
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
+            errors.append({"id": finding_id, "error": str(exc)})
+
+    return BulkOperationResponse(
+        success_count=success, failure_count=len(errors), errors=errors
+    )
+
+
+async def _legacy_bulk_assign_findings(request: BulkAssignRequest):
+    """Retained for reference; superseded by the engine-backed handler above."""
     db = get_analytics_db()
     success = 0
     errors: List[Dict[str, Any]] = []

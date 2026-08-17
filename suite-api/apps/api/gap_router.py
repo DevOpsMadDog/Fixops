@@ -248,13 +248,25 @@ async def get_bulk_assignments():
         logger.warning("bulk_gap /assign fallback: %s", e)
         return {"items": [], "total": 0, "pending_assignments": 0}
 
-# Triage actions the UI offers -> the status a finding ends up in.
+# Triage actions the UI offers -> a status the findings engine actually recognises.
+#
+# The engine's vocabulary is {open, in-progress, resolved, suppressed, false-positive}.
+# Anything outside it is meaningless to every filter, funnel and report downstream, so an
+# action that does not map is refused rather than stored. The Finding Explorer sends
+# action="triage", which previously wrote the literal string "triage" as a status.
 _TRIAGE_STATUS = {
-    "accept": "accepted",
+    "triage": "in-progress",      # the UI's generic "start working this" action
+    "accept": "suppressed",       # risk accepted — will not be fixed
     "suppress": "suppressed",
-    "dismiss": "dismissed",
+    "dismiss": "false-positive",
+    "false-positive": "false-positive",
     "resolve": "resolved",
+    "archive": "resolved",
+    "reopen": "open",
     "open": "open",
+    "in-progress": "in-progress",
+    "resolved": "resolved",
+    "suppressed": "suppressed",
 }
 
 
@@ -285,7 +297,19 @@ async def bulk_triage(request: Request, org_id: str = Depends(get_org_id)):
         return {"job_id": None, "status": "no_items", "processed": 0, "action": action,
                 "timestamp": datetime.now(timezone.utc).isoformat()}
 
-    status = _TRIAGE_STATUS.get(action, action)
+    status = _TRIAGE_STATUS.get(str(action).strip().lower())
+    if status is None:
+        # Refusing is the point: storing an unrecognised action as a status is what put
+        # the literal "triage" into findings and made every downstream filter blind to them.
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "unknown_triage_action",
+                "action": action,
+                "message": "Unrecognised triage action; nothing was changed.",
+                "valid_actions": sorted(_TRIAGE_STATUS),
+            },
+        )
 
     try:
         from core.security_findings_engine import SecurityFindingsEngine

@@ -18,6 +18,46 @@ from pydantic import BaseModel, Field, model_validator
 logger = logging.getLogger(__name__)
 _audit = create_audit_logger()
 
+
+def _audit_autofix(
+    *,
+    action: str,
+    outcome: str,
+    org_id: str,
+    finding_id=None,
+    request=None,
+    details=None,
+) -> None:
+    """Record an AutoFix action in the audit trail.
+
+    Both call sites previously invoked ``_audit.log_autofix_application(...)``, which
+    AuditLogger does not define — its API is ``log(AuditEvent)``. The result was an
+    AttributeError raised *after* the fix had already been generated, so POST
+    /api/v1/autofix/generate answered HTTP 500 while the work had in fact succeeded and
+    nothing was recorded. The AutoFix button therefore always failed for the user.
+
+    Audit failure must never lose the caller's result: a broken trail is reported in the
+    log, not by discarding a completed action.
+    """
+    try:
+        from core.audit_logger import AuditEvent
+
+        _audit.log(
+            AuditEvent(
+                actor_id=getattr(getattr(request, "state", None), "user_id", None) or "system",
+                action=f"autofix.{action}",
+                resource_type="finding",
+                resource_id=str(finding_id) if finding_id else None,
+                org_id=org_id,
+                result=outcome,
+                details=details or {},
+                ip_address=(request.client.host if request and request.client else None),
+            )
+        )
+    except Exception as exc:  # noqa: BLE001 — auditing must not fail the request
+        logger.warning("autofix audit write failed (%s): %s", type(exc).__name__, exc)
+
+
 router = APIRouter(prefix="/api/v1/autofix", tags=["AutoFix"])
 
 
@@ -61,61 +101,41 @@ class GenerateFixRequest(BaseModel):
         if values.get("finding"):
             return values
 
-        # Try to look up finding from analytics.db using finding_id
+        # Look the finding up in the store the product actually keeps findings in.
+        #
+        # This previously opened data/analytics.db directly and queried a "findings"
+        # table. That store does not hold the findings the UI lists — those live in
+        # SecurityFindingsEngine — so the query raised
+        # "sqlite3.OperationalError: no such table: findings", which the except clause
+        # below did not catch, and AutoFix answered HTTP 500 for every finding on screen.
         fid = values.get("finding_id")
         if fid:
             try:
-                import os
-                import sqlite3
-                from pathlib import Path
+                from core.security_findings_engine import SecurityFindingsEngine
 
-                # Resolve through the anchored data directory (ADR-006). This list
-                # previously began with a hardcoded "/home/user/workspace/Fixops/..."
-                # — one developer's machine, shipped in production code — and then
-                # tried parents[3], which from suite-core/api/ overshoots the repo
-                # root, and parents[2], which does not. The same logical database was
-                # therefore reachable at two different depths from one file, so which
-                # copy a caller saw depended on which candidate existed first.
-                _root = Path(os.environ.get("FIXOPS_DATA_DIR", "")) or (
-                    Path(__file__).resolve().parents[2] / "data"
+                org_id = values.get("org_id") or "default"
+                row = SecurityFindingsEngine().get_finding(str(fid), org_id)
+                if row:
+                    values["finding"] = {
+                        "id": fid,
+                        "title": row.get("title") or f"Vulnerability {fid}",
+                        "description": row.get("description", ""),
+                        "severity": row.get("severity", "high"),
+                        "cve_ids": [row["cve_id"]] if row.get("cve_id") else [],
+                        "cwe_id": row.get("cwe_id", ""),
+                        "file_path": row.get("file_path", ""),
+                        "line_number": row.get("line") or row.get("line_number"),
+                        "source": row.get("source_tool") or row.get("source", ""),
+                        "category": row.get("finding_type") or row.get("category", ""),
+                        "language": values.get("language"),
+                        "fix_type": values.get("fix_type"),
+                    }
+                    logger.info("Looked up finding %s: %s", fid, row.get("title"))
+                    return values
+            except Exception as exc:  # noqa: BLE001 — lookup failure must not 500
+                logger.warning(
+                    "Failed to look up finding %s (%s): %s", fid, type(exc).__name__, exc
                 )
-                db_path = None
-                for candidate in [
-                    _root / "analytics.db",
-                    Path(__file__).resolve().parents[2] / "data" / "analytics.db",
-                ]:
-                    if candidate.exists():
-                        db_path = candidate
-                        break
-                if db_path:
-                    conn = sqlite3.connect(str(db_path))
-                    conn.row_factory = sqlite3.Row
-                    try:
-                        row = conn.execute(
-                            "SELECT * FROM findings WHERE id = ? LIMIT 1", (fid,)
-                        ).fetchone()
-                        if row:
-                            row_dict = dict(row)
-                            values["finding"] = {
-                                "id": fid,
-                                "title": row_dict.get("title", f"Vulnerability {fid}"),
-                                "description": row_dict.get("description", ""),
-                                "severity": row_dict.get("severity", "high"),
-                                "cve_ids": [row_dict["cve_id"]] if row_dict.get("cve_id") else [],
-                                "cwe_id": row_dict.get("cwe_id", ""),
-                                "file_path": row_dict.get("file_path", ""),
-                                "line_number": row_dict.get("line_number"),
-                                "source": row_dict.get("source", ""),
-                                "category": row_dict.get("category", ""),
-                                "language": values.get("language"),
-                                "fix_type": values.get("fix_type"),
-                            }
-                            logger.info("Looked up finding %s: %s", fid, row_dict.get("title"))
-                            return values
-                    finally:
-                        conn.close()
-            except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
-                logger.warning("Failed to look up finding %s: %s", fid, type(e).__name__)
 
         # Fallback: build from individual fields
         fid = fid or f"FIND-{id(values) % 10000:04d}"
@@ -191,13 +211,12 @@ async def generate_fix(
         source_code=req.source_code,
         repo_context=req.repo_context,
     )
-    _audit.log_autofix_application(
+    _audit_autofix(
         action="generate",
         outcome="success",
+        org_id=org_id,
         finding_id=finding.get("id") if isinstance(finding, dict) else None,
-        user_id=getattr(request.state, "user_id", None),
-        client_ip=request.client.host if request.client else None,
-        correlation_id=getattr(request.state, "correlation_id", None),
+        request=request,
     )
     return {"status": "ok", "fix": engine.to_dict(suggestion)}
 
@@ -232,13 +251,12 @@ async def apply_fix(req: ApplyFixRequest, request: Request):
         create_pr=req.create_pr,
         auto_merge=req.auto_merge,
     )
-    _audit.log_autofix_application(
+    _audit_autofix(
         action="apply_patch",
-        outcome="success" if result.success else "failure",
+        outcome="success" if result.success else "error",
+        org_id=org_id,
         finding_id=req.fix_id,
-        user_id=getattr(request.state, "user_id", None),
-        client_ip=request.client.host if request.client else None,
-        correlation_id=getattr(request.state, "correlation_id", None),
+        request=request,
         details={"repository": req.repository, "pr_url": result.pr_url},
     )
     return {
@@ -263,17 +281,18 @@ async def validate_fix(req: ValidateFixRequest):
 
 
 @router.post("/rollback", summary="Rollback an applied fix")
-async def rollback_fix(req: RollbackFixRequest, request: Request):
+async def rollback_fix(
+    req: RollbackFixRequest, request: Request, org_id: str = Depends(get_org_id)
+):
     """Rollback a previously applied fix."""
     engine = _get_engine()
     result = await engine.rollback_fix(req.fix_id)
-    _audit.log_autofix_application(
+    _audit_autofix(
         action="rollback",
         outcome="success",
+        org_id=org_id,
         finding_id=req.fix_id,
-        user_id=getattr(request.state, "user_id", None),
-        client_ip=request.client.host if request.client else None,
-        correlation_id=getattr(request.state, "correlation_id", None),
+        request=request,
     )
     return result
 
