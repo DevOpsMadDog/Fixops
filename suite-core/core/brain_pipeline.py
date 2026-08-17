@@ -4795,6 +4795,209 @@ class BrainPipeline:
     # ------------------------------------------------------------------
     # Step 12: SOC2 Type II evidence pack
     # ------------------------------------------------------------------
+    @staticmethod
+    def _evidence_provenance(ctx: Dict[str, Any]) -> Dict[str, Any]:
+        """Record what produced each conclusion, so the bundle stays explainable.
+
+        In an accredited environment the question is not only "what did you conclude?"
+        but "how, and from what?" — asked months later, by someone who was not in the
+        room. A conclusion whose inputs cannot be reconstructed is not evidence.
+
+        This captures the chain a verdict travelled: which tools the findings came from,
+        which threat feeds enriched them and whether that was live or offline, what the
+        risk scoring saw, which council members voted and whether they really ran, and
+        how many policy decisions came out. Where a stage did not run, it says so rather
+        than omitting the key — a missing stage is itself something an assessor needs.
+
+        See ADR-008 (evidence is the commercial wedge) and ADR-003 (feed provenance).
+        """
+        findings = ctx.get("findings") or []
+        verdict = ctx.get("council_verdict") or {}
+        stats = ctx.get("council_stats") or {}
+
+        # Normalisation renames the tool field per scanner, so check every spelling the
+        # pipeline is known to produce rather than assuming one. Verified against a live
+        # run: reading only `source_tool` reported every finding as "unknown".
+        tools = sorted(
+            {
+                str(
+                    f.get("source_tool")
+                    or f.get("scanner")
+                    or f.get("tool")
+                    or f.get("scanner_name")
+                    or f.get("source")
+                    or "unknown"
+                )
+                for f in findings
+            }
+        )
+
+        members = (
+            verdict.get("council_models")
+            or verdict.get("members")
+            or stats.get("council_models")
+            or []
+        )
+
+        # The council reports `method` and a responder count rather than model names.
+        # Record what it actually publishes: "5 providers responded" is auditable even
+        # when the roster is not exposed, whereas an empty members list reads as "no
+        # council ran" — which would be false.
+        responded = verdict.get("providers_responded")
+
+        # Consistent with the learning-loop guard: an explicit flag wins, cost is the
+        # fallback for verdicts that predate it. A cloud verdict costs money; a local
+        # one does not, so cost alone can only ever confirm, never refute.
+        real_flag = verdict.get("is_real_inference")
+        if real_flag is None:
+            try:
+                real_flag = float(verdict.get("cost_usd", 0) or 0) > 0 or bool(responded)
+            except (TypeError, ValueError):
+                real_flag = None
+
+        enrich_source = ctx.get("_enrich_source")
+
+        return {
+            "ingest": {
+                "findings": len(findings),
+                "source_tools": tools,
+            },
+            "enrichment": {
+                # "live_api" vs an offline bundle materially changes how fresh the
+                # scoring inputs were, so it must travel with the conclusion.
+                "source": enrich_source or "not_enriched",
+                "feed_hits": ctx.get("_enrich_feed_hits", 0),
+                "feed_bundle_version": ctx.get("_enrich_bundle_version"),
+            },
+            "scoring": {
+                "avg_risk_score": (ctx.get("risk_scores") or {}).get("avg"),
+                "critical_findings": (ctx.get("risk_scores") or {}).get("critical", 0),
+                "clusters": len(ctx.get("clusters") or []),
+                "exposure_cases": len(ctx.get("exposure_cases") or []),
+            },
+            "council": {
+                "ran": bool(verdict),
+                # Who voted is the difference between "AI decided" and an auditable
+                # decision. Under the scif profile these are local models.
+                "members": list(members),
+                "providers_responded": responded,
+                "method": verdict.get("method") or verdict.get("source"),
+                "is_real_inference": real_flag,
+                "confidence": verdict.get("confidence"),
+                "consensus_pct": verdict.get("consensus_pct"),
+                "escalated": verdict.get("escalated", False),
+                # Ties this bundle to the council's own record of the deliberation.
+                "session_id": verdict.get("session_id"),
+                "cost_usd": verdict.get("cost_usd"),
+            },
+            "decision": {
+                "policy_decisions": len(ctx.get("policy_decisions") or []),
+                "playbooks_executed": len(ctx.get("playbook_results") or []),
+                "pentests_run": len(ctx.get("pentest_results") or []),
+            },
+        }
+
+    @staticmethod
+    def _assess_controls(ctx: Dict[str, Any]) -> Dict[str, Any]:
+        """Report control status from what this run actually observed.
+
+        The evidence bundle is the artifact we ask an assessor to trust, so every claim in
+        it has to be one we can defend. The previous version could not be:
+
+        * ``change_management`` and ``logging_monitoring`` were hardcoded to
+          ``"effective"`` — asserted on every run regardless of what happened.
+        * ``mean_time_to_detect`` was the string ``"< 24h"``. Nothing measured it.
+        * ``vulnerability_management`` used ``avg_risk < 0.6``, a threshold with no
+          stated basis, presented as a control conclusion.
+
+        An assessor asking "how did you determine this?" would have had no answer, and a
+        single unearned claim discredits the whole bundle.
+
+        Each control now reports ``effective`` / ``needs_improvement`` / ``not_assessed``
+        together with the ``criterion`` applied and the ``observed`` values behind it. A
+        control with no evidence returns ``not_assessed`` — an honest gap an assessor can
+        work with, rather than an assertion they can disprove.
+        """
+        findings = ctx.get("findings") or []
+        risk = ctx.get("risk_scores") or {}
+        playbooks = ctx.get("playbook_results") or []
+        decisions = ctx.get("policy_decisions") or []
+        graph_nodes = (ctx.get("graph_stats") or {}).get("total_nodes", 0)
+
+        controls: Dict[str, Any] = {}
+
+        # --- Vulnerability management -------------------------------------
+        if not findings:
+            controls["vulnerability_management"] = {
+                "status": "not_assessed",
+                "reason": "no findings were ingested in this timeframe",
+                "observed": {"findings_triaged": 0},
+            }
+        else:
+            triaged = sum(1 for f in findings if f.get("risk_score") is not None)
+            coverage = triaged / len(findings) if findings else 0.0
+            controls["vulnerability_management"] = {
+                # The defensible claim is coverage — every ingested finding was scored
+                # and triaged — not a judgement about whether the resulting risk is
+                # acceptable, which is the customer's decision and not ours to assert.
+                "status": "effective" if coverage >= 0.99 else "needs_improvement",
+                "criterion": "every ingested finding is enriched and risk-scored",
+                "observed": {
+                    "findings_ingested": len(findings),
+                    "findings_triaged": triaged,
+                    "triage_coverage": round(coverage, 4),
+                    "avg_risk_score": risk.get("avg"),
+                    "critical_findings": risk.get("critical", 0),
+                },
+                # Detection latency needs ingest-to-detect timestamps we do not collect.
+                # Stating that plainly is better than the "< 24h" we used to assert.
+                "mean_time_to_detect": None,
+                "mean_time_to_detect_note": (
+                    "not measured — requires source-timestamp capture at ingest"
+                ),
+            }
+
+        # --- Change management --------------------------------------------
+        autofix_generated = sum(
+            1
+            for p in playbooks
+            if (p.get("autofix") or {}).get("status") == "generated"
+        )
+        if not playbooks:
+            controls["change_management"] = {
+                "status": "not_assessed",
+                "reason": "no remediation playbooks executed in this timeframe",
+                "observed": {"playbooks_executed": 0, "autofix_generated": 0},
+            }
+        else:
+            controls["change_management"] = {
+                "status": "effective" if autofix_generated > 0 else "needs_improvement",
+                "criterion": "remediation playbooks execute and produce change artifacts",
+                "observed": {
+                    "playbooks_executed": len(playbooks),
+                    "autofix_generated": autofix_generated,
+                },
+            }
+
+        # --- Logging and monitoring ---------------------------------------
+        if not decisions and not graph_nodes:
+            controls["logging_monitoring"] = {
+                "status": "not_assessed",
+                "reason": "no policy decisions recorded and no graph nodes correlated",
+                "observed": {"events_captured": 0, "graph_nodes": 0},
+            }
+        else:
+            controls["logging_monitoring"] = {
+                "status": "effective",
+                "criterion": "policy decisions are recorded and correlated in the graph",
+                "observed": {
+                    "events_captured": len(decisions),
+                    "graph_nodes": graph_nodes,
+                },
+            }
+
+        return controls
+
     def _step_generate_evidence(
         self, ctx: Dict[str, Any], inp: PipelineInput
     ) -> Dict[str, Any]:
@@ -4823,28 +5026,8 @@ class BrainPipeline:
                 "pentests_run": len(ctx.get("pentest_results", [])),
                 "playbooks_executed": len(ctx.get("playbook_results", [])),
             },
-            "controls": {
-                "vulnerability_management": {
-                    "status": "effective"
-                    if ctx.get("risk_scores", {}).get("avg", 1) < 0.6
-                    else "needs_improvement",
-                    "findings_triaged": len(ctx["findings"]),
-                    "mean_time_to_detect": "< 24h",
-                },
-                "change_management": {
-                    "status": "effective",
-                    "autofix_generated": sum(
-                        1
-                        for p in ctx.get("playbook_results", [])
-                        if p.get("autofix", {}).get("status") == "generated"
-                    ),
-                },
-                "logging_monitoring": {
-                    "status": "effective",
-                    "events_captured": len(ctx.get("policy_decisions", [])),
-                    "graph_nodes": ctx.get("graph_stats", {}).get("total_nodes", 0),
-                },
-            },
+            "controls": self._assess_controls(ctx),
+            "provenance": self._evidence_provenance(ctx),
         }
 
         # ------------------------------------------------------------------

@@ -32,13 +32,50 @@ router = APIRouter(prefix="/api/v1/pipeline", tags=["Brain Pipeline"])
 # Request / Response models
 # ---------------------------------------------------------------------------
 class FindingInput(BaseModel):
+    """A finding as submitted to the pipeline.
+
+    Pydantic drops undeclared fields silently, so anything missing here is discarded at
+    the API boundary no matter what the caller sends. That is how scanner attribution and
+    file/line location were being lost: a client posting ``source_tool``, ``file_path``
+    and ``line`` saw them vanish before the pipeline ran, so evidence reported every
+    finding as coming from an "unknown" tool, and location-aware deduplication — which
+    exists precisely so two findings with the same title at different lines stay
+    separate — had no location to work with.
+
+    The fields below are the ones the pipeline actually reads (measured against
+    ``brain_pipeline`` call sites), so what a caller supplies now survives the journey.
+    """
+
     id: str = Field("", max_length=256)
+    finding_id: str = Field("", max_length=256)
     cve_id: Optional[str] = Field(None, max_length=32)
     severity: str = Field("medium", max_length=32)
     asset_name: str = Field("", max_length=512)
+    asset_id: Optional[str] = Field(None, max_length=256)
     title: str = Field("", max_length=512)
     description: str = Field("", max_length=4096)
     source: str = Field("", max_length=256)
+
+    # Attribution — which tool reported this. Without it the evidence bundle cannot say
+    # where a finding came from, which is one of the first things an assessor asks.
+    source_tool: str = Field("", max_length=128)
+    scanner: str = Field("", max_length=128)
+    rule_id: str = Field("", max_length=256)
+
+    # Location — what makes two same-titled findings distinguishable. Deduplication
+    # merges on title plus location; without these it can only merge on title, which is
+    # exactly the bug that once collapsed 1,636 findings into 8.
+    file_path: str = Field("", max_length=1024)
+    line: Optional[int] = Field(None, ge=0)
+    package_name: str = Field("", max_length=256)
+
+    # Scoring inputs a caller may already hold. Enrichment fills these when absent;
+    # discarding a value the caller supplied only forces us to look it up again.
+    cvss_score: Optional[float] = Field(None, ge=0.0, le=10.0)
+    epss_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+    in_kev: Optional[bool] = None
+    cwe_id: str = Field("", max_length=64)
+
     code_context: Optional[Dict[str, Any]] = None
 
 
@@ -214,8 +251,13 @@ async def run_pipeline(
     pipeline = get_brain_pipeline()
     inp = PipelineInput(
         org_id=effective_org_id,
-        findings=[f.model_dump() for f in req.findings],
-        assets=[a.model_dump() for a in req.assets],
+        # exclude_none: the pipeline reads findings with `f.get("x", default)`, which
+        # returns None when the key EXISTS with a None value — so emitting explicit
+        # nulls for optional fields silently replaces every default. Widening
+        # FindingInput without this took out risk scoring with
+        # "unsupported operand type(s) for *: 'NoneType' and 'float'".
+        findings=[f.model_dump(exclude_none=True) for f in req.findings],
+        assets=[a.model_dump(exclude_none=True) for a in req.assets],
         source=req.source,
         run_pentest=req.run_pentest,
         run_playbooks=req.run_playbooks,
@@ -340,8 +382,8 @@ async def get_evidence_pack(
 def _collect_platform_data(req: EvidenceGenerateRequest) -> Dict[str, Any]:
     """Collect platform telemetry data for evidence assessment."""
     data: Dict[str, Any] = {
-        "findings": [f.model_dump() for f in req.findings],
-        "assets": [a.model_dump() for a in req.assets],
+        "findings": [f.model_dump(exclude_none=True) for f in req.findings],
+        "assets": [a.model_dump(exclude_none=True) for a in req.assets],
         "findings_count": len(req.findings),
         "assets_count": len(req.assets),
     }
