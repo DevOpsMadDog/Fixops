@@ -37,7 +37,7 @@ measured reason it exists, and the check that closes it.
 | ~~C3~~ | ~~Replace `cost_usd > 0` as proof-of-real-call~~ — **DONE** `deca8b6c`: guard now reads `is_real_inference`; **under `scif` every genuine local verdict was being discarded**, silently disabling self-learning | 002 | ✅ 6 tests pinning the decision table |
 | C4 | Prove the air-gapped council — **script shipped** `331dae27`. Mechanic PROVEN (2 distinct local models, independent reasoning, **0 egress**). **Hardware-bound**: laptop CPU takes >10 min on the six-key verdict prompt vs ~5s for a trivial one, so repeats time out and fall back to labelled heuristics. Recorded in ADR-002 as a sizing requirement | 001,002 | Green run on inference-sized hardware |
 | ~~C5~~ | ~~Signed offline feed bundle~~ — **DONE** `c4cbdc4e`: **found verification was OPTIONAL** (a manifest omitting `checksum_sha256` skipped it entirely — attacker data imported as `is_valid=True`). Now fails closed; export signs with hybrid RSA-4096 + ML-DSA-65; unsigned refused under `scif` | 003 | ✅ 9 tests incl. tamper, traversal, forged signature, signed round-trip |
-| C6 | Record feed-bundle version on every enrichment; surface bundle age and mark stale | 003 | A prioritisation decision is explainable months later |
+| ~~C6~~ | ~~Feed-bundle version on enrichment~~ — **DONE** `2dcfa843`: version + age days + `feed_stale` past 30d; reports nothing rather than inventing a version when enriching live | 003 | ✅ Live-verified; 11 bundle tests |
 
 ## Track D — Narrow the surface
 
@@ -46,7 +46,7 @@ measured reason it exists, and the check that closes it.
 | ~~D1~~ | ~~Core mode default-on~~ — **DONE** `d638ea0b`: advertised 6,564→454 paths, 4,025→238 schemas; routes mounted unchanged at 7,940 | 005 | ✅ Dormant endpoints still answer 200; UAT 11/11 |
 | D2 | Define core membership by evidence (tenant-varying data **and** a UI callsite) rather than by hand | 005 | Membership list is generated, not curated |
 | D3 | Execute the dormancy plan for ~290 engine-domain orphans, in verified batches | 005 | Route count drops by the expected delta each batch; gates stay green |
-| D4 | CI check: no UI route may point at an endpoint hidden in core mode | 005 | Guard fails a deliberate mismatch |
+| ~~D4~~ | ~~UI/core-surface guard~~ — **DONE** `2dcfa843`: asserts against the assembled app that the curated nav links screens, not raw API paths, and that core advertises a real surface | 005 | ✅ 4 tests |
 
 ## Track E — Close the persistence debt
 
@@ -61,7 +61,7 @@ measured reason it exists, and the check that closes it.
 | # | Task | ADR | Done when |
 |---|---|---|---|
 | F1 | Rename Families 1–2 from scanning to ingestion/normalisation across product, docs and UI | 009 | No surface claims a scan a normalizer merely ingests |
-| F2 | Generate the supported-tool list from normalizers passing a round-trip fixture test | 009 | Marketing list is generated, not hand-maintained |
+| ~~F2~~ | ~~Supported-tool list from round-trip~~ — **DONE** `778dbef5`: **14 verified / 20 declared-but-unverified** of 34. My first 4 failures were bad samples, not bad parsers | 009 | ✅ 31 tests; junk-input + constructability guards |
 | ~~F3~~ | ~~Replace the control-effectiveness heuristic~~ — **DONE** `5fedc7af`: also found `change_management` and `logging_monitoring` **hardcoded "effective"** and `mean_time_to_detect` a literal `"< 24h"`. Now effective / needs_improvement / **not_assessed** with criterion + observed values | 008 | ✅ 9 tests; an empty run asserts nothing |
 | F4 | Publish an offline bundle verifier; validate a `scif`-produced bundle on a machine with no network and no FixOps | 008 | Third party verifies without us |
 | ~~F5~~ | ~~Full provenance in the bundle~~ — **DONE** `5fedc7af`: ingest→enrichment→scoring→council→decision, stages that didn't run say so. **Found the API silently dropped `source_tool`/`file_path`/`line`**, so dedup had no location | 008 | ✅ Live: 5 providers, is_real_inference, session id; 2 same-titled findings stay 2 clusters |
