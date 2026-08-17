@@ -1070,6 +1070,14 @@ class BrainPipeline:
                     remediation=f.get("remediation") or f.get("fix_suggestion") or "",
                     correlation_key=corr_key,
                     scan_id=scan_id,
+                    # Carry the vulnerability's identity and location through to the
+                    # store. Without these the pipeline enriched against KEV/EPSS and
+                    # then dropped the CVE, so the finding it persisted could never be
+                    # grouped by CVE or re-joined to a feed afterwards.
+                    cve_id=f.get("cve_id") or "",
+                    file_path=f.get("file_path") or "",
+                    line_number=f.get("line") or f.get("line_number"),
+                    package_name=f.get("package_name") or f.get("component") or "",
                 )
                 mirrored += 1
             except Exception as exc:  # noqa: BLE001

@@ -1003,9 +1003,9 @@ export default function FindingExplorer() {
                   { label: "Status", value: <StatusBadge status={detailFinding.status} /> },
                   { label: "MPTE Verdict", value: <MpteBadge verdict={detailFinding.mpte_verdict} /> },
                   { label: "Scanner", value: detailFinding.scanner || "—" },
-                  { label: "Application", value: detailFinding.app || detailFinding.application || "—" },
-                  { label: "CVE", value: <span className="font-mono text-xs text-blue-400">{detailFinding.cve || "—"}</span> },
-                  { label: "Component", value: detailFinding.component || "—" },
+                  { label: "Application", value: detailFinding.app_id || detailFinding.app || detailFinding.application || "—" },
+                  { label: "CVE", value: <span className="font-mono text-xs text-blue-400">{detailFinding.cve_id || detailFinding.cve || "—"}</span> },
+                  { label: "Component", value: detailFinding.component || detailFinding.package_name || "—" },
                   { label: "Age", value: getAgeDays(detailFinding.created_at) },
                 ].map(({ label, value }) => (
                   <div key={label} className="space-y-1">
@@ -1045,11 +1045,11 @@ export default function FindingExplorer() {
                   {autofixMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />} AutoFix
                 </Button>
                 <Button size="sm" variant="outline" className="gap-1" onClick={() => {
-                  navigate(`/remediate?search=${encodeURIComponent(detailFinding.cve || detailFinding.title || detailFinding.finding_id || "")}&severity=${detailFinding.severity || ""}`);
+                  navigate(`/remediate?search=${encodeURIComponent(detailFinding.cve_id || detailFinding.cve || detailFinding.title || detailFinding.finding_id || "")}&severity=${detailFinding.severity || ""}`);
                   setDetailFinding(null);
                 }}><Wrench className="h-3 w-3" /> Remediate</Button>
                 <Button size="sm" variant="outline" className="gap-1" onClick={() => {
-                  navigate(`/validate/mpte?finding=${encodeURIComponent(detailFinding.cve || detailFinding.finding_id || "")}`);
+                  navigate(`/validate/mpte?finding=${encodeURIComponent(detailFinding.cve_id || detailFinding.cve || detailFinding.finding_id || "")}`);
                   setDetailFinding(null);
                 }}><ExternalLink className="h-3 w-3" /> MPTE Validate</Button>
                 <Button size="sm" variant="outline" className="gap-1" onClick={async () => {

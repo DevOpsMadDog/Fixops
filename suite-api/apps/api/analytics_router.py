@@ -469,7 +469,15 @@ async def query_findings(
             # this fallback chain the Scanner column was permanently blank in the UI.
             "scanner": _norm(f, "scanner") or _norm(f, "tool") or _norm(f, "source_tool"),
             "cve_id": _norm(f, "cve_id"),
-            "app_id": _norm(f, "app_id"),
+            "app_id": _norm(f, "app_id") or _norm(f, "asset_id"),
+            # The detail view renders Component and Age from these. They were absent from
+            # the projection, so both showed an em-dash for every finding — indistinguishable
+            # from "we do not know", when the data was sitting in the store.
+            "component": _norm(f, "package_name") or _norm(f, "component") or _norm(f, "asset_name"),
+            "line": _norm(f, "line_number") or _norm(f, "line"),
+            "created_at": _norm(f, "created_at") or _norm(f, "first_seen"),
+            "last_seen": _norm(f, "last_seen"),
+            "assigned_to": _norm(f, "assigned_to"),
         })
     total = len(rows)
     items = rows[offset:offset + limit]

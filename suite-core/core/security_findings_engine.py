@@ -270,6 +270,28 @@ class SecurityFindingsEngine:
             conn.execute("ALTER TABLE security_findings ADD COLUMN unchanged_scan_count INTEGER NOT NULL DEFAULT 0")
             added_new_column = True
 
+        # Vulnerability identity and location.
+        #
+        # The table had no cve_id at all, so the CVE a finding is about was never
+        # persisted — the pipeline enriched against KEV/EPSS in flight and then dropped
+        # the identifier. For a vulnerability-management product that means you cannot
+        # group by CVE, cannot re-join to a feed after ingest, and cannot answer "are we
+        # exposed to Log4Shell?" from stored data. The detail view showed "CVE —" for a
+        # Log4Shell finding because the value had never been written.
+        #
+        # file_path/line/package_name are here for the same reason: deduplication takes
+        # location into account, so a store that cannot express it forces every consumer
+        # to guess.
+        for column in ("cve_id", "file_path", "package_name"):
+            if column not in cols:
+                conn.execute(
+                    f"ALTER TABLE security_findings ADD COLUMN {column} TEXT NOT NULL DEFAULT ''"
+                )
+                added_new_column = True
+        if "line_number" not in cols:
+            conn.execute("ALTER TABLE security_findings ADD COLUMN line_number INTEGER")
+            added_new_column = True
+
         if added_new_column:
             now = _now_iso()
             # One-shot backfill: first_seen_at = COALESCE(first_seen, created_at, NOW())
@@ -332,6 +354,10 @@ class SecurityFindingsEngine:
         remediation: str,
         correlation_key: Optional[str] = None,
         scan_id: Optional[str] = None,
+        cve_id: str = "",
+        file_path: str = "",
+        line_number: Optional[int] = None,
+        package_name: str = "",
     ) -> Dict[str, Any]:
         """Record a finding; dedup if same (org+title+source_tool+asset_id) and not resolved.
 
@@ -439,6 +465,12 @@ class SecurityFindingsEngine:
                     "previous_violation_id": None,
                     "resolved_at": None,
                     "unchanged_scan_count": 0,
+                    # The CVE and location a finding is about. Without these the store
+                    # cannot answer "are we exposed to CVE-2021-44228?" from its own data.
+                    "cve_id": cve_id or "",
+                    "file_path": file_path or "",
+                    "line_number": line_number,
+                    "package_name": package_name or "",
                 }
                 conn.execute(
                     """INSERT INTO security_findings
@@ -446,13 +478,15 @@ class SecurityFindingsEngine:
                         cvss_score, asset_id, asset_type, description, remediation,
                         status, first_seen, last_seen, occurrence_count, assigned_to, created_at,
                         correlation_key, scan_id, first_seen_at, previous_violation_id,
-                        resolved_at, unchanged_scan_count)
+                        resolved_at, unchanged_scan_count,
+                        cve_id, file_path, line_number, package_name)
                        VALUES (:id, :org_id, :title, :finding_type, :source_tool, :severity,
                                :cvss_score, :asset_id, :asset_type, :description, :remediation,
                                :status, :first_seen, :last_seen, :occurrence_count,
                                :assigned_to, :created_at,
                                :correlation_key, :scan_id, :first_seen_at,
-                               :previous_violation_id, :resolved_at, :unchanged_scan_count)""",
+                               :previous_violation_id, :resolved_at, :unchanged_scan_count,
+                               :cve_id, :file_path, :line_number, :package_name)""",
                     record,
                 )
                 if severity == "critical" and _notification_engine is not None:
