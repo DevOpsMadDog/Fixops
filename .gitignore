@@ -263,3 +263,11 @@ docs/openapi_*.json
 .playwright-cli/
 reports/*.log
 **/reports/coverage/coverage.xml
+docs/product/brutal-product-market-audit.md
+docs/product/validation-kit-INTERNAL.md
+
+# Generated SDK clients — rebuilt from contracts/openapi-core.json by
+# scripts/generate_sdk.py. Committing them made 68% of the repo machine-written
+# code with no owner, and shipped the Python client twice under two names (ADR-004).
+sdks/
+build/sdk/
