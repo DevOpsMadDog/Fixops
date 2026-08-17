@@ -22,7 +22,7 @@ measured reason it exists, and the check that closes it.
 | # | Task | ADR | Done when |
 |---|---|---|---|
 | ~~B1~~ | ~~Delete the duplicate Python SDK~~ — **DONE** `c2c67f36`: removed `aldeci_security_intelligence_platform_client` (4,465 files); tracked 17,975 → 13,510 | 004 | ✅ One client name remains; its 48 tests pass |
-| B2a | **Commit the core OpenAPI spec** — none exists today; the SDKs came from a spec that is gone | 004 | Core spec (454 paths / 238 schemas) tracked |
+| ~~B2a~~ | ~~Commit the core OpenAPI spec~~ — **DONE** `3f548f8d`: `contracts/openapi-core.json` (454 paths / 238 schemas / 1.07 MB) + exporter with `--check` that fails on drift | 004 | ✅ Verified both ways: OK on match, FAIL after removing one path |
 | B2b | **Write the SDK generator** against the core spec, verify it produces a working client | 004 | Regenerated client passes the 48 existing tests |
 | B2c | Untrack `sdks/` (7,724 remaining files) and publish versioned packages — **only after B2a+B2b** | 004 | `git ls-files sdks/ \| wc -l` → 0 |
 | ~~B3~~ | ~~CI guard against tracked build artifacts~~ — **DONE** `20ca6c98`: SDK count frozen at 7,724, duplicate client cannot reappear, `do not edit` files barred outside `sdks/`, content-hashed bundles rejected | 004 | ✅ 4 tests; the orphaned Vite bundle untracked (referenced by nothing) |
@@ -62,9 +62,9 @@ measured reason it exists, and the check that closes it.
 |---|---|---|---|
 | F1 | Rename Families 1–2 from scanning to ingestion/normalisation across product, docs and UI | 009 | No surface claims a scan a normalizer merely ingests |
 | F2 | Generate the supported-tool list from normalizers passing a round-trip fixture test | 009 | Marketing list is generated, not hand-maintained |
-| F3 | Replace heuristic control effectiveness (avg risk < 0.6 → "effective") with control-specific criteria or "not assessed" | 008 | No conclusion in the bundle rests on the heuristic |
+| ~~F3~~ | ~~Replace the control-effectiveness heuristic~~ — **DONE** `5fedc7af`: also found `change_management` and `logging_monitoring` **hardcoded "effective"** and `mean_time_to_detect` a literal `"< 24h"`. Now effective / needs_improvement / **not_assessed** with criterion + observed values | 008 | ✅ 9 tests; an empty run asserts nothing |
 | F4 | Publish an offline bundle verifier; validate a `scif`-produced bundle on a machine with no network and no FixOps | 008 | Third party verifies without us |
-| F5 | Full provenance in the bundle: finding → enrichment (+bundle version) → score inputs → council member set → human decision | 008 | Every conclusion traceable end to end |
+| ~~F5~~ | ~~Full provenance in the bundle~~ — **DONE** `5fedc7af`: ingest→enrichment→scoring→council→decision, stages that didn't run say so. **Found the API silently dropped `source_tool`/`file_path`/`line`**, so dedup had no location | 008 | ✅ Live: 5 providers, is_real_inference, session id; 2 same-titled findings stay 2 clusters |
 
 ---
 
