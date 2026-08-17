@@ -40,6 +40,8 @@ cheap to fix and neither requires a rewrite.
 | [007](007-credential-gated-integrations.md) | Credential-gated integrations report "not configured", never 5xx | Proposed |
 | [008](008-evidence-is-the-commercial-wedge.md) | The signed evidence bundle is the commercial wedge | Proposed |
 | [009](009-ingest-first-is-the-product-thesis.md) | Ingest-first is the product thesis | Proposed |
+| [010](010-per-stage-analysis-and-open-graph.md) | Per-stage analysis, and a graph the customer owns | Proposed |
+| [011](011-pen-test-profile-from-architecture.md) | A pen test is scoped from architecture, not from code | Proposed |
 
 ## Format
 
