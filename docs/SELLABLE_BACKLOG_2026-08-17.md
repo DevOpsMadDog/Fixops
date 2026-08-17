@@ -23,8 +23,8 @@ measured reason it exists, and the check that closes it.
 |---|---|---|---|
 | ~~B1~~ | ~~Delete the duplicate Python SDK~~ — **DONE** `c2c67f36`: removed `aldeci_security_intelligence_platform_client` (4,465 files); tracked 17,975 → 13,510 | 004 | ✅ One client name remains; its 48 tests pass |
 | ~~B2a~~ | ~~Commit the core OpenAPI spec~~ — **DONE** `3f548f8d`: `contracts/openapi-core.json` (454 paths / 238 schemas / 1.07 MB) + exporter with `--check` that fails on drift | 004 | ✅ Verified both ways: OK on match, FAIL after removing one path |
-| B2b | **Write the SDK generator** against the core spec, verify it produces a working client | 004 | Regenerated client passes the 48 existing tests |
-| B2c | Untrack `sdks/` (7,724 remaining files) and publish versioned packages — **only after B2a+B2b** | 004 | `git ls-files sdks/ \| wc -l` → 0 |
+| ~~B2b~~ | ~~Write the SDK generator~~ — **DONE** `b37a30fd`: `scripts/generate_sdk.py` regenerates 1,134 modules from the contract and verifies the client imports. (The 48 tests turned out to exercise the *hand-written* `core/aldeci_client.py`, not the generated package) | 004 | ✅ `--check` regenerates + imports in a clean interpreter |
+| ~~B2c~~ | ~~Untrack `sdks/`~~ — **DONE** `8ab54ee6`: tracked files **13,529 → 5,805**. Nothing consumed it (skip-guarded tests only; UI imports no TS client). Ratchet lowered 7,724 → 0 | 004 | ✅ 869 tests pass; `sdks/` still on disk + regenerable |
 | ~~B3~~ | ~~CI guard against tracked build artifacts~~ — **DONE** `20ca6c98`: SDK count frozen at 7,724, duplicate client cannot reappear, `do not edit` files barred outside `sdks/`, content-hashed bundles rejected | 004 | ✅ 4 tests; the orphaned Vite bundle untracked (referenced by nothing) |
 | B4 | Share the duplicated contract models (`CapabilityResponse` ×46, `ScanRequest` ×24) instead of re-declaring per router | 004 | Duplicate class-name count materially below 4,213 |
 
