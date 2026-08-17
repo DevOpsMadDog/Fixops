@@ -38,7 +38,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -2883,6 +2883,9 @@ class BrainPipeline:
 
         ctx["_enrich_source"] = feed_source
         ctx["_enrich_feed_hits"] = feed_hits
+        bundle_version, bundle_age_days = self._feed_bundle_state()
+        ctx["_enrich_bundle_version"] = bundle_version
+        ctx["_enrich_bundle_age_days"] = bundle_age_days
         self._fuse_vuln_intel(ctx)
         self._apply_reachability_verdicts(ctx)
         return {
@@ -2891,7 +2894,55 @@ class BrainPipeline:
             "source": feed_source,
             "feed_hits": feed_hits,
             "feed_misses": enriched - feed_hits,
+            # Which intelligence produced these scores, and how old it was. An
+            # air-gapped site enriches from a bundle transferred on media, so "the KEV
+            # catalogue" is not a fixed thing — it is whatever version was imported, and
+            # a prioritisation decision cannot be re-explained months later without it.
+            "feed_bundle_version": bundle_version,
+            "feed_bundle_age_days": bundle_age_days,
+            "feed_stale": (
+                bundle_age_days is not None
+                and bundle_age_days > self._FEED_STALE_AFTER_DAYS
+            ),
         }
+
+    # Past this, enrichment is reported as stale rather than quietly trusted. Exploit
+    # intelligence ages fast: a KEV catalogue a month old has missed a month of additions.
+    _FEED_STALE_AFTER_DAYS = 30
+
+    @staticmethod
+    def _feed_bundle_state() -> Tuple[Optional[str], Optional[float]]:
+        """Return the imported feed bundle's version and age in days.
+
+        Returns ``(None, None)`` when no bundle has been imported — the normal case for a
+        connected deployment enriching from live feeds. Reporting nothing is correct
+        there; inventing a version would be worse than admitting there isn't one.
+        """
+        try:
+            from datetime import datetime, timezone
+
+            from core.airgap_config import OfflineVulnDBManager
+
+            info = OfflineVulnDBManager().load_db_info()
+            if not info:
+                return None, None
+
+            age_days: Optional[float] = None
+            stamp = getattr(info, "last_updated", None)
+            if stamp:
+                try:
+                    imported = datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+                    if imported.tzinfo is None:
+                        imported = imported.replace(tzinfo=timezone.utc)
+                    age_days = round(
+                        (datetime.now(timezone.utc) - imported).total_seconds() / 86400, 2
+                    )
+                except (ValueError, TypeError):
+                    age_days = None
+
+            return getattr(info, "version", None), age_days
+        except Exception:  # noqa: BLE001 — provenance must never fail enrichment
+            return None, None
 
     def _fuse_vuln_intel(self, ctx: Dict[str, Any]) -> None:
         """Wire findings through VulnIntelFusionEngine for multi-source consensus.
@@ -4868,6 +4919,7 @@ class BrainPipeline:
                 "source": enrich_source or "not_enriched",
                 "feed_hits": ctx.get("_enrich_feed_hits", 0),
                 "feed_bundle_version": ctx.get("_enrich_bundle_version"),
+                "feed_bundle_age_days": ctx.get("_enrich_bundle_age_days"),
             },
             "scoring": {
                 "avg_risk_score": (ctx.get("risk_scores") or {}).get("avg"),

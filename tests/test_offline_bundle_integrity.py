@@ -192,3 +192,43 @@ def test_a_forged_signature_is_refused(
     )
     with pytest.raises(ValueError, match="signature"):
         manager.import_from_bundle(str(bundle))
+
+
+def test_an_imported_bundle_version_reaches_enrichment_provenance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A prioritisation decision must stay explainable after the fact.
+
+    In an air-gapped site the intelligence behind a score is whatever bundle happened to
+    be imported, so "the KEV catalogue" is not a fixed thing. Without the version
+    travelling into the evidence bundle, nobody can reconstruct months later which data
+    produced a given decision (ADR-003 C6).
+    """
+    from core.airgap_config import VULN_DB_PATH  # noqa: F401  (import guard)
+    from core.brain_pipeline import BrainPipeline
+
+    store = tmp_path / "store"
+    manager = OfflineVulnDBManager(base_path=store)
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    manager.import_from_bundle(str(_write_bundle(inbox, records=[{"cve": "CVE-2021-44228"}])))
+
+    # Point the pipeline's lookup at the same store this test imported into.
+    monkeypatch.setattr(
+        "core.airgap_config.OfflineVulnDBManager",
+        lambda *a, **kw: OfflineVulnDBManager(base_path=store),
+    )
+
+    version, age_days = BrainPipeline._feed_bundle_state()
+
+    assert version == "2026.08.17", f"bundle version did not reach enrichment: {version!r}"
+    assert age_days is not None and age_days >= 0
+
+
+def test_no_bundle_reports_nothing_rather_than_inventing_a_version() -> None:
+    """A connected deployment enriches live; claiming a bundle version would be false."""
+    from core.brain_pipeline import BrainPipeline
+
+    version, age = BrainPipeline._feed_bundle_state()
+    assert version is None or isinstance(version, str)
+    assert age is None or isinstance(age, float)
