@@ -42,10 +42,18 @@ _GIT_COMMIT = os.getenv("FIXOPS_GIT_COMMIT", "unknown")
 
 
 def _check_db(db_path: str) -> Dict[str, Any]:
-    """Check if a SQLite database is healthy."""
+    """Check if a SQLite database is healthy.
+
+    A store that does not exist yet is reported as ``not_created``, not as a fault. These
+    databases are created lazily on first use, so on a fresh install every one of them is
+    absent — and counting absence as degradation made a brand-new, perfectly healthy
+    deployment show an amber Databases tile on the first screen a customer opens.
+    Unreadable is a fault; unused is not.
+    """
     path = Path(db_path)
     if not path.exists():
-        return {"status": "not_found", "path": str(path)}
+        return {"status": "not_created", "path": str(path),
+                "detail": "created on first use"}
     try:
         conn = sqlite3.connect(str(path), timeout=2)
         cursor = conn.cursor()
@@ -100,22 +108,37 @@ async def system_health(request: Request) -> Dict[str, Any]:
 
     # 3. Database checks
     db_checks: Dict[str, Any] = {}
+    # Ask the engines where their stores are rather than guessing paths here.
+    #
+    # "findings" was hardcoded to data/findings/findings.db, which is not where findings
+    # are kept — SecurityFindingsEngine uses .fixops_data/security_findings_engine.db. The
+    # check therefore reported not_found while findings were being served correctly, and
+    # the dashboard showed the Databases tile amber on a perfectly healthy system.
+    # A health check that is wrong about health is worse than no health check.
     db_files = {
         "users": "data/users.db",
         "integrations": "data/integrations.db",
         "webhooks": "data/integrations/webhooks.db",
         "analytics": "data/analytics.db",
         "audit": "data/audit.db",
-        "findings": "data/findings/findings.db",
         "collaboration": "data/collaboration.db",
     }
+    try:
+        from core.security_findings_engine import _DEFAULT_DB as _FINDINGS_DB
+
+        db_files["findings"] = _FINDINGS_DB
+    except ImportError:  # pragma: no cover — engine always present in a real deployment
+        logger.debug("security_findings_engine unavailable; findings health not checked")
     for name, path_str in db_files.items():
         result = _check_db(path_str)
         db_checks[name] = result
         if result["status"] == "unhealthy":
             overall_healthy = False
 
+    # "not_created" is a normal state, so it neither counts as healthy nor as a problem.
     healthy_dbs = sum(1 for v in db_checks.values() if v["status"] == "healthy")
+    faulty_dbs = sum(1 for v in db_checks.values() if v["status"] == "unhealthy")
+    pending_dbs = sum(1 for v in db_checks.values() if v["status"] == "not_created")
 
     # Enterprise DatabaseManager pool stats
     enterprise_db: Dict[str, Any] = {"status": "not_initialized"}
@@ -137,7 +160,8 @@ async def system_health(request: Request) -> Dict[str, Any]:
         pass
 
     subsystems["databases"] = {
-        "status": "healthy" if healthy_dbs == len(db_checks) else "degraded",
+        "status": "healthy" if faulty_dbs == 0 else "degraded",
+        "not_created": pending_dbs,
         "total": len(db_checks),
         "healthy": healthy_dbs,
         "enterprise_pool": enterprise_db,

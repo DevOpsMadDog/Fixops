@@ -16,7 +16,8 @@ import { cn } from "@/lib/utils";
 interface SubsystemHealth {
   name: string;
   status: "healthy" | "degraded" | "critical" | "unknown";
-  response_ms: number;
+  /** null when the API reports no timing — never invent a number for it. */
+  response_ms: number | null;
   error?: string;
 }
 
@@ -38,7 +39,10 @@ function normalizeSubsystems(raw: SubsystemHealth[] | SubsystemsObj): SubsystemH
     status: (["healthy", "degraded", "critical", "unknown"].includes(val?.status ?? "")
       ? val.status
       : "unknown") as SubsystemHealth["status"],
-    response_ms: typeof val?.response_ms === "number" ? (val.response_ms as number) : 0,
+    // null, not 0. /api/v1/system/health returns no timing at all, and defaulting to
+    // zero made every tile display a confident "0ms" — a measurement the product never
+    // took, shown on the first screen a customer sees.
+    response_ms: typeof val?.response_ms === "number" ? (val.response_ms as number) : null,
     error: typeof val?.error === "string" ? (val.error as string) : undefined,
   }));
 }
@@ -169,7 +173,7 @@ export function HealthCardWidget() {
                 </span>
               </div>
               <span className="text-[10px] text-muted-foreground">
-                {subsys.response_ms.toFixed(0)}ms
+                {subsys.response_ms === null ? "—" : `${subsys.response_ms.toFixed(0)}ms`}
               </span>
             </div>
           ))}
