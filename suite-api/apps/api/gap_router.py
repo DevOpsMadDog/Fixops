@@ -248,9 +248,35 @@ async def get_bulk_assignments():
         logger.warning("bulk_gap /assign fallback: %s", e)
         return {"items": [], "total": 0, "pending_assignments": 0}
 
+# Triage actions the UI offers -> the status a finding ends up in.
+_TRIAGE_STATUS = {
+    "accept": "accepted",
+    "suppress": "suppressed",
+    "dismiss": "dismissed",
+    "resolve": "resolved",
+    "open": "open",
+}
+
+
 @bulk_gap.post("/triage")
-async def bulk_triage(request: Request):
-    """Bulk triage findings using real DeduplicationService."""
+async def bulk_triage(request: Request, org_id: str = Depends(get_org_id)):
+    """Bulk triage findings, writing to the store the findings list reads from.
+
+    This previously wrote to the deduplication service, which is keyed by *cluster* id
+    while the UI sends *finding* ids from GET /api/v1/analytics/findings. Those are
+    different identifier spaces, and DeduplicationService._upsert is an INSERT-or-update
+    — so a finding id did not fail, it silently created an orphan row in a table nothing
+    reads for the findings list.
+
+    The visible result: the Triage button POSTed, this endpoint answered
+    {"processed": 1, "failures": 0}, the list refetched, and the status was still "open".
+    An action that reports success and changes nothing is worse than one that errors,
+    because the operator has no way to know. Verified by hand on 2026-08-17 before the fix.
+
+    Findings are now updated through SecurityFindingsEngine — the same store scanner
+    ingest writes to and that the Finding Explorer reads — and a finding that cannot be
+    found is reported as a failure rather than counted as processed.
+    """
     body = await request.json() if request.headers.get("content-type") == "application/json" else {}
     finding_ids = body.get("finding_ids", [])
     action = body.get("action", "accept")
@@ -259,23 +285,24 @@ async def bulk_triage(request: Request):
         return {"job_id": None, "status": "no_items", "processed": 0, "action": action,
                 "timestamp": datetime.now(timezone.utc).isoformat()}
 
+    status = _TRIAGE_STATUS.get(action, action)
+
     try:
-        from core.deduplication import get_dedup_service
-        dedup = get_dedup_service()
+        from core.security_findings_engine import SecurityFindingsEngine
+
+        engine = SecurityFindingsEngine()
         success = 0
         errors: List[Dict[str, Any]] = []
         for fid in finding_ids:
             try:
-                if action == "suppress":
-                    dedup.suppress_cluster(fid, reason="bulk_triage")
-                elif action == "accept":
-                    dedup.accept_risk(fid, justification="bulk_triage", approved_by="system")
-                elif action == "dismiss":
-                    dedup.dismiss_cluster(fid, reason="bulk_triage")
+                updated = engine.update_status(fid, org_id, status)
+                if updated:
+                    success += 1
                 else:
-                    dedup.update_cluster_status(fid, action)
-                success += 1
-            except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+                    # No row matched. Reporting this as processed is what made the
+                    # endpoint dishonest; it is a failure and must be counted as one.
+                    errors.append({"id": fid, "error": "finding_not_found"})
+            except (OSError, ValueError, KeyError, RuntimeError) as exc:
                 errors.append({"id": fid, "error": type(exc).__name__})
         return {
             "job_id": f"JOB-{uuid.uuid4().hex[:8].upper()}",
