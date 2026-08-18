@@ -16,6 +16,8 @@ Ordered by what unblocks a sale, not by effort.
 | Q1 | **80 human screens are reachable and return nothing or fail** — `asset-inventory`, `audit`, `certificates`, `ciso-report`, … | measured across 745 domains | each is wired, or dormant; a reachable menu item never dead-ends |
 | Q2 | **Redeploy** — 8 commits since fly v80, including every action-button and finding-identity fix | `git log 2dcfa843..HEAD` | fly serves the current build, verified live |
 | Q3 | **Click the remaining screens** — Respond, Evidence, Onboarding | every defect so far only appeared when something was pressed | each action verified to persist, same method as Triage |
+| Q22 | **5 SSO config endpoints return 401 to an authenticated caller** — `test_auth_api.py::test_{list,create,get,update,get_nonexistent}_sso_config` | PRE-EXISTING: confirmed by stashing the auth work and re-running the clean baseline, which fails identically | authenticated SSO config CRUD returns 2xx |
+| Q23 | **Rebuild the local container and redeploy fly** | `aldeci-uat` and fly v81 both predate the identity/tenancy fix, so both still return a login with no user | both serve a build where password login yields a role |
 
 ## P1 — the product thesis (ADR-010 / ADR-011)
 
@@ -69,4 +71,10 @@ These are not tasks; they are how the work is judged, and they caught every defe
 3. **Absence is a fact worth stating.** "not configured", "not assessed", "no bundle
    imported" — never an invented substitute.
 4. **Two components can each be correct while the product lies.** Split stores, wrong
-   identifier space, field-name mismatch. Check the join.
+   identifier space, field-name mismatch, a response shape the caller reads one field
+   deeper than the sender writes. Check the join.
+5. **Defensive code must not degrade into the failure it defends against.** `list_users`
+   checked for the tenancy column, logged that it was missing, and then returned every
+   user in every org. A guard that widens access on failure is worse than no guard.
+6. **The client never decides its own privileges.** The API-key login hardcoded
+   `role: "admin"`; only the server knows what a credential was granted.
