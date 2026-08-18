@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from core.services.collaboration import ActivityType, CollaborationService, EntityType
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from apps.api.dependencies import get_org_id
 from fastapi import Depends
 from pydantic import BaseModel
@@ -243,12 +243,12 @@ def record_activity(request: RecordActivityRequest) -> Dict[str, Any]:
 
 @router.get("/activities")
 def get_activity_feed(
-    org_id: str,
     entity_type: Optional[str] = None,
     entity_id: Optional[str] = None,
     activity_types: Optional[str] = None,
     limit: int = Query(default=50, le=200),
     offset: int = Query(default=0, ge=0),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Get activity feed with optional filters."""
     service = get_collab_service()

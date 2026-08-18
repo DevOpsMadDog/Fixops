@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
 from core.services.deduplication import ClusterStatus, DeduplicationService
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 # Auth deps: conditional import so this router works when loaded from suite-core
@@ -17,8 +17,21 @@ except ImportError:
     _HAS_AUTH = False
     api_key_auth = None  # type: ignore[assignment]
 
-    def _get_org_id_dep(org_id: str = Query(default="default")) -> str:  # type: ignore[misc]
-        return org_id
+    def _get_org_id_dep(request: Request) -> str:  # type: ignore[misc]
+        """Fallback used only when the real dependency cannot be imported.
+
+        This previously read ``Depends(_get_org_id_dep)`` — a name that does not
+        exist in this branch, which is the branch taken when the import fails.
+        So the fallback raised NameError at module load and took the whole
+        router down with it: the deduplication API was unreachable, and the
+        screen behind it dead.
+
+        Reads the tenant the auth layer pinned onto the request, and NEVER the
+        client-supplied header or query param, so degrading to this path cannot
+        widen access.
+        """
+        state_org = getattr(request.state, "org_id", None)
+        return str(state_org).strip() if state_org and str(state_org).strip() else "default"
 
 _router_deps = [Depends(api_key_auth)] if _HAS_AUTH and api_key_auth else []
 router = APIRouter(prefix="/api/v1/deduplication", tags=["deduplication"], dependencies=_router_deps)
@@ -60,7 +73,6 @@ class ProcessFindingRequest(BaseModel):
 
     finding: Dict[str, Any]
     run_id: str
-    org_id: str
     source: str = "sarif"
 
 
@@ -69,7 +81,6 @@ class ProcessFindingsBatchRequest(BaseModel):
 
     findings: List[Dict[str, Any]]
     run_id: str
-    org_id: str
     source: str = "sarif"
 
 
@@ -119,7 +130,6 @@ class OperatorFeedbackRequest(BaseModel):
 class BaselineComparisonRequest(BaseModel):
     """Request to compare current run against baseline."""
 
-    org_id: str
     current_run_id: str
     baseline_run_id: str
 
@@ -140,13 +150,15 @@ class SplitClusterRequest(BaseModel):
 
 
 @router.post("/process")
-def process_finding(request: ProcessFindingRequest) -> Dict[str, Any]:
+def process_finding(request: ProcessFindingRequest,
+    org_id: str = Depends(_get_org_id_dep),
+) -> Dict[str, Any]:
     """Process a single finding for deduplication."""
     service = get_dedup_service()
     return service.process_finding(
         finding=request.finding,
         run_id=request.run_id,
-        org_id=request.org_id,
+        org_id=org_id,
         source=request.source,
     )
 
@@ -154,13 +166,14 @@ def process_finding(request: ProcessFindingRequest) -> Dict[str, Any]:
 @router.post("/process/batch")
 def process_findings_batch(
     request: ProcessFindingsBatchRequest,
+    org_id: str = Depends(_get_org_id_dep),
 ) -> Dict[str, Any]:
     """Process a batch of findings for deduplication."""
     service = get_dedup_service()
     return service.process_findings_batch(
         findings=request.findings,
         run_id=request.run_id,
-        org_id=request.org_id,
+        org_id=org_id,
         source=request.source,
     )
 
@@ -368,7 +381,7 @@ def get_dedup_stats_global() -> Dict[str, Any]:
 
 
 @router.get("/stats/{org_id}")
-def get_dedup_stats(org_id: str) -> Dict[str, Any]:
+def get_dedup_stats(org_id: str = Depends(_get_org_id_dep)) -> Dict[str, Any]:
     """Get deduplication statistics for an organization."""
     service = get_dedup_service()
     return service.get_dedup_stats(org_id)
@@ -376,7 +389,7 @@ def get_dedup_stats(org_id: str) -> Dict[str, Any]:
 
 @router.post("/correlate/cross-stage")
 def correlate_cross_stage(
-    org_id: str, min_confidence: float = Query(default=0.7, ge=0.0, le=1.0)
+    org_id: str = Depends(_get_org_id_dep), min_confidence: float = Query(default=0.7, ge=0.0, le=1.0)
 ) -> Dict[str, Any]:
     """Find and create cross-stage correlation links.
 
@@ -438,7 +451,9 @@ def record_operator_feedback(request: OperatorFeedbackRequest) -> Dict[str, Any]
 
 
 @router.post("/baseline/compare")
-def compare_baseline(request: BaselineComparisonRequest) -> Dict[str, Any]:
+def compare_baseline(request: BaselineComparisonRequest,
+    org_id: str = Depends(_get_org_id_dep),
+) -> Dict[str, Any]:
     """Compare current run against a baseline to identify NEW/EXISTING/FIXED.
 
     Returns findings categorized as:
@@ -448,7 +463,7 @@ def compare_baseline(request: BaselineComparisonRequest) -> Dict[str, Any]:
     """
     service = get_dedup_service()
     return service.get_baseline_comparison(
-        org_id=request.org_id,
+        org_id=org_id,
         current_run_id=request.current_run_id,
         baseline_run_id=request.baseline_run_id,
     )

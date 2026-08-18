@@ -293,7 +293,9 @@ def link_ticket(
 
 
 @router.post("/sla/check")
-def check_sla_breaches(org_id: str) -> Dict[str, Any]:
+def check_sla_breaches(
+    org_id: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Check for SLA breaches and record them."""
     service = get_remediation_service()
     breaches = service.check_sla_breaches(org_id)

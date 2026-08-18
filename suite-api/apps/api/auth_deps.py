@@ -314,6 +314,11 @@ async def api_key_auth(
         if has_token_auth and token in expected_tokens:
             request.state.user_role = "admin"
             request.state.user_scopes = ["admin:all"]
+            # Deliberately does NOT pin an org. FIXOPS_API_TOKEN is the platform
+            # OPERATOR credential, and targeting a named tenant with it is
+            # legitimate administration (migrations, support, cross-tenant
+            # reporting). Customer credentials get pinned above; this exception
+            # is explicit so it cannot be mistaken for the same oversight.
             return
 
         # 1b. Managed key — validated against KeyManager DB (fixops_ prefix)
@@ -331,6 +336,12 @@ async def api_key_auth(
             # Expose user_id for downstream handlers (e.g. _require_admin)
             if getattr(managed_record, "user_id", None):
                 request.state.user_id = managed_record.user_id
+            # Bind the credential's OWN tenant. Only the JWT branch used to do
+            # this, so an API-key request reached _extract_org_id with no state
+            # to read — and fell through its otherwise-correct precedence chain
+            # to the client-supplied X-Org-ID header / ?org_id= query param.
+            # That is what let a customer key read and write any other tenant.
+            request.state.org_id = getattr(managed_record, "org_id", None) or "default"
             return
 
         # Token was present but not valid — log and reject

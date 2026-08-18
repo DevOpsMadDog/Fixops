@@ -92,19 +92,27 @@ def get_scanner_summary(org_id: str = Depends(get_org_id)) -> dict:
 
 
 @router.post("/profiles")
-def create_profile(org_id: str, req: CreateProfileRequest) -> dict:
+def create_profile(
+    req: CreateProfileRequest,
+    org_id: str = Depends(get_org_id),
+) -> dict:
     """Create a new compliance scan profile."""
     return _get_engine().create_profile(org_id, req.model_dump())
 
 
 @router.get("/profiles")
-def list_profiles(org_id: str) -> list:
+def list_profiles(
+    org_id: str = Depends(get_org_id),
+) -> list:
     """List all scan profiles for an org."""
     return _get_engine().list_profiles(org_id)
 
 
 @router.get("/profiles/{profile_id}")
-def get_profile(org_id: str, profile_id: str) -> dict:
+def get_profile(
+    profile_id: str,
+    org_id: str = Depends(get_org_id),
+) -> dict:
     """Get a specific scan profile."""
     profile = _get_engine().get_profile(org_id, profile_id)
     if not profile:
@@ -118,7 +126,11 @@ def get_profile(org_id: str, profile_id: str) -> dict:
 
 
 @router.post("/profiles/{profile_id}/scan")
-def start_scan(org_id: str, profile_id: str, req: StartScanRequest) -> dict:
+def start_scan(
+    profile_id: str,
+    req: StartScanRequest,
+    org_id: str = Depends(get_org_id),
+) -> dict:
     """Trigger a real checkov compliance scan against target_path."""
     try:
         result = _get_engine().start_scan(org_id, profile_id, target_path=req.target_path)
@@ -132,16 +144,19 @@ def start_scan(org_id: str, profile_id: str, req: StartScanRequest) -> dict:
 
 @router.get("/results")
 def list_scan_results(
-    org_id: str,
     profile_id: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=100),
+    org_id: str = Depends(get_org_id),
 ) -> list:
     """List scan results for an org, most recent first."""
     return _get_engine().list_scan_results(org_id, profile_id=profile_id, limit=limit)
 
 
 @router.get("/results/{result_id}")
-def get_scan_result(org_id: str, result_id: str) -> dict:
+def get_scan_result(
+    result_id: str,
+    org_id: str = Depends(get_org_id),
+) -> dict:
     """Get a specific scan result."""
     result = _get_engine().get_scan_result(org_id, result_id)
     if not result:
@@ -156,10 +171,10 @@ def get_scan_result(org_id: str, result_id: str) -> dict:
 
 @router.get("/results/{result_id}/checks")
 def list_checks(
-    org_id: str,
     result_id: str,
     status: Optional[str] = Query(None),
     framework: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
 ) -> list:
     """List compliance checks for a scan result."""
     return _get_engine().list_checks(org_id, result_id, status=status, framework=framework)
@@ -171,23 +186,31 @@ def list_checks(
 
 
 @router.post("/checks/{check_id}/tasks")
-def create_remediation_task(org_id: str, check_id: str, req: CreateTaskRequest) -> dict:
+def create_remediation_task(
+    check_id: str,
+    req: CreateTaskRequest,
+    org_id: str = Depends(get_org_id),
+) -> dict:
     """Create a remediation task for a failed check."""
     return _get_engine().create_remediation_task(org_id, check_id, req.model_dump())
 
 
 @router.get("/tasks")
 def list_remediation_tasks(
-    org_id: str,
     status: Optional[str] = Query(None),
     priority: Optional[str] = Query(None),
+    org_id: str = Depends(get_org_id),
 ) -> list:
     """List remediation tasks for an org."""
     return _get_engine().list_remediation_tasks(org_id, status=status, priority=priority)
 
 
 @router.patch("/tasks/{task_id}/status")
-def update_task_status(org_id: str, task_id: str, req: UpdateTaskStatusRequest) -> dict:
+def update_task_status(
+    task_id: str,
+    req: UpdateTaskStatusRequest,
+    org_id: str = Depends(get_org_id),
+) -> dict:
     """Update the status of a remediation task."""
     updated = _get_engine().update_task_status(
         org_id, task_id, req.status, resolved_by=req.resolved_by
@@ -203,16 +226,18 @@ def update_task_status(org_id: str, task_id: str, req: UpdateTaskStatusRequest) 
 
 
 @router.get("/stats")
-def get_compliance_stats(org_id: str) -> dict:
+def get_compliance_stats(
+    org_id: str = Depends(get_org_id),
+) -> dict:
     """Get aggregate compliance statistics for an org."""
     return _get_engine().get_compliance_stats(org_id)
 
 
 @router.get("/scans")
 def list_scans_alias(
-    org_id: str,
     profile_id: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=100),
+    org_id: str = Depends(get_org_id),
 ) -> list:
     """Alias for /results — list scan results for an org, most recent first."""
     return _get_engine().list_scan_results(org_id, profile_id=profile_id, limit=limit)
@@ -220,10 +245,10 @@ def list_scans_alias(
 
 @router.get("/findings")
 def list_findings_alias(
-    org_id: str,
     status: Optional[str] = Query(None),
     framework: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=100),
+    org_id: str = Depends(get_org_id),
 ) -> list:
     """Alias mapping /findings to scan results with optional status/framework filter."""
     results = _get_engine().list_scan_results(org_id, limit=limit)

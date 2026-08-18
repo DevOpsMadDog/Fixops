@@ -212,12 +212,29 @@ def get_org_id(
 
     Priority: contextvar (from JWT/middleware) > query param > header > default
     """
-    # If the middleware ran, prefer the contextvar (already fully resolved)
+    # The CREDENTIAL wins, always and first.
+    #
+    # OrgIdMiddleware resolves the contextvar during middleware dispatch, which
+    # runs BEFORE route dependencies — so at that moment the auth layer has not
+    # yet set request.state.org_id, and _extract_org_id falls through to the
+    # client-supplied X-Org-ID header or ?org_id= query param. Returning the
+    # contextvar first therefore handed the tenant choice to the caller even
+    # after auth had correctly identified them.
+    #
+    # request.state.org_id is written by api_key_auth from the validated
+    # credential itself, so reading it here is the only ordering-safe source.
+    state_org = getattr(request.state, "org_id", None)
+    if state_org and str(state_org).strip():
+        return str(state_org).strip()
+
+    # Then the contextvar (covers JWT paths that resolve during middleware).
     ctx_org = _org_id_var.get()
     if ctx_org and ctx_org != "default":
         return ctx_org
 
-    # Direct fallback for test environments or routes that bypass middleware
+    # Client-supplied values are the LAST resort, reached only when no
+    # credential pinned a tenant — the operator-token case, and tests that call
+    # the dependency directly.
     return org_id_param or x_org_id or _extract_org_id(request)
 
 

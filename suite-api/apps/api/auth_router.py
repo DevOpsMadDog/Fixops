@@ -483,6 +483,9 @@ async def create_api_key(req: KeyCreateRequest, request: Request):
         role=req.role,
         scopes=req.scopes,
         ttl_days=req.ttl_days,
+        # The new key inherits the CALLER's tenant. An admin minting a key
+        # cannot mint one into somebody else's org.
+        org_id=_caller_org(request),
     )
     resp = record.to_dict()
     resp["plaintext_key"] = plaintext
@@ -1073,6 +1076,17 @@ class SignupResponseBody(BaseModel):
     org_id: str = "default"
 
 
+def _caller_org(request: Request) -> str:
+    """The tenant of whoever is making this request, per the validated credential.
+
+    api_key_auth pins request.state.org_id from the key or JWT. Falling back to
+    "default" rather than to any client-supplied header or query value keeps a
+    missing credential from widening access.
+    """
+    org = getattr(request.state, "org_id", None)
+    return str(org).strip() if org and str(org).strip() else "default"
+
+
 def _mint_signup_api_key(user_id: str, email: str, org_id: str) -> tuple:
     """Mint a real org-scoped API key for a newly signed-up user.
 
@@ -1093,6 +1107,10 @@ def _mint_signup_api_key(user_id: str, email: str, org_id: str) -> tuple:
             role="admin",  # first user of their org gets admin so they can onboard
             scopes=["admin:all"],
             ttl_days=None,  # inherits FIXOPS_KEY_ROTATION_DAYS (default 90d)
+            # The whole point of this credential. Without it the key is
+            # "org-scoped" in its display name only, and auth has no tenant to
+            # bind onto the request.
+            org_id=org_id,
         )
         return record, plaintext
     except Exception as exc:

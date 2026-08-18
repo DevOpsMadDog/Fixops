@@ -359,7 +359,7 @@ def _run_owasp_async(scan_id: str, target_url: str) -> None:
 @router.post("/scan", status_code=202)
 def start_self_scan(
     body: SelfScanRequest,
-    org_id: str = Query(default=_SELF_TEST_ORG),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Start an autonomous pentest of ALDECI itself.
 
@@ -450,8 +450,8 @@ def start_self_scan(
 
 @router.get("/results")
 def list_scan_results(
-    org_id: str = Query(default=_SELF_TEST_ORG),
     limit: int = Query(default=20, ge=1, le=100),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """List all autonomous self-pentest scan runs for an org.
 
@@ -496,7 +496,7 @@ def list_scan_results(
 @router.get("/status")
 def get_scan_status(
     scan_id: Optional[str] = Query(default=None, description="Specific scan ID. Omit for latest."),
-    org_id: str = Query(default=_SELF_TEST_ORG),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return status of a specific (or the most recent) autonomous self-pentest scan.
 

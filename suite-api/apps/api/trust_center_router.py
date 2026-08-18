@@ -41,6 +41,7 @@ from core.trust_center import (
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from apps.api.org_middleware import get_org_id  # tenant comes from the credential, never the URL
 
 _logger = logging.getLogger(__name__)
 
@@ -114,9 +115,9 @@ async def get_security_report(
 
 @router.post("/configure", response_model=TrustPageConfig, dependencies=[Depends(api_key_auth)])
 async def configure_trust_page(
-    org_id: str,
     body: ConfigureRequest,
     mgr: TrustCenterManager = Depends(_get_manager),
+    org_id: str = Depends(get_org_id),
 ) -> TrustPageConfig:
     """Create or update the trust page configuration for an org."""
     config = TrustPageConfig(org_id=org_id, **body.model_dump())
@@ -341,8 +342,8 @@ async def get_public_trust_page(
 # GET /api/v1/trust/compliance — compliance badges (no auth)
 @router.get("/compliance", tags=["Trust Center"])
 async def get_compliance(
-    org_id: str = Query(default="aldeci"),
     mgr: ExtendedTrustCenterManager = Depends(_get_manager),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return compliance badges and certifications — no auth required."""
     badges = mgr.list_badges(org_id) if mgr.get_config(org_id) else []
@@ -378,8 +379,8 @@ async def get_compliance(
 # GET /api/v1/trust/sub-processors — sub-processor list (no auth)
 @router.get("/sub-processors", tags=["Trust Center"])
 async def get_sub_processors(
-    org_id: str = Query(default="aldeci"),
     mgr: ExtendedTrustCenterManager = Depends(_get_manager),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return the sub-processor list — no auth required."""
     org_sps = mgr.list_subprocessors(org_id) if mgr.get_config(org_id) else []
