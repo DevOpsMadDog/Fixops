@@ -548,6 +548,15 @@ async def verify_api_key(
                     request.state.user_scopes = ["read:findings"]
                 if getattr(_managed, "user_id", None):
                     request.state.user_id = _managed.user_id
+                # Bind the credential's tenant — same rule as api_key_auth.
+                # This is a SECOND, parallel auth implementation, and routers
+                # mounted with _verify_api_key never went through the other one.
+                # Fixing only api_key_auth left every such router — including
+                # /api/v1/scanner-ingest/upload, the product's front door —
+                # writing every customer's findings into the shared "default"
+                # tenant. Two implementations of one rule; the fix has to land
+                # in both or it has not landed.
+                request.state.org_id = getattr(_managed, "org_id", None) or "default"
                 if _clear_fail:
                     _clear_fail(client_ip)
                 return
@@ -558,6 +567,11 @@ async def verify_api_key(
                 claims = _decode(jwt_token)
                 request.state.user_role = claims.get("role", "viewer")
                 request.state.user_scopes = claims.get("scopes", ["read:findings"])
+                # api_key_auth's JWT branch binds the org claim; this one did
+                # not, so a session token reaching a _verify_api_key router
+                # resolved to "default" too.
+                if claims.get("org_id"):
+                    request.state.org_id = claims["org_id"]
                 if _clear_fail:
                     _clear_fail(client_ip)
                 return

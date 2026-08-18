@@ -335,6 +335,20 @@ def findings_drift(
 # ===========================================================================
 
 
+# The engine stores hyphenated statuses (in-progress, false-positive,
+# accepted-risk); the API's PUT /findings/{id}/status accepts the underscored
+# forms. A client that sent "accepted_risk" and read back "accepted-risk" cannot
+# filter on what it just wrote. Present the API vocabulary here so the round trip
+# closes, and accept either form on the way in.
+_ENGINE_TO_API_STATUS = {
+    "in-progress": "in_progress",
+    "resolved": "remediated",
+    "false-positive": "false_positive",
+    "accepted-risk": "accepted_risk",
+}
+_API_TO_ENGINE_STATUS = {v: k for k, v in _ENGINE_TO_API_STATUS.items()}
+
+
 @router.get(
     "/api/v1/findings",
     dependencies=[Depends(api_key_auth)],
@@ -359,7 +373,8 @@ def list_findings(
     engine = _findings_engine()
     # Accept lifecycle aliases — the engine uses 'open' for active findings,
     # 'resolved' for closed, and tracks unchanged via unchanged_scan_count > 0.
-    normalized_status = status
+    # A caller filtering by the status they PUT must match what is stored.
+    normalized_status = _API_TO_ENGINE_STATUS.get(status, status)
     rows = engine.list_findings(
         org_id=org_id,
         status=normalized_status if normalized_status not in {"new", "unchanged"} else None,
@@ -371,6 +386,14 @@ def list_findings(
                 and r.get("status") not in {"resolved", "suppressed"}]
     elif status == "unchanged":
         rows = [r for r in rows if int(r.get("unchanged_scan_count") or 0) > 0]
+    def _present(row: Dict[str, Any]) -> Dict[str, Any]:
+        stored = row.get("status")
+        if isinstance(stored, str) and stored in _ENGINE_TO_API_STATUS:
+            row = dict(row)
+            row["status"] = _ENGINE_TO_API_STATUS[stored]
+        return row
+
+    rows = [_present(r) for r in rows]
     return {
         "org_id": org_id,
         "status": status,

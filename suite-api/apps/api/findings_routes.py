@@ -353,7 +353,7 @@ async def list_findings(
         f for f in _engine_findings_for_org(org_id)
         if f.get("id") and f.get("id") not in in_memory_ids
     ]
-    findings = list(in_memory) + engine_rows
+    findings = [_to_api_status(f) for f in (list(in_memory) + engine_rows)]
 
     # Apply filters
     if severity:
@@ -435,10 +435,7 @@ async def get_finding(finding_id: str, org_id: str = Depends(get_org_id)) -> Fin
     Raises:
         HTTPException: 404 if finding not found or not accessible
     """
-    if finding_id not in _findings_store:
-        raise HTTPException(status_code=404, detail=f"Finding {finding_id} not found")
-
-    finding = _findings_store[finding_id]
+    finding = _require_finding(finding_id, org_id)
 
     # AUTHZ-VULN-06: Enforce org_id isolation — return 404 (not 403) to avoid enumeration
     if finding.get("org_id") != org_id:
@@ -470,9 +467,110 @@ async def get_finding(finding_id: str, org_id: str = Depends(get_org_id)) -> Fin
     )
 
 
+def _require_finding(finding_id: str, org_id: str) -> Dict[str, Any]:
+    """Resolve a finding from EITHER store, scoped to *org_id*, or 404 honestly.
+
+    Two defects met in the write handlers.
+
+    1. ``list_findings`` UNIONs the in-memory ``_findings_store`` with engine-DB
+       rows — the 2026-04-27 read-side fix documented on
+       ``_engine_findings_for_org``. The WRITE paths were never carried across;
+       they gated on ``finding_id not in _findings_store``. So everything that
+       arrived by ingest could be listed and then not acted on: upload a scan,
+       see 33 findings, click triage, get "Finding <id> not found" for an id the
+       list endpoint had just handed you. The product's spine — ingest, triage,
+       case — dead-ended at step two.
+
+    2. Those same handlers took no org parameter, so unlike the bulk path they
+       never checked the tenant. Resolution here is org-scoped, which closes
+       that on the way past.
+    """
+    cached = _findings_store.get(finding_id)
+    if cached is not None:
+        # An in-memory row still has to belong to the caller.
+        cached_org = cached.get("org_id")
+        if cached_org and org_id and cached_org != org_id:
+            raise HTTPException(status_code=404, detail=f"Finding {finding_id} not found")
+        return cached
+
+    if org_id:
+        try:
+            from core.security_findings_engine import SecurityFindingsEngine
+
+            record = SecurityFindingsEngine().get_finding(finding_id, org_id)
+        except Exception:  # pragma: no cover — resolution must not 500
+            record = None
+        if record:
+            row = dict(record) if isinstance(record, dict) else dict(getattr(record, "__dict__", {}))
+            row.setdefault("org_id", org_id)
+            _findings_store[finding_id] = row
+            return row
+
+    raise HTTPException(status_code=404, detail=f"Finding {finding_id} not found")
+
+
+# The API and the engine grew SEPARATE status vocabularies, and nothing
+# translated between them. The API's StatusUpdateRequest accepts
+# open|in_progress|remediated|suppressed|false_positive|accepted_risk
+# (underscores); the engine accepts
+# open|in-progress|resolved|suppressed|false-positive (hyphens). Only "open" and
+# "suppressed" overlapped, so FOUR of six statuses the API happily validated
+# were rejected by the store that had to record them — a 200 to the customer and
+# nothing written. Each side was internally consistent; the join was the lie.
+_API_TO_ENGINE_STATUS = {
+    "open": "open",
+    "in_progress": "in-progress",
+    "remediated": "resolved",
+    "suppressed": "suppressed",
+    "false_positive": "false-positive",
+    "accepted_risk": "accepted-risk",
+}
+
+
+# Reverse of _API_TO_ENGINE_STATUS. A client that PUTs "accepted_risk" and then
+# GETs "accepted-risk" cannot filter on what it just sent — the round trip has
+# to close, or every consumer needs its own private translation table.
+_ENGINE_TO_API_STATUS = {v: k for k, v in _API_TO_ENGINE_STATUS.items()}
+
+
+def _to_api_status(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Present a stored status in the vocabulary the API accepts."""
+    status = row.get("status")
+    if isinstance(status, str) and status in _ENGINE_TO_API_STATUS:
+        row = dict(row)
+        row["status"] = _ENGINE_TO_API_STATUS[status]
+    return row
+
+
+def _persist_status_to_engine(finding_id: str, org_id: str, status: str) -> bool:
+    """Write a triage decision to the store that owns the finding.
+
+    Returns True when the engine accepted it. A False here means the row lives
+    only in the in-memory store (pipeline-bridge findings), which is legitimate
+    — but it must never be mistaken for a durable write.
+    """
+    try:
+        from core.security_findings_engine import SecurityFindingsEngine
+
+        return bool(
+            SecurityFindingsEngine().update_status(
+                finding_id=finding_id,
+                org_id=org_id,
+                status=_API_TO_ENGINE_STATUS.get(status, status),
+            )
+        )
+    except ValueError:
+        # Invalid status — the engine validates, and the caller should hear it.
+        raise
+    except Exception:  # pragma: no cover — engine absence must not 500 a triage
+        return False
+
+
 @router.put("/{finding_id}/status", response_model=Dict[str, Any])
 async def update_finding_status(
-    finding_id: str, update: StatusUpdateRequest = Body(...)
+    finding_id: str,
+    update: StatusUpdateRequest = Body(...),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Update finding status.
 
@@ -486,14 +584,26 @@ async def update_finding_status(
     Raises:
         HTTPException: 404 if finding not found, 400 if status invalid
     """
-    if finding_id not in _findings_store:
-        raise HTTPException(status_code=404, detail=f"Finding {finding_id} not found")
-
-    finding = _findings_store[finding_id]
+    finding = _require_finding(finding_id, org_id)
     old_status = finding.get("status", "open")
 
     finding["status"] = update.status
     finding["updated_at"] = datetime.now(timezone.utc)
+
+    # Persist through to the engine that OWNS the row.
+    #
+    # Mutating the in-memory dict alone returned HTTP 200 and changed nothing a
+    # customer could see: list_findings reads engine-DB rows for anything that
+    # arrived by ingest, so the next GET showed "open" again. The decision also
+    # died with the process. This is the same failure the Triage button had —
+    # a success response over a write that never landed.
+    try:
+        _persist_status_to_engine(finding_id, org_id, update.status)
+    except ValueError as exc:
+        # The engine owns the status vocabulary. Report the rejection as a 400
+        # naming what IS allowed, rather than letting it surface as a 500 or —
+        # worse — silently succeeding against the in-memory copy only.
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     # Record audit trail
     if finding_id not in _audit_trails:
@@ -525,7 +635,8 @@ async def update_finding_status(
 
 @router.put("/{finding_id}/assign", response_model=Dict[str, Any])
 async def assign_finding(
-    finding_id: str, assignment: AssignmentRequest = Body(...)
+    finding_id: str, assignment: AssignmentRequest = Body(...),
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Assign finding to user or team.
 
@@ -539,8 +650,7 @@ async def assign_finding(
     Raises:
         HTTPException: 404 if finding not found, 400 if assignment invalid
     """
-    if finding_id not in _findings_store:
-        raise HTTPException(status_code=404, detail=f"Finding {finding_id} not found")
+    finding = _require_finding(finding_id, org_id)
 
     if not assignment.assigned_to and not assignment.assigned_team:
         raise HTTPException(
@@ -548,7 +658,6 @@ async def assign_finding(
             detail="Must specify either assigned_to or assigned_team",
         )
 
-    finding = _findings_store[finding_id]
     finding["assigned_to"] = assignment.assigned_to
     finding["assigned_team"] = assignment.assigned_team
     finding["updated_at"] = datetime.now(timezone.utc)
@@ -580,7 +689,8 @@ async def assign_finding(
 
 @router.post("/{finding_id}/comment", response_model=CommentResponse, status_code=201)
 async def add_comment(
-    finding_id: str, comment: FindingComment = Body(...)
+    finding_id: str, comment: FindingComment = Body(...),
+    org_id: str = Depends(get_org_id),
 ) -> CommentResponse:
     """Add comment to finding.
 
@@ -594,8 +704,7 @@ async def add_comment(
     Raises:
         HTTPException: 404 if finding not found
     """
-    if finding_id not in _findings_store:
-        raise HTTPException(status_code=404, detail=f"Finding {finding_id} not found")
+    _require_finding(finding_id, org_id)
 
     comment_id = str(uuid4())
     now = datetime.now(timezone.utc)
@@ -631,7 +740,9 @@ async def add_comment(
 
 
 @router.get("/{finding_id}/timeline", response_model=List[TimelineEvent])
-async def get_finding_timeline(finding_id: str) -> List[TimelineEvent]:
+async def get_finding_timeline(finding_id: str,
+    org_id: str = Depends(get_org_id),
+) -> List[TimelineEvent]:
     """Get complete timeline of all actions on finding.
 
     Args:
@@ -643,8 +754,7 @@ async def get_finding_timeline(finding_id: str) -> List[TimelineEvent]:
     Raises:
         HTTPException: 404 if finding not found
     """
-    if finding_id not in _findings_store:
-        raise HTTPException(status_code=404, detail=f"Finding {finding_id} not found")
+    _require_finding(finding_id, org_id)
 
     events = _audit_trails.get(finding_id, [])
     return [TimelineEvent(**event) for event in events]
@@ -822,14 +932,11 @@ async def bulk_update_status(
 
     for finding_id in update.finding_ids:
         try:
-            if finding_id not in _findings_store:
-                errors.append(f"Finding {finding_id} not found")
-                failed += 1
-                continue
-
-            finding = _findings_store[finding_id]
-            # AUTHZ: enforce org_id isolation on bulk updates
-            if finding.get("org_id") != org_id:
+            try:
+                # Same two-store resolution as the single-finding paths, so a
+                # bulk triage of ingested findings is not silently all-failures.
+                finding = _require_finding(finding_id, org_id)
+            except HTTPException:
                 errors.append(f"Finding {finding_id} not found")
                 failed += 1
                 continue

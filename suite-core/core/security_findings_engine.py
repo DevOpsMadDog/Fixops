@@ -114,7 +114,17 @@ _VALID_SEVERITIES = {"critical", "high", "medium", "low", "informational"}
 _VALID_EVIDENCE_TYPES = {
     "screenshot", "log", "network-capture", "code-snippet", "config", "report",
 }
-_VALID_STATUSES = {"open", "in-progress", "resolved", "suppressed", "false-positive"}
+# "accepted-risk" is a governance decision, not a dismissal: someone with
+# authority accepted this exposure. Mapping it onto "suppressed" would erase who
+# decided what, which is exactly the record an assessor asks for.
+_VALID_STATUSES = {
+    "open",
+    "in-progress",
+    "resolved",
+    "suppressed",
+    "false-positive",
+    "accepted-risk",
+}
 
 
 def _now_iso() -> str:
