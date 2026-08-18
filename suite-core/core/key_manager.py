@@ -95,6 +95,15 @@ class ManagedKey:
     user_id: str
     name: str
     role: str
+    # The tenant this credential is scoped to.
+    #
+    # _mint_signup_api_key advertised keys as "org-scoped (key name encodes
+    # org_id)" — the org was a SUBSTRING OF THE DISPLAY NAME, not a field. So a
+    # key could not be tenant-scoped at all, and auth had nothing to bind onto
+    # the request. Org resolution then fell through to the client-supplied
+    # X-Org-ID header / ?org_id= query param, and any customer key could read
+    # and write any other tenant's data by naming it.
+    org_id: str = "default"
     scopes: List[str] = field(default_factory=list)
     is_active: bool = True
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -111,6 +120,7 @@ class ManagedKey:
             "key_prefix": self.key_prefix,
             "name": self.name,
             "user_id": self.user_id,
+            "org_id": self.org_id,
             "role": self.role,
             "scopes": self.scopes,
             "is_active": self.is_active,
@@ -169,6 +179,7 @@ class KeyManager:
                     key_hash TEXT NOT NULL UNIQUE,
                     user_id TEXT NOT NULL,
                     name TEXT NOT NULL,
+                    org_id TEXT NOT NULL DEFAULT 'default',
                     role TEXT NOT NULL DEFAULT 'viewer',
                     scopes TEXT NOT NULL DEFAULT '[]',
                     is_active INTEGER NOT NULL DEFAULT 1,
@@ -181,6 +192,20 @@ class KeyManager:
                     grace_expires_at TEXT
                 )
             """)
+
+            # Existing databases predate org scoping. Without this, the
+            # org-aware INSERT below fails on every already-deployed install.
+            # Idempotent via PRAGMA rather than a caught exception, so a real
+            # failure still surfaces. Existing keys land in "default", which is
+            # the tenant they were effectively already operating in.
+            kcols = {r[1] for r in conn.execute("PRAGMA table_info(managed_keys)").fetchall()}
+            if "org_id" not in kcols:
+                _logger.warning(
+                    "LEGACY DB DETECTED: managed_keys.org_id missing — adding column, backfilling to 'default'"
+                )
+                conn.execute("ALTER TABLE managed_keys ADD COLUMN org_id TEXT NOT NULL DEFAULT 'default'")
+                conn.execute("UPDATE managed_keys SET org_id = 'default' WHERE org_id IS NULL OR org_id = ''")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_managed_keys_org_id ON managed_keys(org_id)")
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS key_audit_log (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -224,6 +249,7 @@ class KeyManager:
         role: str = "viewer",
         scopes: Optional[List[str]] = None,
         ttl_days: Optional[int] = None,
+        org_id: str = "default",
     ) -> tuple:
         """Create a new API key.
 
@@ -249,6 +275,7 @@ class KeyManager:
             user_id=user_id,
             name=name,
             role=role,
+            org_id=org_id or "default",
             scopes=key_scopes,
             is_active=True,
             created_at=now,
@@ -258,10 +285,10 @@ class KeyManager:
         with self._conn() as conn:
             conn.execute(
                 "INSERT INTO managed_keys "
-                "(id, key_prefix, key_hash, user_id, name, role, scopes, is_active, "
-                "created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)",
+                "(id, key_prefix, key_hash, user_id, name, org_id, role, scopes, is_active, "
+                "created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)",
                 (
-                    key_id, prefix, key_hash, user_id, name, role,
+                    key_id, prefix, key_hash, user_id, name, org_id or "default", role,
                     _json.dumps(key_scopes), now.isoformat(), expires.isoformat(),
                 ),
             )
@@ -478,6 +505,7 @@ class KeyManager:
             key_hash=row["key_hash"],
             user_id=row["user_id"],
             name=row["name"],
+            org_id=row.get("org_id") or "default",
             role=row.get("role", "viewer"),
             scopes=_json.loads(row.get("scopes", "[]")),
             is_active=bool(row.get("is_active", True)),
