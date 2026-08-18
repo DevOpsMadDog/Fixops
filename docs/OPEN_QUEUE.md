@@ -19,7 +19,8 @@ Ordered by what unblocks a sale, not by effort.
 | Q25 | **A P0 was found by creating one real account** — cross-tenant read/write via a named org. Closed in `513cdc13`+`9ca5afb3`. The lesson is the queue item: *onboard as a real customer and press the buttons*, because four layers of this were invisible to code review | `docs/SECURITY_FINDING_cross_tenant_org_id.md` | run the same exercise against a second real persona |
 | Q22 | **5 SSO config endpoints return 401 to an authenticated caller** — `test_auth_api.py::test_{list,create,get,update,get_nonexistent}_sso_config` | PRE-EXISTING: confirmed by stashing the auth work and re-running the clean baseline, which fails identically | authenticated SSO config CRUD returns 2xx |
 | ~~Q23~~ | ~~Rebuild + redeploy~~ **DONE** — both now serve a build where password login yields a role | verified live on :8000 and fly | closed |
-| Q24 | **Remove probe accounts from the fly volume** — `flyverify-a/b@probe.example`, `tenancy-*`, `breach-*` created while proving the tenancy fix | they are real rows in the production users table | production carries only real accounts |
+| ~~Q24~~ | ~~Remove probe accounts from fly~~ **DONE** — 3 `@probe.example` rows deleted; planted entitlements were never on the volume | verified: 8 users → 5 | closed |
+| Q26 | **5 stale test accounts predate this session on the fly volume** — `cr2+`, `cr3+`, `crfinal+`, `crrec+`, `custtest+` `@example.com`. Not mine to delete; flagging rather than removing | `flyctl ssh console` inventory | founder decides: purge or keep as fixtures |
 
 ## P1 — the product thesis (ADR-010 / ADR-011)
 
