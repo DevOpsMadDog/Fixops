@@ -4855,6 +4855,60 @@ class BrainPipeline:
     # Step 12: SOC2 Type II evidence pack
     # ------------------------------------------------------------------
     @staticmethod
+    def _persist_evidence_pack(
+        ctx: Dict[str, Any], evidence: Dict[str, Any]
+    ) -> Optional[str]:
+        """Save the pipeline's bundle through the store the listing endpoint reads.
+
+        The pipeline's own assessment is preserved verbatim rather than re-derived: it was
+        computed from what this run actually observed, and running a second, different
+        assessment over the same data would mean the pack and the run could disagree.
+
+        Returns the pack id, or None when persistence is unavailable — evidence generation
+        must not fail because the archive is.
+        """
+        try:
+            from core.soc2_evidence_generator import EvidencePack, get_evidence_generator
+
+            controls = evidence.get("controls") or {}
+            statuses = [str(c.get("status", "")) for c in controls.values()]
+
+            pack = EvidencePack(
+                framework=str(evidence.get("framework", "SOC2")),
+                org_id=str(ctx.get("org_id", "")),
+                generated_at=str(evidence.get("generated_at", "")),
+                timeframe_days=int(evidence.get("timeframe_days", 90) or 90),
+                controls_assessed=sum(1 for s in statuses if s != "not_assessed"),
+                controls_effective=sum(1 for s in statuses if s == "effective"),
+                controls_needing_improvement=sum(
+                    1 for s in statuses if s == "needs_improvement"
+                ),
+                summary=dict(evidence.get("summary") or {}),
+                # Provenance and the per-control detail travel with the pack, so an
+                # assessor opening it later sees what produced each conclusion.
+                pipeline_data={
+                    "controls": controls,
+                    "provenance": evidence.get("provenance") or {},
+                    "run_id": ctx.get("run_id", ""),
+                },
+            )
+            generator = get_evidence_generator()
+            store = getattr(generator, "_store", None)
+            if store is None:
+                return None
+            store.save(pack)
+            logger.info(
+                "evidence pack %s persisted for org_id=%s", pack.pack_id, pack.org_id
+            )
+            return pack.pack_id
+        except Exception as exc:  # noqa: BLE001 — archiving must not fail the pipeline
+            logger.warning(
+                "evidence pack not persisted (%s): %s — the bundle was still generated",
+                type(exc).__name__, exc,
+            )
+            return None
+
+    @staticmethod
     def _evidence_provenance(ctx: Dict[str, Any]) -> Dict[str, Any]:
         """Record what produced each conclusion, so the bundle stays explainable.
 
@@ -5154,6 +5208,18 @@ class BrainPipeline:
 
         # Store signed evidence bundle in context for downstream consumers
         ctx["evidence"] = evidence
+
+        # Persist it where the product can find it again.
+        #
+        # The pipeline built a signed, provenanced bundle and put it in a dict that dies
+        # with the request, while GET /api/v1/pipeline/evidence/packs reads
+        # soc2_evidence_generator's store — which the pipeline never wrote to. So every
+        # run produced evidence and every listing showed "total: 0". For the artifact the
+        # product is sold on, that is the whole feature missing, and it looked like an
+        # empty screen rather than a fault.
+        pack_id = self._persist_evidence_pack(ctx, evidence)
+        if pack_id:
+            evidence["pack_id"] = pack_id
 
         # Build step output (returned to StepResult.output and pipeline summary)
         step_output = dict(evidence)

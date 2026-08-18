@@ -329,6 +329,10 @@ class EvidencePack:
                 for a in self.assessments
             ],
             "summary": self.summary,
+            # Carried so an assessor opening a stored pack sees what produced each
+            # conclusion. Omitted previously, so provenance survived only in the live
+            # response and never in the archive.
+            "pipeline_data": self.pipeline_data,
         }
 
 
@@ -340,21 +344,33 @@ def _dict_to_evidence_pack(raw: Dict[str, Any]) -> Optional["EvidencePack"]:
     Returns None on any parse error so the caller can skip gracefully.
     """
     try:
+        # to_dict() nests these under "timeframe" and "controls_summary"; this reader
+        # looked for flat keys that were never written, so every pack reloaded with an
+        # empty timeframe and zeroed control counts. Read the nested shape, and keep the
+        # flat lookup as a fallback for anything persisted by an older build.
+        timeframe = raw.get("timeframe") or {}
+        counts = raw.get("controls_summary") or {}
+
         pack = EvidencePack(
             org_id=raw.get("org_id", ""),
-            timeframe_start=raw.get("timeframe_start", ""),
-            timeframe_end=raw.get("timeframe_end", ""),
-            timeframe_days=int(raw.get("timeframe_days", 90)),
+            timeframe_start=timeframe.get("start", raw.get("timeframe_start", "")),
+            timeframe_end=timeframe.get("end", raw.get("timeframe_end", "")),
+            timeframe_days=int(timeframe.get("days", raw.get("timeframe_days", 90)) or 90),
         )
         pack.pack_id = raw.get("pack_id", pack.pack_id)
         pack.generated_at = raw.get("generated_at", pack.generated_at)
-        pack.controls_assessed = int(raw.get("controls_assessed", 0))
-        pack.controls_effective = int(raw.get("controls_effective", 0))
-        pack.controls_needing_improvement = int(raw.get("controls_needing_improvement", 0))
-        pack.controls_not_effective = int(raw.get("controls_not_effective", 0))
+        pack.controls_assessed = int(counts.get("assessed", raw.get("controls_assessed", 0)) or 0)
+        pack.controls_effective = int(counts.get("effective", raw.get("controls_effective", 0)) or 0)
+        pack.controls_needing_improvement = int(
+            counts.get("needs_improvement", raw.get("controls_needing_improvement", 0)) or 0
+        )
+        pack.controls_not_effective = int(
+            counts.get("not_effective", raw.get("controls_not_effective", 0)) or 0
+        )
         pack.overall_score = float(raw.get("overall_score", 0.0))
         pack.overall_status = raw.get("overall_status", "not_qualified")
         pack.summary = raw.get("summary", {})
+        pack.pipeline_data = raw.get("pipeline_data", {}) or {}
         # Restore assessments
         for a_raw in raw.get("assessments", []):
             try:
