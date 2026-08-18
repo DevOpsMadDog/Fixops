@@ -35,6 +35,11 @@ class User:
     last_name: str
     role: UserRole
     status: UserStatus = UserStatus.ACTIVE
+    # Which tenant this account belongs to. Signup derives a per-user org and
+    # mints an org-scoped API key against it; without somewhere to persist that,
+    # login fell back to "default" and put the session in a tenant the user
+    # never joined. See UserDB._init_tables for the migration.
+    org_id: str = "default"
     department: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
@@ -49,6 +54,7 @@ class User:
             "last_name": self.last_name,
             "role": self.role.value,
             "status": self.status.value,
+            "org_id": self.org_id,
             "department": self.department,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),

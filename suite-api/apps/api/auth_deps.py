@@ -183,7 +183,27 @@ def _decode_jwt(token: str) -> dict:
         HTTPException(401): Token expired, malformed, or missing required claims.
         HTTPException(403): Token valid but insufficient (reserved for future use).
     """
-    if not _JWT_SECRET:
+    # Resolve the secret at CALL time, not import time.
+    #
+    # auth_router mints with os.getenv(...) read live, falling back to a
+    # process-scoped ephemeral secret. auth_deps verified against _JWT_SECRET,
+    # a snapshot taken when the module was first imported. Whenever those two
+    # disagree — the env var arriving after import, a secret loaded at runtime,
+    # a test suite configuring it per-case — login succeeds and then every
+    # authenticated request 401s "Invalid token". Valid session, total denial,
+    # no error that names the cause.
+    #
+    # Reading the same source the minter reads makes the two sides agree by
+    # construction. The import-time value stays as the fallback so behaviour is
+    # unchanged in the normal case where the env is set before boot.
+    secret = _load_jwt_secret() or _JWT_SECRET
+    if not secret:
+        try:
+            from apps.api.auth_router import _EPHEMERAL_DEV_JWT_SECRET as _dev_secret
+            secret = _dev_secret
+        except Exception:  # pragma: no cover — router may not be importable here
+            secret = None
+    if not secret:
         raise HTTPException(status_code=401, detail="JWT auth not configured")
 
     # Guard: reject oversized tokens before any parsing
@@ -194,7 +214,7 @@ def _decode_jwt(token: str) -> dict:
     try:
         claims = jwt.decode(
             token,
-            _JWT_SECRET,
+            secret,
             algorithms=[_JWT_ALGORITHM],
             options={"require": ["exp", "iat", "sub"]},
         )

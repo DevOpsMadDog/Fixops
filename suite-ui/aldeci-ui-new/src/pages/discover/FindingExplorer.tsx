@@ -209,8 +209,13 @@ interface Finding {
   cve_id?: string;
   app?: string;
   application?: string;
+  /** analytics/findings returns the owning application as `app_id`. */
+  app_id?: string;
   cve?: string;
   component?: string;
+  /** SecurityFindingsEngine persists the package alongside cve_id — reachability
+   *  analysis needs BOTH, and skipped every finding while the package was absent. */
+  package_name?: string;
   mpte_verdict?: string;
   created_at?: string;
   description?: string;

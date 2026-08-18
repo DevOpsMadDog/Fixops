@@ -44,7 +44,8 @@ class UserDB:
                     department TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
-                    last_login_at TEXT
+                    last_login_at TEXT,
+                    org_id TEXT NOT NULL DEFAULT 'default'
                 );
 
                 CREATE TABLE IF NOT EXISTS teams (
@@ -72,6 +73,27 @@ class UserDB:
             """
             )
             conn.commit()
+
+            # Schema migration: users.org_id.
+            #
+            # teams got this treatment; users never did. Signup derives a
+            # per-user org and mints an org-scoped API key against it, but with
+            # nowhere to persist it, login read getattr(user, "org_id", "default")
+            # and always got "default" — so the SAME account resolved to its own
+            # tenant by API key and to the shared default tenant by password.
+            # list_users(org_id=...) then had no column to filter on and returned
+            # every user in every org.
+            ucols = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+            if "org_id" not in ucols:
+                import logging as _lu
+                _lu.getLogger(__name__).warning(
+                    "LEGACY DB DETECTED: users.org_id missing — adding column and backfilling to 'default'"
+                )
+                conn.execute("ALTER TABLE users ADD COLUMN org_id TEXT NOT NULL DEFAULT 'default'")
+                conn.execute("UPDATE users SET org_id = 'default' WHERE org_id IS NULL OR org_id = ''")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_users_org_id ON users(org_id)")
+                conn.commit()
+
             # Schema migration: ensure org_id column exists on teams, backfill, and index.
             cols = {row[1] for row in conn.execute("PRAGMA table_info(teams)").fetchall()}
             if "org_id" not in cols:
@@ -100,8 +122,15 @@ class UserDB:
             user.id = str(uuid.uuid4())
         conn = self._get_connection()
         try:
+            # Columns named explicitly. A bare INSERT INTO users VALUES (...)
+            # binds by position, so ALTER TABLE ... ADD COLUMN silently shifts
+            # every value one place left the next time the schema grows.
             conn.execute(
-                """INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO users (
+                       id, email, password_hash, first_name, last_name,
+                       role, status, department, created_at, updated_at,
+                       last_login_at, org_id
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     user.id,
                     user.email,
@@ -114,6 +143,7 @@ class UserDB:
                     user.created_at.isoformat(),
                     user.updated_at.isoformat(),
                     user.last_login_at.isoformat() if user.last_login_at else None,
+                    user.org_id or "default",
                 ),
             )
             conn.commit()
@@ -153,15 +183,22 @@ class UserDB:
         try:
             # Graceful: check if org_id column exists
             cols = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
-            if org_id is not None and "org_id" in cols:
+            if org_id is not None:
+                # Fail CLOSED. This previously logged "org_id column missing"
+                # and then returned every user in every org — the caller asked
+                # to be scoped to one tenant and silently got all of them.
+                # _init_tables migrates the column in, so its absence here is a
+                # bug, not a condition to degrade around.
+                if "org_id" not in cols:
+                    raise RuntimeError(
+                        "users.org_id column missing — refusing to list users "
+                        "unscoped when an org_id was requested"
+                    )
                 rows = conn.execute(
                     "SELECT * FROM users WHERE org_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
                     (org_id, limit, offset),
                 ).fetchall()
             else:
-                if org_id is not None and "org_id" not in cols:
-                    import logging as _l
-                    _l.getLogger(__name__).warning("user_db: org_id column missing — returning all users")
                 rows = conn.execute(
                     "SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?",
                     (limit, offset),
@@ -175,7 +212,14 @@ class UserDB:
         conn = self._get_connection()
         try:
             cols = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
-            if org_id is not None and "org_id" in cols:
+            if org_id is not None:
+                # Same fail-closed rule as list_users: a scoped count that
+                # quietly counts every tenant is worse than an error.
+                if "org_id" not in cols:
+                    raise RuntimeError(
+                        "users.org_id column missing — refusing to count users "
+                        "unscoped when an org_id was requested"
+                    )
                 row = conn.execute(
                     "SELECT COUNT(*) FROM users WHERE org_id = ?", (org_id,)
                 ).fetchone()
@@ -192,7 +236,8 @@ class UserDB:
         try:
             conn.execute(
                 """UPDATE users SET email=?, password_hash=?, first_name=?, last_name=?,
-                   role=?, status=?, department=?, updated_at=?, last_login_at=?
+                   role=?, status=?, department=?, updated_at=?, last_login_at=?,
+                   org_id=?
                    WHERE id=?""",
                 (
                     user.email,
@@ -204,6 +249,7 @@ class UserDB:
                     user.department,
                     user.updated_at.isoformat(),
                     user.last_login_at.isoformat() if user.last_login_at else None,
+                    user.org_id or "default",
                     user.id,
                 ),
             )
@@ -380,6 +426,7 @@ class UserDB:
             last_name=row["last_name"],
             role=UserRole(row["role"]),
             status=UserStatus(row["status"]),
+            org_id=(row["org_id"] if "org_id" in row.keys() else "default") or "default",
             department=row["department"],
             created_at=datetime.fromisoformat(row["created_at"]),
             updated_at=datetime.fromisoformat(row["updated_at"]),

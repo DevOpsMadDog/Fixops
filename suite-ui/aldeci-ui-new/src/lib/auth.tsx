@@ -202,7 +202,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data } = await authApi.login({ email, password });
       const accessToken = data.access_token;
       const refreshToken = data.refresh_token;
-      const userData = data.user as AuthUser;
+      const userData = data.user as AuthUser | undefined;
+      // Absence here is a real failure, not a blank profile. Without it,
+      // persistUser(undefined) CLEARS the stored user while isAuthenticated
+      // stays true, so hasRole()/hasScope() answer false for everything and the
+      // whole role-gated product renders empty with no error shown anywhere.
+      // Fail loudly instead of logging someone into a product that isn't there.
+      if (!userData || !userData.role) {
+        throw new Error(
+          "Signed in, but the server did not return your profile — the session cannot be trusted. Please try again or contact your administrator.",
+        );
+      }
 
       // Access token: memory only (XSS-safe)
       setJwtAccessToken(accessToken);
@@ -232,7 +242,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!key) throw new Error("API key is required.");
     setLoading(true);
     try {
-      const res = await fetch(buildApiUrl("/api/v1/orgs"), {
+      // Ask the server who this key is. /auth/me both VALIDATES the key and
+      // returns the identity the API will actually enforce.
+      //
+      // This previously hit /api/v1/orgs purely as a liveness probe and then
+      // hardcoded `role: "admin"`. Any key — analyst, developer, viewer — got
+      // the full admin surface, and every privileged control on it failed with
+      // a 403 the moment it was used. The client does not get to decide its own
+      // role; only the server knows what the credential was granted.
+      const res = await fetch(buildApiUrl("/api/v1/auth/me"), {
         headers: { "X-API-Key": key },
       });
       if (res.status === 401 || res.status === 403) {
@@ -241,12 +259,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!res.ok) {
         throw new Error(`Could not reach the FixOps API (HTTP ${res.status}). Is the server running?`);
       }
+      const me = await res.json();
       const apiUser: AuthUser = {
-        id: "api-key",
-        email: "",
-        first_name: "API",
-        last_name: "User",
-        role: "admin" as UserRole,
+        id: me.id ?? "api-key",
+        email: me.email ?? "",
+        first_name: me.first_name ?? "API",
+        last_name: me.last_name ?? "User",
+        role: (me.role ?? "viewer") as UserRole,
       };
       setStoredAuthStrategy("token");
       setStoredAuthToken(key);

@@ -775,11 +775,35 @@ class LoginRequestBody(BaseModel):
     password: str = Field(..., min_length=1, max_length=1024)
 
 
+class AuthUserBody(BaseModel):
+    """Identity of the authenticated caller.
+
+    The UI's ``AuthUser`` interface (suite-ui/.../lib/auth.tsx) reads exactly
+    these fields, and drives ``hasRole()`` / ``hasScope()`` off ``role``. It
+    must be the SERVER's answer — a client that assumes its own role renders a
+    surface the API will then refuse.
+    """
+
+    id: str
+    email: str
+    first_name: str = ""
+    last_name: str = ""
+    role: str = "viewer"
+    org_id: str = "default"
+    scopes: List[str] = Field(default_factory=list)
+
+
 class LoginResponseBody(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
     expires_in: int = _ACCESS_TOKEN_TTL_SECONDS
+    # The UI does `const userData = data.user as AuthUser` immediately after
+    # login. Omitting it made every role-gated screen unreachable: persistUser
+    # (undefined) CLEARS the stored user, hasRole()/hasScope() short-circuit to
+    # false, and isAuthenticated stays true — so you are logged in to an empty
+    # product with no error anywhere.
+    user: Optional[AuthUserBody] = None
 
 
 class RefreshRequestBody(BaseModel):
@@ -894,7 +918,83 @@ async def auth_login(body: LoginRequestBody, request: Request) -> LoginResponseB
         access_token=access_token,
         refresh_token=refresh_token,
         expires_in=_ACCESS_TOKEN_TTL_SECONDS,
+        user=AuthUserBody(
+            id=user.id,
+            email=user.email,
+            first_name=getattr(user, "first_name", "") or "",
+            last_name=getattr(user, "last_name", "") or "",
+            role=user.role.value,
+            org_id=org_id,
+            # Same list the JWT carries, so the UI gates on exactly what the
+            # API will enforce rather than a second, drifting copy.
+            scopes=list(token_claims["scopes"]),
+        ),
     )
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/auth/me — the server's answer to "who am I"
+#
+# Every credential the platform accepts (JWT, managed fixops_ key, static env
+# token) is already resolved to a role, scopes and org by ``api_key_auth``,
+# which stashes the result on ``request.state``. Nothing exposed it, so the UI
+# had to guess — and guessed "admin" for every API key regardless of what the
+# key was actually granted. This makes identity readable, from the same state
+# the API enforces against.
+# ---------------------------------------------------------------------------
+@router.get(
+    "/me",
+    response_model=AuthUserBody,
+    summary="Identity of the caller, derived from the presented credential",
+)
+async def whoami(
+    request: Request,
+    _auth: None = Depends(api_key_auth),
+) -> AuthUserBody:
+    """Return the caller's identity as the SERVER understands it.
+
+    Works for any accepted credential. When the credential maps to a real user
+    record the profile fields are filled from it; otherwise the identity is
+    reported honestly as a non-human credential rather than dressed up as a
+    person.
+    """
+    role = getattr(request.state, "user_role", None) or "viewer"
+    scopes = list(getattr(request.state, "user_scopes", None) or [])
+    org_id = getattr(request.state, "org_id", None) or "default"
+    user_id = getattr(request.state, "user_id", None)
+
+    email = ""
+    first_name = ""
+    last_name = ""
+
+    if user_id:
+        try:
+            record = _user_db.get_user(user_id)
+        except Exception:  # pragma: no cover — identity must not 500
+            record = None
+        if record is not None:
+            email = getattr(record, "email", "") or ""
+            first_name = getattr(record, "first_name", "") or ""
+            last_name = getattr(record, "last_name", "") or ""
+            role = getattr(getattr(record, "role", None), "value", role)
+
+    if not user_id:
+        # A service credential is not a person. Say so, rather than inventing a
+        # name — the UI shows this in the account menu.
+        user_id = "service-credential"
+        first_name = "Service"
+        last_name = "Credential"
+
+    return AuthUserBody(
+        id=user_id,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        role=role,
+        org_id=org_id,
+        scopes=scopes,
+    )
+
 
 
 # ---------------------------------------------------------------------------
@@ -1063,6 +1163,15 @@ async def auth_signup(body: SignupRequestBody, request: Request) -> SignupRespon
         or request.query_params.get("org_id", "").strip()
         or f"org-{created.id}"
     )
+
+    # Persist the org onto the user record. The derivation above depends on
+    # created.id, so it can only happen after the insert — but until it was
+    # written back, the org existed ONLY on the API key. Password login read
+    # getattr(user, "org_id", "default") and put the same account in the shared
+    # default tenant, so which tenant you landed in depended on which credential
+    # you signed in with.
+    created.org_id = org_id
+    _user_db.update_user(created)
 
     # Mint a real, persisted, revocable API key — returned ONCE to the caller.
     key_record, plaintext_key = _mint_signup_api_key(
