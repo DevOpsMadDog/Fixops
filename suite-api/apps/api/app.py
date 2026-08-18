@@ -2914,7 +2914,28 @@ def create_app() -> FastAPI:
             "detail": exc.detail,
             "correlation_id": correlation_id,
         }
-        if exc.status_code in _4XX_HINTS:
+        # Only attach the generic hint when the handler did NOT supply a
+        # meaningful one of its own.
+        #
+        # A 404 has two very different meanings here. The router raises it with
+        # Starlette's default detail ("Not Found") when no route matches — the
+        # routing hint is exactly right for that. A handler raises it with its
+        # own detail to say "this resource has no data yet", e.g.
+        # "No RBAC analysis available. POST /api/v1/k8s/scan first."
+        #
+        # Attaching "Endpoint not found — verify the URL" to the second case
+        # made the response contradict itself: the detail told the caller to run
+        # a scan while the hint told them the endpoint does not exist. A
+        # customer reads the hint and concludes the feature is missing, when
+        # they are one POST away from data. Several screens looked dead for
+        # exactly this reason.
+        _framework_default = {"Not Found", "Method Not Allowed", "Forbidden", "Unauthorized"}
+        _handler_supplied_detail = (
+            exc.status_code == 404
+            and isinstance(exc.detail, str)
+            and exc.detail not in _framework_default
+        )
+        if exc.status_code in _4XX_HINTS and not _handler_supplied_detail:
             hint, suggested_action, anchor = _4XX_HINTS[exc.status_code]
             content["hint"] = hint
             content["suggested_action"] = suggested_action
