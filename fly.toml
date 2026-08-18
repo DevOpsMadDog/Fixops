@@ -19,7 +19,11 @@ kill_timeout = "30s"
   FIXOPS_MODE = "enterprise"
   FIXOPS_DISABLE_RATE_LIMIT = "0"
   FIXOPS_USE_COUNCIL = "1"
-  ALDECI_SEED_DEMO = "1"
+  # 0 — the deployed instance must never fabricate data. Note this flag is read by
+  # docker/docker-entrypoint.sh, NOT by scripts/docker-entrypoint.sh which is the
+  # image ENTRYPOINT, so it was already inert here. Set explicitly so the config
+  # cannot be misread as "production seeds demo data".
+  ALDECI_SEED_DEMO = "0"
   PORT = "8000"
   PYTHONUNBUFFERED = "1"
 
