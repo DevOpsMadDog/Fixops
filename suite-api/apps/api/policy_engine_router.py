@@ -24,6 +24,7 @@ from core.policy_engine import (
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from apps.api.tenant_resolution import resolve_tenant  # credential decides the tenant
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +177,7 @@ async def evaluate(
 ) -> Dict[str, Any]:
     """Evaluate input data against all enabled policies for the given scope."""
     engine = get_policy_engine()
-    effective_org_id = body.org_id or org_id
+    effective_org_id = resolve_tenant(org_id, body)
     result = engine.evaluate(
         input_data=body.input_data,
         scope=body.scope,
@@ -192,7 +193,7 @@ async def evaluate_batch(
 ) -> Dict[str, Any]:
     """Evaluate a list of inputs against policies. Returns one result per input."""
     engine = get_policy_engine()
-    effective_org_id = body.org_id or org_id
+    effective_org_id = resolve_tenant(org_id, body)
     results = engine.evaluate_batch(
         inputs=body.inputs,
         scope=body.scope,
@@ -261,7 +262,7 @@ async def import_policies(
 ) -> Dict[str, Any]:
     """Bulk-import policies from a JSON string."""
     engine = get_policy_engine()
-    effective_org_id = body.org_id or org_id
+    effective_org_id = resolve_tenant(org_id, body)
     try:
         count = engine.import_policies(
             policies_json=body.policies_json, org_id=effective_org_id

@@ -34,6 +34,7 @@ from core.audit_analytics import (
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from apps.api.tenant_resolution import resolve_tenant  # credential decides the tenant
 
 router = APIRouter(prefix="/api/v1/audit-analytics", tags=["audit-analytics"])
 
@@ -284,7 +285,7 @@ async def ingest_log(
     Supported formats: json, syslog, cef, leef.
     The line is parsed, normalised, and persisted immediately.
     """
-    effective_org = body.org_id or org_id
+    effective_org = resolve_tenant(org_id, body)
     try:
         entry = _get_engine().ingest(body.raw, body.format, org_id=effective_org)
     except Exception as exc:
@@ -312,7 +313,7 @@ async def ingest_batch(
     Optionally runs anomaly detection over the batch after ingestion.
     All lines must share the same wire format.
     """
-    effective_org = body.org_id or org_id
+    effective_org = resolve_tenant(org_id, body)
     try:
         entries, anomalies = _get_engine().ingest_batch(
             lines=body.lines,
@@ -405,7 +406,7 @@ async def detect_anomalies(
     Scans entries within the optional [start, end] window, applies all
     detection rules, persists new anomalies, and returns them.
     """
-    effective_org = body.org_id or org_id
+    effective_org = resolve_tenant(org_id, body)
     anomalies = _get_engine().detect_anomalies(
         start=body.start, end=body.end, org_id=effective_org
     )
@@ -528,7 +529,7 @@ async def build_forensic_timeline(
     Returns events in chronological order, plus actor and resource summaries.
     Useful for incident investigation and post-mortem analysis.
     """
-    effective_org = body.org_id or org_id
+    effective_org = resolve_tenant(org_id, body)
     timeline: ForensicTimeline = _get_engine().build_timeline(
         query=body.query,
         start=body.start,

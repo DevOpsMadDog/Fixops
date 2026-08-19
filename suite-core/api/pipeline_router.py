@@ -22,6 +22,7 @@ from apps.api.dependencies import get_org_id
 from apps.api.endpoint_rate_limit import enforce as _rl_enforce
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator
+from apps.api.tenant_resolution import resolve_tenant  # credential decides the tenant
 
 logger = logging.getLogger(__name__)
 
@@ -247,7 +248,7 @@ async def run_pipeline(
 
     # The request body's org_id takes precedence (caller may specify a sub-org);
     # fall back to the JWT/header derived org_id.
-    effective_org_id = req.org_id or org_id
+    effective_org_id = resolve_tenant(org_id, req)
     pipeline = get_brain_pipeline()
     inp = PipelineInput(
         org_id=effective_org_id,
@@ -330,7 +331,7 @@ async def generate_evidence_pack(
     """Generate a SOC2 Type II evidence pack (persisted, org-scoped)."""
     from core.soc2_evidence_generator import get_evidence_generator
 
-    effective_org_id = req.org_id or org_id
+    effective_org_id = resolve_tenant(org_id, req)
     # Issue 4: use the persistent singleton, not a throw-away instance
     generator = get_evidence_generator()
     platform_data = _collect_platform_data(req)

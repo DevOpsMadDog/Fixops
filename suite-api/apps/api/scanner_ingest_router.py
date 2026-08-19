@@ -1025,6 +1025,7 @@ async def scanner_ingest_status():
 # ═══════════════════════════════════════════════════════════════════════════
 
 from pydantic import BaseModel as _BaseModel, Field as _Field  # noqa: E402, F401
+from apps.api.tenant_resolution import resolve_tenant  # credential decides the tenant
 
 scanners_alias_router = APIRouter(
     prefix="/api/v1/scanners",
@@ -1059,7 +1060,7 @@ async def scanners_ingest_alias(body: _IngestBody, org_id: str = Depends(get_org
     """JSON-body ingest alias. Promotes findings to issues queue and records stats."""
     findings = body.findings or []
     scanner = body.scanner_type or "unknown"
-    effective_org = body.org_id or org_id
+    effective_org = resolve_tenant(org_id, body)
     now = datetime.now(timezone.utc).isoformat()
 
     # Promote to SecurityFindingsEngine (same path as upload handler)

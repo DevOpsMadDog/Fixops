@@ -424,7 +424,10 @@ async def evidence_stats(request: Request) -> dict[str, Any]:
 
 
 @router.get("/bundles")
-async def list_compliance_bundles(request: Request) -> dict[str, Any]:
+async def list_compliance_bundles(
+    request: Request,
+    org_id: str = Depends(get_org_id),
+) -> dict[str, Any]:
     """List compliance evidence bundles with metadata.
 
     Returns available bundles for auditor consumption including
@@ -466,9 +469,49 @@ async def list_compliance_bundles(request: Request) -> dict[str, Any]:
                 "sections": manifest_data.get("sections", []),
             })
 
-    # No real bundles on disk — return honest empty response.
-    # Never fabricate signed bundles as if real.
+    # Bundles generated through POST /bundles/generate live in the evidence
+    # generator's store, not on disk as YAML manifests. Listing only the disk
+    # meant every bundle a customer generated through this very router came back
+    # as "0 bundles" — generated, then invisible. Union both, scoped to the
+    # caller's tenant.
+    try:
+        from core.soc2_evidence_generator import get_evidence_generator
+
+        seen = {b["id"] for b in bundles}
+        for pack in get_evidence_generator().list_packs():
+            if pack.org_id != org_id or pack.pack_id in seen:
+                continue
+            bundles.append({
+                "id": pack.pack_id,
+                "framework": pack.framework,
+                "frameworks": [pack.framework],
+                "date_range": {"start": pack.timeframe_start, "end": pack.timeframe_end},
+                "status": pack.overall_status,
+                "created_at": pack.generated_at,
+                # Measured from the pack itself. No invented page counts.
+                "controls_assessed": pack.controls_assessed,
+                "controls_effective": pack.controls_effective,
+                "finding_count": int((pack.summary or {}).get("total_findings", 0) or 0),
+                "signed_by": None,
+                "signature_valid": False,
+                "sections": [{"name": "Control Assessments", "count": len(pack.assessments or [])}],
+            })
+    except Exception:  # pragma: no cover — a listing must not 500
+        logger.debug("evidence: generator-backed bundles unavailable", exc_info=True)
+
+    # Still possibly empty — and that is an honest answer, never a fabricated one.
     return {"bundles": bundles, "total": len(bundles)}
+
+
+def _timeframe_days_from(date_range: dict[str, Any]) -> int:
+    """Days between the requested start and end, defaulting to 90."""
+    try:
+        start = dt.fromisoformat(str(date_range.get("start")))
+        end = dt.fromisoformat(str(date_range.get("end")))
+        days = (end - start).days
+        return days if 1 <= days <= 365 else 90
+    except Exception:
+        return 90
 
 
 @router.post("/bundles/generate")
@@ -512,10 +555,37 @@ async def generate_compliance_bundle(
 
     categories = body.categories
 
-    bundle_id = f"EVB-{dt.now(tz.utc).strftime('%Y')}-{uuid.uuid4().hex[:6].upper()}"
-    created_at = dt.now(tz.utc).isoformat()
+    # Generate a REAL pack through the same generator /api/v1/pipeline/evidence
+    # uses, and persist it.
+    #
+    # This handler used to build a dict in memory and return it. Nothing was
+    # written anywhere: GET /bundles listed zero, GET /bundles/{id}/download
+    # 404'd, and the response carried invented section page counts ("Executive
+    # Summary: 3 pages", "Control Mapping: 15"), finding_count 0 for a tenant
+    # holding 33 findings, and a "hash" computed over the bundle's own id and
+    # timestamp — a hash of its metadata, attesting to no content whatsoever.
+    #
+    # In a compliance product that is the worst possible place for a stub: it
+    # renders as a signed, page-counted audit bundle that an assessor could be
+    # shown, and none of it exists.
+    from core.soc2_evidence_generator import get_evidence_generator
+
+    generator = get_evidence_generator()
+    timeframe_days = _timeframe_days_from(date_range_dict)
+    pack = generator.generate(
+        org_id=org_id,
+        timeframe_days=timeframe_days,
+        platform_data={"frameworks": frameworks, "categories": categories},
+    )
+
+    bundle_id = pack.pack_id
+    created_at = pack.generated_at
+    pack_payload = pack.to_dict()
+
+    # Hash the CONTENT, not the label. A hash over the bundle's own identifiers
+    # changes when you regenerate and matches nothing a verifier could check.
     content_hash = hashlib.sha256(
-        f"{bundle_id}{created_at}{primary_framework}".encode()
+        json.dumps(pack_payload, sort_keys=True, default=str).encode()
     ).hexdigest()
 
     logger.info(
@@ -534,19 +604,19 @@ async def generate_compliance_bundle(
         "categories": categories,
         "status": "generated",
         "created_at": created_at,
-        "size_mb": 0,
-        "finding_count": 0,
-        "remediation_count": 0,
+        # Measured, not asserted. Zero here means zero was assessed.
+        "controls_assessed": pack.controls_assessed,
+        "controls_effective": pack.controls_effective,
+        "overall_status": pack.overall_status,
+        "finding_count": int((pack.summary or {}).get("total_findings", 0) or 0),
         "hash": f"sha256:{content_hash}",
+        # Signing is a separate, deliberate step. Claiming a signature here
+        # would be the same lie in a different field.
         "signed_by": None,
         "signature_valid": False,
         "sections": [
-            {"name": "Executive Summary", "page_count": 3},
-            {"name": f"{primary_framework} Control Mapping", "page_count": 15},
-            {"name": "Finding Inventory", "page_count": 30},
-            {"name": "Risk Score Analysis", "page_count": 10},
-            {"name": "Remediation Evidence", "page_count": 25},
-            {"name": "Audit Trail", "page_count": 12},
+            {"name": "Control Assessments", "count": len(pack.assessments or [])},
+            {"name": "Summary", "count": len(pack.summary or {})},
         ],
     }
 

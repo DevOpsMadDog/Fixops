@@ -142,7 +142,7 @@ async def create_or_update_node(
 ) -> Dict[str, Any]:
     """Create or update a node in the Knowledge Graph."""
     # Prefer explicit org_id in body; fall back to request-scoped org_id
-    effective_org_id = body.org_id or org_id
+    effective_org_id = resolve_tenant(org_id, body)
     brain = get_brain()
     node = GraphNode(
         node_id=body.node_id,
@@ -538,7 +538,7 @@ async def ingest_cve(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Ingest a CVE into the Knowledge Brain."""
-    effective_org_id = body.org_id or org_id
+    effective_org_id = resolve_tenant(org_id, body)
     brain = get_brain()
     extra = body.model_dump(exclude={"cve_id", "org_id"}, exclude_none=True)
     node = brain.ingest_cve(body.cve_id, org_id=effective_org_id, **extra)
@@ -565,7 +565,7 @@ async def ingest_finding(
     - Direct:   ``{"finding_id": "f-123", "severity": "high", ...}``
     - Envelope: ``{"entity_type": "vulnerability", "data": {"cve_id": "CVE-...", ...}}``
     """
-    effective_org_id = body.org_id or org_id
+    effective_org_id = resolve_tenant(org_id, body)
     finding_id = body.resolved_finding_id()
     extra = body.resolved_extra()
     cve_id = extra.pop("cve_id", body.cve_id)
@@ -589,7 +589,7 @@ async def ingest_scan(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Ingest a scan result into the Knowledge Brain."""
-    effective_org_id = body.org_id or org_id
+    effective_org_id = resolve_tenant(org_id, body)
     brain = get_brain()
     extra = body.model_dump(exclude={"scan_id", "org_id", "findings"}, exclude_none=True)
     node = brain.ingest_scan(body.scan_id, org_id=effective_org_id, findings=body.findings, **extra)
@@ -602,7 +602,7 @@ async def ingest_asset(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Ingest an asset into the Knowledge Brain."""
-    effective_org_id = body.org_id or org_id
+    effective_org_id = resolve_tenant(org_id, body)
     brain = get_brain()
     extra = body.model_dump(exclude={"asset_id", "org_id"}, exclude_none=True)
     node = brain.ingest_asset(body.asset_id, org_id=effective_org_id, **extra)
@@ -615,7 +615,7 @@ async def ingest_remediation(
     org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Ingest a remediation task into the Knowledge Brain."""
-    effective_org_id = body.org_id or org_id
+    effective_org_id = resolve_tenant(org_id, body)
     brain = get_brain()
     extra = body.model_dump(exclude={"task_id", "org_id", "finding_id"}, exclude_none=True)
     node = brain.ingest_remediation(body.task_id, finding_id=body.finding_id, org_id=effective_org_id, **extra)
@@ -906,6 +906,7 @@ async def get_auto_suppress_rules(
 # ---------------------------------------------------------------------------
 
 import uuid as _uuid  # noqa: E402 — import here to avoid shadowing top-level uuid
+from apps.api.tenant_resolution import resolve_tenant  # credential decides the tenant
 
 
 class PipelineRunRequest(BaseModel):
@@ -933,7 +934,7 @@ async def trigger_pipeline_run(
     import asyncio as _asyncio
     from core.brain_pipeline import BrainPipeline, PipelineInput, get_brain_pipeline
 
-    effective_org = body.org_id or org_id
+    effective_org = resolve_tenant(org_id, body)
     inp = PipelineInput(
         org_id=effective_org,
         findings=body.findings or [],
@@ -1018,7 +1019,7 @@ async def generate_evidence(
     via the evidence engine directly.
     """
     import datetime as _dt
-    effective_org = body.org_id or org_id
+    effective_org = resolve_tenant(org_id, body)
 
     # Try to use last run's evidence data
     try:
