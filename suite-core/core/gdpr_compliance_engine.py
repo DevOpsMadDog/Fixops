@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -85,7 +86,7 @@ class GDPRComplianceEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS gdpr_activities (
                     id               TEXT PRIMARY KEY,
@@ -184,12 +185,12 @@ class GDPRComplianceEngine:
             query += " AND status=?"
             params.append(status)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [self._deserialize_activity(dict(r)) for r in rows]
 
     def _get_activity(self, org_id: str, activity_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM gdpr_activities WHERE org_id=? AND id=?",
                 (org_id, activity_id),
@@ -246,7 +247,7 @@ class GDPRComplianceEngine:
             query += " AND subject_id=?"
             params.append(subject_id)
         query += " ORDER BY recorded_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [self._deserialize_consent(dict(r)) for r in rows]
 
@@ -267,7 +268,7 @@ class GDPRComplianceEngine:
         return self._get_consent(org_id, consent_id)
 
     def _get_consent(self, org_id: str, consent_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM gdpr_consents WHERE org_id=? AND id=?",
                 (org_id, consent_id),
@@ -293,7 +294,7 @@ class GDPRComplianceEngine:
         Returns metrics including consent_rate and compliance_score (0-100).
         compliance_score is based on having processing activities + consent coverage.
         """
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total_activities = conn.execute(
                 "SELECT COUNT(*) FROM gdpr_activities WHERE org_id=?", (org_id,)
             ).fetchone()[0]

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -87,7 +88,7 @@ class DataPrivacyEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS privacy_assets (
                     id              TEXT PRIMARY KEY,
@@ -187,13 +188,13 @@ class DataPrivacyEngine:
             query += " AND classification=?"
             params.append(classification)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def get_data_asset(self, org_id: str, asset_id: str) -> Dict[str, Any]:
         """Fetch a single data asset, scoped to org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM privacy_assets WHERE org_id=? AND id=?",
                 (org_id, asset_id),
@@ -246,7 +247,7 @@ class DataPrivacyEngine:
             query += " AND status=?"
             params.append(status)
         query += " ORDER BY submitted_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
@@ -281,7 +282,7 @@ class DataPrivacyEngine:
         return self._get_request(org_id, request_id)
 
     def _get_request(self, org_id: str, request_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM privacy_requests WHERE org_id=? AND id=?",
                 (org_id, request_id),
@@ -298,7 +299,7 @@ class DataPrivacyEngine:
         """Return privacy overview stats: assets by category/classification, requests by type/status."""
         overdue_cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total_assets = conn.execute(
                 "SELECT COUNT(*) FROM privacy_assets WHERE org_id=?", (org_id,)
             ).fetchone()[0]

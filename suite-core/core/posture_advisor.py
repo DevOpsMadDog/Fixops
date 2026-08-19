@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -122,7 +123,7 @@ class _AdvisorDB:
 
     def _init_schema(self) -> None:
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.executescript("""
                     CREATE TABLE IF NOT EXISTS analyses (
                         analysis_id TEXT PRIMARY KEY,
@@ -164,7 +165,7 @@ class _AdvisorDB:
 
     def insert_analysis(self, row: Dict[str, Any]) -> None:
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     """INSERT OR REPLACE INTO analyses
                        (analysis_id, org_id, posture_score, recommendation_ids,
@@ -177,7 +178,7 @@ class _AdvisorDB:
 
     def insert_recommendation(self, row: Dict[str, Any]) -> None:
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     """INSERT OR REPLACE INTO recommendations
                        (rec_id, analysis_id, org_id, template_id, category, priority,
@@ -194,7 +195,7 @@ class _AdvisorDB:
 
     def get_recommendation(self, rec_id: str) -> Optional[Dict[str, Any]]:
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 row = conn.execute(
                     "SELECT * FROM recommendations WHERE rec_id = ?", (rec_id,)
                 ).fetchone()
@@ -220,7 +221,7 @@ class _AdvisorDB:
             params.append(status)
         query += " ORDER BY CASE priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END, created_at DESC"
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 rows = conn.execute(query, params).fetchall()
                 return [dict(r) for r in rows]
 
@@ -229,7 +230,7 @@ class _AdvisorDB:
         set_clause = ", ".join(f"{k} = :{k}" for k in updates)
         updates["rec_id"] = rec_id
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     f"UPDATE recommendations SET {set_clause} WHERE rec_id = :rec_id",  # nosec B608
                     updates,
@@ -237,7 +238,7 @@ class _AdvisorDB:
 
     def get_stats(self, org_id: str) -> Dict[str, Any]:
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 total_analyses = conn.execute(
                     "SELECT COUNT(*) FROM analyses WHERE org_id = ?", (org_id,)
                 ).fetchone()[0]

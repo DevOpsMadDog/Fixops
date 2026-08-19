@@ -15,6 +15,7 @@ Compliance: SOC2 CC7.2, ISO27001 A.12.6.1, NIST SP 800-137
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -173,7 +174,7 @@ class SLAEscalationEngine:
         now = _now()
         breaches: list[dict] = []
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 """
                 SELECT finding_id, severity, deadline
@@ -235,7 +236,7 @@ class SLAEscalationEngine:
         now = _now()
         hours_past = 0.0
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT deadline FROM sla_tracked_findings WHERE finding_id = ? AND org_id = ?",
                 (finding_id, org_id),
@@ -275,7 +276,7 @@ class SLAEscalationEngine:
         org_id: str = "default",
     ) -> list[dict]:
         """List escalation events, optionally filtered by finding_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             if finding_id:
                 rows = conn.execute(
                     """
@@ -392,7 +393,7 @@ class SLAEscalationEngine:
 
     def get_escalation_policy(self, org_id: str = "default") -> dict:
         """Return the escalation policy for an org, or sensible defaults."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM escalation_policies WHERE org_id = ?",
                 (org_id,),

@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -90,7 +91,7 @@ class RegulatoryReportingEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS regulations (
                     id                TEXT PRIMARY KEY,
@@ -196,12 +197,12 @@ class RegulatoryReportingEngine:
             query += " AND regulation_type=?"
             params.append(regulation_type)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def _get_regulation(self, org_id: str, reg_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM regulations WHERE org_id=? AND id=?",
                 (org_id, reg_id),
@@ -294,7 +295,7 @@ class RegulatoryReportingEngine:
             query += " AND status=?"
             params.append(status)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         results = []
         for r in rows:
@@ -307,7 +308,7 @@ class RegulatoryReportingEngine:
         return results
 
     def _get_report(self, org_id: str, report_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM reports WHERE org_id=? AND id=?",
                 (org_id, report_id),
@@ -327,7 +328,7 @@ class RegulatoryReportingEngine:
 
     def get_regulatory_stats(self, org_id: str) -> Dict[str, Any]:
         """Return regulatory compliance statistics for the org."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             regs = conn.execute(
                 "SELECT * FROM regulations WHERE org_id=?", (org_id,)
             ).fetchall()

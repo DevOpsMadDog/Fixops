@@ -33,6 +33,7 @@ import json
 import logging
 import os
 import sqlite3
+from contextlib import closing
 import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -126,13 +127,13 @@ class ShodanLookupEngine:
         return bool(self._api_key())
 
     def cache_size(self) -> int:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute("SELECT COUNT(*) AS n FROM shodan_cache").fetchone()
             return int(row["n"]) if row else 0
 
     def _cache_get(self, key: str) -> Optional[Dict[str, Any]]:
         now = datetime.now(timezone.utc).isoformat()
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT response_json FROM shodan_cache "
                 "WHERE cache_key = ? AND expires_at > ?",

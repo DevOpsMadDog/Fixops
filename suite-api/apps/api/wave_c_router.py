@@ -43,6 +43,7 @@ import logging
 import os
 import shutil
 import sqlite3
+from contextlib import closing
 import threading
 import time
 import uuid
@@ -402,7 +403,7 @@ def system_fips_self_test(
     # Persist audit row
     try:
         db = _data_dir() / "fips_self_tests.db"
-        with sqlite3.connect(str(db)) as conn:
+        with closing(sqlite3.connect(str(db))) as conn, conn:
             conn.execute(
                 """CREATE TABLE IF NOT EXISTS fips_self_tests(
                     id TEXT PRIMARY KEY,
@@ -1100,7 +1101,7 @@ def cspm_snapshot_scan(
     # Persist scan request even on engine failure (so worker can retry)
     try:
         db = _data_dir() / "cspm_snapshot_scans.db"
-        with sqlite3.connect(str(db)) as conn:
+        with closing(sqlite3.connect(str(db))) as conn, conn:
             conn.execute(
                 """CREATE TABLE IF NOT EXISTS cspm_snapshot_scans(
                     id TEXT PRIMARY KEY,
@@ -1190,7 +1191,7 @@ def skills_uninstall(
     # Persist uninstall record
     try:
         db = _data_dir() / "skills_lifecycle.db"
-        with sqlite3.connect(str(db)) as conn:
+        with closing(sqlite3.connect(str(db))) as conn, conn:
             conn.execute(
                 """CREATE TABLE IF NOT EXISTS skill_uninstalls(
                     id TEXT PRIMARY KEY, org_id TEXT, skill_id TEXT,
@@ -1293,7 +1294,7 @@ def toggle_rule_enabled(
     # Generic persistence
     try:
         db = _data_dir() / "rule_toggles.db"
-        with sqlite3.connect(str(db)) as conn:
+        with closing(sqlite3.connect(str(db))) as conn, conn:
             conn.execute(
                 """CREATE TABLE IF NOT EXISTS rule_toggles(
                     org_id TEXT, rule_key TEXT, enabled INTEGER, updated_at TEXT,
@@ -1365,7 +1366,7 @@ def llm_approve_spend(
     # Fallback approval ledger
     try:
         db = _data_dir() / "llm_spend_approvals.db"
-        with sqlite3.connect(str(db)) as conn:
+        with closing(sqlite3.connect(str(db))) as conn, conn:
             conn.execute(
                 """CREATE TABLE IF NOT EXISTS llm_spend_approvals(
                     estimate_id TEXT PRIMARY KEY, org_id TEXT, approver TEXT,
@@ -1424,7 +1425,7 @@ def llm_rule_context_requirement(
     # 1. Per-org override
     try:
         db = _data_dir() / "llm_rule_context.db"
-        with sqlite3.connect(str(db)) as conn:
+        with closing(sqlite3.connect(str(db))) as conn, conn:
             conn.execute(
                 """CREATE TABLE IF NOT EXISTS llm_rule_context(
                     org_id TEXT, rule_key TEXT, spec TEXT, updated_at TEXT,

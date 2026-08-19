@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -343,7 +344,7 @@ class PhishingSimulator:
 
     def _init_db(self) -> None:
         """Create tables if they do not exist."""
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS campaigns (
@@ -420,7 +421,7 @@ class PhishingSimulator:
         }.get(event_type)
 
         with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 # Validate campaign exists
                 row = conn.execute(
                     "SELECT id FROM campaigns WHERE id = ?", (campaign_id,)
@@ -478,7 +479,7 @@ class PhishingSimulator:
         )
 
         with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 conn.execute(
                     "INSERT INTO campaigns (id, name, template_id, target_emails, sent_count, "
                     "opened_count, clicked_count, reported_count, started_at, ended_at, org_id) "
@@ -524,7 +525,7 @@ class PhishingSimulator:
             ValueError: If campaign_id does not exist.
         """
         with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 campaign = self._get_campaign(conn, campaign_id)
                 if campaign is None:
                     raise ValueError(f"Campaign not found: {campaign_id}")
@@ -563,7 +564,7 @@ class PhishingSimulator:
             report_count, susceptibility_score, risk_level.
         """
         with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 # Campaigns in this org that included this email
                 rows = conn.execute(
                     "SELECT id, target_emails FROM campaigns WHERE org_id = ?",
@@ -628,7 +629,7 @@ class PhishingSimulator:
             total_reported, susceptibility_rate_pct, report_rate_pct, risk_level.
         """
         with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 row = conn.execute(
                     "SELECT COUNT(*), SUM(sent_count), SUM(clicked_count), SUM(reported_count) "
                     "FROM campaigns WHERE org_id = ?",
@@ -670,7 +671,7 @@ class PhishingSimulator:
             List of campaign dicts (without per-user event breakdown).
         """
         with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 rows = conn.execute(
                     "SELECT id, name, template_id, target_emails, sent_count, opened_count, "
                     "clicked_count, reported_count, started_at, ended_at, org_id "
@@ -706,7 +707,7 @@ class PhishingSimulator:
         if template_id in _TEMPLATE_INDEX:
             return _TEMPLATE_INDEX[template_id]
         with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 row = conn.execute(
                     "SELECT data FROM custom_templates WHERE id = ?", (template_id,)
                 ).fetchone()
@@ -718,7 +719,7 @@ class PhishingSimulator:
         """Return all built-in templates plus any custom ones."""
         templates = list(BUILTIN_TEMPLATES)
         with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 rows = conn.execute("SELECT data FROM custom_templates").fetchall()
         for (data,) in rows:
             templates.append(PhishingTemplate.model_validate_json(data))
@@ -727,7 +728,7 @@ class PhishingSimulator:
     def add_custom_template(self, template: PhishingTemplate) -> PhishingTemplate:
         """Persist a custom template to the database."""
         with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 conn.execute(
                     "INSERT OR REPLACE INTO custom_templates (id, data) VALUES (?, ?)",
                     (template.id, template.model_dump_json()),

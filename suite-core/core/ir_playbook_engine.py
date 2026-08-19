@@ -26,6 +26,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -1007,7 +1008,7 @@ class IRPlaybookEngine:
     # -----------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS ir_incidents (
                     id              TEXT PRIMARY KEY,
@@ -1087,7 +1088,7 @@ class IRPlaybookEngine:
 
         FEATURE-5: when DATABASE_URL is set the adapter returns a psycopg2.connection
         instead of sqlite3.Connection. Both support the context-manager protocol so
-        existing `with self._connect() as conn:` callers work unchanged.
+        existing `with closing(self._connect()) as conn, conn:` callers work unchanged.
         """
         if self._db.is_postgres:
             return self._db._psycopg2.connect(self._db.dsn)  # type: ignore[union-attr]
@@ -1233,7 +1234,7 @@ class IRPlaybookEngine:
         )
 
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     """
                     INSERT INTO ir_incidents
@@ -1289,7 +1290,7 @@ class IRPlaybookEngine:
 
     def get_incident(self, incident_id: str, org_id: str = "default") -> Optional[IRIncident]:
         """Retrieve an incident by ID."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM ir_incidents WHERE id = ? AND org_id = ?",
                 (incident_id, org_id),
@@ -1315,7 +1316,7 @@ class IRPlaybookEngine:
         query += " ORDER BY created_at DESC LIMIT ?"
         params.append(limit)
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [self._row_to_incident(r) for r in rows]
 
@@ -1368,7 +1369,7 @@ class IRPlaybookEngine:
             resolved_at = now
 
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     """
                     UPDATE ir_incidents
@@ -1442,7 +1443,7 @@ class IRPlaybookEngine:
         now = datetime.now(timezone.utc)
 
         # Get previous evidence for chain linking
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             prev_row = conn.execute(
                 """
                 SELECT sha256_hash, chain_sequence FROM ir_evidence
@@ -1468,7 +1469,7 @@ class IRPlaybookEngine:
         )
 
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     """
                     INSERT INTO ir_evidence
@@ -1499,7 +1500,7 @@ class IRPlaybookEngine:
         """Return the full evidence chain for an incident, in collection order."""
         if not self.get_incident(incident_id, org_id=org_id):
             raise ValueError(f"Incident '{incident_id}' not found")
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT * FROM ir_evidence WHERE incident_id = ? ORDER BY chain_sequence ASC",
                 (incident_id,),
@@ -1547,7 +1548,7 @@ class IRPlaybookEngine:
             metadata=metadata or {},
         )
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     """
                     INSERT INTO ir_timeline
@@ -1566,7 +1567,7 @@ class IRPlaybookEngine:
         """Return incident timeline in chronological order."""
         if not self.get_incident(incident_id, org_id=org_id):
             raise ValueError(f"Incident '{incident_id}' not found")
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT * FROM ir_timeline WHERE incident_id = ? ORDER BY timestamp ASC",
                 (incident_id,),
@@ -1617,7 +1618,7 @@ class IRPlaybookEngine:
             is_overdue = deadline_at is not None and now > deadline_at
 
             with self._lock:
-                with self._connect() as conn:
+                with closing(self._connect()) as conn, conn:
                     conn.execute(
                         """
                         INSERT INTO ir_notifications
@@ -1652,7 +1653,7 @@ class IRPlaybookEngine:
             params.append(incident_id)
         query += " ORDER BY n.deadline_at ASC NULLS LAST"
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
 
         notifications = [self._row_to_notification(r) for r in rows]
@@ -1663,7 +1664,7 @@ class IRPlaybookEngine:
                 n.is_overdue = True
                 n.status = "overdue"
                 with self._lock:
-                    with self._connect() as conn:
+                    with closing(self._connect()) as conn, conn:
                         conn.execute(
                             "UPDATE ir_notifications SET is_overdue = 1, status = 'overdue' WHERE id = ?",
                             (n.id,),
@@ -1677,7 +1678,7 @@ class IRPlaybookEngine:
         """Mark a regulatory notification as sent."""
         now = datetime.now(timezone.utc)
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     """
                     UPDATE ir_notifications
@@ -1690,7 +1691,7 @@ class IRPlaybookEngine:
                 )
 
         # Return updated notification
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM ir_notifications WHERE id = ?", (notification_id,)
             ).fetchone()
@@ -1705,7 +1706,7 @@ class IRPlaybookEngine:
         Compute MTTD, MTTC, MTTR and aggregate incident metrics for an org.
         All times in hours.
         """
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             # Counts
             count_row = conn.execute(
                 """

@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 from datetime import datetime, timezone
 from enum import Enum
@@ -186,7 +187,7 @@ class OnboardingManager:
 
     def _init_db(self) -> None:
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             # Enable WAL mode for concurrent reads and reduced fsync latency
             # (hotfix #2).
             conn.execute("PRAGMA journal_mode=WAL")
@@ -413,7 +414,7 @@ class OnboardingManager:
 
     def get_step_config(self, org_id: str, step: OnboardingStep) -> Dict[str, Any]:
         """Return stored config for a completed step (empty dict if not found)."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT config FROM step_configs WHERE org_id = ? AND step = ?",
                 (org_id, step.value),
@@ -423,7 +424,7 @@ class OnboardingManager:
     def reset_onboarding(self, org_id: str) -> OnboardingProgress:
         """Delete all state for org_id and start a fresh onboarding."""
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute("DELETE FROM onboardings WHERE org_id = ?", (org_id,))
                 conn.execute("DELETE FROM step_configs WHERE org_id = ?", (org_id,))
         logger.info("Reset onboarding for org=%s", org_id)
@@ -436,7 +437,7 @@ class OnboardingManager:
 
         status_filter: 'completed' | 'in_progress' | 'not_started' | None (all)
         """
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT * FROM onboardings ORDER BY started_at DESC"
             ).fetchall()

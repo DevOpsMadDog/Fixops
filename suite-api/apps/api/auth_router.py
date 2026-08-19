@@ -651,12 +651,19 @@ async def revoke_disposable_token_endpoint(token_id: str, request: Request):
 @router.get("/disposable-tokens", dependencies=[Depends(api_key_auth)])
 async def list_disposable_tokens_endpoint(
     request: Request,
-    org_id: Optional[str] = None,
     active_only: bool = Query(default=True),
+    # Not a bare query parameter. get_org_id returns the tenant the credential
+    # pinned, and only falls back to caller-supplied values when nothing pinned
+    # one — which is the operator case. A customer therefore cannot list another
+    # tenant's tokens by naming it.
+    org_id: str = Depends(get_org_id),
 ):
     """List disposable tokens (never returns raw_token/hash). Defaults to caller's org."""
     ident = _caller_identity(request)
-    target_org = org_id or ident["org_id"]
+    # The caller's own identity decides. This read `org_id or ident["org_id"]`,
+    # so a query parameter overrode the authenticated identity and listed
+    # another tenant's disposable tokens.
+    target_org = ident["org_id"] or org_id
     # Tenant isolation: prevent cross-org listing unless caller has admin:all
     caller_scopes: list = getattr(request.state, "user_scopes", []) or []
     if target_org != ident["org_id"] and "admin:all" not in caller_scopes:

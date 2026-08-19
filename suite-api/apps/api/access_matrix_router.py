@@ -99,7 +99,7 @@ async def revoke_access(rule_id: str):
 async def list_rules(
     role: Optional[str] = None,
     resource_type: Optional[ResourceType] = None,
-    org_id: Optional[str] = None,
+    org_id: str = Depends(get_org_id),
     limit: int = Query(200, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):

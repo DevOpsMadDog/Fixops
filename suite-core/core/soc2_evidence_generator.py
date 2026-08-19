@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from dataclasses import dataclass, field
@@ -27,9 +28,24 @@ logger = logging.getLogger(__name__)
 # Issue 4: SQLite-backed evidence pack store (survives restart)
 # ---------------------------------------------------------------------------
 
-_EVIDENCE_DB_PATH = os.environ.get(
-    "FIXOPS_EVIDENCE_DB", os.path.join("data", "evidence_packs.db")
-)
+def _evidence_db_path() -> str:
+    """Where evidence packs are stored, resolved when asked rather than at import.
+
+    This used to be a module constant evaluated on import, so the path was fixed
+    for the life of the process. Anything that changed FIXOPS_DATA_DIR or
+    FIXOPS_EVIDENCE_DB afterwards was ignored, and the singleton below kept
+    writing to the ORIGINAL location — which, once that directory no longer
+    existed, surfaced as `sqlite3.OperationalError: disk I/O error` on evidence
+    generation. Silent for a while, then a 500 on the commercial wedge.
+    """
+    explicit = os.environ.get("FIXOPS_EVIDENCE_DB")
+    if explicit:
+        return explicit
+    return os.path.join(os.environ.get("FIXOPS_DATA_DIR", "data"), "evidence_packs.db")
+
+
+# Kept for callers that import the name; prefer _evidence_db_path().
+_EVIDENCE_DB_PATH = _evidence_db_path()
 
 
 class _EvidencePackStore:
@@ -49,20 +65,43 @@ class _EvidencePackStore:
     CREATE INDEX IF NOT EXISTS idx_ep_org_id ON evidence_packs(org_id);
     """
 
-    def __init__(self, db_path: str = _EVIDENCE_DB_PATH) -> None:
-        self._db_path = db_path
+    def __init__(self, db_path: Optional[str] = None) -> None:
+        self._db_path = db_path or _evidence_db_path()
         self._lock = threading.Lock()
         self._ensure_db()
 
     def _ensure_db(self) -> None:
         try:
             os.makedirs(os.path.dirname(self._db_path) or ".", exist_ok=True)
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.executescript(self._CREATE_TABLE)
         except Exception as exc:  # noqa: BLE001
             logger.warning("EvidencePackStore: DB init failed (in-memory fallback): %s", exc)
 
     def _connect(self) -> sqlite3.Connection:
+        try:
+            return self._open()
+        except sqlite3.OperationalError as exc:
+            # The directory can disappear under a long-lived process — a cleaned
+            # temp dir, an unmounted volume, an operator removing a path. SQLite
+            # reports it as "disk I/O error" or "unable to open database file",
+            # and it surfaced as a 500 on evidence generation: the commercial
+            # wedge failing because a directory went missing.
+            #
+            # Recreate the directory and retry ONCE. Logged as a warning rather
+            # than swallowed, because a vanishing data directory is a real
+            # operational event even when the retry succeeds.
+            logger.warning(
+                "EvidencePackStore: reopening %s after %s — recreating parent directory",
+                self._db_path,
+                exc,
+            )
+            os.makedirs(os.path.dirname(self._db_path) or ".", exist_ok=True)
+            conn = self._open()
+            conn.executescript(self._CREATE_TABLE)
+            return conn
+
+    def _open(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self._db_path, timeout=10, check_same_thread=False)
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA synchronous=NORMAL")
@@ -71,7 +110,7 @@ class _EvidencePackStore:
     def save(self, pack: "EvidencePack") -> None:
         """Persist a pack; idempotent on re-save (upsert by pack_id)."""
         try:
-            with self._lock, self._connect() as conn:
+            with self._lock, closing(self._connect()) as conn, conn:
                 conn.execute(
                     "INSERT OR REPLACE INTO evidence_packs "
                     "(pack_id, org_id, data_json, created_at) VALUES (?, ?, ?, ?)",
@@ -89,7 +128,7 @@ class _EvidencePackStore:
     def get(self, pack_id: str) -> Optional[Dict[str, Any]]:
         """Return the raw dict for a pack_id, or None."""
         try:
-            with self._lock, self._connect() as conn:
+            with self._lock, closing(self._connect()) as conn, conn:
                 row = conn.execute(
                     "SELECT data_json FROM evidence_packs WHERE pack_id=?", (pack_id,)
                 ).fetchone()
@@ -102,7 +141,7 @@ class _EvidencePackStore:
     def list_all(self) -> List[Dict[str, Any]]:
         """Return all packs ordered by created_at descending."""
         try:
-            with self._lock, self._connect() as conn:
+            with self._lock, closing(self._connect()) as conn, conn:
                 rows = conn.execute(
                     "SELECT data_json FROM evidence_packs ORDER BY created_at DESC"
                 ).fetchall()
@@ -731,8 +770,16 @@ _generator_instance: Optional[SOC2EvidenceGenerator] = None
 
 
 def get_evidence_generator() -> SOC2EvidenceGenerator:
-    """Get the global SOC2EvidenceGenerator instance."""
+    """Get the global SOC2EvidenceGenerator, rebuilding it if the store moved.
+
+    A singleton that caches its database path is fine until the path changes
+    under it. Then it goes on writing to somewhere nobody reads — or, if that
+    location has been removed, fails with a disk I/O error on a request the
+    customer sees. Re-check the resolved path and rebuild when it differs.
+    """
     global _generator_instance
-    if _generator_instance is None:
+    wanted = _evidence_db_path()
+    current = getattr(getattr(_generator_instance, "_store", None), "_db_path", None)
+    if _generator_instance is None or (current is not None and current != wanted):
         _generator_instance = SOC2EvidenceGenerator()
     return _generator_instance

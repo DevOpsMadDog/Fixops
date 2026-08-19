@@ -63,6 +63,7 @@ import logging
 import os
 import socket
 import sqlite3
+from contextlib import closing
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -258,7 +259,7 @@ class DeploymentManager:
     def _bootstrap_meta_db(self) -> None:
         """Create the deployment meta database if it doesn't exist."""
         try:
-            with sqlite3.connect(str(self._meta_db_path)) as conn:
+            with closing(sqlite3.connect(str(self._meta_db_path))) as conn, conn:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS _deployment_meta (
                         key TEXT PRIMARY KEY,
@@ -289,7 +290,7 @@ class DeploymentManager:
 
     def _meta_get(self, key: str, default: str = "") -> str:
         try:
-            with sqlite3.connect(str(self._meta_db_path)) as conn:
+            with closing(sqlite3.connect(str(self._meta_db_path))) as conn, conn:
                 row = conn.execute(
                     "SELECT value FROM _deployment_meta WHERE key = ?", (key,)
                 ).fetchone()
@@ -299,7 +300,7 @@ class DeploymentManager:
 
     def _meta_set(self, key: str, value: str) -> None:
         try:
-            with sqlite3.connect(str(self._meta_db_path)) as conn:
+            with closing(sqlite3.connect(str(self._meta_db_path))) as conn, conn:
                 conn.execute(
                     """INSERT INTO _deployment_meta (key, value, updated_at)
                        VALUES (?, ?, ?)
@@ -566,7 +567,7 @@ class DeploymentManager:
             ("postgres", self._postgres_dsn.split("@")[-1] if "@" in self._postgres_dsn else "postgres:5432", False),
         ]
         try:
-            with sqlite3.connect(str(self._meta_db_path)) as conn:
+            with closing(sqlite3.connect(str(self._meta_db_path))) as conn, conn:
                 for name, url, optional in services:
                     conn.execute(
                         """INSERT INTO _service_registry (service_name, status, url, last_seen, optional)
@@ -610,7 +611,7 @@ class DeploymentManager:
         failed: Optional[str] = None
 
         try:
-            with sqlite3.connect(str(self._meta_db_path)) as conn:
+            with closing(sqlite3.connect(str(self._meta_db_path))) as conn, conn:
                 for migration in _MIGRATIONS:
                     version = migration["version"]
                     name = migration["name"]
@@ -668,7 +669,7 @@ class DeploymentManager:
     def get_migration_history(self) -> List[MigrationRecord]:
         """Return list of applied migrations."""
         try:
-            with sqlite3.connect(str(self._meta_db_path)) as conn:
+            with closing(sqlite3.connect(str(self._meta_db_path))) as conn, conn:
                 rows = conn.execute(
                     "SELECT version, name, applied_at, checksum FROM _migration_history ORDER BY version"
                 ).fetchall()
@@ -709,7 +710,7 @@ class DeploymentManager:
 
     def _update_service_status(self, name: str, status: str) -> None:
         try:
-            with sqlite3.connect(str(self._meta_db_path)) as conn:
+            with closing(sqlite3.connect(str(self._meta_db_path))) as conn, conn:
                 conn.execute(
                     """UPDATE _service_registry SET status=?, last_seen=?
                        WHERE service_name=?""",
@@ -722,7 +723,7 @@ class DeploymentManager:
     def get_service_registry(self) -> List[Dict[str, Any]]:
         """Return current service registry from meta DB."""
         try:
-            with sqlite3.connect(str(self._meta_db_path)) as conn:
+            with closing(sqlite3.connect(str(self._meta_db_path))) as conn, conn:
                 rows = conn.execute(
                     "SELECT service_name, status, url, last_seen, optional FROM _service_registry"
                 ).fetchall()

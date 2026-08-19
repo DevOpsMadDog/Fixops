@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -473,7 +474,7 @@ class DashboardBuilder:
         return conn
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS dashboards (
@@ -561,7 +562,7 @@ class DashboardBuilder:
         return dash
 
     def get_dashboard(self, dashboard_id: str) -> Dashboard:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM dashboards WHERE id = ?", (dashboard_id,)
             ).fetchone()
@@ -583,7 +584,7 @@ class DashboardBuilder:
             query += " AND owner_email = ?"
             params.append(owner)
         query += " ORDER BY updated_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [self._row_to_dashboard(r) for r in rows]
 
@@ -597,7 +598,7 @@ class DashboardBuilder:
                     value = DashboardVisibility(value)
                 setattr(dash, key, value)
             dash.updated_at = self._now()
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 self._save_dashboard(conn, dash)
         return dash
 
@@ -624,7 +625,7 @@ class DashboardBuilder:
                 )
             dash.widgets.append(widget)
             dash.updated_at = self._now()
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 self._save_dashboard(conn, dash)
         return widget
 
@@ -644,7 +645,7 @@ class DashboardBuilder:
                 updated = updated.model_copy(update={"type": WidgetType(updates["type"])})
             dash.widgets[idx] = updated
             dash.updated_at = self._now()
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 self._save_dashboard(conn, dash)
         return updated
 
@@ -656,7 +657,7 @@ class DashboardBuilder:
             if len(dash.widgets) == before:
                 raise KeyError(f"Widget not found: {widget_id}")
             dash.updated_at = self._now()
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 self._save_dashboard(conn, dash)
 
     def reorder_widgets(self, dashboard_id: str, widget_ids: List[str]) -> None:
@@ -676,7 +677,7 @@ class DashboardBuilder:
                     reordered.append(w.model_copy(update={"order": len(reordered)}))
             dash.widgets = reordered
             dash.updated_at = self._now()
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 self._save_dashboard(conn, dash)
 
     # ------------------------------------------------------------------
@@ -697,7 +698,7 @@ class DashboardBuilder:
             if visibility is not None:
                 dash.visibility = visibility
             dash.updated_at = self._now()
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 self._save_dashboard(conn, dash)
         return dash
 
@@ -770,7 +771,7 @@ class DashboardBuilder:
         return [dict(entry) for entry in _WIDGET_LIBRARY]
 
     def get_dashboard_stats(self, org_id: str = "default") -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total = conn.execute(
                 "SELECT COUNT(*) FROM dashboards WHERE org_id = ?", (org_id,)
             ).fetchone()[0]

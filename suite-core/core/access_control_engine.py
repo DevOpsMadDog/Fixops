@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -87,7 +88,7 @@ class AccessControlEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS policies (
                     id            TEXT PRIMARY KEY,
@@ -199,13 +200,13 @@ class AccessControlEngine:
             query += " AND effect=?"
             params.append(effect)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [self._deserialize_policy(dict(r)) for r in rows]
 
     def get_access_policy(self, org_id: str, policy_id: str) -> Dict[str, Any]:
         """Fetch a single policy, scoped to org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM policies WHERE org_id=? AND id=?",
                 (org_id, policy_id),
@@ -268,7 +269,7 @@ class AccessControlEngine:
             query += " AND resource_id=?"
             params.append(resource_id)
         query += " ORDER BY granted_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
@@ -298,7 +299,7 @@ class AccessControlEngine:
         return self._get_grant(org_id, grant_id)
 
     def _get_grant(self, org_id: str, grant_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM grants WHERE org_id=? AND id=?",
                 (org_id, grant_id),
@@ -319,7 +320,7 @@ class AccessControlEngine:
     ) -> List[Dict[str, Any]]:
         """Return list of active grants for subject+resource with policy details."""
         now = self._now()
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 """SELECT g.*, p.name as policy_name, p.resource_type,
                           p.action, p.effect, p.conditions
@@ -350,7 +351,7 @@ class AccessControlEngine:
         """Return access control overview stats for org_id."""
         now = self._now()
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total_policies = conn.execute(
                 "SELECT COUNT(*) FROM policies WHERE org_id=?", (org_id,)
             ).fetchone()[0]

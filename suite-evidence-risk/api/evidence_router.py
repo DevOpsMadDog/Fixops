@@ -635,7 +635,7 @@ async def generate_compliance_bundle(
                     },
                 )
             )
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+        except Exception:  # telemetry must not fail the request it observes
             logger.debug("Failed to emit EVIDENCE_COLLECTED event", exc_info=True)
 
     return bundle
@@ -969,7 +969,7 @@ async def verify_bundle(
                     },
                 )
             )
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+        except Exception:  # telemetry must not fail the request it observes
             logger.debug("Failed to emit verification event", exc_info=True)
 
     return BundleVerificationResult(
@@ -1859,7 +1859,7 @@ async def export_compliance_bundle(
                     },
                 )
             )
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError):
+        except Exception:  # telemetry must not fail the request it observes
             logger.debug("Failed to emit EVIDENCE_COLLECTED event", exc_info=True)
 
     logger.info(

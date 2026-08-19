@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -67,7 +68,7 @@ class MobileAppSecurityEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 PRAGMA journal_mode=WAL;
 
@@ -203,7 +204,7 @@ class MobileAppSecurityEngine:
             query += " AND risk_level=?"
             params.append(risk_level)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
@@ -377,7 +378,7 @@ class MobileAppSecurityEngine:
 
     def get_app(self, org_id: str, app_id: str) -> Optional[Dict[str, Any]]:
         """Fetch a single app scoped to org_id. Returns None if not found."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM mas_apps WHERE org_id=? AND id=?",
                 (org_id, app_id),
@@ -451,7 +452,7 @@ class MobileAppSecurityEngine:
             query += " AND status=?"
             params.append(status)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
@@ -477,7 +478,7 @@ class MobileAppSecurityEngine:
         return self._get_finding(org_id, finding_id)
 
     def _get_finding(self, org_id: str, finding_id: str) -> Optional[Dict[str, Any]]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM mas_findings WHERE org_id=? AND id=?",
                 (org_id, finding_id),
@@ -567,12 +568,12 @@ class MobileAppSecurityEngine:
             query += " AND scan_type=?"
             params.append(scan_type)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def _get_scan(self, org_id: str, scan_id: str) -> Optional[Dict[str, Any]]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM mas_scans WHERE org_id=? AND id=?",
                 (org_id, scan_id),
@@ -585,7 +586,7 @@ class MobileAppSecurityEngine:
 
     def get_mobile_stats(self, org_id: str) -> Dict[str, Any]:
         """Return mobile app security overview stats for org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total_apps = conn.execute(
                 "SELECT COUNT(*) FROM mas_apps WHERE org_id=?", (org_id,)
             ).fetchone()[0]

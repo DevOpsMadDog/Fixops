@@ -33,6 +33,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import time
 import uuid
@@ -189,7 +190,7 @@ class SOAREngine:
     # -----------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS soar_playbooks (
                     id          TEXT PRIMARY KEY,
@@ -237,7 +238,7 @@ class SOAREngine:
 
     def _seed_default_playbooks(self) -> None:
         """Insert built-in playbooks if none exist yet (idempotent, global scope)."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             existing = conn.execute(
                 "SELECT COUNT(*) FROM soar_playbooks WHERE org_id = 'default'"
             ).fetchone()[0]
@@ -344,7 +345,7 @@ class SOAREngine:
 
     def _insert_playbook(self, pb: SOARPlaybook) -> None:
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     """
                     INSERT OR IGNORE INTO soar_playbooks
@@ -496,7 +497,7 @@ class SOAREngine:
     ) -> None:
         """Incrementally update execution_count and rolling avg_response_seconds."""
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 row = conn.execute(
                     "SELECT execution_count, avg_response_seconds FROM soar_playbooks WHERE id = ?",
                     (playbook_id,),
@@ -546,7 +547,7 @@ class SOAREngine:
 
     def get_playbook(self, playbook_id: str, org_id: str = "default") -> Optional[SOARPlaybook]:
         """Retrieve a single playbook by ID."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM soar_playbooks WHERE id = ? AND org_id = ?",
                 (playbook_id, org_id),
@@ -555,7 +556,7 @@ class SOAREngine:
 
     def list_playbooks(self, org_id: str = "default") -> List[SOARPlaybook]:
         """List all playbooks for an org."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT * FROM soar_playbooks WHERE org_id = ? ORDER BY created_at DESC",
                 (org_id,),
@@ -582,7 +583,7 @@ class SOAREngine:
             _logger.warning("Unknown trigger value: %s", trigger_value)
             return []
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 """
                 SELECT * FROM soar_playbooks
@@ -633,7 +634,7 @@ class SOAREngine:
 
         # Insert pending execution record
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     """
                     INSERT INTO soar_executions
@@ -673,7 +674,7 @@ class SOAREngine:
 
         # Persist final execution state
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     """
                     UPDATE soar_executions
@@ -729,13 +730,13 @@ class SOAREngine:
         query += " ORDER BY started_at DESC LIMIT ?"
         params.append(limit)
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [self._row_to_execution(r) for r in rows]
 
     def get_playbook_stats(self, org_id: str = "default") -> PlaybookStats:
         """Return aggregate playbook statistics for an org."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             pb_row = conn.execute(
                 """
                 SELECT
@@ -789,7 +790,7 @@ class SOAREngine:
 
         Returns 0.0 if no executions exist.
         """
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 """
                 SELECT AVG(
@@ -807,7 +808,7 @@ class SOAREngine:
     def disable_playbook(self, playbook_id: str, org_id: str = "default") -> bool:
         """Disable a playbook. Returns True if found and updated."""
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 result = conn.execute(
                     "UPDATE soar_playbooks SET enabled = 0, updated_at = ? WHERE id = ? AND org_id = ?",
                     (datetime.now(timezone.utc).isoformat(), playbook_id, org_id),
@@ -817,7 +818,7 @@ class SOAREngine:
     def enable_playbook(self, playbook_id: str, org_id: str = "default") -> bool:
         """Enable a playbook. Returns True if found and updated."""
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 result = conn.execute(
                     "UPDATE soar_playbooks SET enabled = 1, updated_at = ? WHERE id = ? AND org_id = ?",
                     (datetime.now(timezone.utc).isoformat(), playbook_id, org_id),

@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -303,7 +304,7 @@ class AIOrchestrator:
 
     def _init_db(self) -> None:
         Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS agent_tasks (
                     id          TEXT PRIMARY KEY,
@@ -376,7 +377,7 @@ class AIOrchestrator:
 
     def get_task(self, task_id: str) -> Optional[AgentTask]:
         """Retrieve a task by ID."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM agent_tasks WHERE id = ?", (task_id,)
             ).fetchone()
@@ -647,7 +648,7 @@ class AIOrchestrator:
         where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
         params.append(limit)
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 f"SELECT * FROM agent_tasks {where} ORDER BY created_at DESC LIMIT ?",  # nosec B608
                 params,
@@ -669,7 +670,7 @@ class AIOrchestrator:
 
         where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 f"SELECT decision, confidence, agents_agreed, agents_disagreed FROM consensus_results {where}",  # nosec B608
                 params,

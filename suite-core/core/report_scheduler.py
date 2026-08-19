@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+from contextlib import closing
 import urllib.error
 import urllib.request
 import uuid
@@ -79,7 +80,7 @@ class ReportScheduler:
         return conn
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS schedules (
@@ -172,7 +173,7 @@ class ReportScheduler:
         now = datetime.now(timezone.utc)
         next_run_at = _calculate_next_run(frequency, from_time=now)
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.execute(
                 """
                 INSERT INTO schedules
@@ -212,7 +213,7 @@ class ReportScheduler:
         Returns:
             List of schedule dicts.
         """
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT * FROM schedules WHERE org_id = ? AND active = 1 ORDER BY created_at DESC",
                 (org_id,),
@@ -225,7 +226,7 @@ class ReportScheduler:
         Returns:
             True if found and deleted, False if not found or wrong org.
         """
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             cur = conn.execute(
                 "DELETE FROM schedules WHERE schedule_id = ? AND org_id = ?",
                 (schedule_id, org_id),
@@ -241,7 +242,7 @@ class ReportScheduler:
         return deleted
 
     def _get_schedule(self, schedule_id: str) -> Optional[Dict[str, Any]]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM schedules WHERE schedule_id = ?",
                 (schedule_id,),
@@ -348,7 +349,7 @@ class ReportScheduler:
         report_id = payload["report_id"]
         delivered_at = datetime.now(timezone.utc).isoformat()
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.execute(
                 """
                 INSERT INTO delivery_log
@@ -398,7 +399,7 @@ class ReportScheduler:
         Returns:
             List of delivery log entry dicts.
         """
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 """
                 SELECT * FROM delivery_log

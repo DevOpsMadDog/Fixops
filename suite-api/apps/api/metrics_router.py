@@ -19,6 +19,7 @@ from typing import Any, Dict, List
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends
 from fastapi.responses import PlainTextResponse
+from apps.api.dependencies import get_org_id
 
 _logger = logging.getLogger(__name__)
 
@@ -34,6 +35,21 @@ _COMPLIANCE_FRAMEWORKS = ["SOC2", "PCI-DSS", "HIPAA", "ISO27001", "NIST"]
 
 # Default org used when pulling aggregated cross-org metrics
 _METRICS_ORG = os.getenv("METRICS_ORG_ID", "default")
+
+
+def _metrics_org(org_id: str = Depends(get_org_id)) -> str:
+    """Tenant for a metrics read: the credential, else the configured default.
+
+    These handlers declared `org_id: str = Depends(_metrics_org)`. A plain default on a
+    str parameter is a QUERY PARAMETER in FastAPI, so `?org_id=someone-else`
+    overrode the configured value and read another tenant's metrics. The env
+    default is still honoured for operator scrapes, where the credential pins
+    no tenant.
+    """
+    pinned = (org_id or "").strip()
+    return pinned if pinned and pinned != "default" else _METRICS_ORG
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -212,7 +228,7 @@ def _build_prometheus_text(org_id: str) -> str:
         "Pass ?org_id=<id> to scope metrics to a specific organisation."
     ),
 )
-def prometheus_metrics(org_id: str = _METRICS_ORG) -> PlainTextResponse:
+def prometheus_metrics(org_id: str = Depends(_metrics_org)) -> PlainTextResponse:
     """Return Prometheus exposition format metrics for Grafana/monitoring."""
     body = _build_prometheus_text(org_id)
     return PlainTextResponse(
@@ -226,7 +242,7 @@ def prometheus_metrics(org_id: str = _METRICS_ORG) -> PlainTextResponse:
     dependencies=[Depends(api_key_auth)],
     summary="JSON metrics summary",
 )
-def metrics_summary(org_id: str = _METRICS_ORG) -> Dict[str, Any]:
+def metrics_summary(org_id: str = Depends(_metrics_org)) -> Dict[str, Any]:
     """Return key metrics as JSON — convenience endpoint for dashboards."""
     alerts = _collect_alert_metrics(org_id)
     posture = _collect_posture_metrics(org_id)

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -58,7 +59,7 @@ class WirelessSecurityEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 PRAGMA journal_mode=WAL;
 
@@ -168,13 +169,13 @@ class WirelessSecurityEngine:
             query += " AND security_protocol=?"
             params.append(security_protocol)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def get_access_point(self, org_id: str, ap_id: str) -> Dict[str, Any]:
         """Fetch a single AP scoped to org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM wireless_aps WHERE org_id=? AND id=?",
                 (org_id, ap_id),
@@ -235,7 +236,7 @@ class WirelessSecurityEngine:
             query += " AND status=?"
             params.append(status)
         query += " ORDER BY detected_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
@@ -260,7 +261,7 @@ class WirelessSecurityEngine:
         return self._get_threat(org_id, threat_id)
 
     def _get_threat(self, org_id: str, threat_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM wireless_threats WHERE org_id=? AND id=?",
                 (org_id, threat_id),
@@ -275,7 +276,7 @@ class WirelessSecurityEngine:
 
     def get_wireless_stats(self, org_id: str) -> Dict[str, Any]:
         """Return wireless security overview stats for org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total_aps = conn.execute(
                 "SELECT COUNT(*) FROM wireless_aps WHERE org_id=?", (org_id,)
             ).fetchone()[0]

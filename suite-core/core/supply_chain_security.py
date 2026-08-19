@@ -20,6 +20,7 @@ import json
 import logging
 import re
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -1054,7 +1055,7 @@ class SupplyChainEngine:
 
     def _init_db(self) -> None:
         Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS sboms (
                     id TEXT PRIMARY KEY,
@@ -1172,7 +1173,7 @@ class SupplyChainEngine:
         signals = self._detector.scan_components(components, org_id=org_id)
 
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     "INSERT OR REPLACE INTO sboms VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                     (
@@ -1206,7 +1207,7 @@ class SupplyChainEngine:
 
     def _upsert_risk_score(self, score: DependencyRiskScore) -> None:
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     "INSERT OR REPLACE INTO risk_scores VALUES (?,?,?)",
                     (score.component_id, score.model_dump_json(), score.computed_at.isoformat()),
@@ -1216,7 +1217,7 @@ class SupplyChainEngine:
         self, org_id: str = "default", limit: int = 200
     ) -> List[Dict[str, Any]]:
         """List all tracked components with their risk scores."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT * FROM components WHERE org_id=? ORDER BY rowid DESC LIMIT ?",
                 (org_id, limit),
@@ -1240,7 +1241,7 @@ class SupplyChainEngine:
         return result
 
     def get_sbom(self, sbom_id: str, org_id: str = "default") -> Optional[SBOMRecord]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM sboms WHERE id=? AND org_id=?", (sbom_id, org_id)
             ).fetchone()
@@ -1254,7 +1255,7 @@ class SupplyChainEngine:
     # ------------------------------------------------------------------
 
     def get_risk_dashboard(self, org_id: str = "default") -> RiskDashboard:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total_components = conn.execute(
                 "SELECT COUNT(*) FROM components WHERE org_id=?", (org_id,)
             ).fetchone()[0]
@@ -1355,7 +1356,7 @@ class SupplyChainEngine:
 
     def create_policy(self, policy: SupplyChainPolicy) -> SupplyChainPolicy:
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     "INSERT OR REPLACE INTO policies VALUES (?,?,?,?,?)",
                     (
@@ -1367,7 +1368,7 @@ class SupplyChainEngine:
         return policy
 
     def list_policies(self, org_id: str = "default") -> List[SupplyChainPolicy]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT data FROM policies WHERE org_id=? ORDER BY rowid DESC",
                 (org_id,),
@@ -1381,7 +1382,7 @@ class SupplyChainEngine:
         return result
 
     def get_policy(self, policy_id: str, org_id: str = "default") -> Optional[SupplyChainPolicy]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT data FROM policies WHERE id=? AND org_id=?",
                 (policy_id, org_id),
@@ -1406,7 +1407,7 @@ class SupplyChainEngine:
         else:
             vendor.concentration_risk = RiskLevel.LOW
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     "INSERT OR REPLACE INTO vendors VALUES (?,?,?,?,?)",
                     (
@@ -1417,7 +1418,7 @@ class SupplyChainEngine:
         return vendor
 
     def list_vendors(self, org_id: str = "default") -> List[VendorRiskAssessment]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT data FROM vendors WHERE org_id=? ORDER BY rowid DESC",
                 (org_id,),
@@ -1431,7 +1432,7 @@ class SupplyChainEngine:
         return result
 
     def get_vendor(self, vendor_id: str, org_id: str = "default") -> Optional[VendorRiskAssessment]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT data FROM vendors WHERE id=? AND org_id=?",
                 (vendor_id, org_id),
@@ -1460,7 +1461,7 @@ class SupplyChainEngine:
             expected_keyid=expected_keyid,
         )
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 conn.execute(
                     "INSERT OR REPLACE INTO provenance VALUES (?,?,?,?,?)",
                     (
@@ -1473,7 +1474,7 @@ class SupplyChainEngine:
     def get_provenance(
         self, component_name: str, component_version: Optional[str] = None
     ) -> Optional[ProvenanceRecord]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             if component_version:
                 row = conn.execute(
                     "SELECT data FROM provenance WHERE component_name=? AND component_version=? ORDER BY rowid DESC LIMIT 1",
@@ -1536,7 +1537,7 @@ class SupplyChainEngine:
         # Create a synthetic SBOM record for brain-sourced components if not exists
         brain_sbom_id = f"brain-sync-{org_id}"
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 existing_sbom = conn.execute(
                     "SELECT id FROM sboms WHERE id=?", (brain_sbom_id,)
                 ).fetchone()
@@ -1570,7 +1571,7 @@ class SupplyChainEngine:
                 ).hexdigest()[:36]
 
                 with self._lock:
-                    with self._connect() as conn:
+                    with closing(self._connect()) as conn, conn:
                         existing = conn.execute(
                             "SELECT id FROM components WHERE id=?", (comp_id,)
                         ).fetchone()
@@ -1624,7 +1625,7 @@ class SupplyChainEngine:
 
         # Update component_count on the synthetic SBOM
         with self._lock:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn, conn:
                 total = conn.execute(
                     "SELECT COUNT(*) FROM components WHERE sbom_id=?", (brain_sbom_id,)
                 ).fetchone()[0]
@@ -1647,7 +1648,7 @@ class SupplyChainEngine:
     def list_attack_signals(
         self, org_id: str = "default", limit: int = 100
     ) -> List[AttackSignal]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT data FROM attack_signals WHERE org_id=? ORDER BY detected_at DESC LIMIT ?",
                 (org_id, limit),

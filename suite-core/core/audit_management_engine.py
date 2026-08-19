@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -93,7 +94,7 @@ class AuditManagementEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS audit_exports (
                     id                TEXT PRIMARY KEY,
@@ -216,13 +217,13 @@ class AuditManagementEngine:
             query += " AND status=?"
             params.append(status)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def get_audit(self, org_id: str, audit_id: str) -> Dict[str, Any]:
         """Fetch a single audit scoped to org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM audits WHERE org_id=? AND id=?",
                 (org_id, audit_id),
@@ -314,7 +315,7 @@ class AuditManagementEngine:
         return self._get_finding(org_id, finding_id)
 
     def _get_finding(self, org_id: str, finding_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM findings WHERE org_id=? AND id=?",
                 (org_id, finding_id),
@@ -329,7 +330,7 @@ class AuditManagementEngine:
 
     def get_audit_stats(self, org_id: str) -> Dict[str, Any]:
         """Return audit statistics for the org."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             audits = conn.execute(
                 "SELECT * FROM audits WHERE org_id=?", (org_id,)
             ).fetchall()
@@ -436,7 +437,7 @@ class AuditManagementEngine:
             query += " AND framework=?"
             params.append(framework)
         query += " ORDER BY recorded_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         out: List[Dict[str, Any]] = []
         for r in rows:

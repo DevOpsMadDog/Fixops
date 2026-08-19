@@ -24,6 +24,7 @@ try:
 except ImportError:
     _get_tg_bus = None
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -68,7 +69,7 @@ class SupplyChainAttackDetectionEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS scad_packages (
                     id            TEXT PRIMARY KEY,
@@ -196,13 +197,13 @@ class SupplyChainAttackDetectionEngine:
             query += " AND status=?"
             params.append(status)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def get_package(self, org_id: str, package_id: str) -> Optional[Dict[str, Any]]:
         """Fetch a single package scoped to org_id, or None if not found."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM scad_packages WHERE org_id=? AND id=?",
                 (org_id, package_id),
@@ -311,12 +312,12 @@ class SupplyChainAttackDetectionEngine:
             query += " AND status=?"
             params.append(status)
         query += " ORDER BY detected_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def _get_detection(self, org_id: str, detection_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM scad_detections WHERE org_id=? AND id=?",
                 (org_id, detection_id),
@@ -388,12 +389,12 @@ class SupplyChainAttackDetectionEngine:
             query += " AND enabled=?"
             params.append(1 if enabled else 0)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [self._deserialize_policy(dict(r)) for r in rows]
 
     def _get_policy(self, org_id: str, policy_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM scad_policies WHERE org_id=? AND id=?",
                 (org_id, policy_id),
@@ -418,7 +419,7 @@ class SupplyChainAttackDetectionEngine:
 
     def get_attack_stats(self, org_id: str) -> Dict[str, Any]:
         """Return supply chain attack overview stats for org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total_packages = conn.execute(
                 "SELECT COUNT(*) FROM scad_packages WHERE org_id=?", (org_id,)
             ).fetchone()[0]
@@ -695,12 +696,12 @@ class SupplyChainAttackDetectionEngine:
         if active_only:
             query += " AND released_at IS NULL"
         query += " ORDER BY quarantined_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def _get_quarantine_row(self, qid: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM quarantined_packages WHERE id=?", (qid,)
             ).fetchone()

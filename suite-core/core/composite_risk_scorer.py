@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -401,13 +402,13 @@ class CompositeRiskScorer:
 
     def _init_db(self) -> None:
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.executescript(_SCHEMA)
             conn.commit()
 
     def _persist(self, score: CompositeRiskScore) -> None:
         with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 conn.execute(
                     """INSERT OR REPLACE INTO composite_scores
                        (score_id, asset_id, finding_id, org_id, score, grade, factors_json, scored_at)
@@ -513,7 +514,7 @@ class CompositeRiskScorer:
         # Look up existing finding scores for this asset
         rows = []
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 conn.row_factory = sqlite3.Row
                 rows = conn.execute(
                     """SELECT score FROM composite_scores
@@ -630,7 +631,7 @@ class CompositeRiskScorer:
     def top_risks(self, org_id: str = "default", n: int = 10) -> List[CompositeRiskScore]:
         """Return top N risks sorted by score descending."""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 conn.row_factory = sqlite3.Row
                 rows = conn.execute(
                     """SELECT * FROM composite_scores
@@ -671,7 +672,7 @@ class CompositeRiskScorer:
     ) -> Optional[CompositeRiskScore]:
         """Retrieve the most recent composite score for an asset."""
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 conn.row_factory = sqlite3.Row
                 row = conn.execute(
                     """SELECT * FROM composite_scores

@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -78,7 +79,7 @@ class CloudWorkloadProtectionEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS cwp_workloads (
                     id                TEXT PRIMARY KEY,
@@ -211,7 +212,7 @@ class CloudWorkloadProtectionEngine:
             query += " AND risk_level=?"
             params.append(risk_level)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
@@ -449,7 +450,7 @@ class CloudWorkloadProtectionEngine:
 
     def get_workload(self, org_id: str, workload_id: str) -> Optional[Dict[str, Any]]:
         """Fetch a single workload scoped to org_id, or None if not found."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM cwp_workloads WHERE org_id=? AND id=?",
                 (org_id, workload_id),
@@ -548,12 +549,12 @@ class CloudWorkloadProtectionEngine:
             query += " AND status=?"
             params.append(status)
         query += " ORDER BY detected_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def _get_threat(self, org_id: str, threat_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM cwp_threats WHERE org_id=? AND id=?",
                 (org_id, threat_id),
@@ -629,12 +630,12 @@ class CloudWorkloadProtectionEngine:
             query += " AND enabled=?"
             params.append(1 if enabled else 0)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [self._deserialize_policy(dict(r)) for r in rows]
 
     def _get_policy(self, org_id: str, policy_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM cwp_policies WHERE org_id=? AND id=?",
                 (org_id, policy_id),
@@ -660,7 +661,7 @@ class CloudWorkloadProtectionEngine:
 
     def get_cwp_stats(self, org_id: str) -> Dict[str, Any]:
         """Return CWP overview stats for org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total_workloads = conn.execute(
                 "SELECT COUNT(*) FROM cwp_workloads WHERE org_id=?", (org_id,)
             ).fetchone()[0]

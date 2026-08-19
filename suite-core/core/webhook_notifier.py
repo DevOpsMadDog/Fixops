@@ -21,6 +21,7 @@ import hmac
 import json
 import os
 import sqlite3
+from contextlib import closing
 import threading
 import time
 import urllib.error
@@ -375,7 +376,7 @@ class DeliveryLog:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript(_SCHEMA)
 
     def _connect(self) -> sqlite3.Connection:
@@ -417,7 +418,7 @@ class DeliveryLog:
 
     def get_endpoint(self, endpoint_id: str) -> Optional[WebhookEndpoint]:
         """Retrieve a registered endpoint by ID."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM webhook_endpoints WHERE id = ?", (endpoint_id,)
             ).fetchone()
@@ -436,7 +437,7 @@ class DeliveryLog:
 
     def list_endpoints(self, org_id: str) -> List[WebhookEndpoint]:
         """List all endpoints for an organization."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT * FROM webhook_endpoints WHERE org_id = ?", (org_id,)
             ).fetchall()
@@ -542,7 +543,7 @@ class DeliveryLog:
         limit: int = 100,
     ) -> List[DeliveryRecord]:
         """List delivery records for an org, optionally filtered by status."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             if status:
                 rows = conn.execute(
                     """SELECT * FROM webhook_deliveries
@@ -571,7 +572,7 @@ class DeliveryLog:
 
     def delivery_stats(self, org_id: str) -> Dict[str, Any]:
         """Return aggregate delivery statistics for an org."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             totals = conn.execute(
                 """SELECT status, COUNT(*) as cnt
                    FROM webhook_deliveries WHERE org_id = ?

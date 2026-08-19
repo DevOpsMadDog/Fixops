@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -57,7 +58,7 @@ class CWPPEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 PRAGMA journal_mode=WAL;
 
@@ -167,7 +168,7 @@ class CWPPEngine:
         self, org_id: str = "default", workload_type: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """List workloads for an org, optionally filtered by type."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             if workload_type:
                 rows = conn.execute(
                     "SELECT * FROM workloads WHERE org_id=? AND workload_type=?",
@@ -181,7 +182,7 @@ class CWPPEngine:
 
     def get_workload(self, workload_id: str) -> Optional[Dict[str, Any]]:
         """Return a single workload by ID, or None if not found."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM workloads WHERE workload_id=?", (workload_id,)
             ).fetchone()
@@ -508,7 +509,7 @@ class CWPPEngine:
         self, workload_id: Optional[str] = None, org_id: str = "default"
     ) -> List[Dict[str, Any]]:
         """Return threat events, optionally filtered by workload_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             if workload_id:
                 rows = conn.execute(
                     "SELECT * FROM threats WHERE workload_id=? AND org_id=?",
@@ -522,7 +523,7 @@ class CWPPEngine:
 
     def get_protection_summary(self, org_id: str = "default") -> Dict[str, Any]:
         """Return aggregate protection statistics for an org."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total = conn.execute(
                 "SELECT COUNT(*) FROM workloads WHERE org_id=?", (org_id,)
             ).fetchone()[0]

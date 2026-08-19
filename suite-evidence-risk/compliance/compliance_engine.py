@@ -28,6 +28,7 @@ import json
 import logging
 import os
 import sqlite3
+from contextlib import closing
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -575,7 +576,7 @@ class ComplianceDB:
         self._init_db()
 
     def _init_db(self) -> None:
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.execute("PRAGMA foreign_keys=ON")
             conn.executescript("""
@@ -641,7 +642,7 @@ class ComplianceDB:
             pass
 
     def upsert_assessment(self, assessment: ControlAssessment, app_id: str = "") -> None:
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.execute("""
                 INSERT INTO assessments (assessment_id, control_id, framework, status,
                     evidence_count, findings_count, critical_findings, score,
@@ -662,7 +663,7 @@ class ComplianceDB:
 
     def add_evidence(self, evidence: Dict[str, Any]) -> str:
         evidence_id = evidence.get("evidence_id", str(uuid.uuid4()))
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.execute("""
                 INSERT OR REPLACE INTO evidence_items
                 (evidence_id, control_id, framework, evidence_type, source,
@@ -681,7 +682,7 @@ class ComplianceDB:
         return evidence_id
 
     def save_posture(self, posture: CompliancePosture, app_id: str = "") -> None:
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.execute("""
                 INSERT INTO posture_history
                 (framework, overall_score, satisfied, partially_satisfied,
@@ -696,7 +697,7 @@ class ComplianceDB:
 
     def get_assessments(self, framework: str, app_id: str = "") -> List[Dict[str, Any]]:
         self._ensure_schema()
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 "SELECT * FROM assessments WHERE framework=? AND app_id=?",
@@ -706,7 +707,7 @@ class ComplianceDB:
 
     def get_evidence_for_control(self, control_id: str, framework: str) -> List[Dict[str, Any]]:
         self._ensure_schema()
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 "SELECT * FROM evidence_items WHERE control_id=? AND framework=?",
@@ -716,7 +717,7 @@ class ComplianceDB:
 
     def get_posture_trend(self, framework: str, limit: int = 30) -> List[Dict[str, Any]]:
         self._ensure_schema()
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 "SELECT * FROM posture_history WHERE framework=? ORDER BY evaluated_at DESC LIMIT ?",

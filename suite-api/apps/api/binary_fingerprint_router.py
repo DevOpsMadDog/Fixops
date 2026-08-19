@@ -123,7 +123,7 @@ def fingerprint_blob_json(body: BlobBody) -> Dict[str, Any]:
 
 @router.post("/register", dependencies=[Depends(api_key_auth)], status_code=201)
 async def register_artifact_multipart(
-    org_id: str = Form(...),
+    org_id: str = Depends(get_org_id),
     artifact_ref: str = Form(default=""),
     file: Optional[UploadFile] = File(default=None),
     blob_base64: Optional[str] = Form(default=None),

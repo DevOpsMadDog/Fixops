@@ -46,6 +46,7 @@ import asyncio
 import json
 import os
 import sqlite3
+from contextlib import closing
 import threading
 import time
 from collections import defaultdict
@@ -348,7 +349,7 @@ class _OfflineQueue:
         self._init_db()
 
     def _init_db(self) -> None:
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS event_bus_queue (
@@ -370,7 +371,7 @@ class _OfflineQueue:
         try:
             payload = json.dumps(data, default=str)
             created_at = datetime.now(timezone.utc).isoformat()
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 # Evict oldest if at capacity
                 (count,) = conn.execute(
                     "SELECT COUNT(*) FROM event_bus_queue WHERE status = 'queued'"
@@ -402,7 +403,7 @@ class _OfflineQueue:
 
     def get_pending(self, limit: int = _DEFAULT_BATCH_SIZE) -> List[Dict[str, Any]]:
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 conn.row_factory = sqlite3.Row
                 rows = conn.execute(
                     "SELECT * FROM event_bus_queue WHERE status = 'queued' ORDER BY created_at ASC LIMIT ?",
@@ -423,7 +424,7 @@ class _OfflineQueue:
 
     def mark_indexed(self, queue_id: int) -> None:
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 conn.execute(
                     "UPDATE event_bus_queue SET status = 'indexed' WHERE id = ?", (queue_id,)
                 )
@@ -433,7 +434,7 @@ class _OfflineQueue:
 
     def mark_failed(self, queue_id: int) -> None:
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 conn.execute(
                     "UPDATE event_bus_queue SET status = 'failed' WHERE id = ?", (queue_id,)
                 )
@@ -443,7 +444,7 @@ class _OfflineQueue:
 
     def queue_stats(self) -> Dict[str, Any]:
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 rows = conn.execute(
                     "SELECT status, COUNT(*) as cnt FROM event_bus_queue GROUP BY status"
                 ).fetchall()

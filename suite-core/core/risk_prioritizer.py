@@ -28,6 +28,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -262,7 +263,7 @@ class RiskPrioritizer:
 
     def _init_db(self) -> None:
         Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(self._db_path) as conn:
+        with closing(sqlite3.connect(self._db_path)) as conn, conn:
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS epss_cache (
@@ -325,7 +326,7 @@ class RiskPrioritizer:
         cutoff = (
             datetime.now(timezone.utc) - timedelta(hours=_EPSS_CACHE_TTL_HOURS)
         ).isoformat()
-        with sqlite3.connect(self._db_path) as conn:
+        with closing(sqlite3.connect(self._db_path)) as conn, conn:
             row = conn.execute(
                 "SELECT epss FROM epss_cache WHERE cve_id = ? AND cached_at >= ?",
                 (cve_id, cutoff),
@@ -333,7 +334,7 @@ class RiskPrioritizer:
         return float(row[0]) if row else None
 
     def _epss_to_cache(self, cve_id: str, epss: float, percentile: float) -> None:
-        with sqlite3.connect(self._db_path) as conn:
+        with closing(sqlite3.connect(self._db_path)) as conn, conn:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO epss_cache (cve_id, epss, percentile, cached_at)
@@ -463,7 +464,7 @@ class RiskPrioritizer:
     """
 
     def _persist_score(self, score: RiskScore) -> None:
-        with sqlite3.connect(self._db_path) as conn:
+        with closing(sqlite3.connect(self._db_path)) as conn, conn:
             conn.execute(self._UPSERT_SQL, self._score_to_row(score))
 
     def _persist_scores_batch(self, scores: List[RiskScore]) -> None:
@@ -475,7 +476,7 @@ class RiskPrioritizer:
         if not scores:
             return
         rows = [self._score_to_row(s) for s in scores]
-        with sqlite3.connect(self._db_path) as conn:
+        with closing(sqlite3.connect(self._db_path)) as conn, conn:
             conn.executemany(self._UPSERT_SQL, rows)
 
     # ------------------------------------------------------------------

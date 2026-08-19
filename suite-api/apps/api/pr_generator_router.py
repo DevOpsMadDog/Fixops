@@ -119,7 +119,7 @@ def batch_generate_prs(request: BatchGeneratePRRequest) -> Dict[str, Any]:
 
 @router.get("")
 def list_prs(
-    org_id: Optional[str] = None,
+    org_id: str = Depends(get_org_id),
     status: Optional[str] = None,
 ) -> Dict[str, Any]:
     """List generated PRs with optional filters.

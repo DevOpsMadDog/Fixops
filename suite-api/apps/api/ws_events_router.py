@@ -358,7 +358,7 @@ async def test_publish_event(
     severity: str = "high",
     title: str = "Test Security Event",
     message: str = "Synthetic event from ALDECI WS event stream",
-    org_id: Optional[str] = None,
+    org_id: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Publish a synthetic security event to all connected WebSocket subscribers.
 

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -59,7 +60,7 @@ class NetworkAccessControlEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 PRAGMA journal_mode=WAL;
 
@@ -165,13 +166,13 @@ class NetworkAccessControlEngine:
             query += " AND nac_status=?"
             params.append(nac_status)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def get_endpoint(self, org_id: str, endpoint_id: str) -> Dict[str, Any]:
         """Fetch a single endpoint scoped to org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM nac_endpoints WHERE org_id=? AND id=?",
                 (org_id, endpoint_id),
@@ -295,7 +296,7 @@ class NetworkAccessControlEngine:
 
     def list_nac_policies(self, org_id: str) -> List[Dict[str, Any]]:
         """List all NAC policies for org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT * FROM nac_policies WHERE org_id=? ORDER BY created_at DESC",
                 (org_id,),
@@ -303,7 +304,7 @@ class NetworkAccessControlEngine:
         return [dict(r) for r in rows]
 
     def _get_policy(self, org_id: str, policy_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM nac_policies WHERE org_id=? AND id=?",
                 (org_id, policy_id),
@@ -318,7 +319,7 @@ class NetworkAccessControlEngine:
 
     def get_nac_stats(self, org_id: str) -> Dict[str, Any]:
         """Return NAC overview stats for org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total_endpoints = conn.execute(
                 "SELECT COUNT(*) FROM nac_endpoints WHERE org_id=?", (org_id,)
             ).fetchone()[0]

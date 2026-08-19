@@ -23,6 +23,7 @@ import os
 import re
 import socket
 import sqlite3
+from contextlib import closing
 import struct
 import tempfile
 import threading
@@ -338,7 +339,7 @@ class OfflineCVEDatabase:
     # ---- Schema ----
 
     def _init_db(self) -> None:
-        with sqlite3.connect(str(self.db_path)) as conn:
+        with closing(sqlite3.connect(str(self.db_path))) as conn, conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS schema_version (
                     version INTEGER PRIMARY KEY
@@ -402,7 +403,7 @@ class OfflineCVEDatabase:
 
         count = 0
         with self._lock:
-            with sqlite3.connect(str(self.db_path)) as conn:
+            with closing(sqlite3.connect(str(self.db_path))) as conn, conn:
                 for item in items:
                     record = self._parse_nvd_item(item)
                     if record:
@@ -567,7 +568,7 @@ class OfflineCVEDatabase:
 
         results: List[CVERecord] = []
         try:
-            with sqlite3.connect(str(self.db_path)) as conn:
+            with closing(sqlite3.connect(str(self.db_path))) as conn, conn:
                 for row in conn.execute(query, params):
                     results.append(
                         CVERecord(
@@ -592,7 +593,7 @@ class OfflineCVEDatabase:
         self.search()  # fallback if DB empty
         cve_upper = cve_id.upper()
         try:
-            with sqlite3.connect(str(self.db_path)) as conn:
+            with closing(sqlite3.connect(str(self.db_path))) as conn, conn:
                 row = conn.execute(
                     "SELECT cve_id, description, severity, cvss_score, cvss_version, published, modified, products, references_, cwe_ids FROM cve WHERE cve_id=?",
                     (cve_upper,),
@@ -617,7 +618,7 @@ class OfflineCVEDatabase:
     def get_stats(self) -> Dict[str, Any]:
         """Return CVE database statistics."""
         try:
-            with sqlite3.connect(str(self.db_path)) as conn:
+            with closing(sqlite3.connect(str(self.db_path))) as conn, conn:
                 total = conn.execute("SELECT COUNT(*) FROM cve").fetchone()[0]
                 by_severity = {
                     row[0]: row[1]

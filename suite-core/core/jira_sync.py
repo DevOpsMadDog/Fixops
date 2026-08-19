@@ -28,6 +28,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from contextlib import closing
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -255,7 +256,7 @@ class JiraSyncStore:
         self._init_db()
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript(self._DDL)
 
     @contextmanager
@@ -274,7 +275,7 @@ class JiraSyncStore:
     # -- links --
 
     def get_link(self, finding_id: str) -> Optional[Dict[str, Any]]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM sync_links WHERE finding_id = ?", (finding_id,)
             ).fetchone()
@@ -332,7 +333,7 @@ class JiraSyncStore:
             return cur.rowcount > 0
 
     def list_links(self) -> List[Dict[str, Any]]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute("SELECT * FROM sync_links ORDER BY updated_at DESC").fetchall()
         return [dict(r) for r in rows]
 
@@ -361,7 +362,7 @@ class JiraSyncStore:
         limit: int = 100,
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             if finding_id:
                 rows = conn.execute(
                     """SELECT * FROM sync_history WHERE finding_id = ?
@@ -382,7 +383,7 @@ class JiraSyncStore:
         return result
 
     def get_stats(self) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total_links = conn.execute("SELECT COUNT(*) FROM sync_links").fetchone()[0]
             total_history = conn.execute("SELECT COUNT(*) FROM sync_history").fetchone()[0]
             by_status = conn.execute(
@@ -424,7 +425,7 @@ class JiraSyncStore:
             )
 
     def load_config(self) -> Optional[JiraSyncConfig]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT value FROM config WHERE key = 'main'"
             ).fetchone()

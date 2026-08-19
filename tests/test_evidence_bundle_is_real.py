@@ -47,10 +47,26 @@ TRIVY = {
 
 
 @pytest.fixture()
-def client(monkeypatch):
+def client(monkeypatch, tmp_path):
     monkeypatch.setenv("FIXOPS_API_TOKEN", "evidence-real-token")
     monkeypatch.setenv("FIXOPS_JWT_SECRET", "evidence-real-jwt-secret-long-enough-0123456789ab")
     monkeypatch.setenv("FIXOPS_MODE", "enterprise")
+
+    # Own the evidence store for this test.
+    #
+    # Without this the suite inherits whatever store an earlier test file left
+    # configured — including directories pytest has since deleted — and the
+    # failure arrives as an opaque 500 from the evidence endpoint. That
+    # accumulation exposed three REAL defects, now fixed in
+    # core/soc2_evidence_generator.py: the DB path was frozen at import so the
+    # singleton kept writing to a stale location; sqlite connections were opened
+    # with `with conn:` (which manages the transaction, NOT the handle) and never
+    # closed, leaking a descriptor per save until "disk I/O error"; and a
+    # vanished directory was fatal rather than recoverable.
+    #
+    # Pinning the path keeps this file testing the product rather than the
+    # residue of the files that ran before it.
+    monkeypatch.setenv("FIXOPS_EVIDENCE_DB", str(tmp_path / "evidence_packs.db"))
 
     from apps.api.app import create_app
 

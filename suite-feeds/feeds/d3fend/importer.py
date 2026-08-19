@@ -53,6 +53,7 @@ import json
 import logging
 import os
 import sqlite3
+from contextlib import closing
 import sys
 import threading
 from datetime import datetime, timezone
@@ -733,7 +734,7 @@ def list_techniques_from_db(
     if not Path(target).exists():
         return []
     try:
-        with sqlite3.connect(target) as conn:
+        with closing(sqlite3.connect(target)) as conn, conn:
             conn.row_factory = sqlite3.Row
             cur = conn.execute(
                 "SELECT name FROM sqlite_master "

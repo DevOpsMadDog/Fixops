@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -65,7 +66,7 @@ class APIAbuseDetectionEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 PRAGMA journal_mode=WAL;
 
@@ -185,13 +186,13 @@ class APIAbuseDetectionEngine:
             query += " AND status=?"
             params.append(status)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def get_endpoint(self, org_id: str, endpoint_id: str) -> Optional[Dict[str, Any]]:
         """Fetch a single endpoint scoped to org_id. Returns None if not found."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM aad_endpoints WHERE org_id=? AND id=?",
                 (org_id, endpoint_id),
@@ -263,7 +264,7 @@ class APIAbuseDetectionEngine:
             query += " AND status=?"
             params.append(status)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
@@ -288,7 +289,7 @@ class APIAbuseDetectionEngine:
         return self._get_incident(org_id, incident_id)
 
     def _get_incident(self, org_id: str, incident_id: str) -> Optional[Dict[str, Any]]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM aad_incidents WHERE org_id=? AND id=?",
                 (org_id, incident_id),
@@ -346,7 +347,7 @@ class APIAbuseDetectionEngine:
             query += " AND enabled=?"
             params.append(1 if enabled else 0)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         results = []
         for r in rows:
@@ -356,7 +357,7 @@ class APIAbuseDetectionEngine:
         return results
 
     def _get_rule(self, org_id: str, rule_id: str) -> Optional[Dict[str, Any]]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM aad_rules WHERE org_id=? AND id=?",
                 (org_id, rule_id),
@@ -373,7 +374,7 @@ class APIAbuseDetectionEngine:
 
     def get_abuse_stats(self, org_id: str) -> Dict[str, Any]:
         """Return API abuse detection overview stats for org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total_endpoints = conn.execute(
                 "SELECT COUNT(*) FROM aad_endpoints WHERE org_id=?", (org_id,)
             ).fetchone()[0]

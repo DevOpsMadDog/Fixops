@@ -16,6 +16,7 @@ import ipaddress
 import json
 import socket
 import sqlite3
+from contextlib import closing
 import threading
 import time
 import uuid
@@ -162,7 +163,7 @@ class DRPEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS external_risks (
@@ -187,7 +188,7 @@ class DRPEngine:
         return conn
 
     def _persist_risk(self, risk: ExternalRisk) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO external_risks
@@ -508,7 +509,7 @@ class DRPEngine:
             ]:
                 if not candidate.exists():
                     continue
-                with sqlite3.connect(str(candidate)) as conn:
+                with closing(sqlite3.connect(str(candidate))) as conn, conn:
                     conn.row_factory = sqlite3.Row
                     try:
                         rows = conn.execute(
@@ -633,7 +634,7 @@ class DRPEngine:
 
     def get_risk_summary(self, org_id: str) -> Dict[str, Any]:
         """Aggregate risk stats for an org from persistent DB."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total = conn.execute(
                 "SELECT COUNT(*) FROM external_risks WHERE org_id=?", (org_id,)
             ).fetchone()[0]
@@ -693,7 +694,7 @@ class DRPEngine:
         query += " ORDER BY discovered_at DESC LIMIT ?"
         params.append(limit)
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
 
         return [ExternalRisk.from_row(r) for r in rows]

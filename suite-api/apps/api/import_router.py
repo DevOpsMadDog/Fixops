@@ -150,7 +150,7 @@ def import_repo(body: RepoImportRequest) -> ImportJobResponse:
 )
 async def import_upload(
     file: UploadFile = File(..., description=".zip archive of source code"),
-    org_id: str = Form("default", description="Organisation ID"),
+    org_id: str = Depends(get_org_id),
 ) -> ImportJobResponse:
     """
     Accept a .zip archive, extract to an ephemeral temp directory, run SAST and

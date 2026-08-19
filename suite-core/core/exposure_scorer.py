@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -129,7 +130,7 @@ class ExposureScorer:
 
     def _init_db(self) -> None:
         Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(self._db_path) as conn:
+        with closing(sqlite3.connect(self._db_path)) as conn, conn:
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS finding_scores (
@@ -181,7 +182,7 @@ class ExposureScorer:
             resolved_at = s.get("resolved_at")
             rows.append((finding_id, asset_id, composite, status, now, resolved_at))
 
-        with sqlite3.connect(self._db_path) as conn:
+        with closing(sqlite3.connect(self._db_path)) as conn, conn:
             conn.executemany(
                 """
                 INSERT INTO finding_scores
@@ -206,7 +207,7 @@ class ExposureScorer:
         self, org_id: str = "default", snapshot: bool = True
     ) -> OrgExposureScore:
         """Overall org security exposure 0-100."""
-        with sqlite3.connect(self._db_path) as conn:
+        with closing(sqlite3.connect(self._db_path)) as conn, conn:
             rows = conn.execute(
                 """
                 SELECT finding_id, asset_id, composite_score
@@ -274,7 +275,7 @@ class ExposureScorer:
 
     def _save_snapshot(self, org_id: str, score: OrgExposureScore) -> None:
         today = datetime.now(timezone.utc).date().isoformat()
-        with sqlite3.connect(self._db_path) as conn:
+        with closing(sqlite3.connect(self._db_path)) as conn, conn:
             conn.execute(
                 """
                 INSERT INTO exposure_snapshots
@@ -304,7 +305,7 @@ class ExposureScorer:
 
     def calculate_asset_exposure(self, asset_id: str) -> float:
         """Risk exposure score for a single asset (0-100)."""
-        with sqlite3.connect(self._db_path) as conn:
+        with closing(sqlite3.connect(self._db_path)) as conn, conn:
             rows = conn.execute(
                 """
                 SELECT composite_score FROM finding_scores
@@ -325,7 +326,7 @@ class ExposureScorer:
 
     def get_asset_exposure(self, asset_id: str) -> AssetExposureScore:
         """Return full AssetExposureScore for a single asset."""
-        with sqlite3.connect(self._db_path) as conn:
+        with closing(sqlite3.connect(self._db_path)) as conn, conn:
             rows = conn.execute(
                 """
                 SELECT composite_score FROM finding_scores
@@ -365,7 +366,7 @@ class ExposureScorer:
             datetime.now(timezone.utc) - timedelta(days=days)
         ).date().isoformat()
 
-        with sqlite3.connect(self._db_path) as conn:
+        with closing(sqlite3.connect(self._db_path)) as conn, conn:
             rows = conn.execute(
                 """
                 SELECT snapshot_date, exposure_score, open_count, critical_count

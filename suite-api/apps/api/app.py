@@ -5535,7 +5535,7 @@ def create_app() -> FastAPI:
 
             bus.subscribe_all(_activity_feed_recorder)
             _logger.info("Activity feed recorder wired to EventBus (wildcard)")
-        except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as exc:
+        except Exception as exc:  # telemetry must not fail the request it observes
             _logger.warning("Activity feed recorder wiring failed: %s", exc)
 
     @app.on_event("startup")

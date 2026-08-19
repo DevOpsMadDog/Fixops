@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -97,7 +98,7 @@ class PhysicalSecurityEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS locations (
                     id             TEXT PRIMARY KEY,
@@ -212,13 +213,13 @@ class PhysicalSecurityEngine:
             query += " AND security_level=?"
             params.append(security_level)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def get_location(self, org_id: str, location_id: str) -> Dict[str, Any]:
         """Fetch a single location, scoped to org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM locations WHERE org_id=? AND id=?",
                 (org_id, location_id),
@@ -289,7 +290,7 @@ class PhysicalSecurityEngine:
             query += " AND access_type=?"
             params.append(access_type)
         query += " ORDER BY timestamp DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
@@ -334,7 +335,7 @@ class PhysicalSecurityEngine:
 
     def get_incident(self, org_id: str, incident_id: str) -> Dict[str, Any]:
         """Fetch a single incident, scoped to org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM incidents WHERE org_id=? AND id=?",
                 (org_id, incident_id),
@@ -372,7 +373,7 @@ class PhysicalSecurityEngine:
         """Return physical security overview stats for org_id."""
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total_locations = conn.execute(
                 "SELECT COUNT(*) FROM locations WHERE org_id=?", (org_id,)
             ).fetchone()[0]

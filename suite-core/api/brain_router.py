@@ -739,7 +739,7 @@ async def brain_status() -> Dict[str, Any]:
 
 @router.get("/trends")
 async def brain_trends(
-    org_id: Optional[str] = None,
+    org_id: str = Depends(get_org_id),
     app_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """[V3] Get vulnerability trend analysis from scan history.

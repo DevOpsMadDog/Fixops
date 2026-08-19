@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -94,7 +95,7 @@ class NACEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS nac_devices (
                     device_id    TEXT PRIMARY KEY,
@@ -217,13 +218,13 @@ class NACEngine:
             query += " AND status=?"
             params.append(status)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def get_device(self, org_id: str, device_id: str) -> Dict[str, Any]:
         """Fetch a single device, scoped to org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM nac_devices WHERE org_id=? AND device_id=?",
                 (org_id, device_id),
@@ -401,7 +402,7 @@ class NACEngine:
 
     def list_policies(self, org_id: str) -> List[Dict[str, Any]]:
         """List all NAC policies for org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT * FROM nac_policies WHERE org_id=? ORDER BY created_at DESC",
                 (org_id,),
@@ -409,7 +410,7 @@ class NACEngine:
         return [self._deserialize_policy(dict(r)) for r in rows]
 
     def _get_policy_dict(self, org_id: str, policy_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM nac_policies WHERE org_id=? AND policy_id=?",
                 (org_id, policy_id),
@@ -529,7 +530,7 @@ class NACEngine:
             params.append(device_id)
         query += " ORDER BY occurred_at DESC LIMIT ?"
         params.append(limit)
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         results = []
         for r in rows:
@@ -550,7 +551,7 @@ class NACEngine:
         """Return NAC overview stats for org_id."""
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total = conn.execute(
                 "SELECT COUNT(*) FROM nac_devices WHERE org_id=?", (org_id,)
             ).fetchone()[0]

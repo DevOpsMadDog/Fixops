@@ -19,6 +19,7 @@ import concurrent.futures
 import json
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from dataclasses import dataclass, field
@@ -282,7 +283,7 @@ class PlaybookEngine:
 
     def _init_db(self) -> None:
         """Initialize SQLite database schema."""
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS playbooks (
@@ -339,7 +340,7 @@ class PlaybookEngine:
             playbook: Playbook instance to register
         """
         with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 now = datetime.now(timezone.utc).isoformat()
                 conn.execute(
                     """
@@ -814,7 +815,7 @@ class PlaybookEngine:
 
     def _get_playbook(self, playbook_id: str) -> Optional[Playbook]:
         """Retrieve a playbook from database."""
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute(
                 "SELECT * FROM playbooks WHERE playbook_id = ?", (playbook_id,)
@@ -853,7 +854,7 @@ class PlaybookEngine:
     def _save_run(self, run: PlaybookRun) -> None:
         """Save a playbook run to database."""
         with self._lock:
-            with sqlite3.connect(self.db_path) as conn:
+            with closing(sqlite3.connect(self.db_path)) as conn, conn:
                 conn.execute(
                     """
                     INSERT INTO playbook_runs
@@ -909,7 +910,7 @@ class PlaybookEngine:
             List of PlaybookRun objects
         """
         runs = []
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 """
@@ -970,7 +971,7 @@ class PlaybookEngine:
             List of active Playbook objects
         """
         playbooks = []
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 """

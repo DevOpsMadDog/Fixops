@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -120,7 +121,7 @@ class VulnRiskScorer:
 
     def _init_db(self) -> None:
         Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.executescript(_SCHEMA)
 
     def _connect(self) -> sqlite3.Connection:
@@ -265,7 +266,7 @@ class VulnRiskScorer:
 
     def get_score_trend(self, org_id: str, cve_id: str) -> List[Dict[str, Any]]:
         """Return historical score records for a CVE, oldest first."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 """
                 SELECT id, composite_score, priority, factors, recommendation,
@@ -292,7 +293,7 @@ class VulnRiskScorer:
 
     def get_priority_queue(self, org_id: str) -> List[Dict[str, Any]]:
         """Return all saved scores for an org, sorted P1→P4 then composite DESC."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 """
                 SELECT id, cve_id, asset_id, composite_score, priority,
@@ -328,7 +329,7 @@ class VulnRiskScorer:
 
     def get_scoring_stats(self, org_id: str) -> Dict[str, Any]:
         """Return priority distribution counts for the org."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 """
                 SELECT priority, COUNT(*) AS cnt

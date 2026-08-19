@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from contextlib import closing
 import threading
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -58,7 +59,7 @@ class LogManagementEngine:
     # ------------------------------------------------------------------
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS log_sources (
@@ -165,12 +166,12 @@ class LogManagementEngine:
             query += " AND log_type=?"
             params.append(log_type)
         query += " ORDER BY created_at DESC"
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
     def _get_source(self, org_id: str, source_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM log_sources WHERE org_id=? AND id=?",
                 (org_id, source_id),
@@ -237,7 +238,7 @@ class LogManagementEngine:
         query += " ORDER BY timestamp DESC LIMIT ?"
         params.append(max(1, int(limit)))
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(query, params).fetchall()
         results = []
         for r in rows:
@@ -283,7 +284,7 @@ class LogManagementEngine:
 
     def list_retention_policies(self, org_id: str) -> List[Dict[str, Any]]:
         """List all retention policies for org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT * FROM log_retention_policies WHERE org_id=? ORDER BY created_at DESC",
                 (org_id,),
@@ -304,7 +305,7 @@ class LogManagementEngine:
         ).isoformat()
 
         # Find source IDs for this log_type under org
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             source_rows = conn.execute(
                 "SELECT id FROM log_sources WHERE org_id=? AND log_type=?",
                 (org_id, log_type),
@@ -329,7 +330,7 @@ class LogManagementEngine:
         return {"deleted": deleted, "policy_id": policy_id}
 
     def _get_policy(self, org_id: str, policy_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             row = conn.execute(
                 "SELECT * FROM log_retention_policies WHERE org_id=? AND id=?",
                 (org_id, policy_id),
@@ -344,7 +345,7 @@ class LogManagementEngine:
 
     def get_log_stats(self, org_id: str) -> Dict[str, Any]:
         """Return log management stats for org_id."""
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             total_sources = conn.execute(
                 "SELECT COUNT(*) FROM log_sources WHERE org_id=?", (org_id,)
             ).fetchone()[0]
