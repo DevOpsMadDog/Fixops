@@ -43,8 +43,9 @@ Ordered by what unblocks a sale, not by effort.
 | Q13 | **D2 — core membership by evidence** | membership generated from (tenant-varying data ∧ UI callsite), not curated by hand | list is generated |
 | Q14 | **D3 — execute dormancy** | ~290 engine-domain orphans, in verified batches | route count drops by the expected delta each batch, gates stay green |
 
-| Q27 | **Actually sign an evidence bundle** | bundles report `signature_valid: false` honestly. An assessor wants a signature, not an honest absence | a bundle carries a verifiable signature and the verifier confirms it offline |
-| Q28 | **74 evidence endpoints across 6 competing subsystems** — evidence-chain, evidence-collector, evidence-vault, evidence/, compliance-evidence, pipeline/evidence | a customer cannot tell which is *the* one; this is the Apple problem, not a bug | one canonical path; the rest demoted or retired |
+| Q27 | **Actually sign an evidence bundle** | bundles are now SEALED with a re-verifiable content hash and tampering is provably detected. A signature adds non-repudiation on top of integrity | a bundle carries a verifiable signature an offline verifier confirms |
+| Q31 | **evidence-collector and evidence-vault are still silos** | fed by nothing, return zeros. No longer advertised to customers, but an unfed feature is either wired or retired | each wired to generation, or retired |
+| ~~Q28~~ | ~~6 competing evidence subsystems~~ **DONE** — a loose `startswith` made core mode advertise four families; segment-boundary matching took the customer surface 455→308 paths and evidence 57→30. evidence-chain is no longer a silo: generation feeds and seals it | `6a1755f8` | closed |
 | Q29 | **773 request models let the client name its own tenant** | ratcheted in `test_tenant_comes_from_the_credential.py`; the dangerous forms are all closed, the field remains | count trends down; no new ones |
 | Q30 | **322 narrow `except` guards may hide database errors** | 4 telemetry ones widened. The rest need reading individually — blanket-widening swallows real faults | each audited, or a rule written for which may widen |
 
