@@ -23,6 +23,13 @@ import pytest
 
 def _core_spec() -> Dict[str, Any]:
     os.environ["FIXOPS_CORE_MODE"] = "1"
+    # create_app() refuses to boot without a token when the auth strategy is
+    # 'token'. This file sets FIXOPS_CORE_MODE but relied on FIXOPS_API_TOKEN
+    # already being in the environment — true when run alone, and false in a
+    # multi-file run where an earlier test's monkeypatch has just torn it down.
+    # The failure then arrives as an opaque fixture error about an "Overlay auth
+    # strategy", which names neither this file nor the test that unset it.
+    os.environ.setdefault("FIXOPS_API_TOKEN", "core-mode-spec-token")
     from apps.api.app import create_app
 
     return create_app().openapi()

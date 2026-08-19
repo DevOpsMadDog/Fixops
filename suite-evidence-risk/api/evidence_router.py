@@ -503,6 +503,103 @@ async def list_compliance_bundles(
     return {"bundles": bundles, "total": len(bundles)}
 
 
+def _persist_bundle_artifact(org_id: str, bundle_id: str, payload: dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
+    """Write the bundle to disk and return (path, sha256 of the file bytes).
+
+    Chain-of-custody verification re-hashes the artifact at `storage_location`
+    and compares it to the recorded hash — a real tamper check that FAILS when
+    the file is edited. Without a stored artifact it can only answer
+    "unverified_no_artifact", which is honest but proves nothing.
+
+    The hash recorded must be of the FILE BYTES, not of the in-memory dict, or
+    re-hashing can never match and every verification reports tampering.
+
+    Written under the operator-managed evidence root so
+    EvidenceChainEngine.verify_integrity will actually re-hash it — that guard
+    exists to stop a spoofed storage_location forcing a false "verified".
+    """
+    try:
+        root = Path(os.environ.get("FIXOPS_EVIDENCE_STORAGE_ROOT", "").split(os.pathsep)[0].strip()
+                    or os.path.join(os.environ.get("FIXOPS_DATA_DIR", "data"), "evidence_artifacts"))
+        target_dir = root / org_id
+        target_dir.mkdir(parents=True, exist_ok=True)
+        artifact = target_dir / f"{bundle_id}.json"
+        artifact.write_text(json.dumps(payload, sort_keys=True, indent=2, default=str), encoding="utf-8")
+
+        digest = hashlib.sha256()
+        with artifact.open("rb") as fh:
+            for chunk in iter(lambda: fh.read(65536), b""):
+                digest.update(chunk)
+        return str(artifact), digest.hexdigest()
+    except Exception:  # pragma: no cover — a bundle must still be returned
+        logger.warning("evidence: could not persist artifact for %s", bundle_id, exc_info=True)
+        return None, None
+
+
+def _record_in_custody_chain(
+    org_id: str,
+    bundle_id: str,
+    content_hash: str,
+    framework: str,
+    storage_location: Optional[str] = None,
+) -> Optional[str]:
+    """Enter a generated bundle into the chain of custody, sealed.
+
+    EvidenceChainEngine is a real implementation — cases, custody transfers,
+    hash verification, sealing — and NOTHING in the product fed it. It filled
+    only if a human called the API by hand, so /api/v1/evidence-chain reported
+    zero for every customer who had generated evidence.
+
+    That is the differentiator sitting dark. An assessor's question is not "do
+    you have a report" but "can you show this report has not been altered since
+    it was produced, and who has held it". Competitors answer the first. Sealing
+    the bundle with its content hash at the moment of generation answers the
+    second, and costs one call.
+
+    Returns the evidence_id, or None — a custody-ledger failure must never fail
+    the generation it is recording.
+    """
+    try:
+        from core.evidence_chain_engine import EvidenceChainEngine
+
+        engine = EvidenceChainEngine()
+
+        # One standing case per org holds generated compliance evidence, so the
+        # chain is continuous rather than a new case per bundle.
+        case_title = "Compliance evidence — generated bundles"
+        case = None
+        for existing in engine.list_cases(org_id=org_id) or []:
+            if existing.get("case_title") == case_title:
+                case = existing
+                break
+        if case is None:
+            case = engine.create_case(org_id, {
+                "case_title": case_title,
+                "case_type": "compliance",
+                "description": "Automatically maintained chain of custody for evidence bundles.",
+            })
+
+        item = engine.add_evidence(org_id, case["case_id"], {
+            "evidence_type": "document",
+            "filename": f"{bundle_id}.json",
+            "hash_sha256": content_hash,
+            "collected_by": "fixops-evidence-generator",
+            "collection_method": "automated",
+            # A real path under the managed root, so verification can re-hash
+            # the bytes rather than reporting "unverified_no_artifact".
+            "storage_location": storage_location or "",
+            "description": f"{framework} evidence bundle {bundle_id}",
+        })
+
+        # Sealed at creation: the hash recorded here is what a later verify
+        # compares against, so any post-hoc edit is detectable.
+        engine.seal_evidence(org_id, item["evidence_id"], sealed_by="fixops-evidence-generator")
+        return item["evidence_id"]
+    except Exception:  # pragma: no cover — the ledger must not break generation
+        logger.warning("evidence: could not record bundle %s in the custody chain", bundle_id, exc_info=True)
+        return None
+
+
 def _timeframe_days_from(date_range: dict[str, Any]) -> int:
     """Days between the requested start and end, defaulting to 90."""
     try:
@@ -619,6 +716,20 @@ async def generate_compliance_bundle(
             {"name": "Summary", "count": len(pack.summary or {})},
         ],
     }
+
+    # Seal it into the chain of custody at the moment it exists.
+    artifact_path, artifact_hash = _persist_bundle_artifact(org_id, bundle_id, pack_payload)
+    if artifact_hash:
+        # Record the hash of what is actually on disk — that is what a later
+        # verification re-computes.
+        content_hash = artifact_hash
+        bundle["hash"] = f"sha256:{artifact_hash}"
+    custody_id = _record_in_custody_chain(
+        org_id, bundle_id, content_hash, primary_framework, storage_location=artifact_path
+    )
+    if custody_id:
+        bundle["custody_evidence_id"] = custody_id
+        bundle["custody_sealed"] = True
 
     # Emit event if brain is available
     if _HAS_BRAIN:

@@ -2450,8 +2450,27 @@ def create_app() -> FastAPI:
         if not _CORE_MODE:
             return schema
         paths = schema.get("paths", {})
-        core = {p: item for p, item in paths.items()
-                if any(p == pref or p.startswith(pref) for pref in _CORE_PREFIXES)}
+        def _in_core(path: str) -> bool:
+            """Match on a PATH SEGMENT boundary, not a raw string prefix.
+
+            `path.startswith("/api/v1/evidence")` also matches
+            /api/v1/evidence-collector, /api/v1/evidence-chain and
+            /api/v1/evidence-vault — three separate subsystems that a customer
+            never asked for and that hold none of their data. That one loose
+            comparison is why the "focused" surface advertised 57 evidence
+            endpoints across four families instead of the one path that works.
+
+            A customer generating a bundle sees it in /api/v1/evidence and
+            /api/v1/pipeline/evidence. The other families return zeros forever,
+            because nothing feeds them. Advertising them is how a product ends
+            up with six ways to do one thing and no way to tell which is real.
+            """
+            for pref in _CORE_PREFIXES:
+                if path == pref or path.startswith(pref + "/"):
+                    return True
+            return False
+
+        core = {p: item for p, item in paths.items() if _in_core(p)}
         out = dict(schema)
         out["paths"] = core
         out["info"] = {**schema.get("info", {}),
