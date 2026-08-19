@@ -38,10 +38,15 @@ Ordered by what unblocks a sale, not by effort.
 | # | Item | Detail | Closes when |
 |---|---|---|---|
 | Q10 | **Decide the 183 unassigned domains** | 44 carry real tenant data — fold into a flow, demote to API-only, or retire. Not a blanket switch | each has a decision recorded |
-| Q11 | **Build flow 02 (Work the queue) properly** | the spine, and what a customer pays for | ingest→triage→case completes without a dead end |
-| Q12 | **Build flow 04 (Prove it to the auditor)** | the commercial wedge | an assessor can open one screen and get a signed, provenanced bundle |
+| ~~Q11~~ | ~~Flow 02 — the spine~~ **DONE** — ingest→see→triage persists, verified in production with real trivy output | `eb4e13f4` | closed |
+| ~~Q12~~ | ~~Flow 04 — the assessor path~~ **DONE** — generation was a stub returning invented page counts and a hash of its own metadata; now produces a real persisted pack (22 controls assessed, 18 effective) and lists. Signing remains a separate step, deliberately unclaimed | `4212663c` | closed; signing is Q27 |
 | Q13 | **D2 — core membership by evidence** | membership generated from (tenant-varying data ∧ UI callsite), not curated by hand | list is generated |
 | Q14 | **D3 — execute dormancy** | ~290 engine-domain orphans, in verified batches | route count drops by the expected delta each batch, gates stay green |
+
+| Q27 | **Actually sign an evidence bundle** | bundles report `signature_valid: false` honestly. An assessor wants a signature, not an honest absence | a bundle carries a verifiable signature and the verifier confirms it offline |
+| Q28 | **74 evidence endpoints across 6 competing subsystems** — evidence-chain, evidence-collector, evidence-vault, evidence/, compliance-evidence, pipeline/evidence | a customer cannot tell which is *the* one; this is the Apple problem, not a bug | one canonical path; the rest demoted or retired |
+| Q29 | **773 request models let the client name its own tenant** | ratcheted in `test_tenant_comes_from_the_credential.py`; the dangerous forms are all closed, the field remains | count trends down; no new ones |
+| Q30 | **322 narrow `except` guards may hide database errors** | 4 telemetry ones widened. The rest need reading individually — blanket-widening swallows real faults | each audited, or a rule written for which may widen |
 
 ## P3 — debt with a ratchet already on it
 
