@@ -196,6 +196,63 @@ function getAgeDays(dateStr?: string): string {
   return `${diff}d`;
 }
 
+/**
+ * The product's actual answer, on screen.
+ *
+ * Severity is what every scanner already gives you. This is reachability (can
+ * this be reached in THIS deployment) fused with exploit evidence (is anyone
+ * exploiting it out there) — the pair that decides what to fix tonight.
+ *
+ * Confidence is shown beside it deliberately: "act now" resting on an EPSS
+ * estimated from severity is a weaker claim than one resting on the KEV
+ * catalogue, and hiding that difference would make the badge dishonest.
+ */
+function ExploitabilityBadge({ verdict, confidence }: { verdict?: string; confidence?: string }) {
+  if (!verdict) {
+    // Absence is a fact. Never render a default verdict for a finding the
+    // pipeline has not assessed.
+    return <span className="text-xs text-slate-500">not assessed</span>;
+  }
+
+  const styles: Record<string, string> = {
+    act_now: "bg-red-500/15 text-red-300 border-red-500/30",
+    schedule: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+    watch: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+    defer: "bg-slate-500/15 text-slate-300 border-slate-500/30",
+    exploited_unknown_reach: "bg-orange-500/15 text-orange-300 border-orange-500/30",
+    insufficient_evidence: "bg-slate-500/15 text-slate-400 border-slate-500/30",
+  };
+  const labels: Record<string, string> = {
+    act_now: "Act now",
+    schedule: "Schedule",
+    watch: "Watch",
+    defer: "Defer",
+    exploited_unknown_reach: "Exploited — reach unknown",
+    insufficient_evidence: "Insufficient evidence",
+  };
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className={`rounded border px-2 py-0.5 text-xs font-medium ${styles[verdict] ?? styles.defer}`}>
+        {labels[verdict] ?? verdict}
+      </span>
+      {confidence && confidence !== "none" && (
+        <span
+          className="text-[10px] uppercase tracking-wide text-slate-400"
+          title={
+            confidence === "measured"
+              ? "Based on the KEV catalogue or an EPSS score from the feed database."
+              : "Based on an EPSS estimated from severity — weaker evidence."
+          }
+        >
+          {confidence}
+        </span>
+      )}
+    </span>
+  );
+}
+
+
 interface Finding {
   id?: string;
   finding_id?: string;
@@ -216,6 +273,14 @@ interface Finding {
   /** SecurityFindingsEngine persists the package alongside cve_id — reachability
    *  analysis needs BOTH, and skipped every finding while the package was absent. */
   package_name?: string;
+  /** The fused verdict: reachability (can it be reached HERE) x exploit evidence
+   *  (is it being exploited out there). act_now | schedule | watch | defer |
+   *  exploited_unknown_reach | insufficient_evidence. */
+  exploitability?: string;
+  /** measured | estimated | none — whether the exploit evidence was the KEV
+   *  catalogue and a real EPSS, or an EPSS guessed from severity. Shown because
+   *  "act now" on a guess is a weaker claim than "act now" on the KEV list. */
+  exploitability_confidence?: string;
   mpte_verdict?: string;
   created_at?: string;
   description?: string;
@@ -1011,6 +1076,13 @@ export default function FindingExplorer() {
                   { label: "Application", value: detailFinding.app_id || detailFinding.app || detailFinding.application || "—" },
                   { label: "CVE", value: <span className="font-mono text-xs text-blue-400">{detailFinding.cve_id || detailFinding.cve || "—"}</span> },
                   { label: "Component", value: detailFinding.component || detailFinding.package_name || "—" },
+                  {
+                    label: "Exploitability",
+                    value: <ExploitabilityBadge
+                      verdict={detailFinding.exploitability}
+                      confidence={detailFinding.exploitability_confidence}
+                    />,
+                  },
                   { label: "Age", value: getAgeDays(detailFinding.created_at) },
                 ].map(({ label, value }) => (
                   <div key={label} className="space-y-1">

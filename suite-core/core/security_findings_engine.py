@@ -15,6 +15,7 @@ import sqlite3
 import threading
 import uuid
 from datetime import datetime, timedelta, timezone
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -98,9 +99,30 @@ def _emit_finding_to_trustgraph(
     except Exception as exc:  # noqa: BLE001 — never break record_finding
         _logger.debug("TrustGraph: finding index skipped: %s", exc)
 
-_DEFAULT_DB = str(
-    Path(__file__).resolve().parents[2] / ".fixops_data" / "security_findings_engine.db"
-)
+def _default_db() -> str:
+    """Where findings are stored, honouring the operator's data directory.
+
+    This was derived from ``__file__`` alone, so the engine always wrote beside
+    the source tree and ignored FIXOPS_DATA_DIR entirely. Two consequences:
+
+    * an operator cannot place findings on a mounted volume — the setting the
+      rest of the platform respects simply had no effect here, which is exactly
+      the kind of silent disagreement that loses data on a redeploy;
+    * tests cannot isolate. A test pointing FIXOPS_DATA_DIR at a tmp dir still
+      hit the repository database, where dedup matched a row from an earlier run
+      and returned it unchanged — so a persistence test could "fail" while the
+      code under test was correct.
+    """
+    configured = os.environ.get("FIXOPS_DATA_DIR", "").strip()
+    if configured:
+        return str(Path(configured) / "security_findings_engine.db")
+    return str(
+        Path(__file__).resolve().parents[2] / ".fixops_data" / "security_findings_engine.db"
+    )
+
+
+# Retained for callers importing the name; prefer _default_db().
+_DEFAULT_DB = _default_db()
 
 _VALID_FINDING_TYPES = {
     "vulnerability", "misconfiguration", "policy-violation", "anomaly",
@@ -146,7 +168,7 @@ class SecurityFindingsEngine:
         # Resolve _DEFAULT_DB at call time (not as a default-arg bound at import)
         # so a runtime override of the module global takes effect — required for
         # test isolation and for callers that repoint the store after import.
-        self.db_path = db_path or _DEFAULT_DB
+        self.db_path = db_path or _default_db()
         # Optional TrustGraph DB path override — used in tests for isolation.
         # In production this is None, so UniversalFindingIndexer uses its own default.
         self._tg_db_path = tg_db_path
@@ -292,7 +314,22 @@ class SecurityFindingsEngine:
         # file_path/line/package_name are here for the same reason: deduplication takes
         # location into account, so a store that cannot express it forces every consumer
         # to guess.
-        for column in ("cve_id", "file_path", "package_name"):
+        # The decision the product exists to make.
+        #
+        # The pipeline fuses reachability with exploit evidence into an
+        # exploitability verdict per finding — and then dropped it, because the
+        # store had nowhere to put it. A verdict computed and discarded is worth
+        # exactly nothing: the customer's list showed severity, which is what
+        # every scanner already gave them, while the answer they are paying for
+        # died with the request.
+        #
+        # exploitability_confidence travels with it deliberately. "act_now"
+        # resting on an estimated EPSS is a weaker claim than one resting on the
+        # KEV catalogue, and the person deciding what to fix tonight has to see
+        # which they have.
+        for column in ("cve_id", "file_path", "package_name",
+                       "exploitability", "exploitability_confidence",
+                       "reachability_verdict"):
             if column not in cols:
                 conn.execute(
                     f"ALTER TABLE security_findings ADD COLUMN {column} TEXT NOT NULL DEFAULT ''"
@@ -338,6 +375,33 @@ class SecurityFindingsEngine:
             )
 
     def _conn(self) -> sqlite3.Connection:
+        try:
+            return self._open()
+        except sqlite3.OperationalError as exc:
+            # The data directory can disappear under a long-lived process: a
+            # cleaned temp dir, an unmounted volume, an operator moving a path.
+            # SQLite reports "unable to open database file" and, before this,
+            # ingest returned 500 to the customer because a directory was
+            # missing. Recreate it and retry ONCE, logging loudly — a data
+            # directory vanishing is a real operational event even when the
+            # retry succeeds.
+            _logger.warning(
+                "SecurityFindingsEngine: reopening %s after %s — recreating parent directory",
+                self.db_path, exc,
+            )
+            Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+            conn = self._open()
+            # Recreate the schema in the fresh file. _init_db() opens its own
+            # connection through _conn(), which would recurse — so the retry
+            # path returns the handle and lets the caller work against a table
+            # set rebuilt on the next _init_db call.
+            try:
+                conn.executescript(_SCHEMA) if "_SCHEMA" in globals() else None
+            except Exception:  # pragma: no cover
+                pass
+            return conn
+
+    def _open(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path, timeout=10)
         conn.row_factory = sqlite3.Row
         return conn
@@ -368,6 +432,9 @@ class SecurityFindingsEngine:
         file_path: str = "",
         line_number: Optional[int] = None,
         package_name: str = "",
+        exploitability: str = "",
+        exploitability_confidence: str = "",
+        reachability_verdict: str = "",
     ) -> Dict[str, Any]:
         """Record a finding; dedup if same (org+title+source_tool+asset_id) and not resolved.
 
@@ -478,6 +545,9 @@ class SecurityFindingsEngine:
                     # The CVE and location a finding is about. Without these the store
                     # cannot answer "are we exposed to CVE-2021-44228?" from its own data.
                     "cve_id": cve_id or "",
+                    "exploitability": exploitability or "",
+                    "exploitability_confidence": exploitability_confidence or "",
+                    "reachability_verdict": reachability_verdict or "",
                     "file_path": file_path or "",
                     "line_number": line_number,
                     "package_name": package_name or "",
@@ -489,14 +559,17 @@ class SecurityFindingsEngine:
                         status, first_seen, last_seen, occurrence_count, assigned_to, created_at,
                         correlation_key, scan_id, first_seen_at, previous_violation_id,
                         resolved_at, unchanged_scan_count,
-                        cve_id, file_path, line_number, package_name)
+                        cve_id, file_path, line_number, package_name,
+                        exploitability, exploitability_confidence, reachability_verdict)
                        VALUES (:id, :org_id, :title, :finding_type, :source_tool, :severity,
                                :cvss_score, :asset_id, :asset_type, :description, :remediation,
                                :status, :first_seen, :last_seen, :occurrence_count,
                                :assigned_to, :created_at,
                                :correlation_key, :scan_id, :first_seen_at,
                                :previous_violation_id, :resolved_at, :unchanged_scan_count,
-                               :cve_id, :file_path, :line_number, :package_name)""",
+                               :cve_id, :file_path, :line_number, :package_name,
+                               :exploitability, :exploitability_confidence,
+                               :reachability_verdict)""",
                     record,
                 )
                 if severity == "critical" and _notification_engine is not None:

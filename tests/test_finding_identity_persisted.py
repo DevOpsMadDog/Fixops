@@ -17,6 +17,7 @@ pipeline's mirror, and out of the API projection the Finding Explorer reads.
 
 from __future__ import annotations
 
+import pathlib
 import tempfile
 import uuid
 from typing import Any, Dict
@@ -29,8 +30,15 @@ def engine(monkeypatch):
     """A findings engine on a throwaway database."""
     import core.security_findings_engine as module
 
-    path = tempfile.mktemp(suffix=".db")
-    monkeypatch.setattr(module, "_DEFAULT_DB", path, raising=False)
+    # Point the engine at a scratch data directory using the mechanism an
+    # OPERATOR uses. This previously monkeypatched the module constant
+    # _DEFAULT_DB — the only isolation available while the engine derived its
+    # path from __file__ and ignored FIXOPS_DATA_DIR entirely. Now that it
+    # honours the setting, the test uses the same door the product does, which
+    # also proves the configuration actually works.
+    data_dir = tempfile.mkdtemp()
+    monkeypatch.setenv("FIXOPS_DATA_DIR", data_dir)
+    path = str(pathlib.Path(data_dir) / "security_findings_engine.db")
     return module.SecurityFindingsEngine(db_path=path)
 
 
@@ -94,8 +102,15 @@ def test_the_pipeline_mirror_carries_identity_and_location(monkeypatch) -> None:
     """
     import core.security_findings_engine as module
 
-    path = tempfile.mktemp(suffix=".db")
-    monkeypatch.setattr(module, "_DEFAULT_DB", path, raising=False)
+    # Point the engine at a scratch data directory using the mechanism an
+    # OPERATOR uses. This previously monkeypatched the module constant
+    # _DEFAULT_DB — the only isolation available while the engine derived its
+    # path from __file__ and ignored FIXOPS_DATA_DIR entirely. Now that it
+    # honours the setting, the test uses the same door the product does, which
+    # also proves the configuration actually works.
+    data_dir = tempfile.mkdtemp()
+    monkeypatch.setenv("FIXOPS_DATA_DIR", data_dir)
+    path = str(pathlib.Path(data_dir) / "security_findings_engine.db")
 
     from core.brain_pipeline import BrainPipeline
 

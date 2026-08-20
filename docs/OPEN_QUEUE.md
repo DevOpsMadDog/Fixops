@@ -26,7 +26,7 @@ Ordered by what unblocks a sale, not by effort.
 
 | # | Item | Why it matters | Closes when |
 |---|---|---|---|
-| Q4 | **Wire exploit analysis into the pipeline** | `exploit_signals.py` + `exploit_generator.py` exist; `brain_pipeline` imports neither. It is the missing half of the reachability pair, and both are static | exploit signal runs beside reachability at every stage |
+| ~~Q4~~ | ~~Wire exploit analysis~~ **DONE** — reachability and exploit evidence are now FUSED into one verdict per finding (act_now / schedule / watch / defer), carrying whether the evidence was measured or estimated. Persisted through the store and shown in the UI | 12 tests | closed |
 | Q5 | **Per-stage verdict history** | a finding needs *many* verdicts over time, not one overwritten field — this is what makes prediction→confirmation measurable | `(finding, stage, verdict, timestamp)` is stored and queryable |
 | Q6 | **Forecasting at plan/design** | the honest question where there is no target: how likely is this to *become* exploitable (EPSS trajectory, KEV-addition likelihood) | a design-stage finding carries a forecast, labelled predicted |
 | Q7 | **MPTE target providers** | one engine, five providers: nothing at design, ephemeral container at build/test (`sandbox_verifier.py`), staging at release, production at operate | MPTE reports "no target at this stage" rather than silently skipping |

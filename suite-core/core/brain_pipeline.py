@@ -1078,6 +1078,12 @@ class BrainPipeline:
                     file_path=f.get("file_path") or "",
                     line_number=f.get("line") or f.get("line_number"),
                     package_name=f.get("package_name") or f.get("component") or "",
+                    # The verdict the run just computed. Without these three the
+                    # fusion of reachability and exploit evidence was thrown away
+                    # at the store boundary and the customer saw severity only.
+                    exploitability=f.get("exploitability") or "",
+                    exploitability_confidence=f.get("exploitability_confidence") or "",
+                    reachability_verdict=f.get("reachability_verdict") or "",
                 )
                 mirrored += 1
             except Exception as exc:  # noqa: BLE001
@@ -2832,6 +2838,7 @@ class BrainPipeline:
             ctx["_enrich_source"] = "live_api"
             self._fuse_vuln_intel(ctx)
             self._apply_reachability_verdicts(ctx)
+            self._apply_exploitability_verdict(ctx)
             return result
         except (ImportError, Exception) as e:
             logger.warning(
@@ -2896,6 +2903,7 @@ class BrainPipeline:
         ctx["_enrich_bundle_age_days"] = bundle_age_days
         self._fuse_vuln_intel(ctx)
         self._apply_reachability_verdicts(ctx)
+        self._apply_exploitability_verdict(ctx)
         return {
             "enriched": enriched,
             "unique_cves": len(set(cve_ids)),
@@ -3057,6 +3065,92 @@ class BrainPipeline:
                         pass
         except Exception as exc:  # noqa: BLE001 - reachability is optional
             logger.warning("reachability verdicts skipped: %s", exc)
+
+    def _apply_exploitability_verdict(self, ctx: Dict[str, Any]) -> None:
+        """Fuse reachability and exploit evidence into one decision per finding.
+
+        The pipeline already computed both halves and never joined them:
+        ``_apply_reachability_verdicts`` answers "can this code be reached in
+        THIS deployment", and KEV/EPSS enrichment answers "is anyone actually
+        exploiting it in the world". Separately each is a number on a dashboard.
+        Together they are the decision a customer is paying for — and the answer
+        competitors struggle to give, because they hold one half or the other.
+
+        The four combinations are not equally urgent, and saying so IS the
+        product:
+
+          reachable   + exploited-in-the-wild -> act now
+          reachable   + not exploited         -> schedule
+          unreachable + exploited             -> watch (reachability can change)
+          unreachable + not exploited         -> defer
+
+        Every verdict carries the inputs it used and whether they were MEASURED
+        or ESTIMATED. A call resting on an estimated EPSS is a weaker claim than
+        one resting on the KEV catalogue, and someone deciding what to fix
+        tonight has to see which they have.
+
+        Never fabricates: a finding with no CVE gets no verdict rather than a
+        default one, because "we do not know" is a fact and "low" is a claim.
+        """
+        _EPSS_HIGH = 0.10  # roughly the top few percent by observed exploitation
+
+        counts: Dict[str, int] = {}
+        for f in ctx.get("findings", []):
+            if not f.get("cve_id"):
+                continue
+
+            evidence: List[str] = []
+            caveats: List[str] = []
+            measured = True
+
+            exploited = False
+            if f.get("in_kev"):
+                exploited = True
+                evidence.append("kev_catalogue")
+            epss = f.get("epss_score")
+            if isinstance(epss, (int, float)) and epss >= _EPSS_HIGH:
+                exploited = True
+                evidence.append("epss>=%.2f" % _EPSS_HIGH)
+                if f.get("epss_source") == "estimated":
+                    measured = False
+            if f.get("exploit_available"):
+                exploited = True
+                evidence.append("exploit_available")
+
+            reach = f.get("reachability_verdict")
+            if reach == "reachable":
+                verdict = "act_now" if exploited else "schedule"
+            elif reach == "unreachable":
+                verdict = "watch" if exploited else "defer"
+            else:
+                # Reachability could not be determined — usually no call graph
+                # for this package. Say so, rather than implying it is safe.
+                verdict = "exploited_unknown_reach" if exploited else "insufficient_evidence"
+                caveats.append("reachability_unavailable")
+
+            f["exploitability"] = verdict
+            f["exploitability_evidence"] = evidence
+            # A caveat is not evidence. Appending "reachability_unavailable" to
+            # the evidence list made a finding with NO exploit signal report
+            # confidence "measured" — asserting rigour for a verdict resting on
+            # nothing. Confidence describes the exploit evidence alone.
+            f["exploitability_caveats"] = caveats
+            f["exploitability_confidence"] = (
+                "measured" if (measured and evidence) else ("estimated" if evidence else "none")
+            )
+            counts[verdict] = counts.get(verdict, 0) + 1
+
+            # Only the clearest case moves priority. Promoting on an estimate
+            # would let a guessed EPSS outrank a measured one.
+            if verdict == "act_now" and measured and "consensus_priority" in f:
+                try:
+                    f["consensus_priority"] = max(1, int(f["consensus_priority"]) - 1)
+                except (ValueError, TypeError):
+                    pass
+
+        if counts:
+            ctx["exploitability_summary"] = counts
+            logger.info("exploitability verdicts: %s", counts)
 
     def _run_attack_graph_gnn(self, ctx: Dict[str, Any]) -> None:
         """Wave 3B — build SecurityGraph and run GraphNeuralPredictor.
