@@ -3039,11 +3039,22 @@ class CryptoManager:
         return sig, self._km.metadata.fingerprint
 
     def verify(self, data: bytes, signature: bytes) -> bool:
-        """Verify *signature* over *data* using the current public key."""
+        """Verify *signature* over *data* using the current public key.
+
+        Returns False for anything that is not a valid signature, including
+        malformed input. This caught only InvalidSignature, so a caller passing
+        a str, a tuple, or truncated bytes got a TypeError instead of False —
+        which on a verification endpoint is a 500 where the honest answer is
+        "no, that does not verify". An assessor asking "is this authentic?"
+        must never receive a crash in place of an answer.
+        """
         try:
             self._km.public_key.verify(signature, data, padding.PKCS1v15(), hashes.SHA256())
             return True
         except InvalidSignature:
+            return False
+        except (TypeError, ValueError) as exc:
+            logger.warning("signature verification rejected malformed input: %s", exc)
             return False
 
     @property

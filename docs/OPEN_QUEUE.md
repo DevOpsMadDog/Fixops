@@ -17,7 +17,7 @@ Ordered by what unblocks a sale, not by effort.
 | ~~Q2~~ | ~~Redeploy~~ **DONE** — fly v82 live; cross-tenant breach verified sealed *in production*, login returns a real role and org | verified against aldeci.fly.dev | closed |
 | Q3 | **Click the remaining screens** — Respond, Evidence, Onboarding | every defect so far only appeared when something was pressed | each action verified to persist, same method as Triage |
 | Q25 | **A P0 was found by creating one real account** — cross-tenant read/write via a named org. Closed in `513cdc13`+`9ca5afb3`. The lesson is the queue item: *onboard as a real customer and press the buttons*, because four layers of this were invisible to code review | `docs/SECURITY_FINDING_cross_tenant_org_id.md` | run the same exercise against a second real persona |
-| Q22 | **5 SSO config endpoints return 401 to an authenticated caller** — `test_auth_api.py::test_{list,create,get,update,get_nonexistent}_sso_config` | PRE-EXISTING: confirmed by stashing the auth work and re-running the clean baseline, which fails identically | authenticated SSO config CRUD returns 2xx |
+| ~~Q22~~ | ~~5 SSO config 401s~~ **DONE — and it was the TEST that was wrong.** The tests called `/api/v1/auth/sso` with NO credentials and asserted 200, encoding an auth hole as expected behaviour. SSO config carries IdP metadata and certificates; serving it unauthenticated would be the defect. Tests now authenticate; 5/5 pass | closed |
 | ~~Q23~~ | ~~Rebuild + redeploy~~ **DONE** — both now serve a build where password login yields a role | verified live on :8000 and fly | closed |
 | ~~Q24~~ | ~~Remove probe accounts from fly~~ **DONE** — 3 `@probe.example` rows deleted; planted entitlements were never on the volume | verified: 8 users → 5 | closed |
 | Q26 | **5 stale test accounts predate this session on the fly volume** — `cr2+`, `cr3+`, `crfinal+`, `crrec+`, `custtest+` `@example.com`. Not mine to delete; flagging rather than removing | `flyctl ssh console` inventory | founder decides: purge or keep as fixtures |
@@ -43,7 +43,7 @@ Ordered by what unblocks a sale, not by effort.
 | Q13 | **D2 — core membership by evidence** | membership generated from (tenant-varying data ∧ UI callsite), not curated by hand | list is generated |
 | Q14 | **D3 — execute dormancy** | ~290 engine-domain orphans, in verified batches | route count drops by the expected delta each batch, gates stay green |
 
-| Q27 | **Actually sign an evidence bundle** | bundles are now SEALED with a re-verifiable content hash and tampering is provably detected. A signature adds non-repudiation on top of integrity | a bundle carries a verifiable signature an offline verifier confirms |
+| ~~Q27~~ | ~~Sign an evidence bundle~~ **DONE** — RSA-SHA256 over the content hash, persisted as a `.sig.json` sidecar, verified by the API and by a standalone offline script. Forged and malformed signatures both answer rather than crash | 11 tests | closed |
 | Q31 | **evidence-collector and evidence-vault are still silos** | fed by nothing, return zeros. No longer advertised to customers, but an unfed feature is either wired or retired | each wired to generation, or retired |
 | ~~Q28~~ | ~~6 competing evidence subsystems~~ **DONE** — a loose `startswith` made core mode advertise four families; segment-boundary matching took the customer surface 455→308 paths and evidence 57→30. evidence-chain is no longer a silo: generation feeds and seals it | `6a1755f8` | closed |
 | Q29 | **773 request models let the client name its own tenant** | ratcheted in `test_tenant_comes_from_the_credential.py`; the dangerous forms are all closed, the field remains | count trends down; no new ones |
@@ -56,7 +56,7 @@ Ordered by what unblocks a sale, not by effort.
 | Q15 | **E2 — relative DB paths** | 155 files hardcode them and ignore `FIXOPS_DATA_DIR`; ratchet in `test_no_relative_db_paths.py` | count reaches 0 |
 | Q16 | **B4 — duplicated contract models** | `CapabilityResponse` ×46, `ScanRequest` ×24 re-declared per router | shared, and duplicate class-name count materially below 4,213 |
 | Q17 | **F1 — rename Families 1–2** | we call it SAST/DAST; we normalise other tools' output. 2 of 15 and 1 of 13 domains carry data | no surface claims a scan a normalizer merely ingests |
-| Q18 | **F4 — offline bundle verifier** | a customer must verify a bundle without us | third party verifies on a machine with no network and no FixOps |
+| ~~Q18~~ | ~~Offline bundle verifier~~ **DONE** — `scripts/verify_evidence_bundle.py` imports nothing from FixOps and needs no network; `GET /api/v1/evidence/public-key` publishes the key. Verified in test: passes an untouched bundle, exits 1 on an edited one | 11 tests | closed |
 
 ## P4 — blocked on hardware or a decision only the founder makes
 

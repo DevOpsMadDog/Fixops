@@ -63,6 +63,29 @@ matters: "verified" means nothing unless the bytes were re-read.
 Verified in production: generate → seal → verify returns
 `recomputed: true, match: true, integrity: verified`.
 
+## 2b. …and provably ours
+
+Sealing answers "is this the same file". A signature answers "did it come from
+you, and can you deny it later".
+
+Every generated bundle is signed RSA-PKCS1v15-SHA256 over its content hash, and
+the signature is persisted beside the artifact so it can be checked again. Both
+halves are verified independently, because they fail for different reasons: the
+artifact must still hash to what we recorded (tamper), and that hash must carry
+our signature (provenance). A forged signature and a malformed one both return
+`signature_valid: false` rather than crashing — an assessor asking "is this
+authentic?" must never receive a stack trace in place of an answer.
+
+**An auditor can verify without us.** `scripts/verify_evidence_bundle.py`
+imports nothing from FixOps and needs no network or database — only the bundle,
+its `.sig.json` record, and the public key from
+`GET /api/v1/evidence/public-key`. Verified in test: exit 0 on an untouched
+bundle, exit 1 with `NOT VERIFIED` on an edited one.
+
+That matters more than it sounds. Every competitor's evidence is only as
+trustworthy as their own console; ours can be checked on an air-gapped machine
+by someone who does not trust us at all.
+
 ## 3. The customer's own risk model
 
 Apiiro's knowledge graph is closed: their entity types, their relationships,
@@ -127,9 +150,6 @@ though it is hardware-bound and unproven at production speed (see below).
 
 Listed so nobody sells them by accident.
 
-- **Bundles are sealed, not signed.** Integrity is proven and tamper is
-  detectable. A cryptographic signature adds non-repudiation on top and is not
-  done. Bundles report `signature_valid: false` honestly.
 - **Air-gapped council is hardware-bound.** The mechanic works; on laptop CPU
   the six-key verdict prompt exceeds ten minutes and falls back to labelled
   heuristics. Unproven on inference-sized hardware.

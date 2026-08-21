@@ -138,11 +138,26 @@ def test_the_hash_covers_content_not_the_bundles_own_label(client, tenant) -> No
     assert len(digest) == 64
 
 
-def test_a_bundle_is_not_claimed_to_be_signed(client, tenant) -> None:
-    """Signing is a separate, deliberate step. Claiming it is the same lie."""
+def test_a_signature_is_never_claimed_without_the_material_to_back_it(client, tenant) -> None:
+    """The invariant is not "unsigned" — it is "never claim what you do not have".
+
+    This originally asserted signature_valid is False, which was true while
+    bundles were sealed but unsigned. Bundles are signed now, so asserting the
+    absence would pin the product to its old limitation. What must hold either
+    way: a bundle claiming a signature carries the material to verify it, and a
+    bundle without one says why rather than showing an unexplained false.
+    """
     bundle = _generate(client, tenant)
-    assert bundle["signature_valid"] is False
-    assert bundle["signed_by"] is None
+
+    if bundle["signature_valid"]:
+        assert bundle.get("signature"), "claimed a signature with no signature material"
+        assert bundle.get("key_fingerprint"), "claimed a signature with no key identity"
+        assert bundle.get("signed_by"), "claimed a signature with no signer"
+    else:
+        assert bundle["signed_by"] is None
+        assert bundle.get("signature_unavailable_reason"), (
+            "unsigned bundles must say why, not show a bare false"
+        )
 
 
 def test_one_tenants_bundle_is_not_listed_to_another(client, tenant) -> None:

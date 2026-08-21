@@ -1,5 +1,6 @@
 import base64
 import glob
+import base64
 import hashlib
 import json
 import logging
@@ -423,6 +424,37 @@ async def evidence_stats(request: Request) -> dict[str, Any]:
     }
 
 
+@router.get("/public-key", summary="The public key an auditor verifies bundles with")
+def public_key() -> dict[str, Any]:
+    """Publish the verification key.
+
+    An assessor should not have to trust our UI to check our evidence. With this
+    key, the bundle file and its .sig.json record, they can verify offline using
+    scripts/verify_evidence_bundle.py — no network, no database, no FixOps.
+
+    Public keys are meant to be public; this endpoint exposes only the public
+    half and never the private key.
+    """
+    try:
+        from core.crypto import RSAKeyManager
+
+        manager = RSAKeyManager()
+        return {
+            "algorithm": "RSA-PKCS1v15-SHA256",
+            "signed_payload": "sha256_content_hash",
+            "key_fingerprint": manager.metadata.fingerprint,
+            "public_key_pem": manager.get_public_key_pem(),
+            "verify_with": "scripts/verify_evidence_bundle.py BUNDLE.json BUNDLE.sig.json key.pem",
+        }
+    except Exception as exc:
+        # An unavailable key is a real operational state, not a 200 with an
+        # empty string that a verifier would then fail against confusingly.
+        raise HTTPException(
+            status_code=503,
+            detail=f"Signing key unavailable: {type(exc).__name__}",
+        ) from exc
+
+
 @router.get("/bundles")
 async def list_compliance_bundles(
     request: Request,
@@ -501,6 +533,110 @@ async def list_compliance_bundles(
 
     # Still possibly empty — and that is an honest answer, never a fabricated one.
     return {"bundles": bundles, "total": len(bundles)}
+
+
+def _verify_generated_bundle(bundle_id: str) -> Optional["BundleVerificationResult"]:
+    """Verify a bundle produced by POST /bundles/generate, or return None.
+
+    None means "this is not one of ours" — the caller falls through to the
+    legacy manifest path rather than reporting a failure for a bundle this
+    function simply does not own.
+    """
+    root = Path(
+        os.environ.get("FIXOPS_EVIDENCE_STORAGE_ROOT", "").split(os.pathsep)[0].strip()
+        or os.path.join(os.environ.get("FIXOPS_DATA_DIR", "data"), "evidence_artifacts")
+    )
+    matches = list(root.rglob(f"{bundle_id}.json")) if root.exists() else []
+    if not matches:
+        return None
+
+    artifact = matches[0]
+    sidecar = artifact.with_suffix(".sig.json")
+
+    digest = hashlib.sha256()
+    with artifact.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(65536), b""):
+            digest.update(chunk)
+    recomputed = digest.hexdigest()
+
+    if not sidecar.is_file():
+        # Content is checkable, provenance is not. Report exactly that rather
+        # than implying either a pass or a tamper.
+        return BundleVerificationResult(
+            valid=False,
+            hash_match=False,
+            signature_valid=False,
+            timestamp=dt.now(tz.utc).isoformat(),
+            certificate_chain=[],
+            issuer="Unsigned — bundle has content but no signature record",
+        )
+
+    record = json.loads(sidecar.read_text(encoding="utf-8"))
+    hash_match = record.get("content_sha256") == recomputed
+
+    signature_valid = False
+    try:
+        from core.crypto import CryptoManager
+
+        signature_valid = CryptoManager().verify(
+            record["content_sha256"].encode("utf-8"),
+            base64.b64decode(record["signature_b64"]),
+        )
+    except Exception:  # pragma: no cover — a verification must answer
+        logger.warning("evidence: signature check failed for %s", bundle_id, exc_info=True)
+
+    if hash_match and signature_valid:
+        issuer = f"fixops:{record.get('key_fingerprint','')[:16]}"
+    elif not hash_match:
+        issuer = "TAMPERED — the stored bundle no longer matches its signed hash"
+    else:
+        issuer = "Signature did not verify against the current key"
+
+    return BundleVerificationResult(
+        valid=bool(hash_match and signature_valid),
+        hash_match=hash_match,
+        signature_valid=signature_valid,
+        timestamp=dt.now(tz.utc).isoformat(),
+        certificate_chain=[record.get("key_fingerprint", "")] if signature_valid else [],
+        issuer=issuer,
+    )
+
+
+def _sign_bundle(artifact_path: Optional[str], content_hash: str) -> Dict[str, Any]:
+    """Sign the bundle's content hash, so integrity becomes non-repudiation.
+
+    Sealing already proved the bundle has not CHANGED — verification re-reads
+    the artifact and re-computes its hash, and a tampered file is detected. A
+    signature answers the next question an assessor asks: not "is this the same
+    file", but "can you prove it came from you, and can you deny it later".
+
+    The signature covers the CONTENT HASH rather than the bytes, so a verifier
+    checks two independent things: the artifact still hashes to what we recorded,
+    and that recorded hash was signed by our key. Either failing is a real
+    finding.
+
+    Returns an unsigned-but-honest result when no key is available. A bundle
+    claiming a signature it does not have is worse than one admitting it is
+    unsigned, and this is a compliance product.
+    """
+    if not content_hash:
+        return {"signed": False, "reason": "no content hash to sign"}
+    try:
+        from core.crypto import CryptoManager
+
+        manager = CryptoManager()
+        signature, fingerprint = manager.sign(content_hash.encode("utf-8"))
+        return {
+            "signed": True,
+            "signature": base64.b64encode(signature).decode("ascii"),
+            "signature_algorithm": "RSA-PKCS1v15-SHA256",
+            "signed_payload": "sha256_content_hash",
+            "key_fingerprint": fingerprint,
+            "signed_at": dt.now(tz.utc).isoformat(),
+        }
+    except Exception as exc:  # pragma: no cover — never fail generation
+        logger.warning("evidence: bundle %s left unsigned: %s", artifact_path, exc)
+        return {"signed": False, "reason": f"signing unavailable: {type(exc).__name__}"}
 
 
 def _persist_bundle_artifact(org_id: str, bundle_id: str, payload: dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
@@ -707,8 +843,7 @@ async def generate_compliance_bundle(
         "overall_status": pack.overall_status,
         "finding_count": int((pack.summary or {}).get("total_findings", 0) or 0),
         "hash": f"sha256:{content_hash}",
-        # Signing is a separate, deliberate step. Claiming a signature here
-        # would be the same lie in a different field.
+        # Filled in below from the real signing result. Never asserted.
         "signed_by": None,
         "signature_valid": False,
         "sections": [
@@ -724,6 +859,41 @@ async def generate_compliance_bundle(
         # verification re-computes.
         content_hash = artifact_hash
         bundle["hash"] = f"sha256:{artifact_hash}"
+    signing = _sign_bundle(artifact_path, content_hash)
+    if signing.get("signed") and artifact_path:
+        # A signature held only in the response can never be checked again.
+        # Write it beside the artifact, in a form a third party can verify with
+        # nothing but the public key and a hash function.
+        try:
+            Path(artifact_path).with_suffix(".sig.json").write_text(
+                json.dumps(
+                    {
+                        "bundle_id": bundle_id,
+                        "content_sha256": content_hash,
+                        "signature_b64": signing["signature"],
+                        "signature_algorithm": signing["signature_algorithm"],
+                        "signed_payload": signing["signed_payload"],
+                        "key_fingerprint": signing["key_fingerprint"],
+                        "signed_at": signing["signed_at"],
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+        except Exception:  # pragma: no cover
+            logger.warning("evidence: could not write signature sidecar for %s", bundle_id, exc_info=True)
+    if signing.get("signed"):
+        bundle["signature"] = signing["signature"]
+        bundle["signature_algorithm"] = signing["signature_algorithm"]
+        bundle["signed_payload"] = signing["signed_payload"]
+        bundle["key_fingerprint"] = signing["key_fingerprint"]
+        bundle["signed_at"] = signing["signed_at"]
+        bundle["signed_by"] = f"fixops:{signing['key_fingerprint'][:16]}"
+        bundle["signature_valid"] = True
+    else:
+        # Say why, rather than showing an unexplained false.
+        bundle["signature_unavailable_reason"] = signing.get("reason", "unknown")
+
     custody_id = _record_in_custody_chain(
         org_id, bundle_id, content_hash, primary_framework, storage_location=artifact_path
     )
@@ -986,6 +1156,20 @@ async def verify_bundle(
     safe_id = _sanitize_bundle_id(bundle_id)
 
     verification_ts = dt.now(tz.utc).isoformat()
+
+    # Generated packs verify against their own artifact and signature sidecar.
+    #
+    # The legacy path below hunts for a manifest.json in a directory layout that
+    # generated bundles do not use, so every bundle produced by
+    # POST /bundles/generate came back "unverifiable" — the product could sign a
+    # bundle and then not check its own signature.
+    #
+    # Two independent checks, because they fail for different reasons: the
+    # artifact must still hash to what we recorded (tamper), and that recorded
+    # hash must carry our signature (provenance).
+    generated = _verify_generated_bundle(safe_id)
+    if generated is not None:
+        return generated
 
     # Try real verification if enterprise crypto is available
     if _rsa_verify is not None:

@@ -19,6 +19,12 @@ def client(monkeypatch):
     return TestClient(app)
 
 
+# SSO configuration carries IdP metadata and certificates. These tests used to
+# call the endpoints with NO credentials and assert 200 — encoding an auth hole
+# as expected behaviour. The endpoints require a key; the tests now send one.
+_AUTH = {"X-API-Key": os.getenv("FIXOPS_API_TOKEN", "test-token")}
+
+
 @pytest.fixture
 def db():
     """Create test database."""
@@ -35,7 +41,9 @@ def test_list_sso_configs(client, db, monkeypatch):
     """Test listing SSO configurations."""
     monkeypatch.setattr("apps.api.auth_router.db", db)
 
-    response = client.get("/api/v1/auth/sso")
+    response = client.get("/api/v1/auth/sso",
+        headers=_AUTH,
+    )
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
@@ -55,6 +63,7 @@ def test_create_sso_config(client, db, monkeypatch):
             "entity_id": "https://test.example.com",
             "sso_url": "https://test.example.com/sso",
         },
+        headers=_AUTH,
     )
     assert response.status_code == 201
     data = response.json()
@@ -70,10 +79,13 @@ def test_get_sso_config(client, db, monkeypatch):
     create_response = client.post(
         "/api/v1/auth/sso",
         json={"name": "Test SSO", "provider": "oauth2"},
+        headers=_AUTH,
     )
     config_id = create_response.json()["id"]
 
-    response = client.get(f"/api/v1/auth/sso/{config_id}")
+    response = client.get(f"/api/v1/auth/sso/{config_id}",
+        headers=_AUTH,
+    )
     assert response.status_code == 200
     assert response.json()["id"] == config_id
 
@@ -85,12 +97,14 @@ def test_update_sso_config(client, db, monkeypatch):
     create_response = client.post(
         "/api/v1/auth/sso",
         json={"name": "Test SSO", "provider": "ldap"},
+        headers=_AUTH,
     )
     config_id = create_response.json()["id"]
 
     response = client.put(
         f"/api/v1/auth/sso/{config_id}",
         json={"status": "active"},
+        headers=_AUTH,
     )
     assert response.status_code == 200
     assert response.json()["status"] == "active"
@@ -100,5 +114,7 @@ def test_get_nonexistent_sso_config(client, db, monkeypatch):
     """Test getting non-existent SSO configuration."""
     monkeypatch.setattr("apps.api.auth_router.db", db)
 
-    response = client.get("/api/v1/auth/sso/nonexistent")
+    response = client.get("/api/v1/auth/sso/nonexistent",
+        headers=_AUTH,
+    )
     assert response.status_code == 404
