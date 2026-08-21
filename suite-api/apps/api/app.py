@@ -6432,6 +6432,17 @@ def create_app() -> FastAPI:
     except ImportError:
         pass
 
+    # Customer-declarable graph — a tenant's own entity types and correlation
+    # rules. The competitive answer to a closed knowledge graph.
+    try:
+        from apps.api.tenant_graph_router import router as tenant_graph_router
+        app.include_router(tenant_graph_router)
+        _logger.info("Mounted customer graph router at /api/v1/graph")
+    except ImportError as _exc:
+        # Swallowing ImportError silently is how a differentiator ends up dark.
+        # Say what failed.
+        _logger.warning("Customer graph router NOT mounted: %s", _exc)
+
     # policy_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)
 
     # security_playbook_router — moved to grc_app.py (Wave-B-batch-3 2026-05-03)

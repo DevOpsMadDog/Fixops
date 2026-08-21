@@ -31,7 +31,7 @@ Ordered by what unblocks a sale, not by effort.
 | Q6 | **Forecasting at plan/design** | the honest question where there is no target: how likely is this to *become* exploitable (EPSS trajectory, KEV-addition likelihood) | a design-stage finding carries a forecast, labelled predicted |
 | Q7 | **MPTE target providers** | one engine, five providers: nothing at design, ephemeral container at build/test (`sandbox_verifier.py`), staging at release, production at operate | MPTE reports "no target at this stage" rather than silently skipping |
 | Q8 | **Measure reachability's filtering value** | mechanism proven (42,796 edges, 6.2s) — noise reduction on a *customer* repo is still unmeasured | a real repo, a published percentage, not an assumption |
-| Q9 | **Customer-declarable graph** — the anti-Apiiro differentiator | `entity_type`/`rel_type` are already free strings; the openness is latent and unexposed | a tenant declares a type and a rule via API and a pipeline run correlates using it |
+| ~~Q9~~ | ~~Customer-declarable graph~~ **DONE** — a tenant declares entity types, attaches entities and writes correlation rules; the pipeline applies them AFTER its own measurement, attributes every change to the rule that made it, and refuses any action that would invent a measurement | 14 tests | closed |
 
 ## P2 — surface and shape (the eight flows)
 

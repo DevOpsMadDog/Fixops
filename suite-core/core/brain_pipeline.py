@@ -2839,6 +2839,7 @@ class BrainPipeline:
             self._fuse_vuln_intel(ctx)
             self._apply_reachability_verdicts(ctx)
             self._apply_exploitability_verdict(ctx)
+            self._apply_tenant_graph_rules(ctx)
             return result
         except (ImportError, Exception) as e:
             logger.warning(
@@ -2904,6 +2905,7 @@ class BrainPipeline:
         self._fuse_vuln_intel(ctx)
         self._apply_reachability_verdicts(ctx)
         self._apply_exploitability_verdict(ctx)
+        self._apply_tenant_graph_rules(ctx)
         return {
             "enriched": enriched,
             "unique_cves": len(set(cve_ids)),
@@ -3151,6 +3153,33 @@ class BrainPipeline:
         if counts:
             ctx["exploitability_summary"] = counts
             logger.info("exploitability verdicts: %s", counts)
+
+    def _apply_tenant_graph_rules(self, ctx: Dict[str, Any]) -> None:
+        """Apply the tenant's OWN correlation rules to this run's findings.
+
+        The answer to a closed knowledge graph. A customer declares entity types
+        and rules that say what a match means for them — "payments-db is in the
+        cardholder data environment, so anything touching it escalates" — and
+        this applies them to real findings, after the product's own analysis has
+        run.
+
+        Deliberately last: the platform measures first (reachability, exploit
+        evidence), then the customer's model adjusts. A rule that ran before
+        measurement could hide a finding the measurement would have surfaced.
+
+        Never fails the run. A tenant's rule engine being unavailable must not
+        cost them the pipeline.
+        """
+        try:
+            from core.tenant_graph_engine import get_tenant_graph_engine
+
+            counts = get_tenant_graph_engine().apply_rules(
+                ctx.get("org_id") or "default", ctx.get("findings", []) or []
+            )
+            if counts:
+                ctx["tenant_rules_summary"] = counts
+        except Exception as exc:  # noqa: BLE001 - tenant rules are additive
+            logger.warning("tenant graph rules skipped: %s", exc)
 
     def _run_attack_graph_gnn(self, ctx: Dict[str, Any]) -> None:
         """Wave 3B — build SecurityGraph and run GraphNeuralPredictor.
