@@ -1,0 +1,107 @@
+{
+  "version": "2.5.1",
+  "host": "claude",
+  "installedAt": "2026-08-24T14:50:45.580Z",
+  "files": [
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/agents/hydra-analyst.md",
+      "sha256": "1c134c39b84f6100bb1ac4279097e3af0ba3fd86eadc61fec00ff7749b36214b"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/agents/hydra-coder.md",
+      "sha256": "ff831562dc464d906d08bce71492c86f11f2b506ec91420be930f23dd57bdbf5"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/agents/hydra-git.md",
+      "sha256": "1f67e0ad5c7941fdde54f2f6d022fb17bccd285674472801771ba41619093344"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/agents/hydra-guard.md",
+      "sha256": "880e0737d7ac286965491a1f3e4643678bcde8da3e082eba4dfef80b3e3b2f04"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/agents/hydra-preflight.md",
+      "sha256": "08aa41b02c39be7a954a2bedcd2fbdb230264a882407d749af0e9c20872bff2f"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/agents/hydra-runner.md",
+      "sha256": "0d70d92056adee709b84e459433059f64a9f1935cb7b09080235b8d80b6a10e7"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/agents/hydra-scout.md",
+      "sha256": "fb531e6c9cf714f6e7caa843c6f5a5ade732904eadc59ca25efa18c024dcf659"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/agents/hydra-scribe.md",
+      "sha256": "c524f6d1ce487d0c0e2c2727a22057919b9ac2f5b5a2cc1b019296ad07f226de"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/agents/hydra-sentinel-scan.md",
+      "sha256": "91d0ba86387c327d8f4635c76a75893a497bc9405b7c37fced27bb6877ceb396"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/agents/hydra-sentinel.md",
+      "sha256": "70eb2ea5a5f46dc8415ad20416344b658b43b6f47b318dca8cd7fb52d6a5982a"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/skills/hydra/SKILL.md",
+      "sha256": "17e51016e8481fcb2d291f05c80725e86d31e5aafac0f9a481761f2dd02b77b7"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/skills/stfu-agents/SKILL.md",
+      "sha256": "0c462b702504fceb43634c623563c7980bde69cde2cb04814e512f70f24e2f3e"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/skills/hydra/references/model-capabilities.md",
+      "sha256": "79318a7adfe234987e80cc1d740948d25cec92f8e3abaef597d9fd81a480f97a"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/skills/hydra/references/routing-guide.md",
+      "sha256": "db5ec2b2755e039f1d3c29cbfc319bda2123906ff5418a18e4b027f0e82d697f"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/commands/hydra/guard.md",
+      "sha256": "7aa50e0b2e2e16fc2966721b2bce9131cc40bb541ac2e1ee63f55d360e6d545c"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/commands/hydra/help.md",
+      "sha256": "1bf3345c842602d503f95c9c3cfa06505a7c4cccb377a9664c412b1e2cdbbfd2"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/commands/hydra/map.md",
+      "sha256": "8fc67bdd3c0a20717b77adad13e5f1b0303b0ff462bf3d9076780114f2062ad8"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/commands/hydra/preflight.md",
+      "sha256": "41a31b2268c7ef3e15fc2c3053f485d91b3e3e48e32daec7ae22e763ce42a1a6"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/commands/hydra/quiet.md",
+      "sha256": "d06fd5d82f2d6052a92d6798c8fb0d84b7ea188a6a776c82b2d575d3635e7049"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/commands/hydra/report.md",
+      "sha256": "e99acde93bdc2f77cb2f9259294b858bf51bbe1b178c15218123d1331715383a"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/commands/hydra/stats.md",
+      "sha256": "88ec1e4ba33e538d45b3316679f9ea29b64c2e217408f6b37c598f7f3cdc342e"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/commands/hydra/status.md",
+      "sha256": "9ef3cd98839766d1ee310c944a0fdb66ede8f058eb53a347c45365e4da6d165b"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/commands/hydra/stfu.md",
+      "sha256": "42927fa85914d68e00164e8d4cbddeffb7c499fc7544fa240b0f5be8a84ab7ce"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/commands/hydra/update.md",
+      "sha256": "a4cf61ee028cd903ec296cc50af5f3bc81b3eeff8a88b63c2e5c41bf49bf979a"
+    },
+    {
+      "path": "/Users/devops.ai/fixops/Fixops/.claude/skills/hydra/VERSION",
+      "sha256": "43711a46b6e95c7e543f95f906afc1b49fbc4010a449d705ed8c7fd17fa470a3"
+    }
+  ]
+}
