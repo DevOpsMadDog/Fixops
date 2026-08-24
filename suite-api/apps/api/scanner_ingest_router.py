@@ -232,6 +232,23 @@ def _promote_findings_to_issues(
                 description=description,
                 remediation=remediation,
                 correlation_key=corr_key,
+                # Carry the vulnerability's identity through ingest.
+                #
+                # These were dropped here, so a finding that arrived by upload
+                # remembered only its TITLE. Two consequences, both invisible
+                # until you look at a screen:
+                #   * the console shows an empty CVE column beside a title that
+                #     plainly contains a CVE;
+                #   * reachability analysis needs cve_id AND package_name and
+                #     skips any finding missing either — silently — so every
+                #     uploaded finding stayed "not assessed" forever and the
+                #     product's whole verdict story never applied to them.
+                # The pipeline mirror was fixed for this; the direct ingest path
+                # was not, and one fix does not cover two doors.
+                cve_id=str(f.get("cve_id") or f.get("cve") or ""),
+                file_path=str(f.get("file_path") or ""),
+                line_number=f.get("line") or f.get("line_number"),
+                package_name=str(f.get("package_name") or f.get("component") or f.get("pkg_name") or ""),
             )
             promoted += 1
         except (TypeError, ValueError, KeyError, RuntimeError, OSError) as e:

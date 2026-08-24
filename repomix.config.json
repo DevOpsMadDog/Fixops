@@ -1,0 +1,31 @@
+{
+  "$schema": "https://repomix.com/schemas/latest/schema.json",
+  "output": {
+    "filePath": "repomix-output.xml",
+    "style": "xml",
+    "compress": true,
+    "removeComments": false,
+    "showLineNumbers": true,
+    "topFilesLength": 20
+  },
+  "include": [
+    "suite-api/apps/api/**/*.py",
+    "suite-core/core/**/*.py",
+    "suite-evidence-risk/**/*.py",
+    "suite-ui/aldeci-ui-new/src/console/**",
+    "tests/test_*.py"
+  ],
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      "**/node_modules/**",
+      "**/__pycache__/**",
+      "**/sdks/**",
+      "**/graphify-out/**",
+      "**/.playwright-mcp/**",
+      "scripts/seed-results/**"
+    ]
+  },
+  "security": { "enableSecurityCheck": true }
+}
