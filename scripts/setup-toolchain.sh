@@ -133,25 +133,7 @@ if [[ -d "$UA_HOME/repo/understand-anything-plugin/skills" ]]; then
 fi
 
 # ─────────────────────────────────────────────────────────────────────────
-head_ "5. graphify — file-level map ONLY"
-# Rebuilds clean (186,500 nodes / 572,016 edges / 4,041 communities, AST-only,
-# no LLM cost). Use it for file-level containment and community structure.
-#
-# Do NOT trust its call-level output. Measured here: the most-connected node in
-# the whole codebase is `sast_router_policystate_get` with 11,791 edges — a
-# three-line thread-safe dict getter. Graphify collapses every `.get()` call in
-# the repo into it. `graphify path brain_pipeline security_findings_engine`
-# returns a 4-hop path through `.get()` linking two unrelated TEST files.
-if command -v graphify >/dev/null 2>&1; then
-  ok "graphify installed ($(graphify --version 2>/dev/null | head -1 || echo 'version unknown'))"
-  [[ -f "$REPO_ROOT/graphify-out/graph.json" ]] && ok "graph present" \
-    || warn "graph missing — run: graphify update . --no-llm  (~20 min)"
-else
-  warn "graphify not installed (optional)"
-fi
-
-# ─────────────────────────────────────────────────────────────────────────
-head_ "6. Multica — the task board"
+head_ "5. Multica — the task board"
 # Works as a board (3,756 done). Its agent layer — agent, agent_runtime,
 # agent_skill, agent_task_queue, autopilot, autopilot_run — is ALL EMPTY and
 # has never orchestrated anything. Treat it as a task list, not a scheduler.

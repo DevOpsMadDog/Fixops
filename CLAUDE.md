@@ -26,7 +26,7 @@ You do NOT write code yourself except for small config changes (<10 lines).
 
 ### Session Routine:
 
-**Start:** `git pull` → `graphify update . --no-llm` (refresh codebase graph) → run Beast Mode tests → query Multica board state → resume from latest `docs/HANDOFF_<date>.md`.
+**Start:** `git pull` → `./scripts/setup-toolchain.sh --check` → run Beast Mode tests → query Multica board state → resume from latest `docs/HANDOFF_<date>.md`.
 
 **End:** Write/update `docs/HANDOFF_<date>.md` (open threads, in-flight agents, branch SHA, board state) → update `MEMORY.md` with non-obvious learnings → final commit + push.
 
@@ -77,7 +77,6 @@ When the user says "test with real apps", that means **onboard them as real tena
 
 | Tool | Status | Purpose |
 |------|--------|---------|
-| **graphify** | ✅ PRIMARY — codebase graph | `/opt/homebrew/bin/graphify`. Currently **119,765 nodes / 425,727 edges / 1516 communities**. Run `graphify update . --no-llm` to refresh. **Use BEFORE reading files.** |
 | **TrustGraph** | ✅ PRIMARY — second brain | `suite-core/trustgraph/`. **38.4% wired** (15.1% direct + 10.6% AQUA + 12.7% middleware). 30 hubs + 16 connectors broadcasting. Brain Pipeline emits at `brain_pipeline.py:553`. |
 | **AgentDB** (via ruflo) | ✅ PRIMARY — vector memory | `.swarm/memory.db`, **8,034+ entries** (MiniLM-l6-v2 384-dim, WAL). ~360ms semantic search. Wired via `agentdb_bridge.py` + `agent_memory_bridge.py` + `reasoning_bank.py`. |
 | **LLM Phase 1 closed-loop** | ✅ PRIMARY — self-learning | `suite-core/core/llm_learning_loop.py`. **5,196 DPO pairs** auto-captured (52% to Phase 2 10K threshold). Council `convene()` augments with top-5 past verdicts via AgentDB. |
@@ -104,14 +103,14 @@ When the user says "test with real apps", that means **onboard them as real tena
 | **OMC slash commands** (`/team`, `/ultrawork`, `/ralph`, `/autopilot`) | DORMANT — plugin still loaded, skills still registered, but **rarely invoked**. Today: `/ask codex` 1x; `/team`/`/ultrawork`/`/ralph` 0x. Native `Agent` tool dispatches replaced them in practice. |
 | **OMC standalone CLI** (`omc` binary) | NOT INSTALLED — `which omc` → command not found |
 | **ruflo swarm/hive-mind orchestration** | BROKEN — coordination metadata only, no task execution path. Skip. |
-| **code-review-graph** | RETIRED — superseded by graphify |
+| **code-review-graph** | RETIRED — and so is graphify (see Codebase understanding) |
 | **SwarmClaw** | RETIRED — free models < Opus 4.7. Container still running but unused. |
 | **Ollama** | RETIRED — local Gemma 4 unhealthy + same quality concern |
 | **Context7 MCP** | RETIRED — not actively used |
 
 ### How CTO operates with this stack
 
-- **Codebase questions:** `graphify query "..."` or `graphify explain "..."` — no file reads.
+- **Codebase questions:** `ast_grep_search` / `lsp_document_symbols` — outline before read, never a full file.
 - **Bulk parallel work:** spawn N `Agent` calls in one message (native Claude Code Agent tool — verified up to 12 concurrent today).
 - **High-stakes review:** `/ask codex "..."` simulated dual-framing if CLI not on PATH.
 - **Persist across sessions:** Agent Memory Bridge writes per-agent → `.swarm/memory.db`. Tomorrow's agents auto-prepend top-5 past trajectories.
@@ -267,7 +266,6 @@ _2026-05-05 session: 25 sweeps, 9 real bugs caught + closed, 0 shipped, 0 vulns 
 | CI gates (regression-gates.yml) | **25 blocking steps** on PR→main; deployed to fly aldeci (v76, 2026-06-26) | `grep -c '^      - name:' .github/workflows/regression-gates.yml` |
 | Session lockdown tests | **5/5 files present** (all created 2026-05-05 night session: test_health, test_owasp_regression_lockdown, test_engine_router_import_sweep, test_no_unsafe_asyncio_run, test_no_unawaited_coroutines_at_import) | `ls tests/test_*lockdown* tests/test_health.py tests/test_engine_router_import_sweep.py tests/test_no_unsafe_asyncio_run.py tests/test_no_unawaited_coroutines_at_import.py \| wc -l` |
 | Production build | **live — 3.10s build time** (Vite 6, suite-ui/aldeci-ui-new) | `cd suite-ui/aldeci-ui-new && npm run build` |
-| Graphify graph | **184,684 nodes / 577,447 edges / 9,029 communities** (last refreshed 2026-05-03 04:10 — run `graphify update . --no-llm` to refresh) | `graphify update . --no-llm` |
 | TrustGraph emit-sites | **548** across engines/routers (measured 2026-05-05; unchanged) | `grep -rl "trustgraph_event_bus\|TrustGraphEventBus\|emit_event\|_get_tg_bus" suite-core/ suite-api/ --include='*.py' \| wc -l` |
 
 ### Storage tech
@@ -301,11 +299,17 @@ DuckDB analytics layer + SQLite (100+ domain DBs, embedded CRUD per-engine) + Ma
 
 *Source of truth: `docs/ALDECI_REARCHITECTURE_v2.md`*
 
-## graphify
+## Codebase understanding
 
-This project has a graphify knowledge graph at graphify-out/.
+Run `./scripts/setup-toolchain.sh --check` first. See `RESUME.md` for the stack.
 
 Rules:
-- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
-- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
-- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
+- **Outline before read.** `lsp_document_symbols` / `ast_grep_search` answer
+  "what exists / who calls this" in ~35 tokens; reading brain_pipeline.py costs
+  64,689. That 1,848x gap is the entire token budget.
+- **Scope every `/understand` run.** Understand-Anything dispatches an LLM
+  subagent per batch and this repo has 5,829 Python files.
+- **graphify is REMOVED.** Its call graph was false: the top "god node" was a
+  three-line dict getter with 11,791 edges because it collapsed every `.get()`
+  call in the repo into one node, and its shortest path between two engines
+  routed through `.get()` into two unrelated test files. Do not reinstate it.

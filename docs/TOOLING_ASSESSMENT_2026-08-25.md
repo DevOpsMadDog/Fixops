@@ -13,7 +13,9 @@ Measured 2026-08-25, on this repository, not from documentation.
 
 Roughly **2.2M LOC**, not "1M+". Any tool choice has to survive that scale.
 
-## graphify — keep, but trust it narrowly
+## graphify — REMOVED
+
+**Verdict: dropped 2026-08-25.** The measurements below are why.
 
 Rebuilt clean: **186,500 nodes / 572,016 edges / 4,041 communities** across 12,095
 files, AST-only, zero LLM cost, ~20 minutes. That part is genuinely good.
@@ -32,9 +34,14 @@ architectural decision on it.** Two measurements:
   false path. Anyone using it to reason about coupling would reach a wrong
   conclusion confidently.
 
-Use it for: file-level containment, community structure, "which files exist and
-cluster together". Do not use it for: "what calls what", coupling analysis, or
-god-object identification.
+Its only unique output was community clustering, and nothing consumed it. The
+534 MB cache and 20-minute rebuild bought a call graph that answers confidently
+and wrongly, which is worse than no answer.
+
+Replaced by: `ast_grep_search` / `lsp_document_symbols` for structural questions
+(~35 tokens versus 64,689 for a full read), and repomix's token-weight ranking
+for god-file identification — which is not collision-prone, because it measures
+bytes rather than inferred edges.
 
 ## Understand-Anything — install it, scope it hard
 
@@ -72,9 +79,8 @@ than trust.
 ## The combo
 
 1. **repomix** — packing, secret gate, god-file ranking by token weight.
-2. **graphify** — file-level map and communities, refreshed per session.
-3. **Understand-Anything** — semantic understanding, scoped to the value path.
-4. **omc `ast_grep_*` / `lsp_*`** — structural edits. I did a 291-site codemod
+2. **Understand-Anything** — semantic understanding, scoped to the value path.
+3. **omc `ast_grep_*` / `lsp_*`** — structural edits. I did a 291-site codemod
    with regex this month and broke four files doing it; ast-grep is the correct
    instrument and would not have.
 

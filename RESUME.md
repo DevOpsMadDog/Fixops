@@ -23,7 +23,6 @@ files. The reasoning is in `docs/TOOLING_ASSESSMENT_2026-08-25.md`.
 | **Hydra** | model routing | running cheap work on Haiku | its "72% bug detection" — unmeasured |
 | **repomix** | packing, secret gate | token-weight god-file ranking | secret hits without triage |
 | **Understand-Anything** | semantic map | scoped `/understand <path>` | unscoped runs (~580 dispatches) |
-| **graphify** | file-level map | containment, communities | call graphs — proven false below |
 | **Multica** | task board | the 7 todo / 10 in-progress / 5 blocked | scheduling — its agent tables are empty |
 
 ### The one number that governs everything
@@ -38,16 +37,19 @@ Same question via symbol outline .......... 35 tokens
 Full-file reads are essentially the entire token bill. So: **outline before
 read, filter every tool call, scope every UA run, delegate cheap work.**
 
-### Two tools that lie, and exactly how
+### Two tools we removed, and exactly why
 
-**graphify's call graph.** The most-connected node in the entire codebase is
-`sast_router_policystate_get` with 11,791 edges. Read it: a three-line
-thread-safe dict getter. Graphify collapses every `.get()` call in the repo into
-that node. `graphify path brain_pipeline security_findings_engine` returns a
-4-hop path routed through `.get()` connecting two unrelated **test** files. Use
-graphify for files, never for calls.
+**graphify — dropped.** Its call graph is false. The most-connected node in the
+entire codebase was `sast_router_policystate_get` with 11,791 edges: a
+three-line thread-safe dict getter, because graphify collapses every `.get()`
+call in the repo into that node. `graphify path brain_pipeline
+security_findings_engine` returned a 4-hop path routed through `.get()`
+connecting two unrelated **test** files. Its only unique output was community
+clustering, which nothing consumed, and its cache was 534 MB. repomix's
+token-weight ranking is a better god-file signal and ast-grep answers the
+structural questions directly.
 
-**ruflo.** Not a config problem — the object model is broken. Verified on
+**ruflo — dropped.** Not a config problem — the object model is broken. Verified on
 v3.7.0-alpha.7: `task create` mints an id, `task status <id>` returns
 `Task: undefined`, `task assign` dies on `Cannot read properties of undefined
 (reading 'join')`, and a spawned agent sits `idle` beside a `pending` task
