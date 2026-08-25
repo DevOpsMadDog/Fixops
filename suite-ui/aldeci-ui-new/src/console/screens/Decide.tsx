@@ -51,7 +51,20 @@ export function DecideScreen() {
           <Metric value={estimated} label="EPSS from severity" tone="muted" note="weaker evidence" />
         </Panel>
         <Panel title="Not assessed">
-          <Metric value={rows.length - assessed.length} label="no CVE to reason about" tone="muted" />
+          {/* This said "no CVE to reason about" — which was FALSE for findings
+              that carry a CVE but have never been through a pipeline run.
+              Ingest alone does not compute a verdict. State the count; do not
+              assert a cause the screen has not checked. */}
+          <Metric
+            value={rows.length - assessed.length}
+            label="no verdict yet"
+            tone="muted"
+            note={
+              rows.length - assessed.length > 0
+                ? "a verdict needs a pipeline run, and a CVE to reason about"
+                : undefined
+            }
+          />
         </Panel>
       </div>
 

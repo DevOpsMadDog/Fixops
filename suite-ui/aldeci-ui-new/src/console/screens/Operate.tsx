@@ -23,8 +23,15 @@ export function OperateScreen() {
   }, []);
 
   const orgCount = (() => {
-    const d = orgs.data as { total?: number; orgs?: unknown[]; items?: unknown[] } | null;
-    return d?.total ?? d?.orgs?.length ?? d?.items?.length ?? 0;
+    // /api/v1/orgs returns a BARE ARRAY. Reading .total/.orgs/.items off an
+    // array yields undefined, and the ?? chain then fell through to 0 — so a
+    // deployment with 1,029 tenants displayed "0 organisations". A shape
+    // mismatch that renders as a plausible number is worse than a crash,
+    // because nobody investigates a zero.
+    const d = orgs.data as unknown;
+    if (Array.isArray(d)) return d.length;
+    const o = d as { total?: number; orgs?: unknown[]; items?: unknown[] } | null;
+    return o?.total ?? o?.orgs?.length ?? o?.items?.length ?? 0;
   })();
   const status = (deep.data as { status?: string } | null)?.status;
 
