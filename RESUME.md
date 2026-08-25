@@ -22,7 +22,8 @@ files. The reasoning is in `docs/TOOLING_ASSESSMENT_2026-08-25.md`.
 | **ast-grep** (via omc) | structural query | "what exists / who calls this" | — |
 | **Hydra** | model routing | running cheap work on Haiku | its "72% bug detection" — unmeasured |
 | **repomix** | packing, secret gate | token-weight god-file ranking | secret hits without triage |
-| **Understand-Anything** | semantic map | scoped `/understand <path>` | unscoped runs (~580 dispatches) |
+| **UA structural** | free tree-sitter map | `./scripts/ua-structure.sh` — 947 files in 5.8s | — |
+| **UA semantic** | LLM knowledge graph | scoped `/understand <path>` | unscoped runs (~580 dispatches) |
 | **Multica** | task board | the 7 todo / 10 in-progress / 5 blocked | scheduling — its agent tables are empty |
 
 ### The one number that governs everything
@@ -39,15 +40,19 @@ read, filter every tool call, scope every UA run, delegate cheap work.**
 
 ### Two tools we removed, and exactly why
 
-**graphify — dropped.** Its call graph is false. The most-connected node in the
+**graphify — dropped, and replaced.** Its call graph is false. The most-connected node in the
 entire codebase was `sast_router_policystate_get` with 11,791 edges: a
 three-line thread-safe dict getter, because graphify collapses every `.get()`
 call in the repo into that node. `graphify path brain_pipeline
 security_findings_engine` returned a 4-hop path routed through `.get()`
 connecting two unrelated **test** files. Its only unique output was community
 clustering, which nothing consumed, and its cache was 534 MB. repomix's
-token-weight ranking is a better god-file signal and ast-grep answers the
-structural questions directly.
+token-weight ranking is a better god-file signal, ast-grep answers structural
+questions directly, and **UA's free tree-sitter layer does graphify's actual job
+properly** — 947 files in 5.8 seconds versus 20 minutes, with call targets
+qualified (`data.get`, `conn.execute`) rather than collapsed. Its first run
+surfaced a real fact graphify never could: `conn.execute` 8,544 times and
+`self._conn` 3,729, meaning nearly every engine opens its own SQLite connection.
 
 **ruflo — dropped.** Not a config problem — the object model is broken. Verified on
 v3.7.0-alpha.7: `task create` mints an id, `task status <id>` returns

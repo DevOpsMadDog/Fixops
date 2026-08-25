@@ -104,14 +104,23 @@ fi
   || warn "repomix.config.json missing"
 
 # ─────────────────────────────────────────────────────────────────────────
-head_ "4. Understand-Anything — semantic understanding, SCOPED"
+head_ "4. Understand-Anything — the free structural layer, plus a scoped LLM one"
 # A real plugin (v2.9.4). An earlier assessment called it broken; that was a
 # verdict on a partial extraction left in /private/tmp with an empty
 # .claude-plugin/ and no SKILL.md files, not on the tool.
 #
-# It dispatches an LLM subagent per BATCH of files and its own SKILL.md warns
-# above 100 files. This repo has 5,829 Python files, so an unscoped /understand
-# is roughly 580 dispatches. ALWAYS pass a scoped path.
+# TWO LAYERS, and only one costs money:
+#
+#   FREE  scan-project.mjs + extract-structure.mjs — pure tree-sitter, no API
+#         calls. 947 files in 5.8 SECONDS, 2,366 functions, 141,124 call edges.
+#         This replaces graphify, which took 20 minutes to produce a false call
+#         graph. Wrapped as ./scripts/ua-structure.sh — run it freely.
+#
+#   PAID  the /understand skill dispatches an LLM subagent per BATCH and warns
+#         above 100 files. We have 5,829 Python files (~580 dispatches).
+#         ALWAYS pass a scoped path to that one.
+#
+# Needs Node >= 22 and pnpm; the core package must be built once.
 if [[ -d "$UA_HOME/repo/understand-anything-plugin" ]]; then
   ok "understand-anything present at $UA_HOME/repo"
 else
@@ -123,6 +132,19 @@ else
       && ok "cloned understand-anything" || warn "clone failed"
   fi
 fi
+PLUGIN="$UA_HOME/repo/understand-anything-plugin"
+if [[ -d "$PLUGIN" ]] && [[ ! -f "$PLUGIN/packages/core/dist/index.js" ]]; then
+  if command -v pnpm >/dev/null 2>&1; then
+    run bash -c "cd '$PLUGIN' && (pnpm install --frozen-lockfile 2>/dev/null || pnpm install) && pnpm --filter @understand-anything/core build" \
+      && ok "built UA core (structural extraction now works)" \
+      || warn "UA core build failed — ./scripts/ua-structure.sh will not run"
+  else
+    warn "pnpm missing — install it, then re-run to enable ./scripts/ua-structure.sh"
+  fi
+elif [[ -f "$PLUGIN/packages/core/dist/index.js" ]]; then
+  ok "UA core built — ./scripts/ua-structure.sh ready"
+fi
+
 if [[ -d "$UA_HOME/repo/understand-anything-plugin/skills" ]]; then
   run mkdir -p "$HOME/.claude/skills"
   for s in understand understand-explain understand-diff understand-domain understand-knowledge understand-onboard; do
