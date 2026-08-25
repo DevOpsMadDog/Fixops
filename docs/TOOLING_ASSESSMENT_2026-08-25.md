@@ -43,7 +43,45 @@ Replaced by: `ast_grep_search` / `lsp_document_symbols` for structural questions
 for god-file identification — which is not collision-prone, because it measures
 bytes rather than inferred edges.
 
-## Understand-Anything — install it, scope it hard
+## Understand-Anything — adopted, and it REPLACES graphify
+
+**It has two layers, and only one of them costs money. That distinction is the
+whole finding, and I missed it twice.**
+
+### The free layer — tree-sitter, zero LLM calls
+
+`skills/understand/scan-project.mjs` + `extract-structure.mjs` are pure
+tree-sitter. Measured on this repository:
+
+| Target | Files | Functions | Call edges | Time |
+|---|---|---|---|---|
+| suite-core/core | 947 | 2,366 | **141,124** | 5.8s |
+| suite-api/apps/api | 813 | 8,276 | 56,782 | — |
+| suite-ui/…/src | 510 | 1,836 | 20,108 | — |
+| suite-evidence-risk | 75 | 171 | 5,542 | — |
+
+**947 files in 5.8 seconds, 947 succeeded / 0 failed, no API calls.**
+
+This is what graphify claimed to do and got wrong. graphify took 20 minutes and
+produced a false call graph by collapsing every `.get()` in the repository into
+a single node — making a three-line thread-safe dict getter the most-connected
+symbol in 2.2M LOC. UA **qualifies the receiver**: `data.get`, `conn.execute`,
+`self._conn` stay distinct, so the counts mean something.
+
+The top call targets in suite-core immediately surface a real architectural
+signal rather than an artifact:
+
+```
+8,544  conn.execute
+3,729  self._conn
+```
+
+Nearly every engine opens its own SQLite connection — the same pattern behind
+the 291-site descriptor leak fixed earlier this month.
+
+Wrapped as `./scripts/ua-structure.sh`.
+
+### The expensive layer — scope it hard
 
 A real plugin (v2.9.4, 118 docs, 9 skills), and my earlier "drop it" was wrong —
 it was a verdict on a partial extraction someone left in `/private/tmp` with an
@@ -58,10 +96,16 @@ It is **not** a graphify substitute, and the two are not competing:
 | Cost here | zero | ~580 subagent dispatches for 5,829 Python files |
 | Answers | "what contains what" | "what is this and why does it exist" |
 
-Its own SKILL.md warns above 100 files. We have 5,829 Python files. Running
-`/understand` unscoped would be very expensive and is not something to do
-casually. Scope it to the value path — the ~20 files that carry the product —
-where semantic summaries, layers and a guided tour are actually worth paying for.
+The `/understand` skill's Phase 2 dispatches an LLM subagent per BATCH of files,
+and its own SKILL.md warns above 100 files. We have 5,829 Python files, so an
+unscoped run is roughly 580 dispatches. Scope that layer to the value path,
+where semantic summaries, layers and a guided tour are worth paying for.
+
+**But do not let the expensive layer's cost hide the free one.** I recommended
+dropping UA entirely on the strength of a broken copy, then kept it "scoped
+only" on the strength of the LLM layer's price — and both times missed that the
+deterministic extractor underneath does the whole job of the tool I was keeping
+instead, faster and more correctly.
 
 ## repomix — adopt, and wire the security check into CI
 

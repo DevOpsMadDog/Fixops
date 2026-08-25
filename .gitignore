@@ -271,3 +271,6 @@ docs/product/validation-kit-INTERNAL.md
 # code with no owner, and shipped the Python client twice under two names (ADR-004).
 sdks/
 build/sdk/
+
+# Understand-Anything intermediate output (regenerable)
+.ua/
