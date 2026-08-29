@@ -149,6 +149,48 @@ def _serialize_findings(findings: list) -> List[Dict]:
     return result
 
 
+def _attach_vulnerable_symbols(findings_dicts: List[Dict]) -> int:
+    """Record WHERE each vulnerability lives, not just which package it is in.
+
+    Reachability was measured at 0% noise reduction on real data
+    (docs/REACHABILITY_MEASURED_2026-08-29.md) for one reason: an ingested
+    finding carried a package name and nothing finer, so the reachability query
+    degraded to ``package.%`` and asked "do you use this library" — which the
+    dependency file already answered. Every finding came back reachable.
+
+    The symbol is in the advisory prose the scanner already gives us. Extracting
+    it here, once, at the point of ingest, is what lets the engine be asked the
+    question it is actually good at: on this repository it moved two of three
+    real CVEs from "reachable" to "not reachable".
+
+    Deliberately local and deterministic — no network call. Ingest must work on
+    an air-gapped host, and a lookup that silently no-ops offline would make the
+    verdict depend on where the deployment is running.
+
+    A finding whose advisory names no symbol gets NO field set, not an empty
+    one. Absent means undetermined and keeps the finding in the queue; an empty
+    list would read downstream as "nothing to reach", which is a safety claim
+    nobody established.
+    """
+    try:
+        from core.advisory_symbols import extract_symbols
+    except Exception:  # pragma: no cover - engine optional in slim deployments
+        return 0
+
+    enriched = 0
+    for finding in findings_dicts:
+        got = extract_symbols(
+            str(finding.get("title") or ""),
+            str(finding.get("description") or ""),
+        )
+        if not got.known:
+            continue
+        finding["vulnerable_symbols"] = got.dotted_paths + got.symbols
+        finding["vulnerable_symbol_source"] = got.source
+        enriched += 1
+    return enriched
+
+
 def _promote_findings_to_issues(
     findings_dicts: List[Dict[str, Any]],
     scanner: str,
@@ -577,6 +619,7 @@ async def upload_scanner_output(
     # file:line, fuzzy-title, and package@version overlaps before findings
     # are persisted. Falls back to no-op when the engine is unavailable.
     findings_dicts_full = _serialize_findings(findings) if findings else []
+    _attach_vulnerable_symbols(findings_dicts_full)
     dedup_summary = _dedupe_findings(findings_dicts_full, org_id)
     canonical_dicts = dedup_summary["canonical"]
 
@@ -642,7 +685,12 @@ async def upload_scanner_output(
         "parse_time_ms": round(elapsed * 1000, 1),
         "app_id": app_id or None,
         "component": component or None,
-        "findings": _serialize_findings(findings[:100]),  # Cap response at 100
+        # Slice the ALREADY-SERIALISED list rather than serialising a second
+        # time. The duplicate call was not just waste: it bypassed
+        # _attach_vulnerable_symbols, so the response advertised findings
+        # without the symbol field that had in fact been recorded — a caller
+        # reading the upload response would conclude enrichment had not run.
+        "findings": findings_dicts_full[:100],  # Cap response at 100
         "total_findings": len(findings),
         "deduped_count": len(canonical_dicts),
         "duplicates_removed": dedup_summary["duplicate_count"],
@@ -720,6 +768,7 @@ async def webhook_ingest(
 
     # Gap 4: cross-scanner dedup at storage layer (webhook path).
     findings_dicts_full = _serialize_findings(findings) if findings else []
+    _attach_vulnerable_symbols(findings_dicts_full)
     dedup_summary = _dedupe_findings(findings_dicts_full, org_id)
     canonical_dicts = dedup_summary["canonical"]
 
@@ -781,7 +830,7 @@ async def webhook_ingest(
         "findings_count": len(findings),
         "parse_time_ms": round(elapsed * 1000, 1),
         "app_id": app_id or None,
-        "findings": _serialize_findings(findings[:100]),
+        "findings": findings_dicts_full[:100],
         "total_findings": len(findings),
         "deduped_count": len(canonical_dicts),
         "duplicates_removed": dedup_summary["duplicate_count"],
