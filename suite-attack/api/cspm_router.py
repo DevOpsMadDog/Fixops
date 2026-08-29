@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id  # SPEC-034
+from apps.api.tenant_resolution import resolve_tenant
 from pydantic import BaseModel, Field
 
 from core.cspm_engine import (
@@ -151,15 +152,23 @@ def list_resources(
 
 
 @router.post("/resources", summary="Register a cloud resource", response_model=CloudResource)
-def register_resource(req: RegisterResourceRequest) -> CloudResource:
+def register_resource(
+    req: RegisterResourceRequest, org_id: str = Depends(get_org_id)
+) -> CloudResource:
     """Register or update a cloud resource in the CSPM inventory."""
+    # The GET handlers on this router all scope by the credential; these two
+    # POSTs took no credential at all and wrote wherever req.org_id pointed —
+    # so an authenticated customer could file resources into another tenant's
+    # inventory and trigger scans against it. Same defect class as the
+    # query-parameter breach in docs/SECURITY_FINDING_cross_tenant_org_id.md,
+    # reached through the request body instead.
     resource = CloudResource(
         provider=req.provider,
         resource_type=req.resource_type,
         name=req.name,
         region=req.region,
         account_id=req.account_id,
-        org_id=req.org_id,
+        org_id=resolve_tenant(org_id, req),
         tags=req.tags,
         owner=req.owner,
         is_public=req.is_public,
@@ -190,7 +199,9 @@ def get_benchmarks(
 
 
 @router.post("/scan", summary="Trigger cloud posture scan", response_model=ScanResult)
-def trigger_scan(req: TriggerScanRequest) -> ScanResult:
+def trigger_scan(
+    req: TriggerScanRequest, org_id: str = Depends(get_org_id)
+) -> ScanResult:
     """Trigger a CSPM scan for all registered resources in an org.
 
     Evaluates all applicable CIS Benchmark rules and detects configuration
@@ -199,7 +210,9 @@ def trigger_scan(req: TriggerScanRequest) -> ScanResult:
     Requires a configured cloud connector — returns HTTP 503 if none is set up.
     """
     try:
-        return _engine().run_scan(org_id=req.org_id, rule_ids=req.rule_ids)
+        return _engine().run_scan(
+            org_id=resolve_tenant(org_id, req), rule_ids=req.rule_ids
+        )
     except CSPMNotConfiguredError as exc:
         raise _not_configured_503(exc) from exc
     except Exception as exc:

@@ -20,6 +20,7 @@ from typing import Any, Dict
 
 from apps.api.auth_deps import api_key_auth
 from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -75,22 +76,25 @@ class VulnerableRequest(BaseModel):
 
 
 @router.post("/parse")
-async def parse_repo(body: ParseRequest) -> Dict[str, Any]:
+async def parse_repo(
+    body: ParseRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Parse a repo into the call graph (Python, TypeScript/JavaScript, Java)."""
+    tenant = resolve_tenant(org_id, body)
     eng = _get_engine()
     lang = body.language.lower().strip()
     try:
         if lang == "python":
             nodes_added = eng.parse_python_repo(
-                body.org_id, body.repo_ref, body.root_path
+                tenant, body.repo_ref, body.root_path
             )
         elif lang in ("typescript", "javascript"):
             nodes_added = eng.parse_typescript_repo(
-                body.org_id, body.repo_ref, body.root_path
+                tenant, body.repo_ref, body.root_path
             )
         elif lang == "java":
             nodes_added = eng.parse_java_repo(
-                body.org_id, body.repo_ref, body.root_path
+                tenant, body.repo_ref, body.root_path
             )
         else:
             raise HTTPException(
@@ -103,7 +107,7 @@ async def parse_repo(body: ParseRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=422, detail=str(exc))
 
     return {
-        "org_id": body.org_id,
+        "org_id": tenant,
         "repo_ref": body.repo_ref,
         "language": lang,
         "nodes_added": nodes_added,
@@ -111,11 +115,14 @@ async def parse_repo(body: ParseRequest) -> Dict[str, Any]:
 
 
 @router.post("/query")
-async def query_reachability(body: QueryRequest) -> Dict[str, Any]:
+async def query_reachability(
+    body: QueryRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Run BFS from ``start_fqn`` to ``target_fqn`` and return path if any."""
+    tenant = resolve_tenant(org_id, body)
     try:
         reachable, path = _get_engine().is_reachable(
-            body.org_id,
+            tenant,
             body.start_fqn,
             body.target_fqn,
             max_depth=body.max_depth,
@@ -123,7 +130,7 @@ async def query_reachability(body: QueryRequest) -> Dict[str, Any]:
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     return {
-        "org_id": body.org_id,
+        "org_id": tenant,
         "start_fqn": body.start_fqn,
         "target_fqn": body.target_fqn,
         "reachable": reachable,
@@ -133,16 +140,19 @@ async def query_reachability(body: QueryRequest) -> Dict[str, Any]:
 
 
 @router.post("/vulnerable")
-async def vulnerable(body: VulnerableRequest) -> Dict[str, Any]:
+async def vulnerable(
+    body: VulnerableRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Return all customer callers that reach a vulnerable dep function."""
+    tenant = resolve_tenant(org_id, body)
     try:
         callers = _get_engine().vulnerable_reachability(
-            body.org_id, body.cve_id, body.dependency_fqn_pattern
+            tenant, body.cve_id, body.dependency_fqn_pattern
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     return {
-        "org_id": body.org_id,
+        "org_id": tenant,
         "cve_id": body.cve_id,
         "dependency_fqn_pattern": body.dependency_fqn_pattern,
         "caller_count": len(callers),
