@@ -83,17 +83,62 @@ def _fid(finding: Dict[str, Any]) -> str:
     return str(uuid.uuid4())
 
 
+# Advisory identifiers, not just CVE.
+#
+# This pattern matched ``CVE-\d{4}-\d{4,}`` and nothing else, which made every
+# non-CVE advisory ID INVISIBLE to deduplication — and the two most common OSS
+# SCA scanners do not emit CVEs. pip-audit emits PYSEC-*; osv-scanner emits
+# GHSA-* and OSV-*. With no identifier to key on, dedup fell through to title
+# and location similarity, and two findings at the same ``requirements.txt:1``
+# looked like duplicates however unrelated they actually were.
+#
+# Observed on a real ingest of this repository's own dependencies:
+# ``smart_dedup: input=2 output=1`` merged PYSEC-2026-3552 (a PKCS#7 padding
+# oracle) with PYSEC-2026-3554 (a wildcard-SAN verifier escape). One of the two
+# vulnerabilities simply disappeared, and the run reported success.
+#
+# Silently dropping a distinct vulnerability is the worst failure this system
+# has: nothing downstream can recover a finding that was never stored, and the
+# deduplication count looks like a feature working well.
+_ADVISORY_ID = re.compile(
+    r"\b(?:CVE-\d{4}-\d{4,}"
+    r"|GHSA-[23456789cfghjmpqrvwx]{4}-[23456789cfghjmpqrvwx]{4}-[23456789cfghjmpqrvwx]{4}"
+    r"|PYSEC-\d{4}-\d+"
+    r"|OSV-\d{4}-\d+"
+    r"|GO-\d{4}-\d+"
+    r"|RUSTSEC-\d{4}-\d+"
+    r"|DSA-\d+-\d+|USN-\d+-\d+|RHSA-\d{4}:\d+"
+    r"|SNYK-[A-Z0-9]+-[A-Z0-9]+-\d+)\b",
+    re.IGNORECASE,
+)
+
+
 def _extract_cves(finding: Dict[str, Any]) -> List[str]:
-    """Return all CVE IDs found in the finding."""
-    cves: List[str] = []
-    for field in ("cve_id", "cve", "cves", "vulnerability_id", "title", "description"):
+    """Return every advisory identifier found in the finding.
+
+    Named ``_extract_cves`` for its callers' sake; it recognises the whole
+    advisory-ID namespace, because keying dedup on CVE alone silently merges
+    unrelated PYSEC/GHSA/OSV findings that share a file and line.
+    """
+    ids: List[str] = []
+    # ``rule_id`` is where it actually lands. The SARIF normaliser maps a
+    # result's ruleId to ``rule_id`` and leaves ``cve_id`` None, so scanning only
+    # the cve_* fields found nothing for every SARIF-delivered advisory — the
+    # parser and the deduplicator were each correct and the product still lost a
+    # vulnerability between them. Scanning rule_id is safe because the pattern
+    # matches advisory-ID shapes only: a SAST rule id like "B101" or
+    # "python.lang.security.audit" cannot match it.
+    for field in (
+        "cve_id", "cve", "cves", "vulnerability_id", "rule_id", "id",
+        "identifier", "title", "description",
+    ):
         val = finding.get(field, "")
         if isinstance(val, list):
             text = " ".join(str(v) for v in val)
         else:
             text = str(val)
-        cves.extend(c.upper() for c in re.findall(r"CVE-\d{4}-\d{4,}", text, re.IGNORECASE))
-    return list(dict.fromkeys(cves))
+        ids.extend(c.upper() for c in _ADVISORY_ID.findall(text))
+    return list(dict.fromkeys(ids))
 
 
 def _extract_title(finding: Dict[str, Any]) -> str:
@@ -534,7 +579,32 @@ class SmartDedup:
                 x = parent[x]
             return x
 
+        def _distinct_advisories(a: str, b: str) -> bool:
+            """True when both findings name advisories and they disagree.
+
+            Different advisory IDs are different vulnerabilities, whatever else
+            two findings have in common. Nothing enforced that: SAME_FILE_LINE
+            and COMPONENT_VERSION happily merged PYSEC-2026-3552 (a PKCS#7
+            padding oracle) with PYSEC-2026-3554 (a wildcard-SAN verifier
+            escape) because both were reported against ``requirements.txt:1``
+            for the ``cryptography`` package. Every SCA finding for one package
+            shares that location, so the collision is systematic rather than
+            unlucky — and the vulnerability that lost was deleted, with the run
+            reporting a successful deduplication.
+
+            Only vetoes when BOTH sides carry an identifier. An unidentified
+            finding may still be merged on similarity, which is what the fuzzy
+            strategies are for.
+            """
+            ids_a = set(_extract_cves(findings_map.get(a, {})))
+            ids_b = set(_extract_cves(findings_map.get(b, {})))
+            if not ids_a or not ids_b:
+                return False
+            return ids_a.isdisjoint(ids_b)
+
         def _union(a: str, b: str, strategy: DedupStrategy, conf: float) -> None:
+            if _distinct_advisories(a, b):
+                return
             ra, rb = _find(a), _find(b)
             if ra != rb:
                 parent[rb] = ra
