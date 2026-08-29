@@ -2440,6 +2440,32 @@ def create_app() -> FastAPI:
         "/api/v1/deduplication", "/api/v1/risk-scoring",
         "/api/v1/pipeline", "/api/v1/evidence", "/api/v1/evidence-chain",
         "/api/v1/compliance",
+        # The console already calls /graph on the risk screen, but core mode was
+        # not advertising it — a customer-facing dependency missing from the
+        # customer-facing schema.
+        "/api/v1/graph",
+        # Capabilities we BUILT and were hiding.
+        #
+        # Measured 2026-08-29: a competitor sells itself as "15-in-1 ASPM". We
+        # had built all fifteen and advertised two. These four answer with a
+        # real schema today under a real customer key — /sbom/stats returns
+        # total_components and license_risk_high, /dast/stats returns scans and
+        # endpoints_tested, /reachability/stats returns node_count and
+        # by_language, /autofix/stats returns total_prs_created.
+        #
+        # Reachability especially: it is half of the headline claim and it was
+        # invisible. Surfacing what exists beats building more.
+        "/api/v1/sbom", "/api/v1/dast",
+        "/api/v1/reachability", "/api/v1/autofix",
+        # Four more, verified the same way. These answer honestly rather than
+        # with an invented zero, which is why they are safe to advertise:
+        #   /sast/summary   -> {"status": "no_scan"}   (not "0 findings")
+        #   /secrets/       -> tenant-scoped, echoes the caller's real org_id
+        #   /cspm/posture   -> 503 {"status": "not_configured"} until a cloud
+        #                      account is connected — an onboarding step stated
+        #                      as one, not a clean bill of health
+        #   /iac/summary    -> real content (35 builtin rules)
+        "/api/v1/sast", "/api/v1/secrets", "/api/v1/cspm", "/api/v1/iac",
     )
 
     def _apply_core_mode(schema: Dict[str, Any]) -> Dict[str, Any]:
