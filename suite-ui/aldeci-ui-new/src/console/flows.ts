@@ -1,5 +1,5 @@
 /**
- * The eight flows, and who does each one.
+ * The nine flows, and who does each one.
  *
  * Navigation is organised around what a person came here to DO, not around the
  * shape of the backend. That inversion is the whole point: 300 screens grew
@@ -58,7 +58,7 @@ export const FLOWS: Flow[] = [
     label: "Work the queue",
     purpose: "Every open finding, deduplicated, with the decision already made for you.",
     personas: ["analyst", "developer", "risk"],
-    endpoints: ["/api/v1/findings", "/api/v1/security-findings/stats", "/api/v1/deduplication/stats"],
+    endpoints: ["/api/v1/findings", "/api/v1/security-findings/summary", "/api/v1/deduplication/stats"],
     hotkey: "2",
   },
   {
@@ -113,6 +113,25 @@ export const FLOWS: Flow[] = [
     personas: ["admin", "executive"],
     endpoints: ["/api/v1/health/deep", "/api/v1/orgs", "/api/v1/health/database"],
     hotkey: "8",
+  },
+  {
+    id: "coverage",
+    label: "See what we scan",
+    purpose: "Every capability this deployment has, and whether it is answering right now.",
+    // The first screen an evaluator wants and the last one we built. Nine
+    // capabilities were live and invisible; this is where they became visible.
+    personas: ["executive", "admin", "analyst", "compliance", "supply-chain"],
+    endpoints: [
+      "/api/v1/sast/summary",
+      "/api/v1/secrets/",
+      "/api/v1/iac/summary",
+      "/api/v1/cspm/posture",
+      "/api/v1/sbom/stats",
+      "/api/v1/dast/stats",
+      "/api/v1/reachability/stats",
+      "/api/v1/autofix/stats",
+    ],
+    hotkey: "9",
   },
 ];
 

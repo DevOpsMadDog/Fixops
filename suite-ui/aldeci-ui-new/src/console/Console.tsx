@@ -5,7 +5,7 @@
  *
  * Navigation is by JOB, not by subsystem. The previous surface had ~300 pages
  * because every engine earned a page, so the product's shape mirrored its
- * implementation rather than its use. Eight flows is not a simplification of
+ * implementation rather than its use. Nine flows is not a simplification of
  * that surface; it is a different axis through it.
  *
  * The persona lens filters which flows are offered. It never hides data the
@@ -19,7 +19,14 @@ import { useEffect, useMemo, useState, type ReactElement } from "react";
 
 import { API_BASE } from "./api";
 import { FLOWS, PERSONAS, flowsFor, type Flow, type Persona } from "./flows";
+
+/** Read the flow out of /console/<id>, falling back to the queue. */
+function flowIdFromUrl(): string {
+  const last = window.location.pathname.split("/").filter(Boolean).pop();
+  return last && FLOWS.some((f) => f.id === last) ? last : "triage";
+}
 import { ConnectScreen } from "./screens/Connect";
+import { CoverageScreen } from "./screens/Coverage";
 import { ComplyScreen } from "./screens/Comply";
 import { DeclareScreen } from "./screens/Declare";
 import { DecideScreen } from "./screens/Decide";
@@ -36,11 +43,12 @@ const SCREENS: Record<string, () => ReactElement> = {
   declare: DeclareScreen,
   comply: ComplyScreen,
   connect: ConnectScreen,
+  coverage: CoverageScreen,
   operate: OperateScreen,
 };
 
 export default function Console() {
-  const [flowId, setFlowId] = useState<string>("triage");
+  const [flowId, setFlowId] = useState<string>(flowIdFromUrl);
   const [persona, setPersona] = useState<Persona | "all">("all");
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -73,6 +81,25 @@ export default function Console() {
       setFlowId(visible[0].id);
     }
   }, [visible, flowId]);
+
+  // Keep the address bar honest so a screen can be linked, bookmarked and
+  // reported in a bug. Deliberately NOT an effect that re-derives flowId from
+  // the URL on every render: that shape is what made 49 hubs ignore their own
+  // tab clicks — the click set state, the effect read a not-yet-updated URL and
+  // set it straight back. State leads; the URL follows it, and popstate is the
+  // only thing allowed to push the other way.
+  useEffect(() => {
+    const want = `/console/${flowId}`;
+    if (window.location.pathname !== want) {
+      window.history.pushState({ flowId }, "", want);
+    }
+  }, [flowId]);
+
+  useEffect(() => {
+    const onPop = () => setFlowId(flowIdFromUrl());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   const active = FLOWS.find((f) => f.id === flowId);
   const Screen = SCREENS[flowId];
@@ -199,7 +226,7 @@ function Sidebar({
       </ul>
 
       <p className="mt-4 px-2.5 text-[11px] leading-relaxed text-slate-600">
-        Eight flows, chosen by what you came here to do. Press a number to jump.
+        {FLOWS.length} flows, chosen by what you came here to do. Press a number to jump.
       </p>
     </nav>
   );

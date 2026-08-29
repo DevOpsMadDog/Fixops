@@ -10,7 +10,7 @@
  * A user reads a blank panel as "this product does nothing".
  */
 
-import { AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
+import { AlertTriangle, ArrowRight, Loader2, Plug } from "lucide-react";
 import type { ReactNode } from "react";
 
 import type { Result } from "./api";
@@ -112,6 +112,27 @@ export function Empty({
   );
 }
 
+/**
+ * Not connected yet — stated as the onboarding step it is.
+ *
+ * Deliberately not styled as a failure. The customer has not done something
+ * yet; nothing is wrong. The colour carries that: informational, not alarming.
+ */
+export function Unconfigured({ message, source }: { message: string; source: string }) {
+  return (
+    <div className="flex gap-2.5 rounded border border-sky-400/20 bg-sky-400/[0.06] p-3">
+      <Plug className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" />
+      <div className="min-w-0">
+        <p className="text-[12px] text-sky-100">{message}</p>
+        <p className="mt-1 text-[11px] text-sky-200/50">
+          Nothing is broken — this capability is waiting on a connected source.
+        </p>
+        <p className="mt-1 font-mono text-[11px] text-sky-200/40">{source}</p>
+      </div>
+    </div>
+  );
+}
+
 /** A failure names itself. It is never dressed up as an empty state. */
 export function Failed({ error, source }: { error: string; source: string }) {
   return (
@@ -141,6 +162,8 @@ export function Resolve<T>({
   children: (data: T) => ReactNode;
 }) {
   if (result.state === "loading") return <Loading what={what} />;
+  if (result.state === "unconfigured")
+    return <Unconfigured message={result.error ?? "Not configured yet."} source={result.source} />;
   if (result.state === "error") return <Failed error={result.error ?? "Unknown error"} source={result.source} />;
   if (result.state === "empty" || result.data === null) return <Empty {...empty} />;
   return <>{children(result.data)}</>;

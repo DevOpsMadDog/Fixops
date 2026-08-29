@@ -36,7 +36,17 @@ const API_BASE = envOr(
 );
 const API_KEY = envOr(import.meta.env.VITE_API_KEY, "uat-token");
 
-export type LoadState = "loading" | "data" | "empty" | "error";
+/**
+ * Five states, and the fourth one is the whole reason this union exists.
+ *
+ * "unconfigured" is not an error and it is not empty. A cloud posture endpoint
+ * that returns 503 {"status": "not_configured"} is telling the truth: nobody has
+ * connected an account yet. Rendering that as an error makes a working product
+ * look broken; rendering it as empty makes an unconnected cloud look like a
+ * clean bill of health. Both are lies, in opposite directions, and the second
+ * one is the dangerous one.
+ */
+export type LoadState = "loading" | "data" | "empty" | "unconfigured" | "error";
 
 export interface Result<T> {
   state: LoadState;
@@ -75,13 +85,31 @@ export async function apiGet<T = unknown>(path: string): Promise<Result<T>> {
       // The API distinguishes "this resource has no data yet" from "this URL is
       // wrong", and so must we — the difference is a next action versus a bug.
       let detail = `HTTP ${response.status}`;
+      let unconfigured = false;
       try {
         const body = await response.json();
-        if (body?.detail) detail = String(body.detail);
+        const d = body?.detail;
+        if (d && typeof d === "object") {
+          // The API answers "not configured" as a STRUCTURED detail object.
+          // `String(d)` on it yields the literal text "[object Object]", which
+          // is how a considered backend contract turns into gibberish on screen.
+          const rec = d as Record<string, unknown>;
+          if (rec.status === "not_configured" || rec.configured === false) {
+            unconfigured = true;
+          }
+          detail = String(rec.message ?? rec.detail ?? rec.status ?? detail);
+        } else if (d) {
+          detail = String(d);
+        }
       } catch {
         /* non-JSON error body; the status is all we have */
       }
-      return { state: "error", data: null, error: detail, source: path };
+      return {
+        state: unconfigured ? "unconfigured" : "error",
+        data: null,
+        error: detail,
+        source: path,
+      };
     }
 
     const data = (await response.json()) as T;
