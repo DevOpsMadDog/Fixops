@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from "react";
 
-import { API_BASE, apiGet, apiPost, type Result } from "../api";
+import { API_BASE, apiGet, apiPost, type Result, countOf } from "../api";
 import { Metric, Mono, Panel, Resolve } from "../primitives";
 
 interface Bundle {
@@ -43,6 +43,14 @@ export function ProveScreen() {
   };
   useEffect(reload, []);
 
+  // Custody counts, read only once the request has actually resolved. Null
+  // means "not yet known" and renders as an em-dash — a zero here would tell an
+  // assessor there is nothing under custody, which is a claim, not a blank.
+  const chainStats = chain.state === "data" ? chain.data?.stats : undefined;
+  const sealed = typeof chainStats?.sealed_count === "number" ? chainStats.sealed_count : null;
+  const underCustody =
+    typeof chainStats?.total_evidence === "number" ? chainStats.total_evidence : null;
+
   async function generate() {
     setBusy(true);
     await apiPost("/api/v1/evidence/bundles/generate", { frameworks: ["SOC2"] });
@@ -69,11 +77,21 @@ export function ProveScreen() {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Panel title="Bundles"><Metric value={bundles.data?.total ?? 0} label="generated" /></Panel>
-        <Panel title="Sealed">
-          <Metric value={chain.data?.stats?.sealed_count ?? 0} label="in chain of custody" tone="good" />
+        {/* "0 generated" while the request is in flight reads as "you have no
+            evidence". Show unknown as unknown. */}
+        <Panel title="Bundles">
+          <Metric value={countOf(bundles, "bundles") ?? "—"} label="generated" />
         </Panel>
-        <Panel title="Evidence items"><Metric value={chain.data?.stats?.total_evidence ?? 0} label="under custody" /></Panel>
+        <Panel title="Sealed">
+          <Metric
+            value={sealed ?? "—"}
+            label="in chain of custody"
+            tone={sealed === null ? "muted" : sealed ? "good" : "neutral"}
+          />
+        </Panel>
+        <Panel title="Evidence items">
+          <Metric value={underCustody ?? "—"} label="under custody" />
+        </Panel>
         <Panel title="Verify offline">
           <a
             href={`${API_BASE}/api/v1/evidence/public-key`}

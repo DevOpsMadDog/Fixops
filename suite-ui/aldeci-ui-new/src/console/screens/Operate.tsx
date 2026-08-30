@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from "react";
 
-import { apiGet, type Result } from "../api";
+import { apiGet, countOf, type Result } from "../api";
 import { Metric, Mono, Panel, Resolve } from "../primitives";
 
 export function OperateScreen() {
@@ -28,10 +28,9 @@ export function OperateScreen() {
     // deployment with 1,029 tenants displayed "0 organisations". A shape
     // mismatch that renders as a plausible number is worse than a crash,
     // because nobody investigates a zero.
-    const d = orgs.data as unknown;
-    if (Array.isArray(d)) return d.length;
-    const o = d as { total?: number; orgs?: unknown[]; items?: unknown[] } | null;
-    return o?.total ?? o?.orgs?.length ?? o?.items?.length ?? 0;
+    // Now via the shared helper, which also returns null rather than 0 for a
+    // shape it does not recognise — an unreadable response is not "no tenants".
+    return countOf(orgs, "orgs", "items", "organisations");
   })();
   const status = (deep.data as { status?: string } | null)?.status;
 

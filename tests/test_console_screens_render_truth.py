@@ -30,12 +30,23 @@ CONSOLE = pathlib.Path(__file__).resolve().parents[1] / "suite-ui/aldeci-ui-new/
 
 
 def test_org_count_handles_a_bare_array() -> None:
-    """The /orgs contract is a list, not an envelope."""
-    src = (CONSOLE / "screens/Operate.tsx").read_text()
+    """The /orgs contract is a list, not an envelope.
 
-    assert "Array.isArray" in src, (
-        "Operate reads the org count off object keys only; /api/v1/orgs returns a "
-        "bare array, so it will render 0 for any number of tenants"
+    Originally this asserted the literal ``Array.isArray`` in Operate. That was
+    pinning an implementation detail rather than the behaviour: the array
+    handling now lives in ``countOf``, shared with every other screen, and the
+    inline check is gone. Assert the property — the count is derived by
+    something that understands arrays — not the line that used to do it.
+    """
+    operate = (CONSOLE / "screens/Operate.tsx").read_text()
+    api = (CONSOLE / "api.ts").read_text()
+
+    assert "countOf(orgs" in operate, (
+        "Operate no longer derives its tenant count through the shared helper"
+    )
+    assert "Array.isArray" in api, (
+        "countOf cannot read a bare array; /api/v1/orgs returns one, so the "
+        "tenant count will render 0 for any number of tenants"
     )
 
 
