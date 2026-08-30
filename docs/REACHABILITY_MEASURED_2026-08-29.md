@@ -132,3 +132,69 @@ undetermined keeps the finding in the queue where a human sees it.
 - **Wire it into ingest.** The extractor exists and is tested; findings do not
   carry the symbol yet. Until they do, this measurement is reproducible from a
   script, not from the product.
+
+---
+
+# At scale: 119 real findings, 475 packages
+
+The three-finding sample above was never a benchmark. This is the same method on
+a real environment scan.
+
+```
+pip-audit (whole environment)   475 packages, 120 findings, 24 distinct packages
+call graph                       42,874 nodes from suite-core/core
+advisories                       fetched live from OSV (1 fetch failure, excluded)
+```
+
+## The funnel
+
+| stage | result |
+|---|---|
+| findings ingested | **119** |
+| package-level reachable | **20 / 119 — 17%** |
+| …of those, symbol-level ruled out | 3 |
+| …of those, undetermined (advisory names no symbol) | 17 |
+| **must act on** | **17 / 119 — 14%** |
+| **eliminated** | **102 / 119 — 86%** |
+
+## Read this honestly
+
+**Most of the reduction is package-level, not symbol-level.** 83 of the 86
+points come from "this package is never called from our code at all". Symbols
+add 3 findings. On the three-CVE sample symbols looked like the whole story;
+at scale they are a refinement on top of a much blunter filter that does most
+of the work.
+
+**Symbol recall is 30%, not 67%.** The extractor recovered a symbol from 36 of
+119 advisories. The earlier 2-of-3 was a small-sample artifact, exactly as the
+caveat above predicted. Recall is now the limiting factor: 17 findings sit in
+*undetermined* purely because their advisory never names a function.
+
+**The threat to validity is graph scope.** The call graph covers
+`suite-core/core`, not the whole repository. A package that is genuinely used
+elsewhere in the codebase would be scored "not called" here. The 86% is
+therefore an upper bound for this graph, and re-running against a full-repo
+graph is required before the number is quoted to anyone.
+
+## A measurement bug found by measuring
+
+The first run at scale reported **more** symbol-level reachable findings than
+package-level — impossible if the symbol query refines the package query.
+
+`AdvisorySymbols.reachability_patterns(package)` accepted a `package` argument
+and never used it, so a bare symbol pattern like `%build_chain_inner%` matched a
+function of that name in *any* package. A parameter that looks like it scopes
+and does not is worse than no parameter, because every caller reads it as
+scoping. Fixed to emit `cryptography.%build_chain_inner%`, and the funnel became
+monotonic.
+
+## What can be quoted, and what cannot
+
+Quotable, with the scope caveat attached: **86% of findings eliminated, 14%
+requiring action**, on a real 475-package environment.
+
+Not quotable: any claim that symbol-level reachability is what produces that
+number. It is not — package-level does. The symbol work matters for a different
+reason: it is what will move the 17 *undetermined* findings, and undetermined is
+the category a customer actually feels, because those are the ones nobody can
+close.

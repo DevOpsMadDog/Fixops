@@ -97,10 +97,17 @@ def test_an_advisory_naming_no_symbol_reports_unknown_not_empty_success() -> Non
     )
 
 
-def test_patterns_are_usable_as_sql_like() -> None:
+def test_patterns_are_scoped_to_the_package_when_one_is_given() -> None:
+    """A bare ``%symbol%`` matches a function of that name in ANY package.
+
+    At scale that broke the funnel: symbol-level reported more reachable
+    findings than package-level, which is impossible if the symbol query is a
+    refinement of the package query. The package argument was being accepted
+    and ignored — a parameter that looks like it scopes and does not.
+    """
     got = extract_symbols(*CHAIN)
-    patterns = got.reachability_patterns("cryptography")
-    assert patterns == ["%build_chain_inner%"]
+    assert got.reachability_patterns("cryptography") == ["cryptography.%build_chain_inner%"]
+    assert got.reachability_patterns() == ["%build_chain_inner%"]
 
 
 def test_prose_nouns_in_backticks_are_not_treated_as_symbols() -> None:

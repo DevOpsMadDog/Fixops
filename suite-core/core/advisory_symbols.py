@@ -106,8 +106,19 @@ class AdvisorySymbols:
         """
         if not self.known:
             return []
+
+        # ``package`` was accepted and silently ignored, which made a bare
+        # symbol like ``%build_chain_inner%`` match a function of that name in
+        # ANY package. At scale that broke the funnel outright: symbol-level
+        # could report more reachable findings than package-level, which is
+        # impossible if the symbol query is a refinement of the package query.
+        # A parameter that looks like it scopes and does not is worse than no
+        # parameter, because every caller reads it as scoping.
         patterns = [f"{p}%" for p in self.dotted_paths]
-        patterns += [f"%{s}%" for s in self.symbols]
+        if package:
+            patterns += [f"{package}.%{s}%" for s in self.symbols]
+        else:
+            patterns += [f"%{s}%" for s in self.symbols]
         return patterns
 
 
