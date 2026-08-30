@@ -19,6 +19,8 @@ from typing import Any, Dict, List, Optional
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 
 _logger = logging.getLogger(__name__)
 
@@ -86,11 +88,13 @@ def status() -> Dict[str, Any]:
 
 
 @router.post("/ingest", dependencies=[Depends(api_key_auth)])
-def ingest(req: IngestDumpRequest) -> Dict[str, Any]:
+def ingest(
+    req: IngestDumpRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Ingest a Defender XDR JSON dump file (or fallback samples)."""
     try:
         return _conn().ingest_defender_dump(
-            org_id=req.org_id,
+            org_id=resolve_tenant(org_id, req),
             dump_file=req.dump_file,
             max_alerts=req.max_alerts,
             force_fallback=req.force_fallback,
@@ -103,10 +107,12 @@ def ingest(req: IngestDumpRequest) -> Dict[str, Any]:
 
 
 @router.post("/ingest/alert", dependencies=[Depends(api_key_auth)])
-def ingest_alert(req: IngestAlertRequest) -> Dict[str, Any]:
+def ingest_alert(
+    req: IngestAlertRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Ingest a single Defender XDR alert (JSON object) into findings."""
     try:
-        rec = _conn().ingest_alert(org_id=req.org_id, alert=req.alert)
+        rec = _conn().ingest_alert(org_id=resolve_tenant(org_id, req), alert=req.alert)
         if not rec:
             raise HTTPException(status_code=500, detail="finding was not recorded")
         return {"status": "ok", "finding": rec}

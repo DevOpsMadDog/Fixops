@@ -20,6 +20,9 @@ from typing import Any, Dict, List, Optional
 from core.session_manager import Session, SessionManager, get_session_manager
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from fastapi import Depends  # tenancy: credential-derived org
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 
 logger = logging.getLogger(__name__)
 
@@ -137,14 +140,16 @@ class SuspiciousSessionEntry(BaseModel):
 
 
 @router.post("", response_model=SessionResponse, status_code=201)
-async def create_session(body: CreateSessionRequest) -> SessionResponse:
+async def create_session(
+    body: CreateSessionRequest, org_id: str = Depends(get_org_id)
+) -> SessionResponse:
     """Create a new user session."""
     mgr = _get_mgr()
     session = mgr.create_session(
         user_email=body.user_email,
         ip_address=body.ip_address,
         user_agent=body.user_agent,
-        org_id=body.org_id,
+        org_id=resolve_tenant(org_id, body),
         ttl_hours=body.ttl_hours,
         metadata=body.metadata,
     )

@@ -21,6 +21,8 @@ from typing import Any, Dict
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 
 _logger = logging.getLogger(__name__)
 
@@ -93,7 +95,9 @@ def tenants() -> Dict[str, Any]:
 
 
 @router.post("/scan")
-def scan_tenant(body: ScanTenantRequest) -> Dict[str, Any]:
+def scan_tenant(
+    body: ScanTenantRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     c = _connector()
     tenant_path = c.fleet_root / body.tenant
     if not tenant_path.exists() or not tenant_path.is_dir():
@@ -102,19 +106,21 @@ def scan_tenant(body: ScanTenantRequest) -> Dict[str, Any]:
     original = c.build_images
     c.build_images = bool(body.build_image)
     try:
-        result = c.scan_tenant(tenant_path, org_id=body.org_id)
+        result = c.scan_tenant(tenant_path, org_id=resolve_tenant(org_id, body))
     finally:
         c.build_images = original
     return result.to_dict()
 
 
 @router.post("/scan-fleet")
-def scan_fleet(body: ScanFleetRequest) -> Dict[str, Any]:
+def scan_fleet(
+    body: ScanFleetRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     c = _connector()
     original = c.build_images
     c.build_images = bool(body.build_images)
     try:
-        report = c.scan_fleet(org_id=body.org_id)
+        report = c.scan_fleet(org_id=resolve_tenant(org_id, body))
     finally:
         c.build_images = original
     return report

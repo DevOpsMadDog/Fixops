@@ -18,6 +18,9 @@ from typing import List, Optional
 from core.attack_simulation_engine import get_attack_simulation_engine
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, validator
+from fastapi import Depends  # tenancy: credential-derived org
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 
 # Knowledge Brain + Event Bus integration (graceful degradation)
 try:
@@ -214,7 +217,9 @@ async def get_scenario(scenario_id: str):
 
 
 @router.post("/campaigns/run")
-async def run_campaign(req: RunCampaignRequest):
+async def run_campaign(
+    req: RunCampaignRequest, org_id: str = Depends(get_org_id)
+):
     """Run an attack simulation campaign.
 
     Returns immediately with campaign metadata. The campaign executes
@@ -241,7 +246,7 @@ async def run_campaign(req: RunCampaignRequest):
             loop.run_until_complete(
                 engine.run_campaign(
                     scenario_id=req.scenario_id,
-                    org_id=req.org_id,
+                    org_id=resolve_tenant(org_id, req),
                 )
             )
         except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
@@ -259,7 +264,7 @@ async def run_campaign(req: RunCampaignRequest):
         "status": "running",
         "message": "Campaign started in background. Use GET /campaigns/{campaign_id} to check status.",
         "scenario_id": req.scenario_id,
-        "org_id": req.org_id,
+        "org_id": resolve_tenant(org_id, req),
     }
 
 

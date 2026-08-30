@@ -20,6 +20,8 @@ import httpx
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 
 try:
     from apps.api.auth_deps import api_key_auth
@@ -122,7 +124,9 @@ def signatures() -> List[Dict[str, Any]]:
 
 
 @router.post("/run")
-async def run_pipeline(body: VerificationRunRequest) -> Dict[str, Any]:
+async def run_pipeline(
+    body: VerificationRunRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     from core.verification_engine import (
         ProductSignature,
         VerificationEngine,
@@ -166,7 +170,7 @@ async def run_pipeline(body: VerificationRunRequest) -> Dict[str, Any]:
 
             result = engine.finalize()
             return {
-                "org_id": body.org_id,
+                "org_id": resolve_tenant(org_id, body),
                 "target_url": body.target_url,
                 "vulnerable": result.vulnerable,
                 "confidence": result.confidence,

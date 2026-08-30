@@ -26,6 +26,8 @@ from typing import Any, Dict, List, Optional, Union
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 
 _logger = logging.getLogger(__name__)
 
@@ -111,7 +113,9 @@ def status() -> Dict[str, Any]:
 
 
 @router.post("/ingest", dependencies=[Depends(api_key_auth)])
-def ingest(req: FalconIngestRequest) -> Dict[str, Any]:
+def ingest(
+    req: FalconIngestRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Ingest a Falcon Detection.Created JSON dump.
 
     Provide either ``events`` (parsed list) or ``json_text`` (raw text).
@@ -132,7 +136,7 @@ def ingest(req: FalconIngestRequest) -> Dict[str, Any]:
     try:
         return _conn().ingest_falcon_dump(
             json_dump=payload,
-            org_id=req.org_id,
+            org_id=resolve_tenant(org_id, req),
             max_events=req.max_events,
         )
     except ValueError as exc:
@@ -145,12 +149,14 @@ def ingest(req: FalconIngestRequest) -> Dict[str, Any]:
 
 
 @router.post("/ingest/sample", dependencies=[Depends(api_key_auth)])
-def ingest_sample(req: SampleIngestRequest) -> Dict[str, Any]:
+def ingest_sample(
+    req: SampleIngestRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Ingest the embedded 10-detection sample for an org. Used by demos
     and the integration smoke test.
     """
     try:
-        return _conn().ingest_sample(org_id=req.org_id)
+        return _conn().ingest_sample(org_id=resolve_tenant(org_id, req))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except (RuntimeError, OSError) as exc:

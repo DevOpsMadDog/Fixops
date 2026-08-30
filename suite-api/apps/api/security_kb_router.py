@@ -18,6 +18,7 @@ from core.security_kb import (
 )
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from apps.api.tenant_resolution import resolve_tenant
 
 router = APIRouter(
     prefix="/api/v1/kb",
@@ -72,7 +73,9 @@ class FindingQuery(BaseModel):
 
 
 @router.post("/articles", response_model=Article, status_code=201)
-def create_article(body: ArticleCreate) -> Article:
+def create_article(
+    body: ArticleCreate, org_id: str = Depends(get_org_id)
+) -> Article:
     """Add a new article to the knowledge base."""
     article = Article(
         title=body.title,
@@ -85,7 +88,7 @@ def create_article(body: ArticleCreate) -> Article:
         framework=body.framework,
         severity_context=body.severity_context,
         author=body.author,
-        org_id=body.org_id,
+        org_id=resolve_tenant(org_id, body),
     )
     return _kb.add_article(article)
 

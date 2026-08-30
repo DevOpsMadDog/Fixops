@@ -26,6 +26,9 @@ from core.report_generator import ExecutiveReportGenerator, ReportDocument
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
+from fastapi import Depends  # tenancy: credential-derived org
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +82,9 @@ def _store_report(doc: ReportDocument, report_type: str) -> None:
 
 
 @router.post("/executive", summary="Generate executive security risk report")
-def generate_executive_report(body: ExecutiveReportRequest) -> Dict[str, Any]:
+def generate_executive_report(
+    body: ExecutiveReportRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """
     Generate a full executive security risk report for the given organisation,
     covering the past *period_days* days.
@@ -88,7 +93,7 @@ def generate_executive_report(body: ExecutiveReportRequest) -> Dict[str, Any]:
     """
     try:
         doc = _generator.generate_executive_report(
-            org_id=body.org_id,
+            org_id=resolve_tenant(org_id, body),
             period_days=body.period_days,
         )
     except Exception as exc:
@@ -130,7 +135,7 @@ def generate_compliance_report(framework: str, body: ComplianceReportRequest) ->
     try:
         doc = _generator.generate_compliance_evidence(
             framework=fw_upper,
-            org_id=body.org_id,
+            org_id=resolve_tenant(org_id, body),
         )
     except Exception as exc:
         logger.exception("Compliance report generation failed")
@@ -152,7 +157,9 @@ def generate_compliance_report(framework: str, body: ComplianceReportRequest) ->
 
 
 @router.post("/findings/export", summary="Export findings as CSV for auditors")
-def export_findings_csv(body: FindingsExportRequest) -> PlainTextResponse:
+def export_findings_csv(
+    body: FindingsExportRequest, org_id: str = Depends(get_org_id)
+) -> PlainTextResponse:
     """
     Export all findings for the given organisation as CSV.
 
@@ -160,14 +167,14 @@ def export_findings_csv(body: FindingsExportRequest) -> PlainTextResponse:
     """
     try:
         csv_content = _generator.generate_csv_findings(
-            org_id=body.org_id,
+            org_id=resolve_tenant(org_id, body),
             days=body.days,
         )
     except Exception as exc:
         logger.exception("CSV findings export failed")
         raise HTTPException(status_code=500, detail=f"Export failed: {exc}") from exc
 
-    filename = f"findings_export_{body.org_id}_{datetime.now(timezone.utc).strftime('%Y%m%d')}.csv"
+    filename = f"findings_export_{resolve_tenant(org_id, body)}_{datetime.now(timezone.utc).strftime('%Y%m%d')}.csv"
     return PlainTextResponse(
         content=csv_content,
         media_type="text/csv",

@@ -19,6 +19,9 @@ from typing import Any, Dict, List, Optional
 from connectors import siem_connector
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from fastapi import Depends  # tenancy: credential-derived org
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +106,9 @@ def detect_format(body: DetectRequest) -> Dict[str, Any]:
 
 
 @router.post("/ingest")
-def ingest(body: IngestRequest) -> Dict[str, Any]:
+def ingest(
+    body: IngestRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Parse a SIEM payload and mirror to SIEM, correlation, and findings engines.
 
     Accepts:
@@ -121,7 +126,7 @@ def ingest(body: IngestRequest) -> Dict[str, Any]:
     """
     try:
         result = siem_connector.ingest(
-            body.org_id,
+            resolve_tenant(org_id, body),
             body.payload,
             fmt=body.format,
             source_id=body.source_id,
@@ -166,7 +171,9 @@ def generate(body: GenerateRequest) -> Dict[str, Any]:
 
 
 @router.post("/tail")
-def tail_logs(body: TailRequest) -> Dict[str, Any]:
+def tail_logs(
+    body: TailRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Tail real log files on disk and ingest new bytes since last call.
 
     Designed for /var/log/system.log, ALDECI's own structlog JSON output,
@@ -180,7 +187,7 @@ def tail_logs(body: TailRequest) -> Dict[str, Any]:
     """
     try:
         result = siem_connector.tail_log_files(
-            org_id=body.org_id,
+            org_id=resolve_tenant(org_id, body),
             file_paths=body.file_paths,
             fmt=body.format,
             max_bytes_per_file=body.max_bytes_per_file,

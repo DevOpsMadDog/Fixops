@@ -23,6 +23,8 @@ from typing import Any, Dict, List, Optional, Union
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 
 _logger = logging.getLogger(__name__)
 
@@ -117,12 +119,14 @@ def sample(
 # Ingest
 # ---------------------------------------------------------------------------
 @router.post("/ingest", dependencies=[Depends(api_key_auth)])
-def ingest(req: IngestRequest) -> Dict[str, Any]:
+def ingest(
+    req: IngestRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Ingest a SentinelOne API /threats response payload."""
     try:
         return _conn().ingest_s1_dump(
             json_dump=req.payload,
-            org_id=req.org_id,
+            org_id=resolve_tenant(org_id, req),
             scan_id=req.scan_id,
         )
     except ValueError as exc:
@@ -133,12 +137,14 @@ def ingest(req: IngestRequest) -> Dict[str, Any]:
 
 
 @router.post("/ingest/raw", dependencies=[Depends(api_key_auth)])
-def ingest_raw(req: IngestRawRequest) -> Dict[str, Any]:
+def ingest_raw(
+    req: IngestRawRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Ingest a raw JSON-encoded SentinelOne /threats dump (string body)."""
     try:
         return _conn().ingest_s1_dump(
             json_dump=req.raw_json,
-            org_id=req.org_id,
+            org_id=resolve_tenant(org_id, req),
             scan_id=req.scan_id,
         )
     except ValueError as exc:
@@ -149,10 +155,12 @@ def ingest_raw(req: IngestRawRequest) -> Dict[str, Any]:
 
 
 @router.post("/ingest/sample", dependencies=[Depends(api_key_auth)])
-def ingest_sample(req: SampleIngestRequest) -> Dict[str, Any]:
+def ingest_sample(
+    req: SampleIngestRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Ingest the embedded SentinelOne fallback sample (offline demo)."""
     try:
-        return _conn().ingest_fallback(org_id=req.org_id, max_events=req.max_events)
+        return _conn().ingest_fallback(org_id=resolve_tenant(org_id, req), max_events=req.max_events)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except (RuntimeError, OSError, TypeError) as exc:

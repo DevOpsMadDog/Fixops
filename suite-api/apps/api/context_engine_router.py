@@ -19,6 +19,8 @@ from typing import Any, Dict, List
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 
 try:
     from apps.api.auth_deps import api_key_auth
@@ -55,13 +57,15 @@ class ContextEvaluateRequest(BaseModel):
 
 
 @router.post("/evaluate")
-def evaluate(body: ContextEvaluateRequest) -> Dict[str, Any]:
+def evaluate(
+    body: ContextEvaluateRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     from core.context_engine import ContextEngine
 
     try:
         engine = ContextEngine(body.settings)
         result = engine.evaluate(design_rows=body.design_rows, crosswalk=body.crosswalk)
-        return {"org_id": body.org_id, **result}
+        return {"org_id": resolve_tenant(org_id, body), **result}
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:  # pragma: no cover

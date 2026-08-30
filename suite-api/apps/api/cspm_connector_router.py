@@ -18,6 +18,8 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 
 try:
     from apps.api.auth_deps import api_key_auth
@@ -92,12 +94,14 @@ class CSPMBulkScanRequest(BaseModel):
 
 
 @router.post("/scan")
-def scan(body: CSPMScanRequest) -> Dict[str, Any]:
+def scan(
+    body: CSPMScanRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Run the CSPM family for a single tenant."""
 
     try:
         return _get_connector().scan_tenant(
-            org_id=body.org_id,
+            org_id=resolve_tenant(org_id, body),
             provider=body.provider,
             account_id=body.account_id,
             localstack_endpoint=body.localstack_endpoint,
@@ -111,7 +115,7 @@ def scan(body: CSPMScanRequest) -> Dict[str, Any]:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:  # pragma: no cover
-        logger.exception("CSPM scan failed for %s: %s", body.org_id, exc)
+        logger.exception("CSPM scan failed for %s: %s", resolve_tenant(org_id, body), exc)
         raise HTTPException(status_code=500, detail=f"cspm_scan_failure: {exc}")
 
 

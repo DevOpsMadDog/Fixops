@@ -29,6 +29,9 @@ from core.api_gateway import (
 )
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
+from fastapi import Depends  # tenancy: credential-derived org
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 
 _logger = logging.getLogger(__name__)
 
@@ -150,7 +153,9 @@ async def gateway_root() -> Dict[str, Any]:
 
 
 @router.post("/check")
-async def gateway_check(req: GatewayCheckRequest) -> Dict[str, Any]:
+async def gateway_check(
+    req: GatewayCheckRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """
     Full gateway security check for an incoming request.
 
@@ -171,7 +176,7 @@ async def gateway_check(req: GatewayCheckRequest) -> Dict[str, Any]:
             content_type=req.content_type,
             payload_size_bytes=req.payload_size_bytes,
             api_key_id=req.api_key_id,
-            org_id=req.org_id,
+            org_id=resolve_tenant(org_id, req),
             api_version=req.api_version,
             plan_tier=req.plan_tier,
             required_fields=req.required_fields,

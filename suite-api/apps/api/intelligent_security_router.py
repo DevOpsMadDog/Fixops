@@ -18,6 +18,8 @@ from typing import Any, Dict, List, Optional
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, field_validator
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 
 try:
     from apps.api.auth_deps import api_key_auth
@@ -93,17 +95,21 @@ class NLGraphRequest(BaseModel):
 
 
 @router.post("/session/init")
-async def init_session(body: SessionInitRequest) -> Dict[str, Any]:
+async def init_session(
+    body: SessionInitRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     try:
         session_id = await _engine().initialize_session()
-        return {"org_id": body.org_id, "session_id": session_id}
+        return {"org_id": resolve_tenant(org_id, body), "session_id": session_id}
     except Exception as exc:  # pragma: no cover
         logger.exception("ise.session_init_failed", error=str(exc))
         raise HTTPException(status_code=500, detail=f"session_init_failure: {exc}")
 
 
 @router.post("/intelligence")
-async def gather_intelligence(body: IntelligenceRequest) -> Dict[str, Any]:
+async def gather_intelligence(
+    body: IntelligenceRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     try:
         intel = await _engine().gather_intelligence(
             target=body.target,
@@ -111,7 +117,7 @@ async def gather_intelligence(body: IntelligenceRequest) -> Dict[str, Any]:
             include_osint=body.include_osint,
         )
         return {
-            "org_id": body.org_id,
+            "org_id": resolve_tenant(org_id, body),
             "target": body.target,
             "cve_ids": intel.cve_ids,
             "epss_scores": intel.epss_scores,
@@ -146,9 +152,11 @@ async def run_assessment(body: AssessmentRequest) -> Dict[str, Any]:
 
 
 @router.post("/nl-graph")
-def nl_graph(body: NLGraphRequest) -> Dict[str, Any]:
+def nl_graph(
+    body: NLGraphRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     try:
-        return _engine().nl_graph_assistant(org_id=body.org_id, question=body.question)
+        return _engine().nl_graph_assistant(org_id=resolve_tenant(org_id, body), question=body.question)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:  # pragma: no cover
