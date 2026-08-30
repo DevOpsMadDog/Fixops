@@ -65,12 +65,60 @@ Air-gapped is not a degraded mode of this product. On a disconnected host it is
 strictly better than a connected host with a broken network, because it stops
 pretending the network might answer.
 
+## The install path
+
+The runtime being air-gap clean is not the same as the install working. The
+default `docker-compose.yml` **builds from source**, which needs
+`python:3.11-slim`, `node:20-alpine`, `nginx:1.27-alpine` and then pip and npm
+against public registries. On a disconnected host that cannot work, so "one
+command" has to mean the images arrive already built.
+
+```
+connected host      ./scripts/build_airgap_bundle.sh
+disconnected host   docker load -i fixops-airgap-<version>.tar
+                    docker compose -f docker-compose.airgap.yml up -d
+```
+
+`docker/docker-compose.airgap.yml` never builds and never pulls
+(`pull_policy: never`), and sets `FIXOPS_AIRGAP_MODE=enforced` itself rather
+than trusting the operator to remember. Verified: the file parses with **zero
+build directives**.
+
+Two things it deliberately leaves out. **The demo-seed service** — it exists
+behind a `seed` profile in the default compose and must never be reachable
+here, because an air-gapped customer evaluating the product must not find
+fabricated findings in their tenant. And the **third-party services**
+(Dependency-Track, n8n, Shuffle, LocalStack), which have their own images and
+their own air-gap stories and are not on the value path.
+
+## The feeds, which the whole offline story rests on
+
+Checked rather than assumed:
+
+```
+data/feeds/feeds.db    327,252 EPSS scores
+                         1,568 KEV entries
+                 last refreshed 2026-04-16 — 135 days old
+```
+
+The data is real and substantial. It is also **stale**, well past the 30-day
+threshold — which is exactly why the verdict now carries
+`exploitability_evidence_age_days` and flags staleness per finding. An
+air-gapped site never refreshes these, so a bundle built today ships 135-day-old
+KEV data and the product will say so on every verdict that rests on it.
+
+The build script checks both presence and age, and warns rather than shipping
+blind. Two field-name slips were caught writing that check — the table is
+`epss_scores` not `epss`, the column is `last_refresh` not `updated_at`. Both
+would have reported "?" for a perfectly good bundle and taught the operator to
+ignore the warning. Same class of defect as the `cve_id`/`rule_id` mismatch that
+cost four bugs elsewhere: verify a query against the real schema.
+
 ## What is still owed
 
-- **One-command install.** This verifies the *runtime* is air-gap clean. It does
-  not verify that `docker compose up` works on a host that has never pulled an
-  image; that needs a bundled image tarball and a disconnected test host.
-- **Feed freshness.** The local databases ship with the product, so an
-  air-gapped deployment's EPSS/KEV data ages. The verdict already carries
-  measured-versus-estimated, but it does not yet carry *how old* the measurement
-  is. An operator deciding tonight should see that.
+- **A disconnected test host.** Everything above is verified by blocking sockets
+  and by parsing the compose file. Nobody has yet run `docker load` on a machine
+  with no route to the internet. Until someone does, this is a well-founded
+  expectation, not a demonstration.
+- **A feed refresh path for air-gapped sites** — a signed feed bundle the
+  operator can carry in, so the data does not simply age forever.

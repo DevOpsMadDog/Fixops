@@ -1,0 +1,82 @@
+# FixOps — air-gapped deployment.
+#
+# The default docker-compose.yml BUILDS from source. On a disconnected host that
+# cannot work: the Dockerfiles pull python:3.11-slim, node:20-alpine and
+# nginx:1.27-alpine, then run pip and npm against public registries. "One
+# command" on an air-gapped host means the images already exist locally, so this
+# file never builds and never pulls.
+#
+#   connected host:     ./scripts/build_airgap_bundle.sh
+#   disconnected host:  docker load -i fixops-airgap-<version>.tar
+#                       docker compose -f docker/docker-compose.airgap.yml up -d
+#
+# Deliberately omitted from this file, and why:
+#
+#   seed-demo-data      it exists behind a `seed` profile in the default compose
+#                       and must never be reachable here. An air-gapped customer
+#                       evaluating the product must not find fabricated findings
+#                       in their tenant.
+#   dtrack / n8n /      third-party services with their own images and their own
+#   shuffle / localstack air-gap stories. Bundle them separately if a site wants
+#                       them; they are not needed for the value path.
+#
+# FIXOPS_AIRGAP_MODE=enforced is set here rather than left to the operator.
+# Verified 2026-08-30 (docs/AIRGAP_VERIFIED_2026-08-30.md): without it a pipeline
+# run attempts 12 outbound hosts and eats a connect timeout on each; with it,
+# zero attempts and BETTER verdicts, because it goes straight to the local feed
+# databases instead of waiting for calls that cannot succeed.
+
+services:
+  aldeci:
+    image: ${ALDECI_IMAGE:-aldeci:latest}
+    pull_policy: never
+    container_name: aldeci-api
+    restart: unless-stopped
+    ports:
+      - "${ALDECI_PORT:-8000}:8000"
+    environment:
+      # The air-gap switch. See the note above — this is a performance and
+      # honesty setting, not a feature flag.
+      - FIXOPS_AIRGAP_MODE=enforced
+      - FIXOPS_MODE=${FIXOPS_MODE:-enterprise}
+      - FIXOPS_API_TOKEN=${FIXOPS_API_TOKEN:?set FIXOPS_API_TOKEN — there is no default credential}
+      - FIXOPS_CORE_MODE=${FIXOPS_CORE_MODE:-1}
+      # Reachability needs to read the customer's source tree to build the call
+      # graph. Without a graph every finding is correctly reported
+      # "undetermined" and nothing is eliminated — which is honest and worth
+      # nothing. Mount the tree and name it here.
+      - FIXOPS_REACHABILITY_ALLOWED_ROOTS=${REPO_MOUNT:-/srv/source}
+    volumes:
+      - aldeci-data:/app/data
+      - aldeci-state:/app/.fixops_data
+      # Read-only: the platform parses the customer's code, it never writes to it.
+      - ${REPO_PATH:-/dev/null}:${REPO_MOUNT:-/srv/source}:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - aldeci-net
+
+  aldeci-ui:
+    image: ${ALDECI_UI_IMAGE:-aldeci-ui:latest}
+    pull_policy: never
+    container_name: aldeci-ui
+    restart: unless-stopped
+    ports:
+      - "${ALDECI_UI_PORT:-3000}:80"
+    depends_on:
+      aldeci:
+        condition: service_healthy
+    networks:
+      - aldeci-net
+
+volumes:
+  aldeci-data:
+  aldeci-state:
+
+networks:
+  aldeci-net:
+    driver: bridge
