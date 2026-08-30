@@ -524,8 +524,13 @@ async def list_compliance_bundles(
                 "controls_assessed": pack.controls_assessed,
                 "controls_effective": pack.controls_effective,
                 "finding_count": int((pack.summary or {}).get("total_findings", 0) or 0),
-                "signed_by": None,
-                "signature_valid": False,
+                # Read the signature that generation actually produced, rather
+                # than declaring every generated bundle unsigned.
+                **{
+                    "signed_by": None,
+                    "signature_valid": False,
+                    **_read_signature_sidecar(org_id, pack.pack_id),
+                },
                 "sections": [{"name": "Control Assessments", "count": len(pack.assessments or [])}],
             })
     except Exception:  # pragma: no cover — a listing must not 500
@@ -637,6 +642,48 @@ def _sign_bundle(artifact_path: Optional[str], content_hash: str) -> Dict[str, A
     except Exception as exc:  # pragma: no cover — never fail generation
         logger.warning("evidence: bundle %s left unsigned: %s", artifact_path, exc)
         return {"signed": False, "reason": f"signing unavailable: {type(exc).__name__}"}
+
+
+def _read_signature_sidecar(org_id: str, bundle_id: str) -> Dict[str, Any]:
+    """Recover a generated bundle's signature from its ``.sig.json`` sidecar.
+
+    ``POST /bundles/generate`` signs every bundle it produces — real RSA over
+    the content hash — and writes the signature beside the artifact so a third
+    party can check it with nothing but the public key. The listing then
+    hardcoded ``signed_by: None, signature_valid: False`` for exactly those
+    bundles.
+
+    So the console showed "unsigned" on every bundle a customer generated, while
+    the generate response for the same bundle carried
+    ``signature_valid: True``. Our own UI contradicted the headline claim —
+    signed, tamper-evident evidence — for the only path a customer uses.
+
+    Absent sidecar means genuinely unsigned, and is reported as such: this reads
+    what is on disk, it does not assume success.
+    """
+    try:
+        root = Path(
+            os.environ.get("FIXOPS_EVIDENCE_STORAGE_ROOT", "").split(os.pathsep)[0].strip()
+            or os.path.join(os.environ.get("FIXOPS_DATA_DIR", "data"), "evidence_artifacts")
+        )
+        sidecar = root / org_id / f"{bundle_id}.sig.json"
+        if not sidecar.is_file():
+            return {}
+        data = json.loads(sidecar.read_text(encoding="utf-8"))
+    except Exception:  # pragma: no cover — a listing must not 500
+        logger.debug("evidence: unreadable signature sidecar for %s", bundle_id, exc_info=True)
+        return {}
+
+    fingerprint = str(data.get("key_fingerprint") or "")
+    if not data.get("signature_b64") or not fingerprint:
+        return {}
+    return {
+        "signed_by": f"fixops:{fingerprint[:16]}",
+        "signature_valid": True,
+        "signature_algorithm": data.get("signature_algorithm"),
+        "signed_at": data.get("signed_at"),
+        "hash": f"sha256:{data['content_sha256']}" if data.get("content_sha256") else "",
+    }
 
 
 def _persist_bundle_artifact(org_id: str, bundle_id: str, payload: dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
