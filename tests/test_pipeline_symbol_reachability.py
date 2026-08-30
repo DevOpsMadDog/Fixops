@@ -33,11 +33,23 @@ from core.brain_pipeline import BrainPipeline
 
 
 class _FakeEngine:
-    """Records what was asked, and answers from a fixed call graph."""
+    """Records what was asked, and answers from a fixed call graph.
 
-    def __init__(self, known_callers: dict[str, list[str]]):
+    ``stats`` matters as much as the answers: a rule-out is only sound if the
+    graph could have contained the code, so the tests must state what the graph
+    actually covers.
+    """
+
+    def __init__(self, known_callers: dict[str, list[str]], by_language=None, nodes=1000):
         self.known = known_callers
         self.asked: list[str] = []
+        self._stats = {
+            "node_count": nodes,
+            "by_language": {"python": nodes} if by_language is None else by_language,
+        }
+
+    def stats(self, org_id):
+        return self._stats
 
     def vulnerable_reachability(self, org_id, cve_id, pattern):
         self.asked.append(pattern)
@@ -45,6 +57,13 @@ class _FakeEngine:
 
     def record_finding_verdict(self, *a, **k):
         return None
+
+
+def _python_finding(**kw) -> dict:
+    """Findings carry their ecosystem via the tool that produced them."""
+    base = {"source_tool": "pip-audit"}
+    base.update(kw)
+    return base
 
 
 def _run(monkeypatch, finding: dict, engine: _FakeEngine) -> dict:
@@ -59,11 +78,11 @@ def _run(monkeypatch, finding: dict, engine: _FakeEngine) -> dict:
 
 def test_the_symbol_is_used_when_ingest_recovered_one(monkeypatch) -> None:
     engine = _FakeEngine({"cryptography.%pkcs7_decrypt_der%": ["app.mod.f"]})
-    finding = {
-        "cve_id": "PYSEC-2026-3552",
-        "package_name": "cryptography",
-        "vulnerable_symbols": ["pkcs7_decrypt_der"],
-    }
+    finding = _python_finding(
+        cve_id="PYSEC-2026-3552",
+        package_name="cryptography",
+        vulnerable_symbols=["pkcs7_decrypt_der"],
+    )
     result = _run(monkeypatch, finding, engine)
 
     assert any("pkcs7_decrypt_der" in q for q in engine.asked), (
@@ -76,12 +95,12 @@ def test_the_symbol_is_used_when_ingest_recovered_one(monkeypatch) -> None:
 def test_a_symbol_query_with_no_callers_rules_the_finding_out(monkeypatch) -> None:
     """A specific question that comes back empty IS evidence of absence."""
     engine = _FakeEngine({})
-    finding = {
-        "cve_id": "PYSEC-2026-3552",
-        "package_name": "cryptography",
-        "vulnerable_symbols": ["pkcs7_decrypt_der"],
-        "consensus_priority": 1,
-    }
+    finding = _python_finding(
+        cve_id="PYSEC-2026-3552",
+        package_name="cryptography",
+        vulnerable_symbols=["pkcs7_decrypt_der"],
+        consensus_priority=1,
+    )
     result = _run(monkeypatch, finding, engine)
     assert result["reachability_verdict"] == "unreachable"
     assert result["consensus_priority"] == 2, "an established rule-out should downgrade"
@@ -95,11 +114,9 @@ def test_no_symbol_but_the_package_IS_used_is_undetermined(monkeypatch) -> None:
     "undetermined" — and it must NOT downgrade priority.
     """
     engine = _FakeEngine({"cryptography.%": ["app.mod.uses_crypto"]})
-    finding = {
-        "cve_id": "PYSEC-2026-3554",
-        "package_name": "cryptography",
-        "consensus_priority": 1,
-    }
+    finding = _python_finding(
+        cve_id="PYSEC-2026-3554", package_name="cryptography", consensus_priority=1
+    )
     result = _run(monkeypatch, finding, engine)
 
     assert result["reachability_verdict"] == "undetermined"
@@ -115,7 +132,7 @@ def test_a_package_we_never_call_is_still_ruled_out(monkeypatch) -> None:
     package is never called from our code at all.
     """
     engine = _FakeEngine({})
-    finding = {"cve_id": "PYSEC-1", "package_name": "somelib", "consensus_priority": 1}
+    finding = _python_finding(cve_id="PYSEC-1", package_name="somelib", consensus_priority=1)
     result = _run(monkeypatch, finding, engine)
     assert result["reachability_verdict"] == "unreachable"
     assert result["consensus_priority"] == 2
@@ -137,3 +154,35 @@ def test_undetermined_reaches_the_exploitability_fusion_as_unknown(monkeypatch) 
     pipeline._apply_exploitability_verdict(ctx)
     verdict = ctx["findings"][0].get("exploitability")
     assert verdict in {"exploited_unknown_reach", "insufficient_evidence"}, verdict
+
+
+def test_a_graph_that_cannot_contain_the_code_rules_nothing_out(monkeypatch) -> None:
+    """The worst failure this system had, found on a real 96-finding ingest.
+
+    Every finding came back "unreachable" and was deprioritised. The tenant's
+    graph held 4,852 nodes — 4,850 of them JAVA, from test fixtures. Querying
+    `aiohttp.%` against a Java graph finds nothing, and the product reported
+    that nothing as proof of safety for 96 Python findings.
+
+    Absence of evidence is evidence of absence only if you looked somewhere the
+    thing could have been.
+    """
+    engine = _FakeEngine({}, by_language={"java": 4850, "python": 0}, nodes=4852)
+    finding = _python_finding(
+        cve_id="PYSEC-2026-237", package_name="aiohttp", consensus_priority=1
+    )
+    result = _run(monkeypatch, finding, engine)
+
+    assert result["reachability_verdict"] == "undetermined", (
+        "a Python finding was ruled out against a Java call graph"
+    )
+    assert result["consensus_priority"] == 1, "and it was deprioritised on that basis"
+
+
+def test_no_graph_at_all_rules_nothing_out(monkeypatch) -> None:
+    """A tenant that has never parsed a repo must not have every finding closed."""
+    engine = _FakeEngine({}, by_language={}, nodes=0)
+    finding = _python_finding(cve_id="PYSEC-1", package_name="aiohttp", consensus_priority=1)
+    result = _run(monkeypatch, finding, engine)
+    assert result["reachability_verdict"] == "undetermined"
+    assert result["consensus_priority"] == 1

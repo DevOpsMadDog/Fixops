@@ -281,6 +281,27 @@ class _HttpOPAEngine:
 
 
 
+# Ecosystem of a finding, inferred from the tool that produced it. Used only to
+# ask whether the call graph could possibly contain the code in question.
+_TOOL_LANGUAGE = {
+    "pip-audit": "python", "pip_audit": "python", "safety": "python",
+    "bandit": "python", "pyup": "python",
+    "npm-audit": "javascript", "npm_audit": "javascript", "yarn-audit": "javascript",
+    "retire": "javascript", "eslint": "javascript",
+    "govulncheck": "go", "nancy": "go",
+    "cargo-audit": "rust", "rustsec": "rust",
+    "owasp-dependency-check": "java", "spotbugs": "java", "maven": "java",
+}
+
+
+def _finding_language(finding: Dict[str, Any]) -> str:
+    explicit = (finding.get("language") or "").strip().lower()
+    if explicit:
+        return explicit
+    tool = (finding.get("source_tool") or finding.get("scanner") or "").strip().lower()
+    return _TOOL_LANGUAGE.get(tool, "")
+
+
 def _advisory_id(finding: Dict[str, Any]) -> str:
     """The vulnerability's identifier, wherever the normaliser put it.
 
@@ -3066,6 +3087,34 @@ class BrainPipeline:
         try:
             from core.function_reachability_engine import get_engine as get_reach_engine
             reach_engine = get_reach_engine()
+
+            # You cannot conclude "unreachable" from a graph that could not
+            # contain the code in the first place.
+            #
+            # Observed on a real 96-finding ingest: every single finding came
+            # back "unreachable" and was deprioritised. The tenant's graph held
+            # 4,852 nodes — 4,850 of them JAVA, from test fixtures. Querying
+            # `aiohttp.%` against a Java graph finds nothing, and the product
+            # reported that nothing as proof of safety for 96 Python findings.
+            #
+            # Absence of evidence is only evidence of absence when you looked
+            # somewhere the thing could have been.
+            try:
+                graph_stats = reach_engine.stats(ctx["org_id"]) or {}
+            except Exception:  # noqa: BLE001 - stats are advisory
+                graph_stats = {}
+            by_language = graph_stats.get("by_language") or {}
+            total_nodes = int(graph_stats.get("node_count") or 0)
+
+            def _graph_covers(finding: Dict[str, Any]) -> bool:
+                if total_nodes <= 0:
+                    return False
+                language = _finding_language(finding)
+                if not language:
+                    # Unknown ecosystem: a non-empty graph is the best we can say.
+                    return True
+                return int(by_language.get(language) or 0) > 0
+
             for f in ctx["findings"]:
                 advisory = _advisory_id(f)
                 if not advisory:
@@ -3131,7 +3180,10 @@ class BrainPipeline:
                 #
                 # Only a symbol-specific query earns the word "reachable".
                 specific = bool(explicit or symbols)
-                if not callers:
+                if not callers and not _graph_covers(f):
+                    # Nothing found, in a graph that cannot contain it.
+                    verdict = "undetermined"
+                elif not callers:
                     verdict = "unreachable"
                 elif specific:
                     verdict = "reachable"
