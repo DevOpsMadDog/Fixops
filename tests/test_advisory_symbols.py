@@ -125,3 +125,51 @@ def test_a_dotted_path_wins_over_its_bare_leaf() -> None:
     got = extract_symbols("x", "The flaw is in `cryptography.x509.ocsp` via `load_der`.")
     assert "cryptography.x509.ocsp" in got.dotted_paths
     assert got.reachability_patterns()[0] == "cryptography.x509.ocsp%"
+
+
+# --- call evidence, and what is strong enough to rule a finding out ---------
+
+
+def test_a_call_is_recovered_even_in_rst_double_backticks() -> None:
+    """The biggest single source of missed symbols. Of 59 advisories where
+    nothing was recovered, 25 named a call — most in RST ``double backticks``,
+    which the single-backtick pattern never saw."""
+    got = extract_symbols(
+        "aiohttp cookie deserialisation",
+        "using ``CookieJar.load()`` with untrusted input may allow arbitrary code execution.",
+    )
+    assert "CookieJar.load" in got.dotted_paths
+    assert got.can_rule_out
+
+
+def test_a_camelcase_receiver_is_kept_when_it_is_being_CALLED() -> None:
+    """`RecipientInfo` is a type the flaw operates on; `CookieJar.load()` is an
+    entry point a caller reaches. The parentheses are the whole difference, and
+    the CamelCase filter alone got the second case wrong."""
+    typed = extract_symbols("x", "the `RecipientInfo` structure")
+    called = extract_symbols("x", "``CookieJar.load()`` is unsafe")
+    assert not typed.known
+    assert called.known
+
+
+def test_a_bare_noun_is_not_strong_enough_to_rule_a_finding_out() -> None:
+    """Audited at scale, the bare-backtick path produced `cookies`,
+    `session_id` and `allowed_hosts` — a noun, a parameter and a config key.
+    Finding no "session_id" in a call graph says nothing about reachability, yet
+    it was deleting findings from the queue.
+
+    Such evidence may still be reported (known) but must never eliminate.
+    """
+    got = extract_symbols("x", "the `session_id` is not verified against the session")
+    assert got.known
+    assert not got.can_rule_out, (
+        "a parameter name is not an entry point; ruling a CVE out on its absence "
+        "removes a real finding from the queue on unsound evidence"
+    )
+
+
+def test_patterns_contain_no_duplicates() -> None:
+    """A call also lands in dotted_paths, so the same symbol was queried twice."""
+    got = extract_symbols("x", "``CookieJar.load()`` and again ``CookieJar.load()``")
+    patterns = got.reachability_patterns("aiohttp")
+    assert len(patterns) == len(set(patterns)), patterns

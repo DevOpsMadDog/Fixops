@@ -209,3 +209,62 @@ number. It is not — package-level does. The symbol work matters for a differen
 reason: it is what will move the 17 *undetermined* findings, and undetermined is
 the category a customer actually feels, because those are the ones nobody can
 close.
+
+
+---
+
+# Recall, and why a higher recall did not move the headline
+
+Recall was the limiter: the extractor found a symbol in only 30% of advisories,
+so most package-reachable findings sat *undetermined*. Looking at the 59 misses
+rather than guessing at them:
+
+| signal present in a missed advisory | count |
+|---|---|
+| names a call like `CookieJar.load()` | **25** |
+| names a dotted call | 9 |
+| has backticks the filters rejected | 7 |
+
+The fix follows from the data. Advisories write calls as ``CookieJar.load()`` —
+RST double backticks, which the single-backtick pattern never saw — and the
+CamelCase filter rejected the receiver. That filter is right about a *type*
+(`RecipientInfo` is what the flaw operates on) and wrong about a *method call*
+(`CookieJar.load()` is an entry point). **The parentheses are the difference.**
+
+Matching on the parentheses instead took recall from **30% to 64%**.
+
+## Then the audit, which mattered more than the recall
+
+Listing every finding the symbols eliminated showed three resting on:
+
+    cookies        session_id        allowed_hosts
+
+A noun, a parameter, and a config key. Finding no `session_id` in a call graph
+says *nothing* about whether a vulnerability is reachable — yet it was deleting
+findings from the queue. Higher recall had bought a worse product.
+
+So rule-outs now require **call-shaped evidence**. `can_rule_out` is true only
+for a symbol recovered from an actual call or a dotted path; anything weaker may
+still be reported but leaves the finding UNDETERMINED, where a human sees it.
+This is the same measured-versus-estimated line the verdict engine already
+draws.
+
+## The result
+
+| | before recall work | after |
+|---|---|---|
+| symbol recall | 30% | **64%** |
+| symbol rule-outs | 3 | **5** |
+| undetermined | 19 | 16 |
+| **actionable** | 19/119 — 16% | **19/119 — 16%** |
+| **eliminated** | 84% | **84%** |
+
+The headline did not move, and that is the point. What changed is that all five
+remaining eliminations trace to a named call — `CookieJar.load`, `click.edit`,
+`mcp.server.websocket.websocket_server` — and the three unsound ones moved into
+undetermined rather than being silently deleted.
+
+A number that stays put while the reasoning under it gets sounder is the
+outcome to want. Had the audit not run, this work would have shipped an
+improvement to 87% that was partly built on searching a call graph for the word
+"cookies".

@@ -63,6 +63,11 @@ _HOSTNAME_TAIL = frozenset(
 # Backticks also wrap prose nouns, config keys and CLI flags. These appear in
 # advisory text constantly and are never the vulnerable entry point; matching
 # one would produce a confident, wrong "not reachable".
+# ``CookieJar.load()``, ``load()``, ``aiohttp.helpers.parse()``. The trailing
+# "()" is the whole signal — advisories write calls that way regardless of
+# whether they use single backticks, RST double backticks, or none at all.
+_CALL = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*\(\)")
+
 _NOT_SYMBOLS = frozenset(
     {
         "true", "false", "none", "null", "nil", "self", "this",
@@ -90,10 +95,32 @@ class AdvisorySymbols:
     symbols: List[str] = field(default_factory=list)
     dotted_paths: List[str] = field(default_factory=list)
     source: str = "advisory-text"
+    #: Symbols recovered from an actual CALL — ``CookieJar.load()``. Only these
+    #: are strong enough to RULE A FINDING OUT.
+    calls: List[str] = field(default_factory=list)
 
     @property
     def known(self) -> bool:
         return bool(self.symbols or self.dotted_paths)
+
+    @property
+    def can_rule_out(self) -> bool:
+        """Whether the evidence is strong enough to declare a finding unreachable.
+
+        Auditing the eliminations at scale showed the bare-backtick path
+        producing ``cookies``, ``session_id`` and ``allowed_hosts`` — a noun, a
+        parameter and a config key. Searching a call graph for "session_id" and
+        finding nothing says nothing at all about whether the vulnerability is
+        reachable, yet it was deleting findings from the queue.
+
+        A CALL is different: ``CookieJar.load()`` names an entry point, and its
+        absence from the graph is real evidence. So rule-outs require call-shaped
+        evidence, and everything weaker leaves the finding UNDETERMINED — where a
+        human still sees it. This mirrors the measured-vs-estimated distinction
+        the verdict engine already makes: act on what was measured, and say so
+        when you are guessing.
+        """
+        return bool(self.calls or self.dotted_paths)
 
     def reachability_patterns(self, package: Optional[str] = None) -> List[str]:
         """SQL LIKE patterns for ``vulnerable_reachability``.
@@ -114,12 +141,16 @@ class AdvisorySymbols:
         # impossible if the symbol query is a refinement of the package query.
         # A parameter that looks like it scopes and does not is worse than no
         # parameter, because every caller reads it as scoping.
-        patterns = [f"{p}%" for p in self.dotted_paths]
-        if package:
-            patterns += [f"{package}.%{s}%" for s in self.symbols]
-        else:
-            patterns += [f"%{s}%" for s in self.symbols]
-        return patterns
+        seen: List[str] = []
+        for path in self.dotted_paths:
+            candidate = f"{path}%"
+            if candidate not in seen:
+                seen.append(candidate)
+        for symbol in self.symbols:
+            candidate = f"{package}.%{symbol}%" if package else f"%{symbol}%"
+            if candidate not in seen:
+                seen.append(candidate)
+        return seen
 
 
 def extract_symbols(summary: str = "", details: str = "") -> AdvisorySymbols:
@@ -133,6 +164,27 @@ def extract_symbols(summary: str = "", details: str = "") -> AdvisorySymbols:
     council is a later, separate decision, not a prerequisite.
     """
     text = f"{summary}\n{details}"
+
+    # A CALL is unambiguous evidence, and it is the single biggest source of
+    # missed symbols: of 59 advisories where nothing was recovered, 25 named a
+    # call like ``CookieJar.load()`` and 9 a dotted call. They were missed for
+    # two reasons — the text uses RST double-backticks rather than single, and
+    # the CamelCase filter above rejected the receiver.
+    #
+    # That filter is right about a TYPE (`RecipientInfo` is what the flaw
+    # operates on) and wrong about a METHOD CALL (`CookieJar.load()` is an entry
+    # point a caller reaches). The parentheses are what separate them, so match
+    # on the parentheses and ignore the backtick style entirely.
+    calls = []
+    for match in _CALL.finditer(text):
+        name = match.group(1)
+        leaf = name.rsplit(".", 1)[-1]
+        if leaf.lower() in _NOT_SYMBOLS or len(leaf) < 3:
+            continue
+        if name.rsplit(".", 1)[0].lower() in _HOSTNAME_TAIL:
+            continue
+        if name not in calls:
+            calls.append(name)
 
     dotted = [
         m
@@ -152,4 +204,13 @@ def extract_symbols(summary: str = "", details: str = "") -> AdvisorySymbols:
     leaves = {p.rsplit(".", 1)[-1] for p in dotted}
     symbols = [s for s in seen if s not in leaves]
 
-    return AdvisorySymbols(symbols=symbols, dotted_paths=dotted)
+    # A call already names its receiver, so it is better evidence than a bare
+    # backticked token; keep it out of the plain-symbol list to avoid querying
+    # the same thing twice under a looser pattern.
+    call_leaves = {c.rsplit(".", 1)[-1] for c in calls}
+    symbols = [s for s in symbols if s not in call_leaves] + [
+        c for c in calls if "." not in c
+    ]
+    dotted = dotted + [c for c in calls if "." in c and c not in dotted]
+
+    return AdvisorySymbols(symbols=symbols, dotted_paths=dotted, calls=list(calls))
