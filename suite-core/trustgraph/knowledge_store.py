@@ -176,6 +176,51 @@ class KnowledgeRelationship:
 # ============================================================================
 
 
+
+def _migrate_legacy_external_content_fts(cursor) -> None:
+    """Replace an existing external-content entities_fts with a standalone one.
+
+    ``CREATE VIRTUAL TABLE IF NOT EXISTS`` is a no-op against the broken table
+    that already exists in every deployed database, so correcting the CREATE
+    above fixes new installs only. This rebuilds the table in place and
+    backfills it from ``entities``, which is where the rows have been landing
+    all along.
+
+    Deliberately non-fatal: a search index that cannot be rebuilt must not stop
+    the store from opening. Ingest is the thing that has to work.
+    """
+    try:
+        row = cursor.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='entities_fts'"
+        ).fetchone()
+        if not row or not row[0]:
+            return
+
+        sql = row[0]
+        external_content = "content=entities" in sql
+        missing_entity_id = "entity_id" not in sql
+        if not (external_content or missing_entity_id):
+            return
+
+        logger.warning(
+            "rebuilding entities_fts (%s)",
+            "external content with a TEXT content_rowid — this made every "
+            "ingest fail" if external_content
+            else "no entity_id column — search joined on rowid, which drifts "
+                 "from entities.rowid and returns the wrong entity",
+        )
+        cursor.execute("DROP TABLE IF EXISTS entities_fts")
+        cursor.execute(
+            "CREATE VIRTUAL TABLE entities_fts USING fts5(name, properties, entity_id UNINDEXED)"
+        )
+        cursor.execute(
+            "INSERT INTO entities_fts(name, properties, entity_id) "
+            "SELECT name, properties, entity_id FROM entities"
+        )
+    except Exception as exc:  # pragma: no cover - index rebuild is best-effort
+        logger.warning("entities_fts rebuild skipped: %s", exc)
+
+
 class KnowledgeStore:
     """SQLite-backed knowledge storage with FTS5 search and graph traversal.
 
@@ -237,13 +282,34 @@ class KnowledgeStore:
             """
         )
 
-        # FTS5 virtual table for search
+        # FTS5 virtual table for search.
+        #
+        # This was declared as an EXTERNAL-CONTENT table:
+        #
+        #     fts5(name, properties, content=entities, content_rowid=entity_id)
+        #
+        # External content requires content_rowid to name an INTEGER column that
+        # can serve as the table's rowid. ``entities.entity_id`` is a TEXT
+        # PRIMARY KEY. Every plain ``INSERT INTO entities_fts(name, properties)``
+        # therefore failed with "constraint failed" — and because that insert
+        # sits in the same transaction as the entity upsert, it rolled the whole
+        # ingest back.
+        #
+        # The result: KnowledgeStore.ingest failed 100% of the time. The graph
+        # still held 20,570 entities written by a different code path, so it
+        # looked populated; the newest row was ten days old. TrustGraphBackbone
+        # swallows the failure in _safe_ingest and logs a warning, so every
+        # scanner ingest reported success while correlating nothing.
+        #
+        # A standalone FTS5 table is what the insert and query code assume — the
+        # search joins on rowid, which a standalone table maintains itself.
         cursor.execute(
             """
             CREATE VIRTUAL TABLE IF NOT EXISTS entities_fts
-            USING fts5(name, properties, content=entities, content_rowid=entity_id)
+            USING fts5(name, properties, entity_id UNINDEXED)
             """
         )
+        _migrate_legacy_external_content_fts(cursor)
 
         # Relationships table
         cursor.execute(
@@ -306,15 +372,18 @@ class KnowledgeStore:
         # Update FTS index (delete old entry and insert new one)
         try:
             cursor.execute(
-                "DELETE FROM entities_fts WHERE rowid IN (SELECT rowid FROM entities_fts WHERE name = ?)",
-                (entity.name,),
+                # Delete by entity_id, not by name. Keying on name deleted the
+                # index rows of every OTHER entity that happened to share a
+                # name — and names are not unique here.
+                "DELETE FROM entities_fts WHERE entity_id = ?",
+                (entity.entity_id,),
             )
         except Exception:
             pass  # Ignore errors for non-existent FTS entries
 
         cursor.execute(
-            "INSERT INTO entities_fts(name, properties) VALUES (?, ?)",
-            (entity.name, json.dumps(entity.properties)),
+            "INSERT INTO entities_fts(name, properties, entity_id) VALUES (?, ?, ?)",
+            (entity.name, json.dumps(entity.properties), entity.entity_id),
         )
 
         conn.commit()
@@ -372,7 +441,7 @@ class KnowledgeStore:
             " WHERE entities.entity_id IN ("
             "  SELECT entity_id FROM ("
             "   SELECT entities.entity_id FROM entities"
-            "   JOIN entities_fts ON entities.rowid = entities_fts.rowid"
+            "   JOIN entities_fts ON entities.entity_id = entities_fts.entity_id"
             "   WHERE entities_fts MATCH ?"
             "  )"
             " )"
