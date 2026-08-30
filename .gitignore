@@ -265,6 +265,9 @@ reports/*.log
 **/reports/coverage/coverage.xml
 docs/product/brutal-product-market-audit.md
 docs/product/validation-kit-INTERNAL.md
+# Commercial strategy — competitor pricing analysis and unreleased tiers.
+# Same category as the two above: the founder's call, not the repo's.
+docs/product/PRICING_OPTIONS_DRAFT.md
 
 # Generated SDK clients — rebuilt from contracts/openapi-core.json by
 # scripts/generate_sdk.py. Committing them made 68% of the repo machine-written
