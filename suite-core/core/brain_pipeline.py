@@ -3318,6 +3318,24 @@ class BrainPipeline:
             f["exploitability_confidence"] = (
                 "measured" if (measured and evidence) else ("estimated" if evidence else "none")
             )
+
+            # How OLD the evidence is, not just whether it was measured.
+            #
+            # The pipeline already knows: it computes the feed bundle's age and
+            # flags staleness for the RUN. But the verdict a person acts on
+            # carried only measured-vs-estimated, so "act now, measured" read
+            # identically whether KEV was refreshed this morning or six months
+            # ago. That distinction matters most in exactly the deployment we
+            # sell hardest — an air-gapped site ships with the bundle it was
+            # installed with, and nothing refreshes it.
+            #
+            # Recorded per finding rather than only on the run, because the run
+            # summary is not what an operator reads at 2am.
+            age_days = ctx.get("_enrich_bundle_age_days")
+            if measured and evidence and age_days is not None:
+                f["exploitability_evidence_age_days"] = age_days
+                if age_days > self._FEED_STALE_AFTER_DAYS:
+                    f["exploitability_evidence_stale"] = True
             counts[verdict] = counts.get(verdict, 0) + 1
 
             # Only the clearest case moves priority. Promoting on an estimate

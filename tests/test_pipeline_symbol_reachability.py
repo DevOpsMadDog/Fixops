@@ -186,3 +186,51 @@ def test_no_graph_at_all_rules_nothing_out(monkeypatch) -> None:
     result = _run(monkeypatch, finding, engine)
     assert result["reachability_verdict"] == "undetermined"
     assert result["consensus_priority"] == 1
+
+
+# --- how old the evidence is, not just whether it was measured --------------
+
+
+def _kev_finding() -> dict:
+    return {"cve_id": "CVE-2024-1", "in_kev": True, "reachability_verdict": "reachable"}
+
+
+def test_a_measured_verdict_records_how_old_its_evidence_is() -> None:
+    """"act now, measured" read identically whether KEV was refreshed this
+    morning or six months ago.
+
+    The pipeline already computed the feed bundle's age and flagged staleness
+    for the RUN — but the run summary is not what an operator reads at 2am. It
+    matters most in an air-gapped site, which ships with the bundle it was
+    installed with and never refreshes it.
+    """
+    pipeline = BrainPipeline()
+    ctx = {"org_id": "t", "_enrich_bundle_age_days": 2, "findings": [_kev_finding()]}
+    pipeline._apply_exploitability_verdict(ctx)
+    finding = ctx["findings"][0]
+
+    assert finding["exploitability"] == "act_now"
+    assert finding["exploitability_confidence"] == "measured"
+    assert finding["exploitability_evidence_age_days"] == 2
+    assert "exploitability_evidence_stale" not in finding
+
+
+def test_stale_evidence_is_flagged() -> None:
+    pipeline = BrainPipeline()
+    ctx = {"org_id": "t", "_enrich_bundle_age_days": 400, "findings": [_kev_finding()]}
+    pipeline._apply_exploitability_verdict(ctx)
+    finding = ctx["findings"][0]
+
+    assert finding["exploitability_evidence_age_days"] == 400
+    assert finding["exploitability_evidence_stale"] is True
+
+
+def test_an_unknown_bundle_age_makes_no_claim() -> None:
+    """Absence of the age is not freshness. Say nothing rather than imply new."""
+    pipeline = BrainPipeline()
+    ctx = {"org_id": "t", "findings": [_kev_finding()]}
+    pipeline._apply_exploitability_verdict(ctx)
+    finding = ctx["findings"][0]
+
+    assert "exploitability_evidence_age_days" not in finding
+    assert "exploitability_evidence_stale" not in finding

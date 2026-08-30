@@ -17,6 +17,9 @@ interface Finding {
   exploitability?: string;
   exploitability_confidence?: string;
   exploitability_evidence?: string[];
+  /** How old the exploit evidence is. Absent means unknown — not fresh. */
+  exploitability_evidence_age_days?: number;
+  exploitability_evidence_stale?: boolean;
   reachability_verdict?: string;
   /** Which question was actually asked: symbol | explicit-pattern | package. */
   reachability_evidence?: string;
@@ -41,6 +44,11 @@ export function DecideScreen() {
   const assessed = rows.filter((f) => f.exploitability);
   const measured = assessed.filter((f) => f.exploitability_confidence === "measured").length;
   const estimated = assessed.filter((f) => f.exploitability_confidence === "estimated").length;
+  const staleEvidence = assessed.filter((f) => f.exploitability_evidence_stale).length;
+  const ages = assessed
+    .map((f) => f.exploitability_evidence_age_days)
+    .filter((d): d is number => typeof d === "number");
+  const oldestEvidenceDays = ages.length ? Math.max(...ages) : null;
 
   // The triage funnel, computed from what the pipeline actually recorded.
   // Deliberately NOT rendered when nothing has a reachability verdict — a
@@ -66,7 +74,21 @@ export function DecideScreen() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Panel title="Assessed"><Metric value={assessed.length} label="carry a verdict" /></Panel>
         <Panel title="Measured">
-          <Metric value={measured} label="KEV or real EPSS" tone={measured ? "good" : "muted"} />
+          <Metric
+            value={measured}
+            label="KEV or real EPSS"
+            tone={measured ? "good" : "muted"}
+            note={
+              // "Measured" says nothing about WHEN. An air-gapped site ships
+              // with the feed bundle it was installed with and never refreshes
+              // it, so a confident verdict can rest on months-old evidence.
+              staleEvidence > 0
+                ? `${staleEvidence} resting on stale feed data`
+                : oldestEvidenceDays !== null
+                  ? `feed data ${Math.round(oldestEvidenceDays)}d old`
+                  : undefined
+            }
+          />
         </Panel>
         <Panel title="Estimated">
           <Metric value={estimated} label="EPSS from severity" tone="muted" note="weaker evidence" />
