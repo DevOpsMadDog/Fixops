@@ -170,11 +170,22 @@ of the work.
 caveat above predicted. Recall is now the limiting factor: 17 findings sit in
 *undetermined* purely because their advisory never names a function.
 
-**The threat to validity is graph scope.** The call graph covers
-`suite-core/core`, not the whole repository. A package that is genuinely used
-elsewhere in the codebase would be scored "not called" here. The 86% is
-therefore an upper bound for this graph, and re-running against a full-repo
-graph is required before the number is quoted to anyone.
+**The graph-scope threat was real but small — measured, not assumed.** The first
+run used a `suite-core/core` graph, so a package used elsewhere in the repo
+would have scored "not called". Rather than caveat it, I built the whole-repo
+graph (**72,050 nodes across all six suites, 15 seconds**) and re-ran the same
+119 findings:
+
+| graph | package-reachable | actionable | eliminated |
+|---|---|---|---|
+| suite-core/core — 42,874 nodes | 20/119 | 17/119 | **86%** |
+| whole repo — 72,050 nodes | 24/119 | 19/119 | **84%** |
+
+Widening the graph by 68% moved the result by two points. Four findings changed
+from "never called" to "reachable", which is exactly the direction a wider graph
+should move things, and the figure is stable enough to quote.
+
+**84% eliminated / 16% actionable, on a whole-repo graph** is the number.
 
 ## A measurement bug found by measuring
 
@@ -190,8 +201,8 @@ monotonic.
 
 ## What can be quoted, and what cannot
 
-Quotable, with the scope caveat attached: **86% of findings eliminated, 14%
-requiring action**, on a real 475-package environment.
+Quotable: **84% of findings eliminated, 16% requiring action**, on a real
+475-package environment against a whole-repo call graph.
 
 Not quotable: any claim that symbol-level reachability is what produces that
 number. It is not — package-level does. The symbol work matters for a different
