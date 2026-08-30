@@ -305,3 +305,41 @@ anything out without coverage (see the Java-graph incident below), so a tenant
 onboarded without `REPO_PATH` gets `undetermined` for everything — honest, and
 worth nothing. `scripts/onboard.sh` now does it, and says plainly what is lost
 when it is skipped.
+
+---
+
+# Browser-verified, on the real product
+
+The numbers above are API-level. This is the Decide screen rendering them, with
+a real pip-audit scan, a real 42,910-node call graph, and the pipeline having
+actually run:
+
+```
+Assessed 96          Measured 0     Estimated 1     Not assessed 2
+
+Triage reduction — 96 analysed
+  83%  ELIMINATED         80 never reached from your code
+  16   YOU MUST ACT ON    17% of analysed
+  12   UNDETERMINED       advisory names no function
+  61   ASKED BY SYMBOL    function-level
+```
+
+Rows carry real CVE ids with `Defer` on unreachable and `Schedule` on reachable.
+
+## Two things on that screen are worth defending
+
+**"Measured 0" is correct, not a bug.** Every one of the 96 EPSS scores is
+marked *estimated*, and the reason is honest: the shipped feed's newest entry is
+`CVE-2026-6328`, while these findings are `CVE-2026-49855` and later — **newer
+than the 135-day-old feed**. The product cannot look them up, so it says so
+rather than presenting a synthesised score as measured. This is the staleness
+problem surfacing exactly where it should.
+
+**"Evidence used —" is also correct.** No finding is in KEV and only one exceeds
+the EPSS-high threshold, so there is genuinely no exploit evidence to show. An
+empty column here is the product declining to invent one.
+
+Checked that the online and air-gapped paths enrich identically on the same data
+(`kev=0, epss>0=96` both ways, differing only in `_enrich_source`), so the sparse
+evidence is a fact about these CVEs and the feed's age — not a defect in either
+path.
