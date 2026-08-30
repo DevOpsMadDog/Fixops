@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { apiGet, type Result } from "../api";
+import { apiGet, countOf, type Result } from "../api";
 import { Metric, Mono, Panel, Resolve } from "../primitives";
 
 export function ComplyScreen() {
@@ -14,15 +14,27 @@ export function ComplyScreen() {
     apiGet<Record<string, unknown>>("/api/v1/compliance/gaps").then(setGaps);
   }, []);
 
-  const gapCount = (() => {
-    const d = gaps.data as { total?: number; gaps?: unknown[] } | null;
-    return d?.total ?? d?.gaps?.length ?? 0;
-  })();
+  // /api/v1/compliance/gaps returns a BARE ARRAY. Reading `.total` then
+  // `.gaps?.length` off it found neither and fell through to 0, so this panel
+  // reported "0 controls needing evidence" — in green — against 94 real gaps
+  // across seven frameworks. Same shape mismatch that once showed "Tenants 0"
+  // for 1,029 organisations.
+  const gapCount = countOf(gaps, "gaps", "items", "controls");
 
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <Panel title="Open gaps"><Metric value={gapCount} label="controls needing evidence" tone={gapCount ? "urgent" : "good"} /></Panel>
+        <Panel title="Open gaps">
+          {/* Unknown is not zero. A green "0" while the request is still in
+              flight tells a compliance officer they are clean when nobody has
+              looked yet. */}
+          <Metric
+            value={gapCount ?? "—"}
+            label="controls needing evidence"
+            tone={gapCount === null ? "muted" : gapCount ? "urgent" : "good"}
+            note={gapCount === null ? "not yet known" : undefined}
+          />
+        </Panel>
         <Panel title="Frameworks"><Metric value={status.state === "data" ? "tracked" : "—"} label="assessment status" /></Panel>
         <Panel title="Evidence">
           <p className="text-[12px] leading-relaxed text-slate-500">

@@ -94,3 +94,40 @@ def test_no_screen_falls_back_to_fabricated_data(screen: str) -> None:
             f"{screen} falls back to fabricated data — an outage would render as "
             f"a plausible dashboard"
         )
+
+
+def test_counts_go_through_the_shared_shape_helper() -> None:
+    """The same shape mismatch has now shipped twice.
+
+    Operate read ``.total``, ``.orgs?.length``, ``.items?.length`` off
+    ``/api/v1/orgs`` — a BARE ARRAY — and rendered "Tenants 0" against 1,029
+    organisations. Comply then read ``.total ?? .gaps?.length ?? 0`` off
+    ``/api/v1/compliance/gaps``, also a bare array, and rendered "Open gaps 0"
+    IN GREEN against 94 real control gaps across seven frameworks.
+
+    A shape mismatch that renders as a plausible number is worse than a crash,
+    because nobody investigates a zero. ``countOf`` handles arrays, envelopes
+    and unknown shapes in one place, and returns null — not 0 — when the count
+    is genuinely unknown.
+    """
+    api = (CONSOLE / "api.ts").read_text()
+    assert "export function countOf" in api, "the shared count helper is gone"
+    assert "return null" in api, (
+        "countOf must be able to say 'unknown'; collapsing that to 0 is the bug"
+    )
+
+    comply = (CONSOLE / "screens/Comply.tsx").read_text()
+    assert "countOf(gaps" in comply, "Comply no longer uses the shared helper"
+    assert "?? 0" not in comply.split("const gapCount")[1].split("\n")[0], (
+        "Comply defaults its gap count to 0 again — that is the defect"
+    )
+
+
+def test_an_unknown_gap_count_is_not_rendered_as_zero() -> None:
+    """Loading or failing must not read as 'you have no gaps'. A compliance
+    officer glancing at a green 0 concludes they are clean."""
+    comply = (CONSOLE / "screens/Comply.tsx").read_text()
+    assert 'gapCount ?? "—"' in comply, "unknown must render as em-dash, not 0"
+    assert 'gapCount === null ? "muted"' in comply, (
+        "unknown must not be toned as good — green says 'clean', which is a claim"
+    )

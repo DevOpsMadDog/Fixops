@@ -176,3 +176,40 @@ export async function uploadScan<T = unknown>(file: File, scannerType: string): 
 }
 
 export { API_BASE };
+
+
+/**
+ * How many items a collection endpoint returned, whatever shape it chose.
+ *
+ * This codebase has now shipped the same bug twice: Operate read `.total`,
+ * `.orgs?.length`, `.items?.length` off `/api/v1/orgs`, which returns a BARE
+ * ARRAY, and rendered "Tenants 0" against 1,029 organisations. Comply then read
+ * `.total ?? .gaps?.length ?? 0` off `/api/v1/compliance/gaps`, also a bare
+ * array, and rendered "Open gaps 0" — in green — against 94 real control gaps
+ * across seven frameworks.
+ *
+ * A shape mismatch that renders as a plausible number is worse than a crash,
+ * because nobody investigates a zero. Every count goes through here.
+ *
+ * Returns null when the count is genuinely unknown — loading, an error, or a
+ * shape nothing recognises. Callers must render that as unknown, NOT as zero:
+ * "0 gaps" and "we could not tell you" are opposite claims.
+ */
+export function countOf(result: Result<unknown>, ...keys: string[]): number | null {
+  if (result.state !== "data" && result.state !== "empty") return null;
+  const data = result.data;
+  if (data === null || data === undefined) return result.state === "empty" ? 0 : null;
+  if (Array.isArray(data)) return data.length;
+  if (typeof data === "object") {
+    const record = data as Record<string, unknown>;
+    for (const key of ["total", "count", ...keys]) {
+      const value = record[key];
+      if (typeof value === "number") return value;
+      if (Array.isArray(value)) return value.length;
+    }
+    for (const value of Object.values(record)) {
+      if (Array.isArray(value)) return value.length;
+    }
+  }
+  return null;
+}
