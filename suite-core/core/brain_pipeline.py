@@ -280,6 +280,27 @@ class _HttpOPAEngine:
             raise RuntimeError(f"OPA response not JSON: {exc}") from exc
 
 
+
+def _advisory_id(finding: Dict[str, Any]) -> str:
+    """The vulnerability's identifier, wherever the normaliser put it.
+
+    Gating on ``cve_id`` alone made the pipeline skip every SARIF-delivered
+    finding, because the SARIF normaliser maps a result's ruleId to ``rule_id``
+    and leaves ``cve_id`` unset — and pip-audit and osv-scanner, the two most
+    common OSS SCA tools, emit PYSEC/GHSA identifiers rather than CVEs.
+
+    The consequence was silent and total: reachability and exploitability were
+    computed for nothing, every finding kept an empty verdict, and the console
+    showed "Assessed: 0" on a tenant with 2,344 findings. Exactly the same
+    field-mismatch that let deduplication merge two distinct advisories.
+    """
+    for field in ("cve_id", "rule_id", "vulnerability_id", "advisory_id"):
+        value = finding.get(field)
+        if value:
+            return str(value)
+    return ""
+
+
 class BrainPipeline:
     """End-to-end pipeline orchestrator chaining all 12 ALdeci Brain steps.
 
@@ -2826,8 +2847,20 @@ class BrainPipeline:
         3. Severity-based estimates (last resort, marked as estimated)
         """
         cve_ids = [f["cve_id"] for f in ctx["findings"] if f.get("cve_id")]
-        if not cve_ids:
-            return {"enriched": 0, "reason": "no CVE IDs to enrich"}
+
+        # Gate on ANY advisory identifier, not on CVEs alone.
+        #
+        # EPSS and KEV are keyed by CVE, so a PYSEC or GHSA id will simply miss
+        # those lookups — harmless. But the reachability, exploitability and
+        # tenant-graph steps run at the END of this method, and returning early
+        # skipped all three. pip-audit emits PYSEC and osv-scanner emits
+        # GHSA/OSV, so for the two most common OSS SCA scanners the entire moat
+        # silently never ran: every finding kept an empty verdict and the
+        # console showed "Assessed: 0" against thousands of findings.
+        #
+        # Enriching nothing is a fine outcome. Deciding nothing is not.
+        if not any(_advisory_id(f) for f in ctx["findings"]):
+            return {"enriched": 0, "reason": "no advisory identifiers to reason about"}
 
         # Try ML-powered threat enrichment with real API data
         try:
@@ -3034,7 +3067,8 @@ class BrainPipeline:
             from core.function_reachability_engine import get_engine as get_reach_engine
             reach_engine = get_reach_engine()
             for f in ctx["findings"]:
-                if not f.get("cve_id"):
+                advisory = _advisory_id(f)
+                if not advisory:
                     continue
                 package = f.get("package_name") or ""
                 explicit = f.get("dependency_fqn_pattern")
@@ -3066,11 +3100,11 @@ class BrainPipeline:
                     for pattern in patterns:
                         callers.extend(
                             reach_engine.vulnerable_reachability(
-                                ctx["org_id"], f["cve_id"], pattern
+                                ctx["org_id"], advisory, pattern
                             )
                         )
                 except Exception as q_exc:  # noqa: BLE001 - per-finding isolation
-                    logger.debug("reachability query skipped for %s: %s", f.get("cve_id"), q_exc)
+                    logger.debug("reachability query skipped for %s: %s", advisory, q_exc)
                     continue
 
                 # "No callers" is only EVIDENCE OF ABSENCE when the question was
@@ -3113,7 +3147,7 @@ class BrainPipeline:
                 if f.get("id"):
                     try:
                         reach_engine.record_finding_verdict(
-                            ctx["org_id"], f["id"], f["cve_id"], pattern,
+                            ctx["org_id"], f["id"], advisory, pattern,
                             f["reachability_verdict"], callers,
                         )
                     except Exception:  # noqa: BLE001 - persistence is best-effort
@@ -3159,7 +3193,7 @@ class BrainPipeline:
 
         counts: Dict[str, int] = {}
         for f in ctx.get("findings", []):
-            if not f.get("cve_id"):
+            if not _advisory_id(f):
                 continue
 
             evidence: List[str] = []

@@ -498,14 +498,40 @@ class SecurityFindingsEngine:
                     # correlation_key / scan_id if missing.
                     new_corr = existing["correlation_key"] or corr_key
                     new_scan = scan_id_val or (existing["scan_id"] or "")
+                    # Carry the verdict through on a re-sighting.
+                    #
+                    # This branch updated occurrence_count, last_seen,
+                    # correlation_key and scan_id — and dropped the verdict
+                    # entirely. So the FIRST ingest of a finding stored an empty
+                    # verdict (no pipeline had run yet), and every later run that
+                    # DID compute one hit this path and threw it away. The
+                    # pipeline's whole output was discarded on re-ingest, which
+                    # is why a tenant with 2,344 findings showed "Assessed: 0".
+                    #
+                    # Only overwrite with a non-empty value: a later run that
+                    # could not reach the enrichment feeds must not erase a
+                    # verdict an earlier run established. COALESCE(NULLIF(...))
+                    # keeps the old value when the incoming one is blank.
                     conn.execute(
                         """UPDATE security_findings
                            SET occurrence_count = occurrence_count + 1,
                                last_seen = ?,
                                correlation_key = ?,
-                               scan_id = ?
+                               scan_id = ?,
+                               exploitability =
+                                   COALESCE(NULLIF(?, ''), exploitability),
+                               exploitability_confidence =
+                                   COALESCE(NULLIF(?, ''), exploitability_confidence),
+                               reachability_verdict =
+                                   COALESCE(NULLIF(?, ''), reachability_verdict)
                            WHERE id = ?""",
-                        (now, new_corr, new_scan, existing["id"]),
+                        (
+                            now, new_corr, new_scan,
+                            exploitability or "",
+                            exploitability_confidence or "",
+                            reachability_verdict or "",
+                            existing["id"],
+                        ),
                     )
                     updated = conn.execute(
                         "SELECT * FROM security_findings WHERE id = ?",

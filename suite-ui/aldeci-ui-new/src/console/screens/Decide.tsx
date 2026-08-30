@@ -18,6 +18,8 @@ interface Finding {
   exploitability_confidence?: string;
   exploitability_evidence?: string[];
   reachability_verdict?: string;
+  /** Which question was actually asked: symbol | explicit-pattern | package. */
+  reachability_evidence?: string;
   cve_id?: string;
   title?: string;
 }
@@ -39,6 +41,25 @@ export function DecideScreen() {
   const assessed = rows.filter((f) => f.exploitability);
   const measured = assessed.filter((f) => f.exploitability_confidence === "measured").length;
   const estimated = assessed.filter((f) => f.exploitability_confidence === "estimated").length;
+
+  // The triage funnel, computed from what the pipeline actually recorded.
+  // Deliberately NOT rendered when nothing has a reachability verdict — a
+  // funnel showing "100% eliminated" because no analysis has run would be the
+  // most flattering possible lie.
+  const withReach = rows.filter((f) => f.reachability_verdict);
+  const eliminated = withReach.filter((f) => f.reachability_verdict === "unreachable").length;
+  const undetermined = withReach.filter((f) => f.reachability_verdict === "undetermined").length;
+  const reachable = withReach.filter((f) => f.reachability_verdict === "reachable").length;
+  const actionable = reachable + undetermined;
+  const bySymbol = withReach.filter((f) => f.reachability_evidence === "symbol").length;
+  // Whether the store recorded HOW the question was asked at all. Older
+  // findings predate the field; claiming "package-level only" for them would
+  // assert something the data never said.
+  const evidenceRecorded = withReach.some((f) => f.reachability_evidence);
+  // A percentage off one or two findings is noise dressed as a result. Below
+  // this, show the count and let the reader judge.
+  const MIN_SAMPLE = 5;
+  const enoughToQuote = withReach.length >= MIN_SAMPLE;
 
   return (
     <div className="space-y-5">
@@ -67,6 +88,62 @@ export function DecideScreen() {
           />
         </Panel>
       </div>
+
+      {withReach.length > 0 && (
+        <Panel
+          title="Triage reduction"
+          subtitle="What reachability removed from the queue, and what it could not decide"
+          right={<Mono>{withReach.length} analysed</Mono>}
+        >
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Metric
+              value={enoughToQuote ? `${Math.round((100 * eliminated) / withReach.length)}%` : eliminated}
+              label="eliminated"
+              tone="good"
+              note={
+                enoughToQuote
+                  ? `${eliminated} never reached from your code`
+                  : `of ${withReach.length} analysed — too few for a percentage`
+              }
+            />
+            <Metric
+              value={actionable}
+              label="you must act on"
+              tone={actionable ? "urgent" : "good"}
+              note={
+                enoughToQuote
+                  ? `${Math.round((100 * actionable) / withReach.length)}% of analysed`
+                  : undefined
+              }
+            />
+            <Metric
+              value={undetermined}
+              label="undetermined"
+              tone="muted"
+              note="advisory names no function"
+            />
+            <Metric
+              value={evidenceRecorded ? bySymbol : "—"}
+              label="asked by symbol"
+              tone={bySymbol ? "good" : "muted"}
+              note={
+                evidenceRecorded
+                  ? bySymbol
+                    ? "function-level"
+                    : "package-level only"
+                  : "not recorded for these findings"
+              }
+            />
+          </div>
+          <p className="mt-4 text-[12px] leading-relaxed text-slate-500">
+            <span className="text-slate-300">Undetermined is not a failure.</span>{" "}
+            It means the advisory never named a function, so no call graph can
+            settle it — those stay in the queue rather than being quietly closed.
+            A finding is only eliminated when the question asked was specific
+            enough to answer.
+          </p>
+        </Panel>
+      )}
 
       <Panel
         title="How the verdict was reached"
