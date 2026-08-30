@@ -3036,21 +3036,80 @@ class BrainPipeline:
             for f in ctx["findings"]:
                 if not f.get("cve_id"):
                     continue
-                pattern = f.get("dependency_fqn_pattern") or (
-                    f"{f.get('package_name', '')}.%" if f.get("package_name") else ""
-                )
-                if not pattern.replace(".%", ""):
+                package = f.get("package_name") or ""
+                explicit = f.get("dependency_fqn_pattern")
+
+                # Ask at SYMBOL granularity when ingest recovered one.
+                #
+                # Measured on 119 real findings: a package-level query asks "do
+                # you use this library", which the dependency file already
+                # answered — every finding comes back reachable and the noise
+                # reduction is zero. The symbol is what makes the question
+                # answerable, and ingest now records it (see
+                # scanner_ingest_router._attach_vulnerable_symbols).
+                symbols = [str(x) for x in (f.get("vulnerable_symbols") or []) if x]
+                if explicit:
+                    patterns = [explicit]
+                elif symbols:
+                    patterns = [
+                        s if "." in s else (f"{package}.%{s}%" if package else f"%{s}%")
+                        for s in symbols
+                    ]
+                    patterns = [p if p.endswith("%") else f"{p}%" for p in patterns]
+                elif package:
+                    patterns = [f"{package}.%"]
+                else:
                     continue
+
                 try:
-                    callers = reach_engine.vulnerable_reachability(
-                        ctx["org_id"], f["cve_id"], pattern
-                    )
+                    callers = []
+                    for pattern in patterns:
+                        callers.extend(
+                            reach_engine.vulnerable_reachability(
+                                ctx["org_id"], f["cve_id"], pattern
+                            )
+                        )
                 except Exception as q_exc:  # noqa: BLE001 - per-finding isolation
                     logger.debug("reachability query skipped for %s: %s", f.get("cve_id"), q_exc)
                     continue
+
+                # "No callers" is only EVIDENCE OF ABSENCE when the question was
+                # specific enough to be answerable. Asking `requests.%` and
+                # getting nothing means the library is unused; asking it when we
+                # do use the library and simply do not know where the flaw lives
+                # means nothing at all.
+                #
+                # This used to be a straight binary — no callers marked the
+                # finding "unreachable" and DOWNGRADED its priority. That is a
+                # safety claim built on an unanswered question, and it quietly
+                # pushed real findings down the queue. An unanswerable question
+                # now returns "undetermined", which does not downgrade anything.
+                # Package-level evidence is asymmetric, and that asymmetry is the
+                # whole point:
+                #
+                #   no callers  -> the library is never called from our code.
+                #                  That IS answerable, and it eliminates 95 of
+                #                  119 findings in the measured run.
+                #   callers     -> "you use this library". It says nothing about
+                #                  whether the VULNERABLE code is reachable, so
+                #                  claiming "reachable" here is the same overclaim
+                #                  that produced a 0% noise reduction.
+                #
+                # Only a symbol-specific query earns the word "reachable".
+                specific = bool(explicit or symbols)
+                if not callers:
+                    verdict = "unreachable"
+                elif specific:
+                    verdict = "reachable"
+                else:
+                    verdict = "undetermined"
+
                 f["reachable"] = bool(callers)
                 f["reachable_callers"] = callers[:5]
-                f["reachability_verdict"] = "reachable" if callers else "unreachable"
+                f["reachability_verdict"] = verdict
+                f["reachability_evidence"] = "symbol" if symbols else (
+                    "explicit-pattern" if explicit else "package"
+                )
                 if f.get("id"):
                     try:
                         reach_engine.record_finding_verdict(
@@ -3059,8 +3118,10 @@ class BrainPipeline:
                         )
                     except Exception:  # noqa: BLE001 - persistence is best-effort
                         pass
-                # Downgrade priority (higher number = lower priority) for unreachable
-                if not callers and "consensus_priority" in f:
+                # Downgrade priority (higher number = lower priority) only for a
+                # finding we actually established is unreachable. "undetermined"
+                # must not move anything — that was the bug.
+                if verdict == "unreachable" and "consensus_priority" in f:
                     try:
                         f["consensus_priority"] = min(4, int(f["consensus_priority"]) + 1)
                     except (ValueError, TypeError):
