@@ -329,7 +329,13 @@ class SecurityFindingsEngine:
         # which they have.
         for column in ("cve_id", "file_path", "package_name",
                        "exploitability", "exploitability_confidence",
-                       "reachability_verdict"):
+                       "reachability_verdict",
+                       # WHICH question reachability actually asked. Without it
+                       # the console cannot distinguish "we asked at function
+                       # level and found nothing" from "we only ever asked
+                       # whether you use the library", and those are very
+                       # different claims resting on the same word.
+                       "reachability_evidence"):
             if column not in cols:
                 conn.execute(
                     f"ALTER TABLE security_findings ADD COLUMN {column} TEXT NOT NULL DEFAULT ''"
@@ -435,6 +441,7 @@ class SecurityFindingsEngine:
         exploitability: str = "",
         exploitability_confidence: str = "",
         reachability_verdict: str = "",
+        reachability_evidence: str = "",
     ) -> Dict[str, Any]:
         """Record a finding; dedup if same (org+title+source_tool+asset_id) and not resolved.
 
@@ -523,13 +530,16 @@ class SecurityFindingsEngine:
                                exploitability_confidence =
                                    COALESCE(NULLIF(?, ''), exploitability_confidence),
                                reachability_verdict =
-                                   COALESCE(NULLIF(?, ''), reachability_verdict)
+                                   COALESCE(NULLIF(?, ''), reachability_verdict),
+                               reachability_evidence =
+                                   COALESCE(NULLIF(?, ''), reachability_evidence)
                            WHERE id = ?""",
                         (
                             now, new_corr, new_scan,
                             exploitability or "",
                             exploitability_confidence or "",
                             reachability_verdict or "",
+                            reachability_evidence or "",
                             existing["id"],
                         ),
                     )
@@ -574,6 +584,7 @@ class SecurityFindingsEngine:
                     "exploitability": exploitability or "",
                     "exploitability_confidence": exploitability_confidence or "",
                     "reachability_verdict": reachability_verdict or "",
+                    "reachability_evidence": reachability_evidence or "",
                     "file_path": file_path or "",
                     "line_number": line_number,
                     "package_name": package_name or "",
@@ -586,7 +597,8 @@ class SecurityFindingsEngine:
                         correlation_key, scan_id, first_seen_at, previous_violation_id,
                         resolved_at, unchanged_scan_count,
                         cve_id, file_path, line_number, package_name,
-                        exploitability, exploitability_confidence, reachability_verdict)
+                        exploitability, exploitability_confidence, reachability_verdict,
+                        reachability_evidence)
                        VALUES (:id, :org_id, :title, :finding_type, :source_tool, :severity,
                                :cvss_score, :asset_id, :asset_type, :description, :remediation,
                                :status, :first_seen, :last_seen, :occurrence_count,
@@ -595,7 +607,7 @@ class SecurityFindingsEngine:
                                :previous_violation_id, :resolved_at, :unchanged_scan_count,
                                :cve_id, :file_path, :line_number, :package_name,
                                :exploitability, :exploitability_confidence,
-                               :reachability_verdict)""",
+                               :reachability_verdict, :reachability_evidence)""",
                     record,
                 )
                 if severity == "critical" and _notification_engine is not None:

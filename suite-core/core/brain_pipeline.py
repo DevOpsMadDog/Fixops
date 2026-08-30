@@ -1126,6 +1126,7 @@ class BrainPipeline:
                     exploitability=f.get("exploitability") or "",
                     exploitability_confidence=f.get("exploitability_confidence") or "",
                     reachability_verdict=f.get("reachability_verdict") or "",
+                    reachability_evidence=f.get("reachability_evidence") or "",
                 )
                 mirrored += 1
             except Exception as exc:  # noqa: BLE001
