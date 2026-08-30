@@ -5,6 +5,13 @@
 # Usage:
 #   FIXOPS_API_TOKEN=<token> ./scripts/onboard.sh <org-name> <path/to/scan.sarif> [base-url]
 #
+# Optionally set REPO_PATH to your source tree to build the call graph:
+#   REPO_PATH=/src/myapp FIXOPS_API_TOKEN=... ./scripts/onboard.sh acme ./trivy.sarif
+#
+# Without it reachability has nothing to reason about and every finding comes
+# back "undetermined" — honest, but it means the triage reduction, which is the
+# main reason to run this product, does not happen.
+#
 # Example:
 #   FIXOPS_API_TOKEN=my-token ./scripts/onboard.sh acme ./trivy.sarif
 set -euo pipefail
@@ -35,6 +42,35 @@ ing=$(curl -s -X POST "$BASE/api/v1/scanner-ingest/upload" "${H[@]}" \
   -F "file=@${SCAN}")
 raw=$(printf '%s' "$ing" | python3 -c "import sys,json;d=json.load(sys.stdin);print(d.get('findings_count') or d.get('count') or 0)" 2>/dev/null || echo "?")
 ok "ingested $raw raw findings"
+
+say "2b. Build the call graph for reachability"
+# Reachability can only rule a finding out if the graph could have contained the
+# vulnerable code. With no graph the pipeline correctly returns "undetermined"
+# for everything — so a tenant onboarded without this step gets an honest
+# product that eliminates nothing. This is the step that turns the scan into a
+# short queue.
+if [ -n "${REPO_PATH:-}" ]; then
+  if [ -d "$REPO_PATH" ]; then
+    lang="${REPO_LANGUAGE:-python}"
+    pr=$(curl -s -o /tmp/onb_reach.json -w '%{http_code}' -X POST "$BASE/api/v1/reachability/parse" \
+      "${H[@]}" -H "Content-Type: application/json" \
+      -d "{\"repo_ref\":\"${ORG}@main\",\"language\":\"${lang}\",\"root_path\":\"${REPO_PATH}\"}")
+    if [ "$pr" = "200" ]; then
+      nodes=$(python3 -c "import json;print(json.load(open('/tmp/onb_reach.json')).get('nodes_added','?'))" 2>/dev/null || echo "?")
+      ok "call graph built — $nodes nodes from $REPO_PATH"
+    else
+      echo "   ! reachability parse returned HTTP $pr — findings will read 'undetermined'."
+      echo "     If it mentions an allowed storage root, set"
+      echo "     FIXOPS_REACHABILITY_ALLOWED_ROOTS=$REPO_PATH on the server."
+    fi
+  else
+    echo "   ! REPO_PATH=$REPO_PATH is not a directory — skipping call graph."
+  fi
+else
+  echo "   · REPO_PATH not set — skipping the call graph."
+  echo "     Reachability will return 'undetermined' for every finding, because"
+  echo "     nothing can be ruled out against a graph that does not exist."
+fi
 
 say "3. Distinct findings after dedup"
 curl -s "$BASE/api/v1/findings" "${H[@]}" > /tmp/onb_find.json

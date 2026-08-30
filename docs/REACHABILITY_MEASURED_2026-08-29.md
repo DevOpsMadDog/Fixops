@@ -268,3 +268,40 @@ A number that stays put while the reasoning under it gets sounder is the
 outcome to want. Had the audit not run, this work would have shipped an
 improvement to 87% that was partly built on searching a call graph for the word
 "cookies".
+
+---
+
+# The product reproduces the measurement
+
+Everything above was computed by a script driving the engine directly. This is
+the same 96 findings through the actual product — ingest, symbol extraction,
+call graph, pipeline, verdict, store:
+
+```
+tenant onboarded with scripts/onboard.sh (REPO_PATH set)
+  call graph            42,906 python nodes, tenant-scoped
+  scan                  real pip-audit output, 120 findings -> 96 after dedup
+
+  reachability   unreachable 80 | reachable 4 | undetermined 12
+  asked by       symbol 61 | package 35
+  verdict        defer 79 | schedule 4 | watch 1 | insufficient_evidence 12
+
+  ELIMINATED     80/96 = 83%
+```
+
+The script measured **84%**. The product measures **83%**. Two independent paths
+over the same data landing within a point of each other is the strongest
+evidence available that the number is real and that the pipeline implements what
+the measurement described.
+
+The 12 undetermined are the honest remainder: their advisories name no function,
+so nothing can settle them, and they stay in the queue as
+`insufficient_evidence` rather than being closed.
+
+## What had to be true for this to work
+
+Onboarding must build the tenant's call graph. Reachability refuses to rule
+anything out without coverage (see the Java-graph incident below), so a tenant
+onboarded without `REPO_PATH` gets `undetermined` for everything — honest, and
+worth nothing. `scripts/onboard.sh` now does it, and says plainly what is lost
+when it is skipped.
