@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import Depends
 from pydantic import BaseModel, Field
 
@@ -118,7 +119,9 @@ _INDEXERS = {
 
 
 @router.post("/index", response_model=IndexEntityResponse)
-async def index_entity(req: IndexEntityRequest) -> Dict[str, Any]:
+async def index_entity(
+    req: IndexEntityRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Index any ALDECI entity into TrustGraph.
 
     Supports entity types: finding, asset, incident, compliance_control,
@@ -138,7 +141,7 @@ async def index_entity(req: IndexEntityRequest) -> Dict[str, Any]:
         )
 
     try:
-        backbone = _get_backbone(org_id=req.org_id or "default")
+        backbone = _get_backbone(org_id=resolve_tenant(org_id, req))
         indexer_method = getattr(backbone, _INDEXERS[entity_type])
         entity_id = indexer_method(req.data)
         return {
@@ -157,7 +160,9 @@ async def index_entity(req: IndexEntityRequest) -> Dict[str, Any]:
 
 
 @router.post("/link", response_model=LinkEntitiesResponse)
-async def link_entities(req: LinkEntitiesRequest) -> Dict[str, Any]:
+async def link_entities(
+    req: LinkEntitiesRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Create a typed relationship between two graph entities.
 
     Args:
@@ -167,7 +172,7 @@ async def link_entities(req: LinkEntitiesRequest) -> Dict[str, Any]:
         rel_id and confirmation
     """
     try:
-        backbone = _get_backbone(org_id=req.org_id or "default")
+        backbone = _get_backbone(org_id=resolve_tenant(org_id, req))
         rel_id = backbone.link_entities(
             entity_a_id=req.entity_a_id,
             entity_b_id=req.entity_b_id,

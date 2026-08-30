@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -92,11 +93,16 @@ def list_security_findings(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
 
 
 @router.post("/findings", dependencies=[Depends(api_key_auth)])
-def record_finding(body: FindingCreate) -> Dict[str, Any]:
+def record_finding(
+    body: FindingCreate, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Record a finding; deduplicates if matching non-resolved finding exists."""
+    # The sibling GET on this router scopes by the credential; this POST took the
+    # tenant from the body, so an authenticated customer could file findings into
+    # another org's store. The credential decides.
     try:
         return _get_engine().record_finding(
-            org_id=body.org_id,
+            org_id=resolve_tenant(org_id, body),
             title=body.title,
             finding_type=body.finding_type,
             source_tool=body.source_tool,

@@ -186,6 +186,8 @@ async def mint_dev_token(req: DevTokenRequest, request: Request) -> DevTokenResp
     if not _is_dev_mode_enabled():
         raise HTTPException(status_code=403, detail="dev mode disabled")
 
+    # tenancy-exempt: naming the org IS the purpose of minting a dev token, and
+    # this route returns 403 unless FIXOPS_DEV_MODE=true (checked above).
     org_id = req.org_id
     role = req.role
     email = req.email

@@ -91,6 +91,9 @@ def create_org(req: CreateOrgRequest) -> Dict[str, Any]:
     auto-derived from name when not supplied.  Also accepts legacy callers
     that pass ``org_id`` explicitly.
     """
+    # tenancy-exempt: this CREATES an org, so req.org_id is a requested slug
+    # for the new tenant, not a selector for an existing one. There is no
+    # other tenant to cross into.
     slug = req.slug or req.org_id or _slugify(req.name)
     description = req.description or req.industry or ""
     try:

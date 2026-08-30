@@ -52,6 +52,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from fastapi import Path as PathParam
 from pydantic import BaseModel, Field, field_validator
@@ -1261,13 +1263,18 @@ def ide_user_snapshot(
 def runtime_map_to_code(
     body: RuntimeMapToCodeRequest,
     x_org_id: Optional[str] = Header(default=None, alias="X-Org-ID"),
+    credential_org: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Resolve a runtime event/stack-trace to candidate code locations.
 
     Wraps ``CodeToRuntimeMatcherEngine.match_event_to_code`` when an event id
     is provided; otherwise ingests the supplied stack trace and matches it.
     """
-    org_id = body.org_id or _org(x_org_id)
+    # Both the body field and the X-Org-ID header are caller-supplied, so this
+    # route consulted no credential at all — an authenticated customer could
+    # name any tenant. The credential now wins; the header remains meaningful
+    # only for the unpinned operator token.
+    org_id = resolve_tenant(credential_org, body) if credential_org else _org(x_org_id)
     crm_mod = _safe_import("core.code_to_runtime_matcher_engine")
     if crm_mod is None:
         raise HTTPException(status_code=501,

@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import Depends
 from pydantic import BaseModel, Field
 
@@ -132,7 +133,9 @@ def _get_enricher(org_id: str = Depends(get_org_id)):
 
 
 @router.post("/index", response_model=IndexFindingsResponse)
-async def index_findings(req: IndexFindingsRequest) -> Dict[str, Any]:
+async def index_findings(
+    req: IndexFindingsRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Index findings from ANY ALDECI security engine into TrustGraph.
 
     Accepts findings from SAST, DAST, SCA, CSPM, RASP, ASM, threat intel
@@ -148,7 +151,9 @@ async def index_findings(req: IndexFindingsRequest) -> Dict[str, Any]:
     Returns:
         Count of indexed findings, entity IDs, dedup/merge stats.
     """
-    org_id = req.org_id or "default"
+    # The credential decides the tenant. Taking it from the request body let
+    # an authenticated customer write into any org they could name.
+    org_id = resolve_tenant(org_id, req)
 
     try:
         if req.batch:

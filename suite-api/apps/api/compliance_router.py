@@ -31,6 +31,7 @@ from apps.api.auth_deps import api_key_auth
 from core.cache_layer import TTL_COMPLIANCE, cache_endpoint
 from fastapi import APIRouter, Depends, HTTPException, Query
 from apps.api.dependencies import get_org_id  # SPEC-034
+from apps.api.tenant_resolution import resolve_tenant
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -127,7 +128,11 @@ def get_framework_status(framework: str):
 # ---------------------------------------------------------------------------
 
 @router.post("/{framework}/collect-evidence", dependencies=[Depends(api_key_auth)], status_code=201)
-def collect_evidence(framework: str, body: CollectEvidenceRequest):
+def collect_evidence(
+    framework: str,
+    body: CollectEvidenceRequest,
+    org_id: str = Depends(get_org_id),
+):
     """
     Auto-collect evidence from ALDECI modules for a framework.
     Optionally scope to a single control_id.
@@ -138,7 +143,7 @@ def collect_evidence(framework: str, body: CollectEvidenceRequest):
         items = _get_engine().collect_evidence(
             framework=framework,
             control_id=body.control_id,
-            org_id=body.org_id,
+            org_id=resolve_tenant(org_id, body),
         )
         return [item.model_dump() for item in items]
     except ValueError as exc:

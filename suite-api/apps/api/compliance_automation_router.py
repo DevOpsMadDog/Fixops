@@ -26,6 +26,7 @@ from core.compliance_engine import (
 )
 from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id  # SPEC-034
+from apps.api.tenant_resolution import resolve_tenant
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/compliance", tags=["Compliance Automation"])
@@ -180,7 +181,9 @@ async def get_evidence(
 
 
 @router.post("/evidence/collect", summary="Trigger evidence collection", status_code=201)
-async def collect_evidence(body: CollectEvidenceRequest) -> Dict[str, Any]:
+async def collect_evidence(
+    body: CollectEvidenceRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """
     Trigger automated evidence collection from ALDECI modules.
 
@@ -195,7 +198,7 @@ async def collect_evidence(body: CollectEvidenceRequest) -> Dict[str, Any]:
         items = _get_engine().collect_evidence(
             framework=body.framework,
             control_id=body.control_id,
-            org_id=body.org_id,
+            org_id=resolve_tenant(org_id, body),
         )
         return {
             "framework": body.framework,
