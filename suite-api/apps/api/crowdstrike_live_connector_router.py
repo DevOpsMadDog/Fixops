@@ -15,6 +15,8 @@ import logging
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -64,12 +66,17 @@ def status() -> Dict[str, Any]:
 
 
 @router.post("/sync", dependencies=[Depends(api_key_auth)])
-def sync(req: SyncRequest) -> Dict[str, Any]:
+def sync(
+    req: SyncRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Fetch live detections from CrowdStrike Falcon REST API."""
+    # The credential decides the tenant. This handler is authenticated but
+    # took org_id from the request body, so any valid key could sync a
+    # connector into — and pull data for — an org it does not own.
     try:
         conn = _conn()
         kwargs: Dict[str, Any] = {
-            "org_id": req.org_id,
+            "org_id": resolve_tenant(org_id, req),
             "force_refresh": req.force_refresh,
         }
         if req.filter_expr:

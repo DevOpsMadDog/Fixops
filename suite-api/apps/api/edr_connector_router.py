@@ -18,6 +18,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -89,11 +91,16 @@ def status() -> Dict[str, Any]:
 
 
 @router.post("/sync", dependencies=[Depends(api_key_auth)])
-def sync(req: SyncRequest) -> Dict[str, Any]:
+def sync(
+    req: SyncRequest, org_id: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Run a Falco sync for a single org."""
+    # The credential decides the tenant. This handler is authenticated but
+    # took org_id from the request body, so any valid key could sync a
+    # connector into — and pull data for — an org it does not own.
     try:
         return _conn().sync_from_falco(
-            org_id=req.org_id,
+            org_id=resolve_tenant(org_id, req),
             hostname=req.hostname,
             max_events=req.max_events,
             force_fallback=req.force_fallback,
@@ -114,7 +121,7 @@ def sync_falco(req: SyncRequest) -> Dict[str, Any]:
 def sync_osquery(req: OsqueryRequest) -> Dict[str, Any]:
     try:
         return _conn().sync_from_osquery(
-            org_id=req.org_id,
+            org_id=resolve_tenant(org_id, req),
             log_file=req.log_file,
             max_events=req.max_events,
         )
@@ -129,7 +136,7 @@ def sync_osquery(req: OsqueryRequest) -> Dict[str, Any]:
 def sync_wazuh(req: WazuhRequest) -> Dict[str, Any]:
     try:
         return _conn().sync_from_wazuh(
-            org_id=req.org_id,
+            org_id=resolve_tenant(org_id, req),
             alerts_file=req.alerts_file,
             max_events=req.max_events,
         )
