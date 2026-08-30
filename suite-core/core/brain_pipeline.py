@@ -2885,7 +2885,36 @@ class BrainPipeline:
             return {"enriched": 0, "reason": "no advisory identifiers to reason about"}
 
         # Try ML-powered threat enrichment with real API data
+        # In enforced air-gap mode, do not reach for live feeds at all.
+        #
+        # Measured with outbound sockets blocked: a pipeline run attempted 12
+        # hosts (NVD, CISA, FIRST.org, abuse.ch) before falling through to the
+        # local feed databases. Offline the calls still fail and the product
+        # still behaves honestly — but each one costs a connect timeout, on
+        # every run, in exactly the deployment we sell hardest to. A SCIF
+        # operator should not pay a network stall for a network we told them
+        # they do not need.
+        #
+        # Skipping straight to local feeds is not a degradation here: the local
+        # databases are the intended source air-gapped, and the verdict already
+        # records whether its evidence was measured or estimated.
+        airgapped = False
         try:
+            from core.airgap_config import is_airgap_enforced
+
+            airgapped = is_airgap_enforced()
+        except Exception:  # noqa: BLE001 - absence of the module is not air-gap
+            airgapped = os.environ.get("FIXOPS_AIRGAP_MODE", "").strip().lower() == "enforced"
+
+        if airgapped:
+            logger.info(
+                "air-gap enforced: skipping live threat feeds, using local databases"
+            )
+            ctx["_enrich_offline"] = True
+
+        try:
+            if airgapped:
+                raise RuntimeError("air-gap enforced — live feeds not attempted")
             from core.ml.threat_enricher import get_threat_enricher
 
             enricher = get_threat_enricher()
@@ -2897,10 +2926,11 @@ class BrainPipeline:
             self._apply_tenant_graph_rules(ctx)
             return result
         except (ImportError, Exception) as e:
-            logger.warning(
-                "ThreatEnricher unavailable (%s), trying local feed databases",
-                type(e).__name__,
-            )
+            if not airgapped:
+                logger.warning(
+                    "ThreatEnricher unavailable (%s), trying local feed databases",
+                    type(e).__name__,
+                )
 
         # Try local feed databases — real data, not hardcoded
         epss_lookup, kev_lookup, nvd_lookup = self._load_local_feeds()
