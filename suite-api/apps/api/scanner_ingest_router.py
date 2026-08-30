@@ -246,22 +246,12 @@ def _promote_findings_to_issues(
                 or f.get("remediation")
                 or ""
             )[:1000]
-            # Correlation key must be LOCATION-granular, else distinct findings
-            # at different file:line collapse to one row (asset_id is often an
-            # app-level id like "aldeci-self", shared by 100s of real findings).
-            # Prefer file_path:line_number; fall back to package@version, then asset_id.
-            _loc = f.get("file_path")
-            _line = f.get("line_number")
-            if _loc and _line is not None:
-                _loc_key = f"{_loc}:{_line}"
-            elif f.get("package_name"):
-                _loc_key = f"{f.get('package_name')}@{f.get('package_version') or f.get('version') or ''}"
-            else:
-                _loc_key = f.get("file_path") or str(asset_id)
-            corr_key = (
-                f.get("correlation_key")
-                or f"{scanner}|{f.get('rule_id') or f.get('cve_id') or title}|{_loc_key}"
-            )
+            # Correlation key comes from core.finding_identity so that the
+            # pipeline mirror derives the SAME key. They used to differ in the
+            # location component, and a 96-finding scan became 192 stored rows.
+            from core.finding_identity import correlation_key as _corr
+
+            corr_key = _corr(f, scanner)
             engine.record_finding(
                 org_id=org_id or "default",
                 title=title,
@@ -649,6 +639,16 @@ async def upload_scanner_output(
                 findings=canonical_dicts,
                 assets=[],
                 source=f"scanner-ingest:{detected}",
+                # PipelineInput.org_id defaults to "", which the pipeline then
+                # treats as "default". Omitting it meant every verdict this run
+                # computed was mirrored into the "default" org while the
+                # findings themselves were stored under the caller's tenant.
+                #
+                # Two consequences, both observed on a clean tenant: the
+                # customer's 96 findings carried NO verdict at all, and a
+                # phantom "default" org accumulated verdict-carrying duplicates
+                # of them — one tenant's data written into a shared org.
+                org_id=org_id,
             )
             pipeline_result = bp.run(pipe_input)
             if hasattr(pipeline_result, "model_dump"):
@@ -796,6 +796,8 @@ async def webhook_ingest(
                 findings=canonical_dicts,
                 assets=[],
                 source=f"webhook:{scanner}",
+                # Same omission as the upload path — see the note there.
+                org_id=org_id,
             )
             pipeline_result = bp.run(pipe_input)
             if hasattr(pipeline_result, "model_dump"):

@@ -127,6 +127,12 @@ def _run(findings: List[Dict[str, Any]], org_id: str, source: str) -> None:
             findings=findings,
             assets=[],
             source=f"{source}:org={org_id}",  # org-scoped provenance
+            # The org was in scope and used only to build a provenance STRING,
+            # while the run itself defaulted to "default". Everything the
+            # pipeline computed was therefore written into the wrong tenant.
+            # Provenance that names the org while the data goes elsewhere is
+            # worse than no provenance — it makes the mistake look deliberate.
+            org_id=org_id,
         ))
         _record(org_id, source, "completed", findings=len(findings))
     except Exception as exc:  # noqa: BLE001 - background; never surfaces to caller

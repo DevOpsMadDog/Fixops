@@ -1094,11 +1094,13 @@ class BrainPipeline:
                     or "unknown_asset"
                 )
                 source_tool = f.get("source_tool") or f.get("source") or "brain_pipeline"
-                # Stable correlation = source|rule_or_cve|asset → enables lifecycle
-                rule_or_cve = (
-                    f.get("rule_id") or f.get("cve_id") or f.get("title") or "unknown"
-                )
-                corr_key = f.get("correlation_key") or f"{source_tool}|{rule_or_cve}|{asset_id}"
+                # Shared derivation — see core.finding_identity. This built its
+                # own key ending in asset_id while ingest used
+                # file:line/package@version, so the same finding was stored
+                # twice: once by ingest with no verdict, once here with one.
+                from core.finding_identity import correlation_key as _corr
+
+                corr_key = _corr(f, source_tool)
                 sfe.record_finding(
                     org_id=org_id,
                     title=f.get("title") or rule_or_cve or "Pipeline Finding",

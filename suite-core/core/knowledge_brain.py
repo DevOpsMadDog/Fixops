@@ -1091,7 +1091,20 @@ def get_brain(db_path: str | Path | None = None) -> KnowledgeBrain:
     import os
 
     if db_path is None:
-        db_path = os.environ.get("FIXOPS_BRAIN_DB_PATH", "data/fixops_brain.db")
+        db_path = os.environ.get("FIXOPS_BRAIN_DB_PATH")
+    if db_path is None:
+        # Fall back to FIXOPS_DATA_DIR before the hard-coded path.
+        #
+        # 80 call sites honour FIXOPS_DATA_DIR; this one did not, so an operator
+        # who set it to isolate a deployment still got the shared
+        # ./data/fixops_brain.db. Two processes then wrote one SQLite file and
+        # corrupted it — twice, in one afternoon, both times presenting as an
+        # opaque 500 "database" with a correlation id and no cause.
+        #
+        # FIXOPS_BRAIN_DB_PATH still wins when set, so an existing deployment
+        # that pins the file explicitly is unaffected.
+        data_dir = os.environ.get("FIXOPS_DATA_DIR")
+        db_path = f"{data_dir}/fixops_brain.db" if data_dir else "data/fixops_brain.db"
     resolved = Path(db_path)
     resolved.parent.mkdir(parents=True, exist_ok=True)
     return KnowledgeBrain.get_instance(db_path=resolved)
