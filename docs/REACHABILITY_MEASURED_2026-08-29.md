@@ -343,3 +343,35 @@ Checked that the online and air-gapped paths enrich identically on the same data
 (`kev=0, epss>0=96` both ways, differing only in `_enrich_source`), so the sparse
 evidence is a fact about these CVEs and the feed's age — not a defect in either
 path.
+
+---
+
+# Does the number hold on someone else's code?
+
+84% was measured on this repository. A triage figure that only holds on its own
+codebase is worth nothing to a buyer, so the same 119 advisories were put to a
+second, unrelated codebase: **Apache Airflow**, cloned fresh, 118,302 call-graph
+nodes parsed in 29 seconds.
+
+| codebase | graph | package-reachable | actionable | eliminated |
+|---|---|---|---|---|
+| FixOps | 72,050 nodes | 24 | 19/119 | **84%** |
+| Apache Airflow | 118,302 nodes | 25 | 22/119 | **82%** |
+
+**Two points apart, on codebases that share no code.** The elimination rate is a
+property of how narrowly a vulnerability's reachable surface sits inside a
+typical Python application, not an artifact of our repository.
+
+Airflow's own `uv.lock` is worth noting separately: `osv-scanner` found **one**
+vulnerable package in it. Modern, well-maintained lockfiles largely are clean,
+which is why the finding volume that makes triage painful comes from the
+*installed environment* — 475 packages and 120 findings here — rather than from
+declared direct dependencies. That is a fact about where the noise actually
+lives, and it is the case the product should be sold against.
+
+## What this still does not establish
+
+Both codebases are Python. The extractor, the call-graph parser and the symbol
+patterns are all language-shaped, and nothing here says the figure transfers to
+a JavaScript or Java estate. The engine parses TypeScript and Java, so the
+measurement is repeatable — it simply has not been repeated.
