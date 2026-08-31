@@ -149,6 +149,55 @@ def _serialize_findings(findings: list) -> List[Dict]:
     return result
 
 
+def _local_advisory_bodies(findings_dicts: List[Dict]) -> Dict[str, tuple]:
+    """Advisory prose for these findings, from the local feed database.
+
+    Returns {} when the table is absent — an older feed bundle simply has no
+    bodies, which degrades extraction to the title and must never raise.
+    """
+    ids = {
+        str(f.get(key))
+        for f in findings_dicts
+        for key in ("rule_id", "cve_id", "vulnerability_id", "advisory_id")
+        if f.get(key)
+    }
+    if not ids:
+        return {}
+    try:
+        import os
+        import sqlite3
+
+        # Two locations, because they genuinely differ.
+        #
+        # sitecustomize sets FIXOPS_DATA_DIR to .fixops_data whenever the repo
+        # is on sys.path, so a script run WITHOUT the repo on the path resolves
+        # "data/" while the running app resolves ".fixops_data/". The advisory
+        # bodies were written to one and read from the other, and the lookup
+        # silently returned nothing — the same write-here/read-there defect that
+        # cost four bugs when cve_id and rule_id disagreed.
+        #
+        # data/feeds/feeds.db is also where the shipped image puts the feeds, so
+        # checking both is correct rather than merely forgiving.
+        candidates = [
+            os.path.join(os.environ.get("FIXOPS_DATA_DIR", "data"), "feeds", "feeds.db"),
+            os.path.join("data", "feeds", "feeds.db"),
+        ]
+        db = next((c for c in candidates if os.path.isfile(c)), "")
+        if not db:
+            return {}
+        conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        placeholders = ",".join("?" * len(ids))
+        rows = conn.execute(
+            f"SELECT advisory_id, summary, details FROM advisory_details "
+            f"WHERE advisory_id IN ({placeholders})",
+            tuple(ids),
+        ).fetchall()
+        return {r[0]: (r[1] or "", r[2] or "") for r in rows}
+    except Exception:  # pragma: no cover — missing table or older bundle
+        logger.debug("advisory bodies unavailable", exc_info=True)
+        return {}
+
+
 def _attach_vulnerable_symbols(findings_dicts: List[Dict]) -> int:
     """Record WHERE each vulnerability lives, not just which package it is in.
 
@@ -177,12 +226,32 @@ def _attach_vulnerable_symbols(findings_dicts: List[Dict]) -> int:
     except Exception:  # pragma: no cover - engine optional in slim deployments
         return 0
 
+    bodies = _local_advisory_bodies(findings_dicts)
+
     enriched = 0
     for finding in findings_dicts:
-        got = extract_symbols(
-            str(finding.get("title") or ""),
-            str(finding.get("description") or ""),
-        )
+        summary = str(finding.get("title") or "")
+        details = str(finding.get("description") or "")
+
+        # Fall back to the advisory body stored in the local feed database.
+        #
+        # npm audit --json supplies a TITLE and no prose. Measured on 23 real
+        # npm advisories: 0 of 8 symbols recoverable from titles, 8 of 8 from
+        # the same advisories' OSV bodies — which is why TypeScript eliminated
+        # 57% where Python eliminates 82-84%.
+        #
+        # Read from feeds.db rather than fetching, so an air-gapped site gets
+        # the same extraction as a connected one; the bodies travel in the
+        # signed feed bundle. See scripts/fetch_advisory_bodies.py.
+        if len(details) < 80:
+            for key in ("rule_id", "cve_id", "vulnerability_id", "advisory_id"):
+                body = bodies.get(str(finding.get(key) or ""))
+                if body:
+                    summary = summary or body[0]
+                    details = body[1] or details
+                    break
+
+        got = extract_symbols(summary, details)
         if not got.known:
             continue
         finding["vulnerable_symbols"] = got.dotted_paths + got.symbols

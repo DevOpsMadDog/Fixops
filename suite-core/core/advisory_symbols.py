@@ -56,7 +56,13 @@ _DOTTED = re.compile(r"`([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)+)`")
 # ("the fix is in index.js"), and a dotted token ending in a source extension is
 # a path, not a symbol. Measured on real npm advisories: the extractor returned
 # `index.js` and `index.d.ts` as callable symbols.
-_FILE_TAIL = frozenset({"js", "ts", "mjs", "cjs", "jsx", "tsx", "py", "json", "md", "lock"})
+_FILE_TAIL = frozenset({
+    "js", "ts", "mjs", "cjs", "mts", "cts", "jsx", "tsx",
+    "py", "json", "md", "lock", "yaml", "yml", "toml",
+})
+
+# "v1.x", "3.14.1" — a version, not a symbol. Advisories are full of them.
+_VERSIONISH = re.compile(r"^v?\d+(\.[\dx]+)*$", re.I)
 
 # Object PROPERTIES read like calls in prose — "config.proxy is not validated",
 # "req.body is trusted". They are data the flaw operates on, not functions a
@@ -139,6 +145,44 @@ class AdvisorySymbols:
         """
         return bool(self.calls or self.dotted_paths)
 
+    def rule_out_symbols(self, package: Optional[str] = None) -> List[str]:
+        """The symbols specific enough to justify declaring a finding unreachable.
+
+        Auditing the TypeScript run showed why ``known`` is not a high enough
+        bar. Advisory prose yielded ``index.d.cts`` (a filename), ``v1.x`` (a
+        VERSION STRING), ``JSON.stringify`` (a language builtin) and
+        ``proxy.address`` / ``auth.username`` (object properties). Each searched
+        the call graph, matched nothing, and produced a confident "unreachable"
+        — inflating elimination to 87% on evidence that meant nothing.
+
+        That is the ``cookies`` mistake running the other way: there a real
+        finding was closed on a noun, here on a filename.
+
+        A dotted symbol is only trustworthy when its head IS the vulnerable
+        package — ``axios.formToJSON`` for axios. Then the advisory is naming
+        that package's own API, which is exactly the thing a call graph can
+        answer. A bare call with no dot (``pkcs7_decrypt_der``) is kept, because
+        that is how Python advisories name functions and it measured well.
+        """
+        if not package:
+            # No package to check the head against. That is a reason to skip the
+            # check, not to discard the evidence — a dotted path is still the
+            # most specific thing the advisory gave us.
+            return list(dict.fromkeys(self.dotted_paths + self.calls + self.symbols))
+
+        head = package.lower().replace("-", "_")
+        keep: List[str] = []
+        # `symbols` carries bare backticked names — how Python advisories write
+        # functions ("`pkcs7_decrypt_der` reported the outcome"). Omitting them
+        # here silently disarmed every Python rule-out.
+        for symbol in self.dotted_paths + self.calls + self.symbols:
+            if "." not in symbol:
+                keep.append(symbol)
+                continue
+            if symbol.split(".", 1)[0].lower().replace("-", "_") == head:
+                keep.append(symbol)
+        return list(dict.fromkeys(keep))
+
     def reachability_patterns(self, package: Optional[str] = None) -> List[str]:
         """SQL LIKE patterns for ``vulnerable_reachability``.
 
@@ -158,12 +202,13 @@ class AdvisorySymbols:
         # impossible if the symbol query is a refinement of the package query.
         # A parameter that looks like it scopes and does not is worse than no
         # parameter, because every caller reads it as scoping.
+        trustworthy = set(self.rule_out_symbols(package))
         seen: List[str] = []
-        for path in self.dotted_paths:
+        for path in [p for p in self.dotted_paths if p in trustworthy]:
             candidate = f"{path}%"
             if candidate not in seen:
                 seen.append(candidate)
-        for symbol in self.symbols:
+        for symbol in [x for x in self.symbols if x in trustworthy or "." not in x]:
             candidate = f"{package}.%{symbol}%" if package else f"%{symbol}%"
             if candidate not in seen:
                 seen.append(candidate)
@@ -210,6 +255,8 @@ def extract_symbols(summary: str = "", details: str = "") -> AdvisorySymbols:
         head, _, tail = name.rpartition(".")
         if tail in _HOSTNAME_TAIL or tail in _FILE_TAIL:
             return False          # a hostname or a filename
+        if _VERSIONISH.match(name):
+            return False          # "v1.x" is a version, not an entry point
         if head.lower() in _PROPERTY_ROOTS:
             return False          # req.body, config.proxy — data, not an entry point
         return True

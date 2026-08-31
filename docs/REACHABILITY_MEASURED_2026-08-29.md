@@ -437,3 +437,73 @@ call like `axios.formToJSON()` still survives.
 
 Quoting a single blended figure across ecosystems would be the most flattering
 and least defensible way to present this.
+
+---
+
+# Closing the JS gap — and the 87% that was not real
+
+`npm audit` carries no advisory prose, so `scripts/fetch_advisory_bodies.py`
+stores the OSV bodies in `feeds.db` (table `advisory_details`) and ingest reads
+them from there. Deliberately **not** a live fetch: the bodies travel in the
+signed feed bundle, so an air-gapped site gets the same extraction as a
+connected one. 118 advisories stored across both ecosystems.
+
+That alone moved TypeScript from 57% to **87%** — and the audit killed it.
+
+## What the 87% was resting on
+
+Listing the individual rule-outs, as every win here has to be:
+
+```
+index.d.cts        a filename
+v1.x               a VERSION STRING
+JSON.stringify     a language builtin
+proxy.address      an object property
+auth.username      an object property
+```
+
+Each searched the call graph, matched nothing, and produced a confident
+"unreachable". This is the `cookies` mistake running the other way: there a real
+finding was closed on a noun; here on a filename. **Extraction recall improved
+and precision collapsed, and the headline number went up because of it.**
+
+## The fix: the symbol's head must be the package
+
+`AdvisorySymbols.rule_out_symbols(package)` keeps a dotted symbol only when its
+head *is* the vulnerable package — `axios.formToJSON` for axios. Then the
+advisory is naming that package's own API, which is exactly what a call graph
+can answer. Bare calls with no dot (`pkcs7_decrypt_der`) are kept, because that
+is how Python advisories name functions.
+
+`v1.x` and `.cts`/`.mts` filenames are now rejected outright too.
+
+## The numbers after tightening
+
+| codebase | graph | actionable | eliminated |
+|---|---|---|---|
+| Python / FixOps | 72,050 | 19/120 | **84%** |
+| Python / Airflow | 118,302 | 22/120 | **82%** |
+| TypeScript / UI | 12,590 | 2/23 | **91%** |
+
+Python is unchanged, which is the point — the tightening had to not regress the
+measurement it was not aimed at. It did make Python *more* conservative
+(undetermined 16 → 19), which is the right direction.
+
+## Is the 91% real?
+
+One rule-out was checked by hand because it looked wrong: `GHSA-mmx7-hfxf-jppx`
+was closed on `axios.get`, and this codebase certainly uses axios.
+
+```
+axios.%        ->   5 callers   (the graph does see axios)
+axios.get%     ->   0 callers
+grep "axios.get(" src/   ->  no matches
+```
+
+axios is imported in five files and called through instances, never as
+`axios.get`. The rule-out is correct.
+
+**But the sample is weak** and the number should carry that: 23 advisories
+across 6 packages, almost all axios, against one small UI. Compared with 120
+advisories over 24 packages for Python, this is a single-library result. It is
+evidence that the method transfers to TypeScript, not yet a figure to quote.
