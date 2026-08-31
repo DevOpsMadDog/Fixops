@@ -173,3 +173,35 @@ def test_patterns_contain_no_duplicates() -> None:
     got = extract_symbols("x", "``CookieJar.load()`` and again ``CookieJar.load()``")
     patterns = got.reachability_patterns("aiohttp")
     assert len(patterns) == len(set(patterns)), patterns
+
+
+# --- JavaScript advisories name files and properties, not just functions ----
+
+
+def test_a_filename_is_not_an_entry_point() -> None:
+    """JS advisories say "the fix is in index.js" constantly. A dotted token
+    ending in a source extension is a path, and ruling a finding out because we
+    do not call something named `index.js` is nonsense."""
+    got = extract_symbols("x", "the fix is in `index.js` and `index.d.ts`")
+    assert not got.can_rule_out, got.dotted_paths
+
+
+def test_an_object_property_is_not_an_entry_point() -> None:
+    """"config.proxy is not validated", "req.body is trusted" — data the flaw
+    operates on, exactly like `RecipientInfo`. Measured on real npm advisories,
+    these came through as callable symbols."""
+    got = extract_symbols("x", "`config.proxy` is not validated and `req.body` is trusted")
+    assert not got.can_rule_out, got.dotted_paths
+
+
+def test_a_real_js_call_still_survives_the_filters() -> None:
+    """The filters must not swallow the thing they exist to protect."""
+    got = extract_symbols("x", "`axios.formToJSON()` recurses without bound")
+    assert got.can_rule_out
+    assert "axios.formToJSON" in got.dotted_paths
+
+
+def test_a_symbol_is_not_reported_twice() -> None:
+    got = extract_symbols("x", "`axios.formToJSON()` and again `axios.formToJSON()`")
+    assert got.dotted_paths == list(dict.fromkeys(got.dotted_paths))
+    assert got.calls == list(dict.fromkeys(got.calls))

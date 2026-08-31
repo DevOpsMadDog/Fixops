@@ -375,3 +375,65 @@ Both codebases are Python. The extractor, the call-graph parser and the symbol
 patterns are all language-shaped, and nothing here says the figure transfers to
 a JavaScript or Java estate. The engine parses TypeScript and Java, so the
 measurement is repeatable — it simply has not been repeated.
+
+---
+
+# The second ecosystem: TypeScript gives 57%, not 84%
+
+The Python figure had no right to be assumed portable, so it was tested. Real
+`npm audit` output from this repo's own UI — 23 advisories across 6 packages —
+against a TypeScript call graph of 12,590 nodes parsed in 5.1 seconds.
+
+```
+TypeScript (12,590 nodes)
+  package-reachable 10   reachable 0   undetermined 10
+  ACTIONABLE 10/23 = 43%      ELIMINATED 57%
+```
+
+**57%, against 82–84% for Python.** That is the honest number for a JavaScript
+estate today, and it should be quoted as such rather than averaged away.
+
+## Why, exactly
+
+Every one of the ten package-reachable findings came back *undetermined*, and
+the cause is not the engine. `npm audit --json` gives an advisory **title** and
+no prose body. Measured on eight of them:
+
+| source | symbol recovered |
+|---|---|
+| npm audit title only | **0 / 8** |
+| the same advisory's OSV body | **8 / 8** |
+
+So the gap is data, not method: the symbol exists, `npm audit` just does not
+carry it. Fetching the GHSA/OSV body — or shipping it in the local feed bundle,
+which an air-gapped site needs anyway — would close most of it.
+
+## The trap that came with it
+
+The OSV bodies did yield symbols, and some of them were rubbish:
+
+```
+index.js      index.d.ts        <- filenames
+config.proxy  req.body          <- object properties
+server.address
+```
+
+JavaScript advisories name files constantly ("the fix is in index.js") and
+describe data flow through properties. Ruling a finding out because the codebase
+never calls something named `req.body` is precisely the `cookies` /
+`session_id` mistake from the Python work, arriving again in a new ecosystem —
+and this time it would have been *introduced by expanding coverage*.
+
+The extractor now rejects dotted tokens whose last segment is a source-file
+extension, and those whose head is a known request/config/response root. A real
+call like `axios.formToJSON()` still survives.
+
+## What may be claimed
+
+- **Python: 82–84% eliminated**, measured on two unrelated codebases.
+- **TypeScript: 57% eliminated**, limited by advisory metadata rather than by
+  analysis, with a identified path to improve it.
+- **Java: not measured.** The engine parses it; nobody has run the numbers.
+
+Quoting a single blended figure across ecosystems would be the most flattering
+and least defensible way to present this.

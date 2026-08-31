@@ -52,6 +52,23 @@ _DOTTED = re.compile(r"`([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)+)`")
 #
 # The unit test missed it because it paraphrased that advisory instead of
 # quoting it — the test agreed with an idea of the data rather than the data.
+# A FILE is not an entry point. JavaScript advisories name files constantly
+# ("the fix is in index.js"), and a dotted token ending in a source extension is
+# a path, not a symbol. Measured on real npm advisories: the extractor returned
+# `index.js` and `index.d.ts` as callable symbols.
+_FILE_TAIL = frozenset({"js", "ts", "mjs", "cjs", "jsx", "tsx", "py", "json", "md", "lock"})
+
+# Object PROPERTIES read like calls in prose — "config.proxy is not validated",
+# "req.body is trusted". They are data the flaw operates on, not functions a
+# caller reaches, and the same reasoning that rejects `RecipientInfo` rejects
+# these. Without this, a JS finding gets ruled out because we do not call
+# something named `req.body`.
+_PROPERTY_ROOTS = frozenset({
+    "req", "res", "request", "response", "config", "options", "opts",
+    "ctx", "context", "params", "query", "headers", "server", "client",
+    "socket", "stream", "buffer", "process", "window", "document",
+})
+
 _HOSTNAME_TAIL = frozenset(
     {
         "com", "org", "net", "io", "dev", "co", "uk", "de", "fr", "jp", "cn",
@@ -181,16 +198,23 @@ def extract_symbols(summary: str = "", details: str = "") -> AdvisorySymbols:
         leaf = name.rsplit(".", 1)[-1]
         if leaf.lower() in _NOT_SYMBOLS or len(leaf) < 3:
             continue
-        if name.rsplit(".", 1)[0].lower() in _HOSTNAME_TAIL:
+        head, _, tail = name.rpartition(".")
+        if head.lower() in _HOSTNAME_TAIL or head.lower() in _PROPERTY_ROOTS:
+            continue
+        if tail in _FILE_TAIL:
             continue
         if name not in calls:
             calls.append(name)
 
-    dotted = [
-        m
-        for m in dict.fromkeys(_DOTTED.findall(text))
-        if m.rsplit(".", 1)[-1] not in _HOSTNAME_TAIL
-    ]
+    def _is_symbol_path(name: str) -> bool:
+        head, _, tail = name.rpartition(".")
+        if tail in _HOSTNAME_TAIL or tail in _FILE_TAIL:
+            return False          # a hostname or a filename
+        if head.lower() in _PROPERTY_ROOTS:
+            return False          # req.body, config.proxy — data, not an entry point
+        return True
+
+    dotted = [m for m in dict.fromkeys(_DOTTED.findall(text)) if _is_symbol_path(m)]
 
     seen: List[str] = []
     for name in _BACKTICKED.findall(text):
@@ -211,6 +235,11 @@ def extract_symbols(summary: str = "", details: str = "") -> AdvisorySymbols:
     symbols = [s for s in symbols if s not in call_leaves] + [
         c for c in calls if "." not in c
     ]
-    dotted = dotted + [c for c in calls if "." in c and c not in dotted]
+    # A dotted call is already in `calls`; adding it to `dotted` too made the
+    # same symbol appear twice in every report. reachability_patterns dedupes,
+    # but the raw lists are what a human reads.
+    dotted = list(dict.fromkeys(dotted + [c for c in calls if "." in c]))
 
-    return AdvisorySymbols(symbols=symbols, dotted_paths=dotted, calls=list(calls))
+    return AdvisorySymbols(
+        symbols=symbols, dotted_paths=dotted, calls=list(dict.fromkeys(calls))
+    )
