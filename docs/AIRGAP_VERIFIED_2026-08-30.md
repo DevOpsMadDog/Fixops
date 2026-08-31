@@ -120,5 +120,49 @@ cost four bugs elsewhere: verify a query against the real schema.
   and by parsing the compose file. Nobody has yet run `docker load` on a machine
   with no route to the internet. Until someone does, this is a well-founded
   expectation, not a demonstration.
-- **A feed refresh path for air-gapped sites** — a signed feed bundle the
-  operator can carry in, so the data does not simply age forever.
+- ~~A feed refresh path for air-gapped sites~~ **DONE** — see below.
+
+
+---
+
+# The carry-in feed refresh
+
+`scripts/feed_bundle.py` closes the staleness gap named above.
+
+```
+connected host      python scripts/feed_bundle.py export
+sneakernet          fixops-feeds-<date>.tar.gz  +  .sig.json
+air-gapped host     python scripts/feed_bundle.py verify <bundle>
+                    python scripts/feed_bundle.py import <bundle> --apply
+```
+
+The bundle is signed with the **same RSA key the evidence bundles use**, and
+`verify` is deliberately a separate command: a feed database that crossed an air
+gap on removable media is precisely the artifact whose provenance matters, and a
+swapped one would silently change every exploitability verdict the site
+produces.
+
+Verified end to end on the real 327,252-row database:
+
+```
+export    11.4 MB, signed, key 0be15c5769d447b6
+verify    hash matches, signature valid (key 0be15c5769d447b6…)     exit 0
+tamper    append one byte -> CONTENT HASH MISMATCH                  exit 1
+import    tampered  -> REFUSING to import an unverified feed bundle exit 1
+          genuine   -> EPSS None -> 327252, KEV None -> 1568, integrity ok
+```
+
+`import` refuses an unverified bundle unless the operator passes
+`--allow-unsigned`, and that override is written into `feed_metadata` as
+`_import_provenance` with status `unverified` — so a deployment cannot quietly
+forget that its exploit intelligence arrived unchecked. The previous database is
+copied aside before replacement, and a staged file that fails `integrity_check`
+is never installed: a half-written feed database is worse than a stale one,
+because the verdicts it produces look current.
+
+One bug worth recording from building it: `verify()` takes `(data, signature)`,
+and I called it with a third argument. `_verify` caught the `TypeError` and
+reported "could not verify" — a broken verifier that reports failure is
+survivable; one that reported *success* would not be. The fingerprint is now
+checked separately, because a valid signature from an unexpected key is not the
+same as a valid signature from ours.
