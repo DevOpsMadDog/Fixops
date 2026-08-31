@@ -18,6 +18,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
@@ -90,6 +92,7 @@ def _persistent_store(name: str):
 def uninstall_hook(
     body: HookUninstallRequest,
     x_org_id: Optional[str] = Header(default=None, alias="X-Org-ID"),
+    credential_org: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Delete an active hook policy and emit an audit tombstone.
 
@@ -101,7 +104,11 @@ def uninstall_hook(
     Returns: deleted_count, deleted record metadata, tombstone id.
     Raises 404 if nothing matches, 422 if no resolver fields supplied.
     """
-    org_id = (body.org_id or x_org_id or "").strip()
+    # This DELETES a policy, and both the body field and the X-Org-ID header are
+    # caller-supplied — so an authenticated customer could uninstall another
+    # tenant's active hook policy by naming it. The credential decides; the
+    # header still serves the unpinned operator token.
+    org_id = (resolve_tenant(credential_org, body) if credential_org else (x_org_id or "")).strip()
     if not (body.hook_id or body.policy_hash or org_id):
         raise HTTPException(
             status_code=422,

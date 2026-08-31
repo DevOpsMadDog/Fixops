@@ -43,6 +43,8 @@ from core.rasp_engine import (
     ThreatEvent,
     get_rasp_engine,
 )
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 
 logger = logging.getLogger(__name__)
 
@@ -238,7 +240,9 @@ def get_threats(
     response_model=InspectResponse,
     summary="Inspect an arbitrary request payload for attack patterns",
 )
-def inspect_request(body: InspectRequest) -> InspectResponse:
+def inspect_request(
+    body: InspectRequest, org_id: str = Depends(get_org_id)
+) -> InspectResponse:
     """
     Run the RASP engine against an arbitrary request payload and return
     detected threats plus whether the request would have been blocked.
@@ -262,7 +266,7 @@ def inspect_request(body: InspectRequest) -> InspectResponse:
             headers=body.headers,
             body_text=body.body_text,
             api_key=body.api_key,
-            org_id=body.org_id,
+            org_id=resolve_tenant(org_id, body),
         )
         return InspectResponse(
             blocked=blocked,

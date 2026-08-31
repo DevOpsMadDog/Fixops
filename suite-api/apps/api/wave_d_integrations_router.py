@@ -24,6 +24,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query
 from pydantic import BaseModel, Field, field_validator
 
@@ -305,9 +307,12 @@ def webhook_subscribe(
 def easm_seed_domain(
     body: EASMSeedDomainRequest,
     x_org_id: Optional[str] = Header(default=None, alias="X-Org-ID"),
+    credential_org: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Seed an EASM root domain. (Multica 2ccc15a7)"""
-    org_id = _org(x_org_id) if not body.org_id else body.org_id
+    # Body took priority over the header and neither is the credential, so any
+    # valid key could seed a domain into another tenant's attack surface.
+    org_id = resolve_tenant(credential_org, body) if credential_org else _org(x_org_id)
     try:
         from core.attack_surface_discovery import (
             get_attack_surface_engine,  # type: ignore
