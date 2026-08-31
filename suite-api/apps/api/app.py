@@ -2777,6 +2777,27 @@ def create_app() -> FastAPI:
     # get_current_org_id() without carrying the Request object.
     # Must be added after auth/correlation middleware so request.state.org_id
     # (set by JWT decode) is already populated when this runs.
+    # Body-tenant guard — one guard instead of 206 router edits.
+    #
+    # 206 routers take the credential via Depends(get_org_id) and then read
+    # body.org_id anyway. Twenty were fixed by hand; a codemod across the rest
+    # has broken this build three times, so the remainder gets a request-path
+    # check instead.
+    #
+    # ORDER MATTERS AND IS INVERTED: add_middleware PREPENDS, so the LAST added
+    # is the OUTERMOST and runs FIRST. The guard is therefore added BEFORE
+    # OrgIdMiddleware so that OrgIdMiddleware wraps outside it and has already
+    # written the credential-derived org into scope["state"] by the time the
+    # guard runs. Mounted the other way round the guard silently sees no
+    # credential and never fires — which is exactly how it was first written.
+    #
+    # DEFAULT OFF. FIXOPS_BODY_TENANT_GUARD=warn logs conflicts without
+    # refusing anything; =enforce returns 403. New request-path enforcement
+    # must not switch itself on in a deployment nobody is watching.
+    from apps.api.body_tenant_guard import BodyTenantGuard
+
+    app.add_middleware(BodyTenantGuard)
+
     app.add_middleware(OrgIdMiddleware)
 
     # GZip compression middleware — compresses responses >= 500 bytes.
