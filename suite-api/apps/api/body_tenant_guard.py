@@ -44,6 +44,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from collections import OrderedDict
 from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
@@ -90,6 +91,54 @@ def _conflicting_org(body: bytes, credential_org: str) -> str | None:
     if requested == _UNPINNED:
         return None
     return requested
+
+
+_TOKEN_ORG_CACHE: "OrderedDict[str, str]" = OrderedDict()
+_TOKEN_ORG_CACHE_MAX = 512
+
+
+def _org_for_token(headers: dict) -> str:
+    """The tenant a presented API key is bound to, or "" if unknowable.
+
+    Resolved here rather than read from request state because the auth
+    dependency that binds it has not run yet — see the call site.
+
+    Returns "" on absolutely every failure. A guard that cannot identify the
+    credential must fall through to its existing behaviour, never invent a
+    tenant and never reject: a security control that fails closed on its own
+    lookup error would take the API down on a database hiccup.
+    """
+    token = (headers.get("x-api-key") or "").strip()
+    if not token:
+        authorization = (headers.get("authorization") or "").strip()
+        if authorization.lower().startswith("bearer "):
+            token = authorization[7:].strip()
+    if not token or not token.startswith("fixops_"):
+        # Only managed keys carry a tenant. FIXOPS_API_TOKEN is the operator
+        # credential and naming an org with it is legitimate administration.
+        return ""
+
+    cached = _TOKEN_ORG_CACHE.get(token)
+    if cached is not None:
+        _TOKEN_ORG_CACHE.move_to_end(token)
+        return cached
+
+    org = ""
+    try:
+        from core.key_manager import KeyManager
+
+        record = KeyManager().validate_key(token)
+        if record is not None:
+            org = (getattr(record, "org_id", "") or "").strip()
+    except Exception:  # noqa: BLE001 - never let a lookup failure reject traffic
+        logger.debug("body-tenant-guard: token org lookup failed", exc_info=True)
+        return ""
+
+    _TOKEN_ORG_CACHE[token] = org
+    _TOKEN_ORG_CACHE.move_to_end(token)
+    while len(_TOKEN_ORG_CACHE) > _TOKEN_ORG_CACHE_MAX:
+        _TOKEN_ORG_CACHE.popitem(last=False)
+    return org
 
 
 class BodyTenantGuard:
@@ -147,6 +196,28 @@ class BodyTenantGuard:
             credential_org = (state.get("org_id") or "").strip()
         else:  # pragma: no cover — a future Starlette may hand back an object
             credential_org = (getattr(state, "org_id", None) or "").strip()
+
+        # ...and when that is unpinned, resolve the TOKEN ourselves.
+        #
+        # This guard was a no-op for exactly the credential that matters, and
+        # only end-to-end testing with a real key showed it. An API key's tenant
+        # is bound in _verify_api_key, which is a route DEPENDENCY and therefore
+        # runs AFTER all middleware. At guard time the only thing in
+        # scope["state"] is whatever OrgIdMiddleware derived — and with no
+        # X-Org-ID header that is "default", so the guard returned early.
+        #
+        # Measured against the real app with a key genuinely pinned to "acme":
+        #   no X-Org-ID header   -> guard never reached the comparison
+        #   X-Org-ID: acme       -> 403
+        #
+        # It protected the honest client who volunteers the header and was
+        # silent for the attacker who omits it. Precisely backwards. So resolve
+        # the credential from the token, which is present in the request and
+        # cannot be spoofed into another tenant.
+        if not credential_org or credential_org == _UNPINNED:
+            token_org = _org_for_token(headers)
+            if token_org:
+                credential_org = token_org
         if not credential_org or credential_org == _UNPINNED:
             # Unpinned credential — the operator token. Naming an org with it is
             # legitimate administration, which resolve_tenant also allows.

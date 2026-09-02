@@ -167,3 +167,163 @@ def test_the_guard_reads_scope_state_as_a_dict(monkeypatch) -> None:
     monkeypatch.setenv("FIXOPS_BODY_TENANT_GUARD", "enforce")
     client = TestClient(_app("acme"))
     assert client.post("/echo", json={"org_id": "other", "value": "v"}).status_code == 403
+
+
+# --- the credential must come from the TOKEN, not from request state --------
+#
+# The guard shipped as a no-op for the only credential that matters, and only
+# an end-to-end test with a real key exposed it. An API key's tenant is bound in
+# _verify_api_key, a route DEPENDENCY, which runs AFTER all middleware. At guard
+# time scope["state"] holds whatever OrgIdMiddleware derived, and with no
+# X-Org-ID header that is "default" — so the guard returned early.
+#
+# Measured against the real app with a key genuinely pinned to "acme":
+#     no X-Org-ID header   -> guard never reached the comparison   (422)
+#     X-Org-ID: acme       -> 403
+#
+# It protected the honest client who volunteers the header and was silent for
+# the attacker who omits it.
+
+
+import apps.api.body_tenant_guard as guard_module
+
+
+class _Record:
+    def __init__(self, org_id):
+        self.org_id = org_id
+
+
+@pytest.fixture(autouse=True)
+def _clear_token_cache():
+    guard_module._TOKEN_ORG_CACHE.clear()
+    yield
+    guard_module._TOKEN_ORG_CACHE.clear()
+
+
+def _with_key(monkeypatch, org: str | None):
+    class _KM:
+        def validate_key(self, token):
+            return _Record(org) if org else None
+
+    import core.key_manager as km
+    monkeypatch.setattr(km, "KeyManager", lambda *a, **k: _KM())
+
+
+def test_the_tenant_is_resolved_from_the_token_without_any_header(monkeypatch) -> None:
+    """The case that was broken. No X-Org-ID anywhere."""
+    monkeypatch.setenv("FIXOPS_BODY_TENANT_GUARD", "enforce")
+    _with_key(monkeypatch, "acme")
+
+    app = _app(None)  # nothing pins state.org_id — exactly like a real API key
+    client = TestClient(app)
+    response = client.post(
+        "/echo",
+        json={"org_id": "victim-corp", "value": "v"},
+        headers={"X-API-Key": "fixops_live_abc"},
+    )
+    assert response.status_code == 403
+    assert response.json()["credential_org"] == "acme"
+
+
+def test_a_bearer_token_is_read_too(monkeypatch) -> None:
+    monkeypatch.setenv("FIXOPS_BODY_TENANT_GUARD", "enforce")
+    _with_key(monkeypatch, "acme")
+    client = TestClient(_app(None))
+    response = client.post(
+        "/echo",
+        json={"org_id": "victim-corp", "value": "v"},
+        headers={"Authorization": "Bearer fixops_live_abc"},
+    )
+    assert response.status_code == 403
+
+
+def test_the_operator_token_is_not_a_managed_key(monkeypatch) -> None:
+    """FIXOPS_API_TOKEN does not start with fixops_ and pins no tenant.
+
+    Naming an org with it is legitimate administration, and resolve_tenant
+    allows it too — so no DB lookup should even be attempted.
+    """
+    monkeypatch.setenv("FIXOPS_BODY_TENANT_GUARD", "enforce")
+
+    def _explode(*a, **k):
+        raise AssertionError("looked up a non-managed token")
+
+    import core.key_manager as km
+    monkeypatch.setattr(km, "KeyManager", _explode)
+
+    client = TestClient(_app(None))
+    response = client.post(
+        "/echo", json={"org_id": "acme", "value": "v"},
+        headers={"X-API-Key": "operator-token-not-managed"},
+    )
+    assert response.status_code == 200
+
+
+def test_a_lookup_failure_never_rejects_traffic(monkeypatch) -> None:
+    """A control that failed closed on its own database error would take the
+    API down on a hiccup. Unknown credential means fall through, not reject."""
+    monkeypatch.setenv("FIXOPS_BODY_TENANT_GUARD", "enforce")
+
+    class _Broken:
+        def validate_key(self, token):
+            raise RuntimeError("key database unavailable")
+
+    import core.key_manager as km
+    monkeypatch.setattr(km, "KeyManager", lambda *a, **k: _Broken())
+
+    client = TestClient(_app(None))
+    response = client.post(
+        "/echo", json={"org_id": "victim-corp", "value": "v"},
+        headers={"X-API-Key": "fixops_live_abc"},
+    )
+    assert response.status_code == 200
+
+
+def test_an_unknown_key_is_not_treated_as_a_tenant(monkeypatch) -> None:
+    monkeypatch.setenv("FIXOPS_BODY_TENANT_GUARD", "enforce")
+    _with_key(monkeypatch, None)
+    client = TestClient(_app(None))
+    response = client.post(
+        "/echo", json={"org_id": "victim-corp", "value": "v"},
+        headers={"X-API-Key": "fixops_unknown"},
+    )
+    assert response.status_code == 200
+
+
+def test_state_still_wins_when_auth_did_pin_a_tenant(monkeypatch) -> None:
+    """A JWT binds org_id in middleware, before the guard. That must keep
+    working, and must not trigger a redundant key lookup."""
+    monkeypatch.setenv("FIXOPS_BODY_TENANT_GUARD", "enforce")
+
+    def _explode(*a, **k):
+        raise AssertionError("looked up a token when state already pinned one")
+
+    import core.key_manager as km
+    monkeypatch.setattr(km, "KeyManager", _explode)
+
+    client = TestClient(_app("acme"))
+    response = client.post(
+        "/echo", json={"org_id": "victim-corp", "value": "v"},
+        headers={"X-API-Key": "fixops_live_abc"},
+    )
+    assert response.status_code == 403
+
+
+def test_the_token_lookup_is_cached(monkeypatch) -> None:
+    """One DB read per key, not one per request."""
+    monkeypatch.setenv("FIXOPS_BODY_TENANT_GUARD", "enforce")
+    calls = {"n": 0}
+
+    class _Counting:
+        def validate_key(self, token):
+            calls["n"] += 1
+            return _Record("acme")
+
+    import core.key_manager as km
+    monkeypatch.setattr(km, "KeyManager", lambda *a, **k: _Counting())
+
+    client = TestClient(_app(None))
+    for _ in range(4):
+        client.post("/echo", json={"org_id": "victim-corp", "value": "v"},
+                    headers={"X-API-Key": "fixops_live_abc"})
+    assert calls["n"] == 1
