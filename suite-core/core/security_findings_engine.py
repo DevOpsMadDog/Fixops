@@ -341,6 +341,29 @@ class SecurityFindingsEngine:
                     f"ALTER TABLE security_findings ADD COLUMN {column} TEXT NOT NULL DEFAULT ''"
                 )
                 added_new_column = True
+        # The EVIDENCE the verdict rests on, not just the verdict.
+        #
+        # exploitability was persisted; the two numbers that justify it were
+        # not, so the store held "exploited_unknown_reach" with no way to show
+        # WHY. Measured on a live run: the verdict was correct and
+        # epss_score/kev_listed came back None on the row, because the table had
+        # no such columns — the pipeline computed EPSS 0.04919 and KEV=True and
+        # then dropped both.
+        #
+        # An analyst deciding what to fix tonight needs the difference between
+        # "in CISA KEV" and "EPSS 0.04" — one is being exploited right now, the
+        # other is a probability. Same verdict word, very different night.
+        #
+        # NULLABLE ON PURPOSE. kev_listed=0 asserts "we checked and it is NOT in
+        # KEV"; NULL says "nobody checked". Defaulting to 0 would turn an
+        # unenriched finding into a confident all-clear, which is the exact
+        # failure this codebase keeps finding.
+        if "epss_score" not in cols:
+            conn.execute("ALTER TABLE security_findings ADD COLUMN epss_score REAL")
+            added_new_column = True
+        if "kev_listed" not in cols:
+            conn.execute("ALTER TABLE security_findings ADD COLUMN kev_listed INTEGER")
+            added_new_column = True
         if "line_number" not in cols:
             conn.execute("ALTER TABLE security_findings ADD COLUMN line_number INTEGER")
             added_new_column = True
@@ -442,6 +465,9 @@ class SecurityFindingsEngine:
         exploitability_confidence: str = "",
         reachability_verdict: str = "",
         reachability_evidence: str = "",
+        # None means "nobody checked", which is NOT the same as 0.0 / False.
+        epss_score: Optional[float] = None,
+        kev_listed: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """Record a finding; dedup if same (org+title+source_tool+asset_id) and not resolved.
 
@@ -532,7 +558,13 @@ class SecurityFindingsEngine:
                                reachability_verdict =
                                    COALESCE(NULLIF(?, ''), reachability_verdict),
                                reachability_evidence =
-                                   COALESCE(NULLIF(?, ''), reachability_evidence)
+                                   COALESCE(NULLIF(?, ''), reachability_evidence),
+                               -- COALESCE on NULL, not on '': these are numbers,
+                               -- so the "incoming value is blank" test is IS NULL.
+                               -- A re-ingest that could not reach the feeds must
+                               -- not erase evidence an earlier run established.
+                               epss_score = COALESCE(?, epss_score),
+                               kev_listed = COALESCE(?, kev_listed)
                            WHERE id = ?""",
                         (
                             now, new_corr, new_scan,
@@ -540,6 +572,8 @@ class SecurityFindingsEngine:
                             exploitability_confidence or "",
                             reachability_verdict or "",
                             reachability_evidence or "",
+                            epss_score,
+                            1 if kev_listed else (0 if kev_listed is False else None),
                             existing["id"],
                         ),
                     )
@@ -588,6 +622,13 @@ class SecurityFindingsEngine:
                     "file_path": file_path or "",
                     "line_number": line_number,
                     "package_name": package_name or "",
+                    # NULL, not 0/False, when the enrichment never ran — see the
+                    # migration comment. "not checked" must stay distinguishable
+                    # from "checked and clean".
+                    "epss_score": epss_score,
+                    "kev_listed": (
+                        1 if kev_listed else (0 if kev_listed is False else None)
+                    ),
                 }
                 conn.execute(
                     """INSERT INTO security_findings
@@ -598,7 +639,7 @@ class SecurityFindingsEngine:
                         resolved_at, unchanged_scan_count,
                         cve_id, file_path, line_number, package_name,
                         exploitability, exploitability_confidence, reachability_verdict,
-                        reachability_evidence)
+                        reachability_evidence, epss_score, kev_listed)
                        VALUES (:id, :org_id, :title, :finding_type, :source_tool, :severity,
                                :cvss_score, :asset_id, :asset_type, :description, :remediation,
                                :status, :first_seen, :last_seen, :occurrence_count,
@@ -607,7 +648,8 @@ class SecurityFindingsEngine:
                                :previous_violation_id, :resolved_at, :unchanged_scan_count,
                                :cve_id, :file_path, :line_number, :package_name,
                                :exploitability, :exploitability_confidence,
-                               :reachability_verdict, :reachability_evidence)""",
+                               :reachability_verdict, :reachability_evidence,
+                               :epss_score, :kev_listed)""",
                     record,
                 )
                 if severity == "critical" and _notification_engine is not None:

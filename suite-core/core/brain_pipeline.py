@@ -1224,6 +1224,33 @@ class BrainPipeline:
                     exploitability_confidence=f.get("exploitability_confidence") or "",
                     reachability_verdict=f.get("reachability_verdict") or "",
                     reachability_evidence=f.get("reachability_evidence") or "",
+                    # The EVIDENCE behind the verdict, not just the verdict.
+                    #
+                    # The run computed EPSS 0.04919 and KEV=True for a CVE in
+                    # the CISA catalogue and persisted neither, so the stored
+                    # row said "exploited_unknown_reach" with nothing to show
+                    # for it. An analyst cannot tell "in KEV" from "EPSS 0.04"
+                    # by the verdict word alone, and those are very different
+                    # nights.
+                    #
+                    # `or None` is deliberate: an absent key must stay NULL so
+                    # "nobody checked" does not become "checked and clean".
+                    epss_score=f.get("epss_score"),
+                    # ONLY kev_listed, which the enricher sets deliberately.
+                    #
+                    # This used to fall back to the finding's `in_kev`, and that
+                    # was wrong in the worst direction: the canonical
+                    # UnifiedFinding defaults in_kev to False structurally,
+                    # WITHOUT checking anything. Measured on the normaliser's
+                    # own output, both findings came back in_kev=False —
+                    # including CVE-2002-0367, which IS in the CISA catalogue.
+                    #
+                    # So the fallback turned "nobody checked" into a stored
+                    # "checked and NOT in KEV" for every unenriched finding. I
+                    # introduced that while adding these columns, and it is
+                    # precisely the failure the columns were made nullable to
+                    # prevent.
+                    kev_listed=f.get("kev_listed"),
                 )
                 mirrored += 1
             except Exception as exc:  # noqa: BLE001
