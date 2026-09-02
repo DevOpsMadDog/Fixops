@@ -23,6 +23,39 @@ docker compose up -d                          # API + UI on http://localhost:800
 curl -sf http://localhost:8000/health && echo "  ✅ FixOps is up"
 ```
 
+## Parse the repo, or reachability has nothing to answer with
+
+Feeds tell you a vulnerability is being exploited. The call graph tells you
+whether *your* code can reach it — and without one every finding is honestly
+`undetermined`, so the "Act now" tile (reachable AND exploited) can never be
+anything but zero.
+
+One call, per tenant, and it is the strongest thing in the demo:
+
+```
+curl -X POST $BASE/api/v1/reachability/parse \
+  -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+  -d '{"repo_ref":"myapp@main","language":"python",
+       "root_path":"/abs/path/to/repo"}'
+```
+
+The host must allow the path via `FIXOPS_REACHABILITY_ALLOWED_ROOTS` — the
+engine refuses to read outside it.
+
+Measured on a real tenant, 1,183 nodes / 2,749 edges parsed from one service,
+then two findings pushed through the pipeline:
+
+| package | in the graph? | verdict |
+|---|---|---|
+| `totally-unused-pkg` | never called | **unreachable** |
+| `lib4sbom` | called in 44 places | **undetermined** |
+
+That second row is the honest one and worth narrating: knowing a library is
+used does NOT mean the vulnerable function is reachable. Only a symbol-level
+query earns the word "reachable", which is why `undetermined` appears rather
+than a confident yes. The first row is the noise reduction — a finding removed
+from the queue because the code cannot reach it.
+
 ## Feeds: what makes the verdict say something
 
 The exploitability verdict is computed from EPSS and the CISA KEV catalogue. With
