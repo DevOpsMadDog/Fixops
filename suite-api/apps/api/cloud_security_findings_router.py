@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
 from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
@@ -99,10 +100,12 @@ class UpdateRemediationRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/findings", summary="Ingest a cloud security finding (dedup on open findings)")
-def ingest_finding(req: IngestFindingRequest) -> Dict[str, Any]:
+def ingest_finding(
+    req: IngestFindingRequest, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     try:
         return _get_engine().ingest_finding(
-            org_id=req.org_id,
+            org_id=resolve_tenant(credential_org, req),
             provider=req.provider,
             account_id=req.account_id,
             region=req.region,
@@ -119,24 +122,30 @@ def ingest_finding(req: IngestFindingRequest) -> Dict[str, Any]:
 
 
 @router.post("/findings/bulk", summary="Bulk ingest cloud findings")
-def bulk_ingest(req: BulkIngestRequest) -> Dict[str, int]:
-    return _get_engine().bulk_ingest(org_id=req.org_id, findings_list=req.findings)
+def bulk_ingest(
+    req: BulkIngestRequest, credential_org: str = Depends(get_org_id)
+) -> Dict[str, int]:
+    return _get_engine().bulk_ingest(org_id=resolve_tenant(credential_org, req), findings_list=req.findings)
 
 
 @router.put("/findings/{finding_id}/resolve", summary="Resolve a finding")
-def resolve_finding(finding_id: str, req: ResolveRequest) -> Dict[str, Any]:
+def resolve_finding(
+    finding_id: str, req: ResolveRequest, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     try:
-        return _get_engine().resolve_finding(finding_id=finding_id, org_id=req.org_id)
+        return _get_engine().resolve_finding(finding_id=finding_id, org_id=resolve_tenant(credential_org, req))
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 
 
 @router.post("/findings/{finding_id}/suppress", summary="Suppress a finding")
-def suppress_finding(finding_id: str, req: SuppressRequest) -> Dict[str, Any]:
+def suppress_finding(
+    finding_id: str, req: SuppressRequest, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     try:
         return _get_engine().suppress_finding(
             finding_id=finding_id,
-            org_id=req.org_id,
+            org_id=resolve_tenant(credential_org, req),
             suppressed_by=req.suppressed_by,
             reason=req.reason,
             expires_at=req.expires_at,
@@ -146,11 +155,13 @@ def suppress_finding(finding_id: str, req: SuppressRequest) -> Dict[str, Any]:
 
 
 @router.post("/findings/{finding_id}/remediation", summary="Assign remediation for a finding")
-def assign_remediation(finding_id: str, req: AssignRemediationRequest) -> Dict[str, Any]:
+def assign_remediation(
+    finding_id: str, req: AssignRemediationRequest, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     try:
         return _get_engine().assign_remediation(
             finding_id=finding_id,
-            org_id=req.org_id,
+            org_id=resolve_tenant(credential_org, req),
             assignee=req.assignee,
             due_date=req.due_date,
             notes=req.notes,
@@ -160,11 +171,13 @@ def assign_remediation(finding_id: str, req: AssignRemediationRequest) -> Dict[s
 
 
 @router.put("/remediation/{remediation_id}", summary="Update remediation status")
-def update_remediation(remediation_id: str, req: UpdateRemediationRequest) -> Dict[str, Any]:
+def update_remediation(
+    remediation_id: str, req: UpdateRemediationRequest, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     try:
         return _get_engine().update_remediation(
             remediation_id=remediation_id,
-            org_id=req.org_id,
+            org_id=resolve_tenant(credential_org, req),
             status=req.status,
             notes=req.notes,
         )

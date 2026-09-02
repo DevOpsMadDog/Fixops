@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 from apps.api.auth_deps import api_key_auth
 from fastapi import APIRouter, Depends, HTTPException, Query
 from apps.api.dependencies import get_org_id  # SPEC-034
+from apps.api.tenant_resolution import resolve_tenant
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -88,11 +89,13 @@ class SIEMForwardRequest(BaseModel):
 
 
 @router.post("/source", dependencies=[Depends(api_key_auth)], status_code=201)
-def register_source(req: RegisterSourceRequest) -> Dict[str, Any]:
+def register_source(
+    req: RegisterSourceRequest, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Register (or idempotently update) a universal-ingest source mapping."""
     try:
         return _get_pipeline().register_source(
-            org_id=req.org_id,
+            org_id=resolve_tenant(credential_org, req),
             source_name=req.source_name,
             schema_mapping=req.schema_mapping,
             enabled=req.enabled,
@@ -105,11 +108,13 @@ def register_source(req: RegisterSourceRequest) -> Dict[str, Any]:
 
 
 @router.post("/record", dependencies=[Depends(api_key_auth)], status_code=201)
-def ingest_record(req: IngestRecordRequest) -> Dict[str, Any]:
+def ingest_record(
+    req: IngestRecordRequest, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Apply the source mapping to a raw record and persist the result."""
     try:
         return _get_pipeline().ingest_record(
-            org_id=req.org_id,
+            org_id=resolve_tenant(credential_org, req),
             source_name=req.source_name,
             raw_record=req.raw_record,
         )

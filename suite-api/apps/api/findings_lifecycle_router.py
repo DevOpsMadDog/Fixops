@@ -22,6 +22,7 @@ from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
 from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -63,7 +64,9 @@ class ReconcileRequest(BaseModel):
 
 
 @router.post("/reconcile", dependencies=[Depends(api_key_auth)])
-def reconcile(body: ReconcileRequest) -> Dict[str, Any]:
+def reconcile(
+    body: ReconcileRequest, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Compute new / unchanged / resolved diff between two scans.
 
     Side effects:
@@ -79,7 +82,7 @@ def reconcile(body: ReconcileRequest) -> Dict[str, Any]:
         )
     try:
         return _get_engine().reconcile_scans(
-            org_id=body.org_id,
+            org_id=resolve_tenant(credential_org, body),
             prior_scan_id=body.prior_scan_id,
             current_scan_id=body.current_scan_id,
         )

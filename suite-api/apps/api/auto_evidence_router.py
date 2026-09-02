@@ -19,6 +19,7 @@ from core.auto_evidence import (
 )
 from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id  # SPEC-034
+from apps.api.tenant_resolution import resolve_tenant
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/v1/auto-evidence", tags=["auto-evidence"])
@@ -75,27 +76,43 @@ def list_frameworks() -> List[FrameworkControlsResponse]:
 
 
 @router.post("/collect/audit-logs", response_model=AutoEvidence)
-def collect_audit_logs(req: CollectRequest) -> AutoEvidence:
+def collect_audit_logs(
+    req: CollectRequest, credential_org: str = Depends(get_org_id)
+) -> AutoEvidence:
     """Collect audit log entries as evidence for the given control."""
-    return _col().collect_from_audit_logs(req.org_id, req.control_id, req.framework)
+    return _col().collect_from_audit_logs(
+        resolve_tenant(credential_org, req), req.control_id, req.framework
+    )
 
 
 @router.post("/collect/scan-results", response_model=AutoEvidence)
-def collect_scan_results(req: CollectRequest) -> AutoEvidence:
+def collect_scan_results(
+    req: CollectRequest, credential_org: str = Depends(get_org_id)
+) -> AutoEvidence:
     """Collect scan findings as evidence for the given control."""
-    return _col().collect_from_scan_results(req.org_id, req.control_id, req.framework)
+    return _col().collect_from_scan_results(
+        resolve_tenant(credential_org, req), req.control_id, req.framework
+    )
 
 
 @router.post("/collect/config", response_model=AutoEvidence)
-def collect_config(req: CollectRequest) -> AutoEvidence:
+def collect_config(
+    req: CollectRequest, credential_org: str = Depends(get_org_id)
+) -> AutoEvidence:
     """Snapshot current ALDECI configuration as evidence."""
-    return _col().collect_from_config(req.org_id, req.control_id, req.framework)
+    return _col().collect_from_config(
+        resolve_tenant(credential_org, req), req.control_id, req.framework
+    )
 
 
 @router.post("/collect/access-matrix", response_model=AutoEvidence)
-def collect_access_matrix(req: CollectRequest) -> AutoEvidence:
+def collect_access_matrix(
+    req: CollectRequest, credential_org: str = Depends(get_org_id)
+) -> AutoEvidence:
     """Pull access control state as evidence for the given control."""
-    return _col().collect_from_access_matrix(req.org_id, req.control_id, req.framework)
+    return _col().collect_from_access_matrix(
+        resolve_tenant(credential_org, req), req.control_id, req.framework
+    )
 
 
 @router.post("/collect/encryption-status", response_model=AutoEvidence)
@@ -117,20 +134,26 @@ def collect_backup_records(
 
 
 @router.post("/collect/incidents", response_model=AutoEvidence)
-def collect_incidents(req: CollectRequest) -> AutoEvidence:
+def collect_incidents(
+    req: CollectRequest, credential_org: str = Depends(get_org_id)
+) -> AutoEvidence:
     """Pull incident reports as evidence for the given control."""
-    return _col().collect_from_incidents(req.org_id, req.control_id, req.framework)
+    return _col().collect_from_incidents(
+        resolve_tenant(credential_org, req), req.control_id, req.framework
+    )
 
 
 @router.post("/collect/all", response_model=List[AutoEvidence])
-def collect_all(req: BulkCollectRequest) -> List[AutoEvidence]:
+def collect_all(
+    req: BulkCollectRequest, credential_org: str = Depends(get_org_id)
+) -> List[AutoEvidence]:
     """
     Auto-collect evidence for ALL controls in a framework in one call.
 
     Uses the built-in SOC2/PCI/HIPAA control → source mapping to determine
     which evidence sources to pull for each control.
     """
-    results = _col().auto_collect_all(req.org_id, req.framework)
+    results = _col().auto_collect_all(resolve_tenant(credential_org, req), req.framework)
     if not results:
         raise HTTPException(
             status_code=400,
