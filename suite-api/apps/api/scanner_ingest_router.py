@@ -165,6 +165,7 @@ def _local_advisory_bodies(findings_dicts: List[Dict]) -> Dict[str, tuple]:
         return {}
     try:
         import os
+        import pathlib
         import sqlite3
 
         # Two locations, because they genuinely differ.
@@ -178,21 +179,50 @@ def _local_advisory_bodies(findings_dicts: List[Dict]) -> Dict[str, tuple]:
         #
         # data/feeds/feeds.db is also where the shipped image puts the feeds, so
         # checking both is correct rather than merely forgiving.
-        candidates = [
-            os.path.join(os.environ.get("FIXOPS_DATA_DIR", "data"), "feeds", "feeds.db"),
-            os.path.join("data", "feeds", "feeds.db"),
+        # ABSOLUTE, and every copy is asked.
+        #
+        # These were relative paths, so the answer depended on the process's
+        # working directory. Started from suite-api/ they resolve to
+        # suite-api/data/feeds/feeds.db — a real 48 MB database with 327,809
+        # EPSS rows and NO advisory_details table. The old code picked the first
+        # candidate that EXISTED rather than one that could answer, found that
+        # file, raised "no such table", swallowed it, and returned {}. Today's
+        # 118 advisory bodies live in data/feeds/feeds.db and would simply never
+        # have been read; TypeScript reachability would silently fall back from
+        # 65% to 57% and nothing would say why.
+        #
+        # The app already warns about this at boot: 61 database NAMES exist at
+        # more than one path in this repo, 58 of them with rows in more than one
+        # copy. Until that is resolved, a reader must not let cwd choose.
+        repo_root = pathlib.Path(__file__).resolve().parents[3]
+        raw = [
+            os.environ.get("FIXOPS_DATA_DIR", ""),
+            str(repo_root / "data"),
+            str(repo_root / ".fixops_data"),
+            str(repo_root / "suite-api" / "data"),
         ]
-        db = next((c for c in candidates if os.path.isfile(c)), "")
-        if not db:
-            return {}
-        conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        candidates = [
+            pathlib.Path(base) / "feeds" / "feeds.db" for base in raw if base
+        ]
         placeholders = ",".join("?" * len(ids))
-        rows = conn.execute(
-            f"SELECT advisory_id, summary, details FROM advisory_details "
-            f"WHERE advisory_id IN ({placeholders})",
-            tuple(ids),
-        ).fetchall()
-        return {r[0]: (r[1] or "", r[2] or "") for r in rows}
+        bodies: Dict[str, tuple] = {}
+        for candidate in candidates:
+            if not candidate.is_file():
+                continue
+            try:
+                conn = sqlite3.connect(f"file:{candidate}?mode=ro", uri=True)
+                rows = conn.execute(
+                    f"SELECT advisory_id, summary, details FROM advisory_details "
+                    f"WHERE advisory_id IN ({placeholders})",
+                    tuple(ids),
+                ).fetchall()
+            except sqlite3.DatabaseError:
+                # No advisory_details here. That is an older bundle, not an
+                # error, and it must not stop us asking the next copy.
+                continue
+            for advisory_id, summary, details in rows:
+                bodies.setdefault(advisory_id, (summary or "", details or ""))
+        return bodies
     except Exception:  # pragma: no cover — missing table or older bundle
         logger.debug("advisory bodies unavailable", exc_info=True)
         return {}
