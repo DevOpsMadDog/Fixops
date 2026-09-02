@@ -23,6 +23,42 @@ docker compose up -d                          # API + UI on http://localhost:800
 curl -sf http://localhost:8000/health && echo "  ✅ FixOps is up"
 ```
 
+## Feeds: what makes the verdict say something
+
+The exploitability verdict is computed from EPSS and the CISA KEV catalogue. With
+those present a finding reads:
+
+```
+Exploited · reach unknown   MEASURED   CVE-2002-0367   CISA KEV  EPSS 4.9%
+```
+
+Without them it honestly reads `Insufficient evidence` / `not checked` — the
+product refusing to guess, not the product broken. Worth knowing before you are
+in front of someone.
+
+**They are not in the image.** `.dockerignore` excludes `**/*.db`, so the
+container ships no feed data. It is refreshed in the background the first time
+the feeds service is used, which needs outbound network — and an ingest run
+immediately after startup can finish before that lands.
+
+Check what the deployment actually has:
+
+```
+sqlite3 "${FIXOPS_DATA_DIR:-data}/feeds/feeds.db" \
+  "SELECT (SELECT COUNT(*) FROM epss_scores) || ' EPSS / ' ||
+          (SELECT COUNT(*) FROM kev_entries) || ' KEV';"
+```
+
+Air-gapped, or want them present before the call, carry a signed bundle in:
+
+```
+# connected host
+python scripts/feed_bundle.py export
+# air-gapped host
+python scripts/feed_bundle.py verify <bundle>
+python scripts/feed_bundle.py import <bundle> --apply
+```
+
 ## The demo (run this, narrate as it goes)
 ```bash
 FIXOPS_API_TOKEN=aldeci-demo-token python scripts/uat_core.py http://localhost:8000
