@@ -4,6 +4,18 @@
 > real product in a container — no mocks, no slides-only. Total time ~5 min.
 
 ## Before the call (2 min setup)
+
+> **Build the UI first if you are running from a checkout.** `dist/` is
+> gitignored, so a stale or missing bundle serves an old (or blank) console with
+> a perfectly healthy HTTP 200 — the failure that looks like success. Once:
+>
+> ```
+> cd suite-ui/aldeci-ui-new && npm run build     # ~8s
+> pytest tests/test_ui_dist_is_not_stale.py -q   # confirms it is current
+> ```
+>
+> `docker compose up` builds it for you; this note is for a local checkout.
+
 ```bash
 export OPENROUTER_API_KEY=sk-or-...          # your key — enables the real AI council
 docker compose up -d                          # API + UI on http://localhost:8000
