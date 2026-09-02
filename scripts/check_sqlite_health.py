@@ -36,6 +36,7 @@ import sys
 from typing import List, Tuple
 
 DEFAULT_DIRS = ("data", ".fixops_data", "suite-api/data", ".")
+_SKIP_DIRS = ("node_modules", ".git", "venv", ".venv", "__pycache__")
 
 
 def _databases(root: pathlib.Path, recurse: bool) -> List[pathlib.Path]:
@@ -142,11 +143,83 @@ def check(path: pathlib.Path) -> Tuple[bool, str, int]:
     return True, "ok", len(tables)
 
 
+def _row_total(path: pathlib.Path) -> int:
+    """Rows across every table, or -1 when the file will not open."""
+    try:
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        total = 0
+        for (table,) in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ):
+            try:
+                total += conn.execute(f"SELECT COUNT(*) FROM '{table}'").fetchone()[0]
+            except sqlite3.DatabaseError:
+                pass
+        return total
+    except sqlite3.DatabaseError:
+        return -1
+
+
+def split_stores(root: pathlib.Path, recent_days: int = 30) -> List[Tuple[str, list]]:
+    """Databases of the same NAME holding rows in more than one place.
+
+    A healthy file in a directory the product never opens is not a corruption
+    problem, and this checker used to miss it entirely — but it loses data just
+    as thoroughly, and more quietly, because every integrity check passes.
+
+    Measured in this repo: 61 duplicated names; 23 hold rows in MORE THAN ONE
+    copy; 2 are actively conflicting. (58 is the count with rows in at least one
+    copy, which is a much weaker statement and not the interesting one.) Almost
+    all of the 23 are debris from a process once started in the wrong
+    directory. The two that matter are the ones where BOTH copies were written
+    recently, because that means two live configurations disagree about where
+    the data lives:
+
+        fixops_exposure_cases.db   1,789 rows (repo root)  vs  100 (.fixops_data)
+        evidence_packs.db            170 rows (data/)      vs  109 (.fixops_data)
+
+    Both engines honour FIXOPS_DATA_DIR. sitecustomize sets it only when the
+    repo is on sys.path, so the app and a plain CLI run resolve to different
+    files and give different answers to "how many cases do I have". Nothing
+    reconciles them, and nothing says so.
+
+    Reported, never merged: combining two stores automatically is how you turn a
+    visible discrepancy into an invisible one.
+    """
+    import collections
+    import datetime
+
+    by_name: dict = collections.defaultdict(list)
+    for path in root.rglob("*.db"):
+        if any(part in path.parts for part in _SKIP_DIRS):
+            continue
+        by_name[path.name].append(path)
+
+    now = datetime.datetime.now()
+    findings = []
+    for name, paths in by_name.items():
+        if len(paths) < 2:
+            continue
+        populated = [
+            (path, _row_total(path), (now - datetime.datetime.fromtimestamp(
+                path.stat().st_mtime)).days)
+            for path in paths
+        ]
+        populated = [entry for entry in populated if entry[1] > 0]
+        if len(populated) < 2:
+            continue
+        live = [entry for entry in populated if entry[2] <= recent_days]
+        findings.append((name, sorted(populated, key=lambda e: -e[1]), len(live) >= 2))
+    return sorted(findings, key=lambda f: (not f[2], -max(e[1] for e in f[1])))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".")
     parser.add_argument("--recurse", action="store_true", help="scan the whole tree")
     parser.add_argument("--quiet", action="store_true", help="only print problems")
+    parser.add_argument("--no-split-check", action="store_true",
+                        help="skip the duplicated-database report")
     args = parser.parse_args()
 
     root = pathlib.Path(args.root).resolve()
@@ -181,6 +254,23 @@ def main() -> int:
         print("\nIf a database was healthy an hour ago, check whether two processes")
         print("are writing it (a container AND a host process on the same directory")
         print("corrupts SQLite across a bind mount).")
+
+    if not args.no_split_check:
+        splits = split_stores(root)
+        live = [f for f in splits if f[2]]
+        print(f"\nduplicated database names holding rows: {len(splits)}"
+              f"   ACTIVELY CONFLICTING: {len(live)}")
+        for name, entries, is_live in splits[:20] if not args.quiet else live:
+            marker = "LIVE " if is_live else "stale"
+            print(f"  {marker}  {name}")
+            for path, rows, age in entries:
+                print(f"           {rows:>9,} rows  {age:>4}d old  {path}")
+        if live:
+            print("\nA LIVE conflict means two configurations are both writing, and the")
+            print("product reads only one. Decide which path is canonical, set")
+            print("FIXOPS_DATA_DIR to it everywhere, and move the other aside — do not")
+            print("merge them blindly, because row counts alone cannot tell you whether")
+            print("the two stores hold the same rows or different ones.")
     return 1 if bad else 0
 
 
