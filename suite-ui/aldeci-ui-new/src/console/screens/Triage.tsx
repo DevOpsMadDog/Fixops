@@ -23,6 +23,8 @@ interface Finding {
   source_tool?: string;
   exploitability?: string;
   exploitability_confidence?: string;
+  epss_score?: number | null;
+  kev_listed?: number | boolean | null;
   reachability_verdict?: string;
 }
 
@@ -30,6 +32,34 @@ interface FindingsResponse {
   total?: number;
   findings?: Finding[];
   items?: Finding[];
+}
+
+function Evidence({
+  epss,
+  kev,
+}: {
+  epss?: number | null;
+  kev?: number | boolean | null;
+}) {
+  const checked = epss !== null && epss !== undefined ? true : kev !== null && kev !== undefined;
+  if (!checked) {
+    return <span className="text-[11px] text-slate-600">not checked</span>;
+  }
+  const inKev = kev === true || kev === 1;
+  return (
+    <span className="flex items-center gap-2 text-[11px]">
+      {inKev && (
+        <span className="rounded border border-rose-400/30 bg-rose-400/12 px-1.5 py-0.5 font-medium text-rose-200">
+          CISA KEV
+        </span>
+      )}
+      {epss !== null && epss !== undefined ? (
+        <span className="tabular-nums text-slate-400">EPSS {(epss * 100).toFixed(1)}%</span>
+      ) : (
+        <span className="text-slate-600">EPSS —</span>
+      )}
+    </span>
+  );
 }
 
 export function TriageScreen() {
@@ -149,6 +179,7 @@ export function TriageScreen() {
                       <th className="px-4 py-2 font-medium">Verdict</th>
                       <th className="px-4 py-2 font-medium">Finding</th>
                       <th className="px-4 py-2 font-medium">CVE</th>
+                      <th className="px-4 py-2 font-medium">Evidence</th>
                       <th className="px-4 py-2 font-medium">Component</th>
                       <th className="px-4 py-2 font-medium">Severity</th>
                       <th className="px-4 py-2 font-medium">Status</th>
@@ -167,6 +198,20 @@ export function TriageScreen() {
                           {f.title ?? "—"}
                         </td>
                         <td className="px-4 py-2.5"><Mono>{f.cve_id ?? "—"}</Mono></td>
+                        {/*
+                          WHY the verdict says what it says. "Exploited" resting
+                          on the CISA catalogue is a different claim from one
+                          resting on an EPSS probability, and the person
+                          deciding what to fix tonight has to see which.
+
+                          null is rendered as "not checked", NOT as 0 or as a
+                          blank cell. The store keeps those distinct on purpose
+                          — a finding nobody enriched must not read as one that
+                          was checked and came back clean.
+                        */}
+                        <td className="px-4 py-2.5">
+                          <Evidence epss={f.epss_score} kev={f.kev_listed} />
+                        </td>
                         <td className="px-4 py-2.5"><Mono>{f.package_name ?? f.asset_id ?? "—"}</Mono></td>
                         <td className="px-4 py-2.5"><Severity level={f.severity} /></td>
                         <td className="px-4 py-2.5 text-[12px] text-slate-400">{f.status ?? "open"}</td>
