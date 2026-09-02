@@ -600,3 +600,40 @@ the graph.
 
 Java at 9% is the honest state of a first run: the graph is real, and almost
 nothing can currently query it.
+
+## Making Java answerable
+
+The diagnosis above is also the fix: resolve the `import` block and rewrite each
+call receiver through it. `Assert.notNull` becomes
+`org.springframework.util.Assert.notNull`. On the same 50 petclinic files:
+
+| prefix | before | after |
+|---|---|---|
+| `org.springframework.%` | 0 | **18** |
+| `org.junit.%` | 0 | **7** |
+| `org.assertj.%` | 0 | **3** |
+| `org.postgresql.%` | 0 | **0** |
+
+The last row is the one that matters: petclinic loads Postgres reflectively as a
+JDBC driver and never calls it, so zero is now a *correct answer* rather than an
+artifact of naming. That is the first Java query in this codebase that means
+anything.
+
+Wildcards (`import java.util.*`) are deliberately skipped — they name a package,
+not a class, and guessing which class a bare receiver came from would
+manufacture a confidently wrong FQN, which yields a confidently wrong
+elimination.
+
+**Java stays out of `_PACKAGE_QUALIFIED_LANGUAGES` for now**, on two specific
+grounds rather than caution in general:
+
+1. Every Java graph parsed before this change contains receiver-only names.
+   Turning elimination on would produce wrong answers for every existing graph,
+   and the language flag cannot tell the two apart — answerability is a property
+   of the *graph*, not the language.
+2. A Maven finding's package is a coordinate, `org.postgresql:postgresql`. The
+   pipeline's fallback builds `f"{package}.%"`, which yields
+   `org.postgresql:postgresql.%` and matches nothing. The prefix has to come
+   from the groupId, and that mapping has not been written or measured.
+
+Both are concrete and small. Neither is done, so the flag stays off.

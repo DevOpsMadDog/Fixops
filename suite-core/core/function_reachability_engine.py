@@ -1074,6 +1074,7 @@ class FunctionReachabilityEngine:
                 module_name = str(rel.with_suffix("")).replace(os.sep, ".")
 
                 # Build class-context stack while walking
+                file_imports = self._java_imports(tree.root_node)
                 for cls_name, fn_node in self._walk_java_methods(tree.root_node):
                     name_node = fn_node.child_by_field_name("name")
                     fn_name = (
@@ -1095,7 +1096,7 @@ class FunctionReachabilityEngine:
                         "end_line": int(fn_node.end_point[0]),
                         "created_at": now,
                     })
-                    for callee_fqn in self._find_java_calls(fn_node):
+                    for callee_fqn in self._find_java_calls(fn_node, file_imports):
                         edges_to_insert.append({
                             "caller_fqn": fqn,
                             "callee_fqn": callee_fqn,
@@ -1308,6 +1309,62 @@ class FunctionReachabilityEngine:
                     # Descend into other nodes (package, blocks, etc.)
                     stack.append((child, class_stack))
 
+    def _java_imports(self, root_node: Any) -> Dict[str, str]:
+        """Map each imported simple name to its fully-qualified name.
+
+        This is what makes a Java call graph queryable at all. A Java call site
+        is written ``Assert.notNull(...)``; the package lives in an ``import``
+        at the top of the file. Recording the receiver verbatim produced 835
+        nodes on spring-petclinic of which ZERO began with any dependency
+        package, so a query for ``org.springframework.%`` — the only shape a
+        dependency advisory can ask — matched nothing whether or not the
+        library was used. Python has no such problem: ``requests.get`` carries
+        its package in the expression itself.
+
+        ``import static org.junit.Assert.assertTrue`` maps the METHOD name,
+        because that is what appears at the call site. Wildcards
+        (``import java.util.*``) are skipped: they name a package, not a class,
+        and guessing which class a bare receiver came from would manufacture
+        FQNs that are wrong in exactly the confident way this whole subsystem
+        exists to avoid.
+        """
+        imports: Dict[str, str] = {}
+        for child in root_node.children:
+            if child.type != "import_declaration":
+                continue
+            try:
+                text = child.text.decode(errors="ignore")
+            except Exception:  # noqa: BLE001 - a malformed import is not fatal
+                continue
+            text = text.strip().rstrip(";").strip()
+            if text.startswith("import"):
+                text = text[len("import"):].strip()
+            if text.startswith("static"):
+                text = text[len("static"):].strip()
+            if not text or text.endswith("*"):
+                continue
+            simple = text.rsplit(".", 1)[-1]
+            if simple:
+                imports.setdefault(simple, text)
+        return imports
+
+    def _qualify_java_receiver(self, fqn: str, imports: Dict[str, str]) -> str:
+        """Rewrite a receiver-named callee into a package-qualified one.
+
+        ``Assert.notNull`` + {"Assert": "org.springframework.util.Assert"}
+        becomes ``org.springframework.util.Assert.notNull``. Anything whose head
+        was not imported is left exactly as it was — a local variable or a
+        same-package class is not something we can qualify, and inventing a
+        package for it would be worse than leaving it bare.
+        """
+        if not fqn or not imports:
+            return fqn
+        head, _, rest = fqn.partition(".")
+        target = imports.get(head)
+        if not target:
+            return fqn
+        return f"{target}.{rest}" if rest else target
+
     def _java_callee_fqn(self, invocation_node: Any) -> Optional[str]:
         """Resolve a Java method_invocation to a dotted callee FQN."""
         if invocation_node is None:
@@ -1328,8 +1385,14 @@ class FunctionReachabilityEngine:
             obj_text = ""
         return f"{obj_text}.{method_name}" if obj_text else method_name
 
-    def _find_java_calls(self, fn_node: Any) -> List[str]:
-        """Walk a Java method body, return FQNs of every method_invocation."""
+    def _find_java_calls(
+        self, fn_node: Any, imports: Optional[Dict[str, str]] = None
+    ) -> List[str]:
+        """Walk a Java method body, return FQNs of every method_invocation.
+
+        ``imports`` qualifies each receiver against the file's import block;
+        omitting it keeps the old receiver-only names.
+        """
         out: List[str] = []
         nested_def_types = {
             "method_declaration", "constructor_declaration",
@@ -1343,7 +1406,7 @@ class FunctionReachabilityEngine:
             if cur.type == "method_invocation":
                 fqn = self._java_callee_fqn(cur)
                 if fqn:
-                    out.append(fqn)
+                    out.append(self._qualify_java_receiver(fqn, imports or {}))
             for child in reversed(cur.children):
                 stack.append(child)
         return out
