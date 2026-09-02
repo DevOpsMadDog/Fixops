@@ -19,6 +19,7 @@ from typing import Any, Dict, Optional
 
 from apps.api.auth_deps import api_key_auth
 from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from core.evidence_vault_engine import EvidenceVaultEngine
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -97,10 +98,12 @@ async def get_vault_root(org_id: str = Depends(get_org_id)) -> Dict[str, Any]:
 
 
 @router.post("/evidence", status_code=201)
-async def store_evidence(body: StoreEvidenceIn) -> Dict[str, Any]:
+async def store_evidence(
+    body: StoreEvidenceIn, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Store a new compliance evidence artifact."""
     ev = _get_engine().store_evidence(
-        org_id=body.org_id,
+        org_id=resolve_tenant(credential_org, body),
         evidence_name=body.evidence_name,
         evidence_type=body.evidence_type,
         framework=body.framework,
@@ -127,11 +130,13 @@ async def seal_evidence(evidence_id: str, org_id: str = Depends(get_org_id)) -> 
 
 
 @router.post("/evidence/{evidence_id}/access", status_code=201)
-async def log_access(evidence_id: str, body: AccessLogIn) -> Dict[str, Any]:
+async def log_access(
+    evidence_id: str, body: AccessLogIn, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Log an access event for an evidence item."""
     return _get_engine().log_access(
         evidence_id=evidence_id,
-        org_id=body.org_id,
+        org_id=resolve_tenant(credential_org, body),
         accessed_by=body.accessed_by,
         access_type=body.access_type,
         access_reason=body.access_reason,
@@ -139,10 +144,12 @@ async def log_access(evidence_id: str, body: AccessLogIn) -> Dict[str, Any]:
 
 
 @router.post("/collections", status_code=201)
-async def create_collection(body: CreateCollectionIn) -> Dict[str, Any]:
+async def create_collection(
+    body: CreateCollectionIn, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Create an evidence collection for an audit."""
     return _get_engine().create_collection(
-        org_id=body.org_id,
+        org_id=resolve_tenant(credential_org, body),
         collection_name=body.collection_name,
         framework=body.framework,
         audit_period=body.audit_period,
@@ -151,10 +158,16 @@ async def create_collection(body: CreateCollectionIn) -> Dict[str, Any]:
 
 
 @router.post("/collections/{collection_id}/add-evidence")
-async def add_to_collection(collection_id: str, body: AddToCollectionIn) -> Dict[str, Any]:
+async def add_to_collection(
+    collection_id: str,
+    body: AddToCollectionIn,
+    credential_org: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Add an evidence item to a collection."""
     try:
-        coll = _get_engine().add_to_collection(collection_id, body.evidence_id, body.org_id)
+        coll = _get_engine().add_to_collection(
+            collection_id, body.evidence_id, resolve_tenant(credential_org, body)
+        )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return coll
@@ -193,6 +206,10 @@ async def get_vault_summary(org_id: str = Depends(get_org_id)) -> Dict[str, Any]
 
 
 @router.post("/evidence/{evidence_id}/verify")
-async def verify_integrity(evidence_id: str, body: VerifyIn) -> Dict[str, Any]:
+async def verify_integrity(
+    evidence_id: str, body: VerifyIn, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Verify content integrity against stored SHA-256 hash."""
-    return _get_engine().verify_integrity(evidence_id, body.org_id, body.content)
+    return _get_engine().verify_integrity(
+        evidence_id, resolve_tenant(credential_org, body), body.content
+    )
