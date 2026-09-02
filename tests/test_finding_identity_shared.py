@@ -88,3 +88,54 @@ def test_neither_writer_builds_its_own_key_any_more() -> None:
             f"{name} builds a correlation key inline again — that is how the "
             f"two writers drifted apart and doubled the queue"
         )
+
+
+# --- the tool component: a format is not a scanner ---------------------------
+
+
+def test_a_container_format_never_wins_over_the_real_scanner() -> None:
+    """The second doubling of the queue, found on a live server.
+
+    Scanner ingest passed the DETECTED FILE FORMAT while the pipeline mirror
+    passed the finding's own source_tool, so one 3-finding SARIF upload stored
+    SIX rows:
+
+        sarif|hardcoded-secret|app/config.py      <- ingest, no verdict
+        semgrep|hardcoded-secret|app/config.py    <- mirror, carries the verdict
+
+    and the three a customer sees first are the ones with no verdict.
+    """
+    from core.finding_identity import correlation_key
+
+    finding = {
+        "source_tool": "semgrep",
+        "rule_id": "hardcoded-secret",
+        "file_path": "app/config.py",
+        "line_number": 7,
+    }
+    assert correlation_key(finding, "sarif") == correlation_key(finding, "semgrep")
+    assert correlation_key(finding, "sarif").startswith("semgrep|")
+
+
+def test_the_same_finding_in_two_envelopes_is_one_finding() -> None:
+    """semgrep output delivered as SARIF and as native JSON is one issue."""
+    from core.finding_identity import correlation_key
+
+    finding = {"source_tool": "semgrep", "rule_id": "r1", "file_path": "a.py", "line_number": 1}
+    assert correlation_key(finding, "sarif") == correlation_key(finding, "json")
+
+
+def test_a_format_is_still_used_when_no_scanner_is_known() -> None:
+    """Better a format than "unknown_tool" — dropping to a constant would
+    collapse unrelated findings from different sources into one identity."""
+    from core.finding_identity import correlation_key
+
+    key = correlation_key({"rule_id": "x", "file_path": "a.py", "line_number": 1}, "sarif")
+    assert key.startswith("sarif|")
+
+
+def test_a_real_scanner_name_passes_through_untouched() -> None:
+    from core.finding_identity import correlation_key
+
+    finding = {"rule_id": "CVE-1", "package_name": "p", "package_version": "1"}
+    assert correlation_key(finding, "trivy") == "trivy|CVE-1|p@1"
