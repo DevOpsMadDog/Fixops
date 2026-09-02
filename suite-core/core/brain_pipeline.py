@@ -320,8 +320,39 @@ _TOOL_LANGUAGE = {
 _PACKAGE_QUALIFIED_LANGUAGES = frozenset({"python", "javascript", "typescript"})
 
 
-def _package_query_is_answerable(finding: Dict[str, Any]) -> bool:
+def _package_fqn_prefix(package: str) -> str:
+    """The dotted prefix a package's own code appears under in a call graph.
+
+    For PyPI and npm the package name IS the prefix. For Maven it is not: a
+    finding carries the coordinate ``org.postgresql:postgresql``, and
+    ``f"{package}.%"`` then builds ``org.postgresql:postgresql.%``, which
+    matches nothing at all — a guaranteed-empty query whose empty result was
+    being read as "unreachable".
+
+    The classes live under the groupId, so the coordinate's left half is the
+    prefix. ``org.postgresql:postgresql`` -> ``org.postgresql``.
+    """
+    package = (package or "").strip()
+    if ":" in package:
+        group_id = package.split(":", 1)[0].strip()
+        if group_id:
+            return group_id
+    return package
+
+
+def _package_query_is_answerable(
+    finding: Dict[str, Any],
+    engine: Any = None,
+    org_id: str = "",
+) -> bool:
     """Can a package-prefix query about this finding mean anything?
+
+    Answerability is a property of the GRAPH, not the language, which is why the
+    whitelist alone was the wrong shape. A Java graph parsed before import
+    resolution holds receiver-only names (``Assert.notNull``) and can answer
+    nothing; one parsed after holds
+    ``org.springframework.util.Assert.notNull`` and can. Both are "java". So for
+    any language not already known-good, ask the graph directly.
 
     An unknown language is treated as answerable, matching ``_graph_covers``:
     with nothing better to go on, a non-empty graph is the best we can say.
@@ -329,7 +360,17 @@ def _package_query_is_answerable(finding: Dict[str, Any]) -> bool:
     language = _finding_language(finding)
     if not language:
         return True
-    return language in _PACKAGE_QUALIFIED_LANGUAGES
+    if language in _PACKAGE_QUALIFIED_LANGUAGES:
+        return True
+    if engine is None or not org_id:
+        # No graph to consult: fall back to the whitelist's answer, which for an
+        # unlisted language is "cannot answer". Refusing to eliminate is the
+        # fail-safe direction.
+        return False
+    try:
+        return bool(engine.has_package_qualified_names(org_id, language))
+    except Exception:  # noqa: BLE001 - a probe failure must not assert safety
+        return False
 
 
 def _finding_language(finding: Dict[str, Any]) -> str:
@@ -3211,7 +3252,7 @@ class BrainPipeline:
                     ]
                     patterns = [p if p.endswith("%") else f"{p}%" for p in patterns]
                 elif package:
-                    patterns = [f"{package}.%"]
+                    patterns = [f"{_package_fqn_prefix(package)}.%"]
                 else:
                     continue
 
@@ -3254,7 +3295,9 @@ class BrainPipeline:
                 if not callers and not _graph_covers(f):
                     # Nothing found, in a graph that cannot contain it.
                     verdict = "undetermined"
-                elif not callers and not specific and not _package_query_is_answerable(f):
+                elif not callers and not specific and not _package_query_is_answerable(
+                    f, reach_engine, ctx["org_id"]
+                ):
                     # Nothing found, by a question this language cannot answer.
                     # See _PACKAGE_QUALIFIED_LANGUAGES: a Java graph names call
                     # sites by receiver, so `postgresql.%` matches nothing

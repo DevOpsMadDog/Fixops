@@ -637,3 +637,36 @@ grounds rather than caution in general:
    from the groupId, and that mapping has not been written or measured.
 
 Both are concrete and small. Neither is done, so the flag stays off.
+
+### Both preconditions closed — Java answers now
+
+**The Maven coordinate.** A finding carries `org.postgresql:postgresql`, and
+`f"{package}.%"` built `org.postgresql:postgresql.%` — a query that cannot match
+anything, whose guaranteed-empty result was read as "unreachable".
+`_package_fqn_prefix` takes the groupId, leaving PyPI and npm names untouched.
+
+**Answerability is a property of the graph.** The language whitelist could not
+tell a receiver-only Java graph from an import-resolved one — both are "java" —
+so the engine is asked directly. The obvious probe ("at least three dotted
+segments") was wrong and returned True for exactly the graph it existed to
+reject, because the receiver-only graph is full of
+`"messages_en.properties".equals` and `BRACKET_ONLY.matcher(line).find`.
+Head-anchoring on conventional JVM package roots discriminates cleanly:
+**0** before import resolution, **60** after.
+
+End-to-end, same advisory, same code, two graphs:
+
+```
+OLD receiver-only graph
+  org.postgresql:postgresql       undetermined   priority 1
+  org.springframework.boot:...    undetermined   priority 1
+
+IMPORT-RESOLVED graph
+  org.postgresql:postgresql       unreachable    priority 1 -> 2
+  org.springframework.boot:...    undetermined   priority 1   (callers found)
+```
+
+Both new answers are correct, and the second is the more important one: callers
+were found, which means "you use this library" — it says nothing about whether
+the *vulnerable* code is reachable, so the finding stays undetermined and keeps
+its priority. Only a symbol-specific query earns the word "reachable".

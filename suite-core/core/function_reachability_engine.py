@@ -165,6 +165,11 @@ _VALID_EDGE_TYPES = {
 _DEFAULT_MAX_DEPTH = 10
 
 
+# Conventional JVM package roots. A call target beginning with one of these is
+# package-qualified; `BRACKET_ONLY.matcher(...)` is not, however many dots it has.
+_JVM_PACKAGE_ROOTS = ("org", "com", "io", "net", "java", "javax", "jakarta", "kotlin", "scala")
+
+
 class FunctionReachabilityEngine:
     """Call-graph + reachability engine.
 
@@ -1938,6 +1943,52 @@ class FunctionReachabilityEngine:
             "node_count": len(nodes),
             "edge_count": len(edges),
         }
+
+    def has_package_qualified_names(self, org_id: str, language: str) -> bool:
+        """Does this graph actually contain package-qualified call targets?
+
+        Whether a package-level query can be answered is a property of the
+        GRAPH, not of the language — which is why a language whitelist was the
+        wrong shape for this. Java graphs parsed before import resolution
+        existed hold receiver-only names (``Assert.notNull``); graphs parsed
+        after hold ``org.springframework.util.Assert.notNull``. Both are
+        "java", and eliminating findings against the first is wrong.
+
+        So ask the graph. A package-qualified name has at least three segments
+        and a head that is a package root rather than a local variable — the
+        conventional Java/Scala/Kotlin roots plus the Python and JS case, where
+        two segments (``requests.get``) are already package-qualified because
+        the import name IS the head.
+
+        Cheap by construction: LIMIT 1, and it only runs on the package-level
+        fallback path, which is the branch that has no symbol to use.
+        """
+        if not org_id or not language:
+            return False
+        language = language.strip().lower()
+        if language in ("python", "javascript", "typescript"):
+            # The import name is the head of the call expression itself, so any
+            # dotted callee is already package-qualified. Measured: 114 nodes
+            # under `requests.%` in the FixOps graph.
+            patterns = ["%.%"]
+        else:
+            # HEAD-ANCHORED, and it has to be. "at least three segments" was the
+            # obvious test and it is wrong: the receiver-only graph is full of
+            # names like `"messages_en.properties".equals` and
+            # `BRACKET_ONLY.matcher(line).find`, so the probe returned True for
+            # exactly the graph it existed to reject. Measured on petclinic:
+            # head-anchored gives 0 before import resolution and 60 after.
+            patterns = [f"{root}.%" for root in _JVM_PACKAGE_ROOTS]
+        with self._conn() as conn:
+            for pattern in patterns:
+                row = conn.execute(
+                    "SELECT 1 FROM callgraph_nodes "
+                    "WHERE org_id=? AND language=? AND function_fqn LIKE ? LIMIT 1",
+                    (org_id, language, pattern),
+                ).fetchone()
+                if row is not None:
+                    return True
+        return False
 
     def stats(self, org_id: str) -> Dict[str, Any]:
         """Aggregate counts for this org."""

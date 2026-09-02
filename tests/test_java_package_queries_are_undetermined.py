@@ -70,3 +70,78 @@ def test_go_and_rust_are_not_silently_claimed() -> None:
     nodes, they are not in the set — the same standard Java was just held to."""
     assert "go" not in _PACKAGE_QUALIFIED_LANGUAGES
     assert "rust" not in _PACKAGE_QUALIFIED_LANGUAGES
+
+
+# --- after import resolution: the graph decides, not the language -----------
+
+
+class _Graph:
+    """Stands in for the reachability engine, with a controllable answer."""
+
+    def __init__(self, qualified: bool, callers=None):
+        self.qualified = qualified
+        self.callers = callers or {}
+        self.asked: list[str] = []
+
+    def stats(self, org_id):
+        return {"node_count": 835, "by_language": {"java": 835}}
+
+    def has_package_qualified_names(self, org_id, language):
+        return self.qualified
+
+    def vulnerable_reachability(self, org_id, cve_id, pattern):
+        self.asked.append(pattern)
+        return self.callers.get(pattern, [])
+
+    def record_finding_verdict(self, *a, **k):
+        return None
+
+
+def test_a_receiver_only_java_graph_still_answers_nothing() -> None:
+    """Measured: petclinic before import resolution has 0 head-anchored nodes."""
+    assert not _package_query_is_answerable(
+        {"source_tool": "maven", "package_name": "org.postgresql:postgresql"},
+        _Graph(qualified=False),
+        "t1",
+    )
+
+
+def test_an_import_resolved_java_graph_can_answer() -> None:
+    """Measured: the same 50 files, re-parsed, have 60."""
+    assert _package_query_is_answerable(
+        {"source_tool": "maven", "package_name": "org.postgresql:postgresql"},
+        _Graph(qualified=True),
+        "t1",
+    )
+
+
+def test_a_probe_failure_never_asserts_safety() -> None:
+    class Exploding(_Graph):
+        def has_package_qualified_names(self, org_id, language):
+            raise RuntimeError("db gone")
+
+    assert not _package_query_is_answerable(
+        {"source_tool": "maven", "package_name": "org.postgresql:postgresql"},
+        Exploding(qualified=True),
+        "t1",
+    )
+
+
+def test_no_engine_means_no_elimination() -> None:
+    assert not _package_query_is_answerable(
+        {"source_tool": "maven", "package_name": "org.postgresql:postgresql"}, None, "t1"
+    )
+
+
+def test_a_maven_coordinate_becomes_a_groupid_prefix() -> None:
+    """``f"{package}.%"`` on a coordinate builds
+    ``org.postgresql:postgresql.%`` — a query that cannot match anything, whose
+    empty result was read as "unreachable". The classes live under the groupId.
+    """
+    from core.brain_pipeline import _package_fqn_prefix
+
+    assert _package_fqn_prefix("org.postgresql:postgresql") == "org.postgresql"
+    assert _package_fqn_prefix("com.h2database:h2") == "com.h2database"
+    # PyPI and npm names are already the prefix and must not be touched.
+    assert _package_fqn_prefix("requests") == "requests"
+    assert _package_fqn_prefix("@babel/core") == "@babel/core"
