@@ -30,9 +30,26 @@ function envOr(value: unknown, fallback: string): string {
   return s || fallback;
 }
 
+/**
+ * SAME-ORIGIN fallback, not localhost.
+ *
+ * .env.production deliberately sets VITE_API_URL to empty, so envOr fell
+ * through to this literal — and the console then called http://localhost:8000
+ * from whatever host it was actually served on. Observed on 127.0.0.1:8001:
+ *
+ *   Connecting to 'http://localhost:8000/api/v1/findings' violates the
+ *   following Content Security Policy directive: "connect-src 'self'"
+ *
+ * Every call blocked, the screen rendering empty, and no error visible to the
+ * user — the demo looks like a product with no data. It "worked" only because
+ * the documented demo happens to run on port 8000 too. Any customer deploying
+ * on their own host or port got a dead console.
+ *
+ * The API serves this SPA, so its origin IS the API origin.
+ */
 const API_BASE = envOr(
   import.meta.env.VITE_API_BASE_URL ?? import.meta.env.VITE_API_URL,
-  "http://localhost:8000",
+  typeof window !== "undefined" ? window.location.origin : "",
 );
 const API_KEY = envOr(import.meta.env.VITE_API_KEY, "uat-token");
 

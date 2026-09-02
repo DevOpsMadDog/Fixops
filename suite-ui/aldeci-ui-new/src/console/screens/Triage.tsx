@@ -54,34 +54,61 @@ export function TriageScreen() {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Panel title="Act now">
-          <Metric
-            value={byVerdict.act_now ?? 0}
-            label="reachable and exploited"
-            tone={byVerdict.act_now ? "urgent" : "muted"}
-          />
+      {/*
+        COUNTERS ONLY WHEN THE FETCH ACTUALLY SUCCEEDED.
+        These read findings.data directly, so a failed request left data null,
+        rows [], and every tile rendered a confident 0 — "Act now: 0" reads as
+        "nothing to do tonight" when the truth is "nothing loaded". Observed on
+        127.0.0.1:8001, where /api/v1/findings answered 403 and the screen still
+        showed four zeros with no indication anything was wrong.
+
+        The list below always used Resolve; the tiles above it bypassed it,
+        which is exactly how absence gets rendered as safety.
+      */}
+      {findings.state === "loading" || findings.state === "error" || findings.state === "unconfigured" ? (
+        <Panel title="Queue summary">
+          <Resolve
+            result={findings}
+            what="the queue summary"
+            empty={{
+              headline: "No findings yet.",
+              because:
+                "Nothing has been ingested for this tenant, so there is nothing to count.",
+            }}
+          >
+            {() => null}
+          </Resolve>
         </Panel>
-        <Panel title="Schedule">
-          <Metric value={byVerdict.schedule ?? 0} label="reachable, not exploited" />
-        </Panel>
-        <Panel title="Watch">
-          <Metric value={byVerdict.watch ?? 0} label="exploited, not reachable" />
-        </Panel>
-        <Panel title="Open total">
-          <Metric
-            value={findings.data?.total ?? rows.length}
-            label="after deduplication"
-            note={
-              dedup.state === "data"
-                ? `dedup active`
-                : dedup.state === "error"
-                  ? "dedup stats unavailable"
-                  : undefined
-            }
-          />
-        </Panel>
-      </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Panel title="Act now">
+            <Metric
+              value={byVerdict.act_now ?? 0}
+              label="reachable and exploited"
+              tone={byVerdict.act_now ? "urgent" : "muted"}
+            />
+          </Panel>
+          <Panel title="Schedule">
+            <Metric value={byVerdict.schedule ?? 0} label="reachable, not exploited" />
+          </Panel>
+          <Panel title="Watch">
+            <Metric value={byVerdict.watch ?? 0} label="exploited, not reachable" />
+          </Panel>
+          <Panel title="Open total">
+            <Metric
+              value={findings.data?.total ?? rows.length}
+              label="after deduplication"
+              note={
+                dedup.state === "data"
+                  ? `dedup active`
+                  : dedup.state === "error"
+                    ? "dedup stats unavailable"
+                    : undefined
+              }
+            />
+          </Panel>
+        </div>
+      )}
 
       <Panel
         title="Open findings"

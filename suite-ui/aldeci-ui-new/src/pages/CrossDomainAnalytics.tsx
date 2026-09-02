@@ -17,7 +17,12 @@ import { Database, Search, Shield, AlertTriangle, RefreshCw, BarChart3, Globe, A
 // ── API helpers ────────────────────────────────────────────────
 import { getStoredAuthToken, getStoredOrgId } from "@/lib/api";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// Same-origin by default. A hardcoded http://localhost:8000 fallback means
+// the browser calls a host that is not this deployment: on any other port
+// the CSP "connect-src 'self'" blocks it outright and the page renders
+// empty with no visible error. Observed on 127.0.0.1:8001 —
+// /api/v1/findings and /api/v1/deduplication/stats both refused.
+import { API_BASE_URL as API_BASE } from "@/lib/api-config";
 // NO MOCKS: real authenticated token + the caller's real org (was a hardcoded demo org +
 // build-time dev-key that always 401'd).
 const ORG_ID = getStoredOrgId() ?? "default";
