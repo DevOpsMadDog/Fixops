@@ -46,6 +46,7 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets as _secrets
 from typing import Optional
 
 import jwt
@@ -75,18 +76,66 @@ def _load_api_tokens() -> tuple[str, ...]:
 
 
 def _load_jwt_secret() -> Optional[str]:
-    """Load JWT secret from environment.  Returns None if absent or too short."""
+    """The one JWT key this process signs AND verifies with.
+
+    THREE resolvers used to generate their own key independently —
+    ``auth_router._get_dev_jwt_secret``, ``app._load_or_generate_jwt_secret``
+    and this one — so with FIXOPS_JWT_SECRET unset, login signed a token with
+    one random key while verification used another. Measured end to end:
+
+        POST /api/v1/auth/login    -> 200, a 436-char JWT
+        GET  /api/v1/findings      -> 403 with that exact token
+        POST /api/v1/scanner-ingest/upload -> 401
+
+    A customer logs in successfully and every screen stays empty. Signing with
+    key A and verifying with key B is the same class of defect as writing
+    ``rule_id`` and reading ``cve_id``.
+
+    An unset secret now yields ONE process-wide ephemeral key, shared by signer
+    and verifier. This does not weaken anything: the key is 64 random hex chars,
+    so tokens remain unforgeable, and every endpoint still demands a credential.
+    What it costs is persistence — sessions end at the next restart — which is
+    why the warning is loud. Following app.py, it is deliberately NOT written to
+    disk.
+
+    A secret that IS set but is too short still returns None. That is an
+    operator error which would genuinely weaken signing, and silently upgrading
+    it to a strong random key would hide the misconfiguration instead of
+    surfacing it.
+    """
     secret = os.getenv("FIXOPS_JWT_SECRET", "").strip()
-    if not secret:
-        return None
-    if len(secret) < _MIN_JWT_SECRET_LENGTH:
+    if secret and len(secret) < _MIN_JWT_SECRET_LENGTH:
         logger.warning(
             "JWT signing key is only %d chars (minimum %d) — JWT auth disabled.",
             len(secret),
             _MIN_JWT_SECRET_LENGTH,
         )
         return None
-    return secret
+    if secret:
+        return secret
+    generated = _secrets.token_hex(32)
+    # PUBLISH it into the process environment.
+    #
+    # Generating into a module-level constant is not enough: under uvicorn this
+    # module is executed TWICE (the ephemeral-key warning was observed logged
+    # twice in a single server run), so each instance minted its own key and
+    # login still signed with one while verification used the other — the exact
+    # symptom this fallback was added to cure, 200 on /auth/login and 403 on
+    # every data endpoint.
+    #
+    # Writing it back to the environment makes the FIRST generation win for
+    # every later reader, including the two other resolvers
+    # (auth_router._get_dev_jwt_secret and app._load_or_generate_jwt_secret)
+    # which already read this variable. One key, process-wide, still never
+    # written to disk.
+    os.environ["FIXOPS_JWT_SECRET"] = generated
+    logger.warning(
+        "FIXOPS_JWT_SECRET is not set — signing and verifying JWTs with an "
+        "ephemeral process-scoped key. Logins work, but every session ends at "
+        "the next restart. Set FIXOPS_JWT_SECRET to a random 32+ char string "
+        "for persistent sessions."
+    )
+    return generated
 
 
 def _is_dev_mode() -> bool:

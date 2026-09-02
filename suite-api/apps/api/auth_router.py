@@ -744,10 +744,41 @@ _LOCKOUT_SECONDS = 900  # 15 minutes
 
 
 def _get_login_jwt_secret() -> str:
-    secret = os.getenv("FIXOPS_JWT_SECRET", "").strip()
-    if len(secret) < 32:
-        raise HTTPException(status_code=503, detail="JWT auth not configured (FIXOPS_JWT_SECRET missing or too short)")
-    return secret
+    """The signing key for real user login.
+
+    This used to 503 whenever FIXOPS_JWT_SECRET was unset, while
+    _get_dev_jwt_secret() thirty lines above fell back to an ephemeral
+    process-scoped key, and app.py's _load_or_generate_jwt_secret() did the
+    same. Three resolvers, one of them stricter than the other two, and the
+    strict one guarded the path a customer actually uses.
+
+    The observed consequence, on a stock `docker compose up` (which defaults
+    FIXOPS_JWT_SECRET to empty):
+
+        POST /api/v1/auth/signup  -> 201, real org-scoped API key issued
+        POST /api/v1/auth/login   -> 503 "JWT auth not configured"
+
+    A prospect creates an account and is then locked out of the product. That
+    is not a security posture, it is a broken install — nothing is protected by
+    refusing to sign a token when a perfectly good random key is already
+    available in the process.
+
+    So: unset falls back to the SAME ephemeral key the dev path uses, and says
+    plainly that tokens will not survive a restart. Present-but-too-short still
+    refuses loudly — a short key is an operator error that would genuinely
+    weaken token signing, and silently upgrading it would hide that.
+    """
+    # Sign with the key auth_deps VERIFIES with. Using a locally-generated
+    # ephemeral value here is what produced a 200 login whose token every
+    # endpoint then rejected.
+    from apps.api.auth_deps import _JWT_SECRET as _VERIFIER_SECRET
+
+    if _VERIFIER_SECRET:
+        return _VERIFIER_SECRET
+    raise HTTPException(
+        status_code=503,
+        detail="FIXOPS_JWT_SECRET is too short (minimum 32 chars) — JWT auth not configured.",
+    )
 
 
 def _check_login_rate_limit(email: str) -> None:

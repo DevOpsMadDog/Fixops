@@ -51,7 +51,53 @@ const API_BASE = envOr(
   import.meta.env.VITE_API_BASE_URL ?? import.meta.env.VITE_API_URL,
   typeof window !== "undefined" ? window.location.origin : "",
 );
-const API_KEY = envOr(import.meta.env.VITE_API_KEY, "uat-token");
+/**
+ * RESOLVED AT REQUEST TIME, not at module load.
+ *
+ * This was a module-level const evaluated ONCE when the file loads, which is
+ * before anyone has logged in. .env.production blanks VITE_API_KEY, so every
+ * console request carried the literal "uat-token" forever and every screen
+ * 401'd. Logging in changed nothing, because the token the login flow writes to
+ * localStorage was never read. The console was unreachable for a real customer.
+ *
+ * lib/api-config.ts already documents this exact failure and exists to prevent
+ * it ("Always prefer getApiKey() over the static const for outgoing requests").
+ * This file repeated it.
+ *
+ * There is deliberately NO "uat-token" fallback now: a hardcoded demo token
+ * that silently works on a dev box is how an unauthenticated console comes to
+ * look authenticated. No token means 401, and the screen now says so.
+ */
+import { getApiKey } from "@/lib/api-config";
+
+/**
+ * A JWT goes in Authorization, an API key goes in X-API-Key. Sending the wrong
+ * one is not a soft failure.
+ *
+ * Measured end to end against a live server, with a token from
+ * POST /api/v1/auth/login:
+ *
+ *   X-API-Key: <jwt>        -> 403 {"detail":"Invalid API token",
+ *                                   "hint":"Your role doesn't have access"}
+ *   Authorization: Bearer   -> 200 {"org_id":"org-3be0c781…","findings":[]}
+ *
+ * The console sent every credential as X-API-Key, so a customer could sign up,
+ * log in, receive a valid token — and still see 403 on every screen, with a
+ * hint blaming their ROLE for what was actually the wrong header.
+ *
+ * Detected by SHAPE rather than by the stored "aldeci.authStrategy" flag: a JWT
+ * is three dot-separated base64url segments beginning with "eyJ" ({" encoded),
+ * which is self-correcting, whereas a flag is one more thing the login flow has
+ * to remember to set.
+ */
+function authHeaders(): Record<string, string> {
+  const token = getApiKey();
+  if (!token) return {};
+  const looksLikeJwt = token.split(".").length === 3 && token.startsWith("eyJ");
+  return looksLikeJwt
+    ? { Authorization: `Bearer ${token}` }
+    : { "X-API-Key": token };
+}
 
 /**
  * Five states, and the fourth one is the whole reason this union exists.
@@ -95,7 +141,7 @@ function isEmpty(value: unknown): boolean {
 export async function apiGet<T = unknown>(path: string): Promise<Result<T>> {
   try {
     const response = await fetch(`${API_BASE}${path}`, {
-      headers: { "X-API-Key": API_KEY },
+      headers: { ...authHeaders() },
     });
 
     if (!response.ok) {
@@ -149,7 +195,7 @@ export async function apiPost<T = unknown>(path: string, body: unknown): Promise
   try {
     const response = await fetch(`${API_BASE}${path}`, {
       method: "POST",
-      headers: { "X-API-Key": API_KEY, "Content-Type": "application/json" },
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     const text = await response.text();
@@ -179,7 +225,7 @@ export async function uploadScan<T = unknown>(file: File, scannerType: string): 
   try {
     const response = await fetch(`${API_BASE}/api/v1/scanner-ingest/upload`, {
       method: "POST",
-      headers: { "X-API-Key": API_KEY },
+      headers: { ...authHeaders() },
       body: form,
     });
     const data = await response.json();
