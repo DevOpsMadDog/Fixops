@@ -23,9 +23,65 @@ Any new writer must call ``correlation_key`` rather than building its own.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+import re
+from typing import Any, Dict, Optional
 
-__all__ = ["correlation_key", "location_key"]
+__all__ = ["advisory_id", "correlation_key", "location_key"]
+
+
+ADVISORY_ID_RE = re.compile(
+    r"\b(?:CVE-\d{4}-\d{4,}"
+    r"|GHSA-[23456789cfghjmpqrvwx]{4}-[23456789cfghjmpqrvwx]{4}-[23456789cfghjmpqrvwx]{4}"
+    r"|PYSEC-\d{4}-\d+"
+    r"|OSV-\d{4}-\d+"
+    r"|GO-\d{4}-\d+"
+    r"|RUSTSEC-\d{4}-\d+"
+    r"|DSA-\d+-\d+|USN-\d+-\d+|RHSA-\d{4}:\d+"
+    r"|SNYK-[A-Z0-9]+-[A-Z0-9]+-\d+)\b",
+    re.IGNORECASE,
+)
+
+
+def advisory_id(finding: Dict[str, Any]) -> str:
+    """The vulnerability identifier, wherever the normaliser actually put it.
+
+    Scanner ingest wrote ``cve_id`` from ``cve_id``/``cve`` only, and the SARIF
+    normaliser puts the advisory in ``rule_id``. So a SARIF result for a real
+    CVE was stored with an EMPTY cve_id, and every downstream join — EPSS, KEV,
+    exploitability, reachability — had nothing to match on.
+
+    Observed end to end: a finding whose correlation key was
+    ``semgrep|CVE-2002-0367|app/handler.py:12`` (a CVE that IS in our 1,568-row
+    KEV table) stored as::
+
+        cve_id     = ''
+        epss_score = None
+        kev_listed = None
+        exploitability = 'insufficient_evidence'   confidence 'none'
+
+    The identifier was known at ingest and thrown away one field later. Same
+    defect as the pipeline gating on ``cve_id`` while SARIF wrote ``rule_id``,
+    which showed "Assessed: 0" on 2,344 findings.
+
+    ONLY returns a value that LOOKS like an advisory id. A SARIF ruleId is
+    frequently not one — "sql-injection", "hardcoded-secret" — and writing that
+    into ``cve_id`` would invent a CVE that does not exist, which is worse than
+    the empty field it replaced.
+    """
+    for field in ("cve_id", "cve", "rule_id", "vulnerability_id", "advisory_id"):
+        value = str(finding.get(field) or "").strip()
+        if not value:
+            continue
+        match = ADVISORY_ID_RE.search(value)
+        if match:
+            found = match.group(0)
+            # CVE ids are conventionally upper-case and scanners emit both, so
+            # normalise those. GHSA/PYSEC and friends are NOT upper-cased: a
+            # GHSA id is lower-case by convention and our feed tables store it
+            # that way, so shouting it would miss the very lookup this exists
+            # to enable.
+            return found.upper() if found[:3].lower() == "cve" else found
+    return ""
 
 
 # File FORMATS, not tools. SARIF, CycloneDX and friends are envelopes that carry

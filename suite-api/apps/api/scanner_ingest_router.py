@@ -348,7 +348,10 @@ def _promote_findings_to_issues(
             # Correlation key comes from core.finding_identity so that the
             # pipeline mirror derives the SAME key. They used to differ in the
             # location component, and a 96-finding scan became 192 stored rows.
-            from core.finding_identity import correlation_key as _corr
+            from core.finding_identity import (
+                advisory_id as _advisory,
+                correlation_key as _corr,
+            )
 
             corr_key = _corr(f, scanner)
             engine.record_finding(
@@ -376,7 +379,16 @@ def _promote_findings_to_issues(
                 #     product's whole verdict story never applied to them.
                 # The pipeline mirror was fixed for this; the direct ingest path
                 # was not, and one fix does not cover two doors.
-                cve_id=str(f.get("cve_id") or f.get("cve") or ""),
+                # The SARIF normaliser puts the advisory in rule_id and leaves
+                # cve_id unset, so reading cve_id/cve alone stored an EMPTY
+                # identifier for a real CVE — and EPSS, KEV, exploitability and
+                # reachability all had nothing to join on. Observed: a finding
+                # keyed semgrep|CVE-2002-0367|... (a CVE in our KEV table)
+                # stored with cve_id='', epss_score=None, kev_listed=None.
+                # advisory_id() only returns something that LOOKS like an
+                # advisory, so a ruleId of "sql-injection" still stores empty
+                # rather than inventing a CVE.
+                cve_id=_advisory(f),
                 file_path=str(f.get("file_path") or ""),
                 line_number=f.get("line") or f.get("line_number"),
                 package_name=str(f.get("package_name") or f.get("component") or f.get("pkg_name") or ""),

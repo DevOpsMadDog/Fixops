@@ -81,7 +81,11 @@ def test_neither_writer_builds_its_own_key_any_more() -> None:
     mirror = (REPO / "suite-core/core/brain_pipeline.py").read_text()
 
     for name, src in (("scanner_ingest_router", ingest), ("brain_pipeline", mirror)):
-        assert "from core.finding_identity import correlation_key" in src, (
+        # Assert the PROPERTY, not one spelling of the import. This used to
+        # match a single-line form and broke the moment the import became
+        # parenthesised to bring in advisory_id alongside — a passing test
+        # turning red on a change that was entirely correct.
+        assert "core.finding_identity" in src and "correlation_key" in src, (
             f"{name} no longer uses the shared derivation"
         )
         assert 'f"{source_tool}|' not in src and 'f"{scanner}|' not in src, (
@@ -139,3 +143,58 @@ def test_a_real_scanner_name_passes_through_untouched() -> None:
 
     finding = {"rule_id": "CVE-1", "package_name": "p", "package_version": "1"}
     assert correlation_key(finding, "trivy") == "trivy|CVE-1|p@1"
+
+
+# --- the advisory identifier: which FIELD it landed in must not decide -------
+
+
+def test_a_sarif_ruleid_cve_is_recovered() -> None:
+    """SARIF puts the advisory in rule_id and leaves cve_id unset.
+
+    Measured against feeds holding 327,252 EPSS rows and 1,568 KEV entries, on
+    a finding for CVE-2002-0367 (which IS in that KEV table):
+
+        rule_id only, cve_id None -> epss None, kev None,
+                                     verdict "insufficient_evidence" / none
+        cve_id set                -> epss 0.04919, kev True,
+                                     verdict "exploited_unknown_reach" / measured
+
+    Same input, same feeds. The entire moat turned on which field the
+    identifier happened to land in.
+    """
+    from core.finding_identity import advisory_id
+
+    assert advisory_id({"rule_id": "CVE-2002-0367"}) == "CVE-2002-0367"
+    assert advisory_id({"cve_id": None, "rule_id": "GHSA-jfh8-c2jp-5v3q"}) == (
+        "GHSA-jfh8-c2jp-5v3q"
+    )
+
+
+def test_a_non_advisory_rule_id_is_never_promoted_to_a_cve() -> None:
+    """The failure that would be worse than the empty field it replaced.
+
+    Most SARIF ruleIds are not advisories — "sql-injection", "hardcoded-secret".
+    Writing one into cve_id would invent a CVE that does not exist, and every
+    downstream lookup would then be searching for a fiction.
+    """
+    from core.finding_identity import advisory_id
+
+    for rule in ("sql-injection", "hardcoded-secret", "py/weak-crypto", ""):
+        assert advisory_id({"rule_id": rule}) == "", rule
+
+
+def test_cve_case_is_normalised_but_ghsa_case_is_not() -> None:
+    """CVE ids are conventionally upper-case and scanners emit both. GHSA ids
+    are lower-case by convention and our feed tables store them that way —
+    shouting one would miss the very lookup this exists to enable."""
+    from core.finding_identity import advisory_id
+
+    assert advisory_id({"rule_id": "cve-2002-0367"}) == "CVE-2002-0367"
+    assert advisory_id({"rule_id": "GHSA-jfh8-c2jp-5v3q"}) == "GHSA-jfh8-c2jp-5v3q"
+
+
+def test_an_explicit_cve_id_wins_over_rule_id() -> None:
+    from core.finding_identity import advisory_id
+
+    finding = {"cve_id": "CVE-2021-44228", "rule_id": "GHSA-jfh8-c2jp-5v3q"}
+    assert advisory_id(finding) == "CVE-2021-44228"

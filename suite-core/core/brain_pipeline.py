@@ -381,6 +381,22 @@ def _finding_language(finding: Dict[str, Any]) -> str:
     return _TOOL_LANGUAGE.get(tool, "")
 
 
+def _advisory_identifier(finding: Dict[str, Any]) -> str:
+    """Pattern-checked advisory id, for writing into ``cve_id``.
+
+    ``_advisory_id`` below returns whatever the first populated field holds and
+    is right for GATING. This one only returns a value that LOOKS like an
+    advisory, because a SARIF ruleId is often "sql-injection" and storing that
+    as a CVE would invent one.
+    """
+    try:
+        from core.finding_identity import advisory_id as _shared
+
+        return _shared(finding)
+    except Exception:  # noqa: BLE001 - never fail a run over an id lookup
+        return ""
+
+
 def _advisory_id(finding: Dict[str, Any]) -> str:
     """The vulnerability's identifier, wherever the normaliser put it.
 
@@ -2949,6 +2965,31 @@ class BrainPipeline:
         2. Local feed databases (data/feeds/feeds.db — 317K EPSS + 1.5K KEV)
         3. Severity-based estimates (last resort, marked as estimated)
         """
+        # RESOLVE the identifier before looking anything up, and write it back.
+        #
+        # The GATE below was fixed to accept any advisory id; this LOOKUP list
+        # was not, and still read cve_id alone. The SARIF normaliser puts the
+        # advisory in rule_id and leaves cve_id None, so for SARIF input the
+        # enricher searched for nothing.
+        #
+        # Measured against feeds holding 327,252 EPSS rows and 1,568 KEV
+        # entries, on a finding for CVE-2002-0367 (which IS in that KEV table):
+        #
+        #   rule_id only, cve_id None -> epss None, kev None,
+        #                                verdict "insufficient_evidence" / none
+        #   cve_id set                -> epss 0.04919, kev True,
+        #                                verdict "exploited_unknown_reach" / measured
+        #
+        # Same input, same feeds, and the whole moat turns on which field the
+        # identifier happened to land in. Writing the resolved id back onto the
+        # finding also carries it to the store, so the row a customer sees
+        # holds the CVE rather than an empty column.
+        for _f in ctx["findings"]:
+            if not _f.get("cve_id"):
+                resolved = _advisory_identifier(_f)
+                if resolved:
+                    _f["cve_id"] = resolved
+
         cve_ids = [f["cve_id"] for f in ctx["findings"] if f.get("cve_id")]
 
         # Gate on ANY advisory identifier, not on CVEs alone.
