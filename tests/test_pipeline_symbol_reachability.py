@@ -234,3 +234,48 @@ def test_an_unknown_bundle_age_makes_no_claim() -> None:
 
     assert "exploitability_evidence_age_days" not in finding
     assert "exploitability_evidence_stale" not in finding
+
+
+def test_a_java_package_query_is_undetermined_not_unreachable(monkeypatch) -> None:
+    """The Java graph cannot contain the answer, so it must not supply one.
+
+    Measured on spring-petclinic: 835 nodes, ZERO beginning with any dependency
+    package path, because a Java call site is named by its receiver
+    (``Assert.notNull``) while the package lives in an import the parser drops.
+    The pipeline's ``postgresql.%`` fallback therefore returns nothing whether
+    or not the driver is used.
+
+    Before this guard the empty result became "unreachable" WITH a priority
+    downgrade — 14 of 21 real Maven advisories silently eliminated on a question
+    that could never have answered. The engine below returns nothing for every
+    pattern, exactly like the real one.
+    """
+    engine = _FakeEngine({}, by_language={"java": 835}, nodes=835)
+    finding = _run(
+        monkeypatch,
+        {"source_tool": "maven", "cve_id": "GHSA-h86w-m5rm-xr33",
+         "package_name": "postgresql", "consensus_priority": 1},
+        engine,
+    )
+    assert finding["reachability_verdict"] == "undetermined", (
+        "a Java package query returned a safety claim it cannot support"
+    )
+    # Observed pre-fix: verdict "unreachable" and consensus_priority 1 -> 2.
+    # The downgrade is the part that actually hurt — it moved a real finding
+    # down the queue on no evidence.
+    assert finding["consensus_priority"] == 1, "an unanswerable query moved priority"
+
+
+def test_the_java_guard_does_not_disarm_python_elimination(monkeypatch) -> None:
+    """Same shape of query, an ecosystem that CAN answer it, still eliminated.
+
+    84% of Python findings rest on this path. A fix for Java that turned it off
+    everywhere would be a worse regression than the bug it closed.
+    """
+    engine = _FakeEngine({}, by_language={"python": 1000})
+    finding = _run(
+        monkeypatch,
+        _python_finding(cve_id="CVE-2026-1", package_name="requests", priority=1),
+        engine,
+    )
+    assert finding["reachability_verdict"] == "unreachable"

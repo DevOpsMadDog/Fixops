@@ -41,7 +41,17 @@ __all__ = ["AdvisorySymbols", "extract_symbols"]
 _BACKTICKED = re.compile(r"`([a-z_][a-z0-9_]{3,})`")
 
 # A dotted path is better evidence than a bare name and is taken when present.
-_DOTTED = re.compile(r"`([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*)+)`")
+# Segments after the first may be CamelCase, because the last one is often a
+# CLASS: `cryptography.fernet.Fernet`, `django.db.models.Q`. Requiring every
+# segment to be lowercase did not merely trim those tails — it failed the whole
+# match, because the closing backtick then had nowhere to land, so the path was
+# dropped entirely and silently.
+#
+# Measured: a positive control naming `cryptography.fernet.Fernet`, a symbol
+# that IS in the FixOps graph, produced zero patterns and therefore could never
+# be reported reachable. The head stays lowercase-only: module roots are
+# lowercase, and the head is what the package check compares against.
+_DOTTED = re.compile(r"`([a-z_][a-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+)`")
 
 # Advisories backtick HOSTNAMES constantly, and a hostname is shaped exactly
 # like a module path. This was not hypothetical: run end-to-end against live
@@ -104,6 +114,39 @@ _NOT_SYMBOLS = frozenset(
         "enabled", "disabled", "verify", "validate",
     }
 )
+
+
+def _is_bare_english_word(symbol: str) -> bool:
+    """Is this undotted token a plain word rather than a function name?
+
+    Measured on 21 real Maven advisories for spring-petclinic, the undotted
+    tokens surviving into rule-outs were:
+
+        sslmode  required  prefer  allow  disable  extended
+        sslfactory  sslhostnameverifier  sslpasswordcallback
+
+    Every one is a JDBC **connection parameter or its value**, lifted out of
+    prose like ``sslmode=require``. None is a method. Ruling a finding out
+    because the call graph contains no function named ``prefer`` is the
+    ``cookies`` mistake for a third time — 5 of 7 Java eliminations rested on
+    vocabulary like this, a precision of about 29%.
+
+    A real method name carries a shape that an English word does not: an
+    underscore (``pkcs7_decrypt_der``, how Python advisories name functions) or
+    an internal capital (``refreshRow``, ``getSource`` — the two Java rule-outs
+    that WERE sound). A single all-lowercase run of letters has neither.
+
+    This costs recall on genuinely lowercase one-word functions (``loads``,
+    ``dump``). That is the right trade: those are also the tokens most likely to
+    collide with ordinary prose, and losing a rule-out only yields
+    "undetermined", while a wrong one yields a safety claim.
+    """
+    token = symbol.strip()
+    if not token or "_" in token:
+        return False
+    if any(character.isupper() for character in token):
+        return False
+    return token.isalpha()
 
 
 @dataclass
@@ -177,6 +220,8 @@ class AdvisorySymbols:
         # here silently disarmed every Python rule-out.
         for symbol in self.dotted_paths + self.calls + self.symbols:
             if "." not in symbol:
+                if _is_bare_english_word(symbol):
+                    continue
                 keep.append(symbol)
                 continue
             if symbol.split(".", 1)[0].lower().replace("-", "_") == head:
@@ -208,7 +253,12 @@ class AdvisorySymbols:
             candidate = f"{path}%"
             if candidate not in seen:
                 seen.append(candidate)
-        for symbol in [x for x in self.symbols if x in trustworthy or "." not in x]:
+        # `or "." not in x` used to sit here, and it re-admitted EVERY undotted
+        # symbol after rule_out_symbols had just rejected it — so the filters
+        # above protected nothing on this path, which is the path that ships.
+        # `trustworthy` already keeps the legitimate bare names (an underscore
+        # or an internal capital); the bypass only let the English words back in.
+        for symbol in [x for x in self.symbols if x in trustworthy]:
             candidate = f"{package}.%{symbol}%" if package else f"%{symbol}%"
             if candidate not in seen:
                 seen.append(candidate)

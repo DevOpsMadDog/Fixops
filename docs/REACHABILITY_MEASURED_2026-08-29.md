@@ -507,3 +507,96 @@ axios is imported in five files and called through instances, never as
 across 6 packages, almost all axios, against one small UI. Compared with 120
 advisories over 24 packages for Python, this is a single-library result. It is
 evidence that the method transfers to TypeScript, not yet a figure to quote.
+
+---
+
+# Java, and the correction it forced
+
+`parse_java_repo` had shipped for months and had never been run. Running it on
+spring-petclinic (50 files) produced **835 nodes / 1,507 edges** — the parser
+works. Everything after that was bad news, and it invalidates the numbers in the
+section above.
+
+## 1. A Java package query cannot be answered, and was being answered anyway
+
+Java call sites in the graph are named by their **receiver**: `Assert.notNull`,
+`Arrays.sort`, `"A".repeat`. The package lives in an `import` at the top of the
+file and the parser, which walks `method_invocation` nodes, never sees it. Count
+of nodes beginning `org.postgresql.` / `org.springframework.` / `java.sql.` /
+`org.h2.`: **zero**. Python is the opposite — `requests.get` carries its package
+in the expression itself, and the FixOps graph holds 114 nodes under `requests.%`.
+
+So the pipeline's package fallback, `f"{package}.%"`, searches for `postgresql.%`
+in a graph where nothing can ever match — and the empty result was read as
+**"unreachable"**, with a priority downgrade attached. Observed directly:
+
+```
+PRE-FIX   verdict='unreachable'   consensus_priority 1 -> 2
+POST-FIX  verdict='undetermined'  consensus_priority 1 -> 1
+```
+
+14 of 21 real Maven advisories were being eliminated on a question that could
+not have returned anything. `_PACKAGE_QUALIFIED_LANGUAGES` now gates the
+package-granularity elimination to the ecosystems where it is answerable, and
+Go and Rust are deliberately **not** in the set — nobody has counted their nodes
+either, and that is the standard Java was just held to.
+
+## 2. The filters were not protecting the path that ships
+
+`rule_out_symbols` rejected untrustworthy tokens; `reachability_patterns` then
+re-admitted them one line later:
+
+```python
+for symbol in [x for x in self.symbols if x in trustworthy or "." not in x]:
+```
+
+`or "." not in x` let every undotted symbol back in **after** it had been
+rejected. The `87% → tightened` story in the section above was therefore
+measured through a path where the tightening did not apply.
+
+## 3. English words were being used as symbols
+
+The undotted tokens surviving into Java rule-outs were `sslmode`, `required`,
+`prefer`, `allow`, `disable`, `extended`, `sslfactory`, `sslhostnameverifier`,
+`sslpasswordcallback` — every one a JDBC connection parameter or its value,
+lifted from prose like `sslmode=require`. Only `getSource` and `refreshRow` were
+real methods: precision about **29%**. A real method name carries an underscore
+(`pkcs7_decrypt_der`) or an internal capital (`refreshRow`); a bare all-lowercase
+word does not.
+
+## 4. And the detector was half dead
+
+A positive control — advisory prose naming `cryptography.fernet.Fernet`, a
+symbol that is *in* the FixOps graph — produced **zero patterns**. `_DOTTED`
+required every segment to be lowercase, so a path ending in a class name failed
+the match *entirely* rather than being trimmed. Widened to allow a CamelCase
+tail, the control now fires:
+
+```
+caller core.utils.enterprise.crypto.encrypt_data -> cryptography.fernet.Fernet
+```
+
+All seven guard cases (hostname, filename, version string, builtin, property)
+still reject. No catastrophic backtracking: 0.4s on 10K pathological chars.
+
+## The corrected numbers
+
+Measured through the **shipping** `reachability_patterns()`, not a
+reimplementation — hand-rolling the patterns is what hid this, and the tell was
+two different Python graphs returning byte-identical results.
+
+| codebase | graph | eliminated | undetermined |
+|---|---|---|---|
+| Python / FixOps | 72,050 | **56%** (68/120) | 43% (52/120) |
+| Python / Airflow | 118,302 | **56%** (68/120) | 43% (52/120) |
+| TypeScript / UI | 12,590 | **65%** (15/23) | 35% (8/23) |
+| Java / petclinic | 835 | **9%** (2/21) | 90% (19/21) |
+
+**These supersede the 84% / 82% / 91% recorded above.** Those were inflated by
+the bypass in §2 and the vocabulary in §3. The identical Python rows are not a
+bug: with nothing confirmed reachable in either, "eliminated" reduces to "cases
+that produced a pattern", which is a property of the advisories rather than of
+the graph.
+
+Java at 9% is the honest state of a first run: the graph is real, and almost
+nothing can currently query it.

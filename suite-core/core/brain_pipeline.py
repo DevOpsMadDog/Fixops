@@ -294,6 +294,44 @@ _TOOL_LANGUAGE = {
 }
 
 
+# Languages whose call graphs record PACKAGE-QUALIFIED call targets.
+#
+# This is the difference between a package-level query being answerable and it
+# being meaningless, and it is not a style preference — it is how each parser
+# can name a call site at all.
+#
+# Python and JavaScript write the import name into the call expression itself,
+# so ``requests.get`` appears verbatim in the source and lands in the graph as
+# a node: measured, 114 nodes under ``requests.%`` in the FixOps graph.
+#
+# Java does not. A Java call site is ``Assert.notNull(...)``; the package
+# ``org.springframework.util`` lives in an *import statement* at the top of the
+# file, and the parser (which walks ``method_invocation`` nodes) never sees it.
+# Measured on spring-petclinic: 835 nodes, and the number beginning
+# ``org.postgresql.``, ``org.springframework.``, ``java.sql.`` or ``org.h2.``
+# is ZERO. Every Java node is named by its receiver expression.
+#
+# So the package fallback ``postgresql.%`` cannot match a Java graph no matter
+# what the code does — and "no callers" was being read as "not reachable".
+# That silently and confidently eliminated 14 of 21 real Maven advisories.
+# Until the Java parser resolves imports into fully-qualified names, a
+# package-granularity question about Java is UNANSWERABLE, and unanswerable
+# must return "undetermined" rather than a safety claim.
+_PACKAGE_QUALIFIED_LANGUAGES = frozenset({"python", "javascript", "typescript"})
+
+
+def _package_query_is_answerable(finding: Dict[str, Any]) -> bool:
+    """Can a package-prefix query about this finding mean anything?
+
+    An unknown language is treated as answerable, matching ``_graph_covers``:
+    with nothing better to go on, a non-empty graph is the best we can say.
+    """
+    language = _finding_language(finding)
+    if not language:
+        return True
+    return language in _PACKAGE_QUALIFIED_LANGUAGES
+
+
 def _finding_language(finding: Dict[str, Any]) -> str:
     explicit = (finding.get("language") or "").strip().lower()
     if explicit:
@@ -3215,6 +3253,12 @@ class BrainPipeline:
                 specific = bool(explicit or symbols)
                 if not callers and not _graph_covers(f):
                     # Nothing found, in a graph that cannot contain it.
+                    verdict = "undetermined"
+                elif not callers and not specific and not _package_query_is_answerable(f):
+                    # Nothing found, by a question this language cannot answer.
+                    # See _PACKAGE_QUALIFIED_LANGUAGES: a Java graph names call
+                    # sites by receiver, so `postgresql.%` matches nothing
+                    # whether or not the driver is used.
                     verdict = "undetermined"
                 elif not callers:
                     verdict = "unreachable"
