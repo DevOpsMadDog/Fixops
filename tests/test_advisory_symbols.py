@@ -107,7 +107,12 @@ def test_patterns_are_scoped_to_the_package_when_one_is_given() -> None:
     """
     got = extract_symbols(*CHAIN)
     assert got.reachability_patterns("cryptography") == ["cryptography.%build_chain_inner%"]
-    assert got.reachability_patterns() == ["%build_chain_inner%"]
+    # No package to scope it, so NO pattern — this used to assert
+    # ["%build_chain_inner%"], enshrining the unanchored query that produced a
+    # false act_now on the pipeline's copy of the same fallback. A bare symbol
+    # without a package is unanswerable, and the caller must get nothing back
+    # rather than a query that matches on substring.
+    assert got.reachability_patterns() == []
 
 
 def test_prose_nouns_in_backticks_are_not_treated_as_symbols() -> None:

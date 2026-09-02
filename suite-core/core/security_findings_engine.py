@@ -358,9 +358,31 @@ class SecurityFindingsEngine:
         # KEV"; NULL says "nobody checked". Defaulting to 0 would turn an
         # unenriched finding into a confident all-clear, which is the exact
         # failure this codebase keeps finding.
+        # A LEGACY schema may already have this column as NOT NULL DEFAULT 0.0.
+        #
+        # Found the hard way: adding the nullable column skipped silently
+        # because the name was already taken, and then binding None crashed
+        # ingest with "NOT NULL constraint failed: security_findings.epss_score".
+        # On a long-lived database this table also carries cvss_vector, is_kev
+        # and kev_due_date from an older build — 9,650 rows hold a non-zero
+        # epss_score and 2,273 a non-zero is_kev, so that is REAL DATA and the
+        # column must not be dropped and recreated to make it nullable.
+        #
+        # So: add it nullable when absent, and remember when the existing one
+        # cannot hold NULL. On such a database "unchecked" and "0.0" are
+        # indistinguishable — a limitation inherited from the old schema, not
+        # one this code should deepen by crashing.
         if "epss_score" not in cols:
             conn.execute("ALTER TABLE security_findings ADD COLUMN epss_score REAL")
             added_new_column = True
+            self._epss_nullable = True
+        else:
+            self._epss_nullable = not any(
+                row["name"] == "epss_score" and row["notnull"]
+                for row in conn.execute(
+                    "PRAGMA table_info(security_findings)"
+                ).fetchall()
+            )
         if "kev_listed" not in cols:
             conn.execute("ALTER TABLE security_findings ADD COLUMN kev_listed INTEGER")
             added_new_column = True
@@ -625,7 +647,13 @@ class SecurityFindingsEngine:
                     # NULL, not 0/False, when the enrichment never ran — see the
                     # migration comment. "not checked" must stay distinguishable
                     # from "checked and clean".
-                    "epss_score": epss_score,
+                    "epss_score": (
+                        epss_score
+                        if (epss_score is not None or getattr(self, "_epss_nullable", True))
+                        # A legacy NOT NULL column cannot take None. 0.0 there
+                        # means "unset" exactly as it always did on this schema.
+                        else 0.0
+                    ),
                     "kev_listed": (
                         1 if kev_listed else (0 if kev_listed is False else None)
                     ),

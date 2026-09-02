@@ -259,7 +259,25 @@ class AdvisorySymbols:
         # `trustworthy` already keeps the legitimate bare names (an underscore
         # or an internal capital); the bypass only let the English words back in.
         for symbol in [x for x in self.symbols if x in trustworthy]:
-            candidate = f"{package}.%{symbol}%" if package else f"%{symbol}%"
+            # NO UNANCHORED FALLBACK.
+            #
+            # This emitted `%{symbol}%` when no package was given, and that
+            # pattern matches any function whose NAME merely contains the
+            # symbol. Measured against the 72,050-node FixOps graph, the bare
+            # symbol "fetch" matched 5 callers and — combined with a KEV
+            # listing — produced a confident ACT_NOW for a finding nobody had
+            # established anything about.
+            #
+            # The pipeline built its own copy of this fallback and shipped that
+            # bug; this helper has no production caller today, which is the only
+            # reason it did not ship twice. Removing it so a future caller
+            # cannot reintroduce it.
+            #
+            # A bare symbol needs a package to scope it. A dotted symbol is
+            # self-anchoring and is handled above.
+            if not package:
+                continue
+            candidate = f"{package}.%{symbol}%"
             if candidate not in seen:
                 seen.append(candidate)
         return seen

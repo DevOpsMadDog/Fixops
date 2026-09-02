@@ -107,3 +107,63 @@ def test_the_normaliser_default_is_not_treated_as_a_measurement() -> None:
         pytest.skip("fixture not present")
     for finding in sp.parse_scanner_output(sarif.read_bytes(), scanner_type="sarif"):
         assert vars(finding).get("in_kev") is False
+
+
+def test_a_legacy_not_null_epss_column_does_not_crash_ingest(tmp_path, monkeypatch) -> None:
+    """An existing install can already have this column, as NOT NULL.
+
+    A long-lived database carries epss_score, is_kev, cvss_vector and
+    kev_due_date from an older build of this engine. The migration added the
+    nullable column only when the NAME was absent, so on those databases it
+    silently did nothing — and then binding None crashed every ingest with:
+
+        sqlite3.IntegrityError: NOT NULL constraint failed:
+        security_findings.epss_score
+
+    Measured on the repo's own database: 16,946 rows, 9,650 with a non-zero
+    epss_score and 2,273 with a non-zero is_kev. That is real data, so the
+    column cannot be dropped and recreated to force nullability — the upgrade
+    has to live with it.
+    """
+    import sqlite3
+
+    db = tmp_path / "security_findings_engine.db"
+    conn = sqlite3.connect(db)
+    conn.execute(
+        """CREATE TABLE security_findings (
+               id TEXT PRIMARY KEY, org_id TEXT NOT NULL, title TEXT NOT NULL,
+               finding_type TEXT NOT NULL DEFAULT '', source_tool TEXT NOT NULL DEFAULT '',
+               severity TEXT NOT NULL DEFAULT '', cvss_score REAL NOT NULL DEFAULT 0.0,
+               asset_id TEXT NOT NULL DEFAULT '', asset_type TEXT NOT NULL DEFAULT '',
+               description TEXT NOT NULL DEFAULT '', remediation TEXT NOT NULL DEFAULT '',
+               status TEXT NOT NULL DEFAULT 'open', first_seen TEXT NOT NULL DEFAULT '',
+               last_seen TEXT NOT NULL DEFAULT '', occurrence_count INTEGER NOT NULL DEFAULT 1,
+               assigned_to TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT '',
+               epss_score REAL NOT NULL DEFAULT 0.0)"""
+    )
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setenv("FIXOPS_DATA_DIR", str(tmp_path))
+    from core.security_findings_engine import SecurityFindingsEngine
+
+    eng = SecurityFindingsEngine()
+    # No epss known — this is the call that used to raise.
+    eng.record_finding(
+        org_id="t", title="legacy-schema", finding_type="vulnerability",
+        source_tool="semgrep", severity="high", cvss_score=1.0, asset_id="a",
+        asset_type="repo", description="", remediation="", correlation_key="lk",
+    )
+    row = _row(tmp_path, "legacy-schema")
+    assert row is not None, "ingest failed on a legacy schema"
+    # 0.0 on this schema means "unset", exactly as it always did there.
+    assert row["epss_score"] == 0.0
+
+    # And a measured value still lands.
+    eng.record_finding(
+        org_id="t", title="legacy-measured", finding_type="vulnerability",
+        source_tool="semgrep", severity="high", cvss_score=1.0, asset_id="b",
+        asset_type="repo", description="", remediation="", correlation_key="lm",
+        epss_score=0.7,
+    )
+    assert _row(tmp_path, "legacy-measured")["epss_score"] == pytest.approx(0.7)
