@@ -3314,11 +3314,36 @@ class BrainPipeline:
                 if explicit:
                     patterns = [explicit]
                 elif symbols:
+                    # An UNSCOPED symbol cannot earn the word "reachable".
+                    #
+                    # This built `%{symbol}%` whenever the finding had no
+                    # package_name — and SARIF carries none. Measured against
+                    # the 72,050-node FixOps graph, a finding whose advisory
+                    # yielded the bare symbol "fetch":
+                    #
+                    #   pattern %fetch%  ->  reachable, 5 callers
+                    #   with in_kev      ->  ACT_NOW
+                    #
+                    # "drop everything, this is reachable and being exploited",
+                    # manufactured from the word "fetch" appearing inside
+                    # unrelated function names. A false act_now is the worst
+                    # output this product can produce: it spends the customer's
+                    # night and their trust at once.
+                    #
+                    # A dotted symbol is self-anchoring (`axios.formToJSON`), and
+                    # a bare one is answerable when a package scopes it. A bare
+                    # symbol with NO package is neither, so it is dropped — and
+                    # if nothing survives, the question was unanswerable and the
+                    # finding stays undetermined rather than being ruled either
+                    # way.
                     patterns = [
-                        s if "." in s else (f"{package}.%{s}%" if package else f"%{s}%")
+                        s if "." in s else f"{package}.%{s}%"
                         for s in symbols
+                        if "." in s or package
                     ]
                     patterns = [p if p.endswith("%") else f"{p}%" for p in patterns]
+                    if not patterns:
+                        continue
                 elif package:
                     patterns = [f"{_package_fqn_prefix(package)}.%"]
                 else:

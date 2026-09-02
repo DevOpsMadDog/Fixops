@@ -279,3 +279,84 @@ def test_the_java_guard_does_not_disarm_python_elimination(monkeypatch) -> None:
         engine,
     )
     assert finding["reachability_verdict"] == "unreachable"
+
+
+# --- an unscoped symbol must never earn "reachable" -------------------------
+
+
+def test_a_bare_symbol_with_no_package_is_not_answerable(monkeypatch) -> None:
+    """The worst output this product can produce, and it was reachable.
+
+    Findings from SARIF carry no package_name, and ingest attaches symbols from
+    advisory prose. The pattern builder fell back to `%{symbol}%` — unanchored —
+    so a bare symbol matched any function whose NAME merely contained it.
+
+    Measured against the real 72,050-node FixOps graph with the symbol "fetch":
+
+        pattern %fetch%   ->  reachable, 5 callers
+        with in_kev       ->  ACT_NOW
+
+    "Drop everything, this is reachable and being exploited", manufactured from
+    a common word appearing inside unrelated function names. A false act_now
+    spends the customer's night and their trust at once.
+    """
+    engine = _FakeEngine({"%fetch%": ["a.b.c", "d.e.f"]})
+    finding = _run(
+        monkeypatch,
+        _python_finding(
+            cve_id="CVE-2026-1", vulnerable_symbols=["fetch"], package_name=""
+        ),
+        engine,
+    )
+    assert finding.get("reachability_verdict") in (None, "", "undetermined"), (
+        "an unscoped substring query produced a reachability claim"
+    )
+    assert "%fetch%" not in engine.asked, (
+        f"the unanchored pattern was still issued: {engine.asked}"
+    )
+
+
+def test_a_bare_symbol_scoped_by_a_package_is_still_asked(monkeypatch) -> None:
+    """The fix must not disarm the case that works: with a package to scope it,
+    a bare symbol is answerable and its absence is a real elimination."""
+    engine = _FakeEngine({})
+    finding = _run(
+        monkeypatch,
+        _python_finding(
+            cve_id="CVE-2026-2", vulnerable_symbols=["fetch"], package_name="requests"
+        ),
+        engine,
+    )
+    assert engine.asked == ["requests.%fetch%"]
+    assert finding["reachability_verdict"] == "unreachable"
+
+
+def test_a_dotted_symbol_is_self_anchoring_and_still_earns_reachable(monkeypatch) -> None:
+    """`cryptography.fernet.Fernet` names its own package, so it needs no
+    scoping — and this is the path that produces a genuine act_now."""
+    engine = _FakeEngine({"cryptography.fernet.Fernet%": ["core.crypto.encrypt_data"]})
+    finding = _run(
+        monkeypatch,
+        _python_finding(
+            cve_id="CVE-2026-3",
+            vulnerable_symbols=["cryptography.fernet.Fernet"],
+            package_name="",
+        ),
+        engine,
+    )
+    assert finding["reachability_verdict"] == "reachable"
+
+
+def test_a_finding_whose_symbols_are_all_unscoped_stays_undetermined(monkeypatch) -> None:
+    """When nothing survives the filter the question was unanswerable, so the
+    finding must not be ruled either way — not reachable, not eliminated."""
+    engine = _FakeEngine({"%read%": ["x.y"], "%write%": ["x.z"]})
+    finding = _run(
+        monkeypatch,
+        _python_finding(
+            cve_id="CVE-2026-4", vulnerable_symbols=["read", "write"], package_name=""
+        ),
+        engine,
+    )
+    assert finding.get("reachability_verdict") in (None, "", "undetermined")
+    assert engine.asked == []
