@@ -5276,7 +5276,11 @@ class BrainPipeline:
         must not fail because the archive is.
         """
         try:
-            from core.soc2_evidence_generator import EvidencePack, get_evidence_generator
+            from core.soc2_evidence_generator import (
+                EvidencePack,
+                get_evidence_generator,
+                score_and_status,
+            )
 
             controls = evidence.get("controls") or {}
             statuses = [str(c.get("status", "")) for c in controls.values()]
@@ -5300,6 +5304,15 @@ class BrainPipeline:
                     "run_id": ctx.get("run_id", ""),
                 },
             )
+            # Without this the pack kept the dataclass defaults (0.0 /
+            # "not_assessed") while its own controls_summary reported 3 assessed
+            # and 2 effective — one artifact contradicting itself in the listing
+            # an auditor reads. Same helper the generator uses, so the two
+            # writers cannot disagree.
+            pack.overall_score, pack.overall_status = score_and_status(
+                pack.controls_effective, pack.controls_assessed
+            )
+
             generator = get_evidence_generator()
             store = getattr(generator, "_store", None)
             if store is None:

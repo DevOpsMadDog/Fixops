@@ -95,40 +95,92 @@ def uat():
                       headers=h(ORG_A), timeout=60)
     body = r.json() if r.ok and r.headers.get("content-type", "").startswith("application/json") else {}
     ingested = body.get("findings_count") or body.get("count") or 0
-    check("UC3 ingest SARIF (200 + findings)", r.status_code == 200 and body.get("status") in (None, "success"),
+    # The count must be ASSERTED, not merely printed. Checking only the status
+    # code means a silently-broken ingest still passes: the SARIF above carries
+    # 3 results of which #3 duplicates #1, so a healthy run stores 2.
+    check("UC3 ingest SARIF (200 + findings)",
+          r.status_code == 200 and body.get("status") in (None, "success") and ingested >= 1,
           f"HTTP {r.status_code}, findings={ingested}")
 
     # UC4 findings retrievable, tenant-scoped
     r = requests.get(f"{BASE}/api/v1/findings", headers=h(ORG_A), timeout=30)
     fb = r.json() if r.ok else []
     findings = fb if isinstance(fb, list) else fb.get("findings", fb.get("items", []))
-    check("UC4 findings retrievable (org A)", r.status_code == 200, f"HTTP {r.status_code}, {len(findings)} findings")
+    # HTTP 200 with an empty list is the failure this demo most needs to catch,
+    # because it looks identical to success on a slide. Dedup collapses the
+    # duplicate, so org A must hold exactly 2.
+    check("UC4 findings retrievable (org A)",
+          r.status_code == 200 and len(findings) == 2,
+          f"HTTP {r.status_code}, {len(findings)} findings (expected 2 after dedup)")
 
     # UC5 tenant isolation — org B sees zero of A's findings
     r = requests.get(f"{BASE}/api/v1/findings", headers=h(ORG_B), timeout=30)
     fbb = r.json() if r.ok else []
     fb2 = fbb if isinstance(fbb, list) else fbb.get("findings", fbb.get("items", []))
     leaked = [f for f in fb2 if isinstance(f, dict) and f.get("org_id") == ORG_A]
-    check("UC5 tenant isolation (org B sees 0 of A)", len(leaked) == 0, f"leaked={len(leaked)}")
+    # "B sees none of A" is satisfied trivially when the endpoint returns nothing
+    # to ANYONE, so isolation is only meaningful alongside A actually having
+    # data. Without the second half this check passes on a totally broken store.
+    check("UC5 tenant isolation (org B sees 0 of A)",
+          len(leaked) == 0 and len(findings) > 0,
+          f"leaked={len(leaked)}, org A holds {len(findings)} (isolation is vacuous if A is empty)")
 
     # UC6 AI council verdict
-    payload = {"findings": [{"id": str(f.get("id", uuid.uuid4())), "title": f.get("title", "f"),
-                             "severity": f.get("severity", "medium")} for f in findings[:5]] or
-                            [{"id": "1", "title": "SQLi", "severity": "high"}], "org_id": ORG_A}
+    # NO FABRICATED FALLBACK. This used to append
+    #     or [{"id": "1", "title": "SQLi", "severity": "high"}]
+    # so that an empty store still produced a council verdict — which is the one
+    # thing a demo must never do. The prospect would be shown a real AI decision
+    # about a finding that does not exist. The council runs on what was actually
+    # ingested, and if nothing was, the check fails and says so.
+    council_findings = [
+        {"id": str(f.get("id", uuid.uuid4())), "title": f.get("title", "f"),
+         "severity": f.get("severity", "medium")}
+        for f in findings[:5]
+    ]
+    # generate_evidence defaults to False, so the demo never produced the SOC2
+    # pack it then went on to "verify" — UC7 was listing an empty store and
+    # passing on it. Ask for the artifact the product is sold on.
+    payload = {"findings": council_findings, "org_id": ORG_A, "generate_evidence": True}
     r = requests.post(f"{BASE}/api/v1/pipeline/run", json=payload, headers=h(ORG_A), timeout=180)
     vb = r.json() if r.ok else {}
     verdict = vb.get("verdict") or {}
     decision = verdict.get("decision") if isinstance(verdict, dict) else verdict
     source = verdict.get("source") if isinstance(verdict, dict) else None
-    check("UC6 AI council verdict returned", r.status_code == 200 and decision is not None,
-          f"HTTP {r.status_code}, decision={decision}, source={source}")
+    check("UC6 AI council verdict returned",
+          bool(council_findings) and r.status_code == 200 and decision is not None,
+          f"HTTP {r.status_code}, decision={decision}, source={source}, "
+          f"on {len(council_findings)} REAL ingested findings")
     # UC6b: with a key present, the verdict must come from the REAL council, not the heuristic fallback
     check("UC6b verdict is REAL council (not heuristic)", source in ("council", "consensus"),
           f"source={source} (heuristic fallback = key not wired / no findings critical)")
 
     # UC7 evidence bundle
     r = requests.get(f"{BASE}/api/v1/pipeline/evidence/packs", headers=h(ORG_A), timeout=30)
-    check("UC7 evidence bundle available", r.status_code == 200, f"HTTP {r.status_code}")
+    pb = r.json() if r.ok else {}
+    packs = pb.get("packs", []) if isinstance(pb, dict) else []
+    # A pack must not contradict itself. The listing used to serve
+    # score=0.0 / status="not_assessed" ALONGSIDE controls_summary saying
+    # 3 assessed and 2 effective, because two code paths built packs and only
+    # one computed the headline. HTTP 200 said nothing about that.
+    consistent = True
+    detail = f"HTTP {r.status_code}, {len(packs)} pack(s)"
+    for pk in packs:
+        assessed = (pk.get("controls_summary") or {}).get("assessed", 0)
+        status = pk.get("overall_status")
+        if assessed > 0 and status == "not_assessed":
+            consistent = False
+            detail += f" — {pk.get('pack_id')} claims {assessed} assessed but status={status!r}"
+            break
+        if pk.get("org_id") != ORG_A:
+            consistent = False
+            detail += f" — pack {pk.get('pack_id')} belongs to org {pk.get('org_id')!r}"
+            break
+    if packs:
+        detail += f", status={packs[0].get('overall_status')!r} score={packs[0].get('overall_score')}"
+    # An empty listing is the failure this check exists to catch. It passed on
+    # zero packs for as long as the pipeline was never asked to generate one.
+    check("UC7 evidence pack generated + org-scoped + self-consistent",
+          r.status_code == 200 and len(packs) >= 1 and consistent, detail)
 
     # UC10 UI served
     try:

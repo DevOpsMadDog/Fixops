@@ -309,6 +309,35 @@ class ControlAssessment:
     tested_at: str = ""
 
 
+def score_and_status(effective: int, assessed: int) -> tuple:
+    """The pack's headline score and status, derived once for every writer.
+
+    TWO code paths build an EvidencePack — ``SOC2EvidenceGenerator.generate``
+    and ``BrainPipeline._persist_evidence_pack`` — and only the first computed
+    these. The second set the control COUNTS and left the score and status at
+    their dataclass defaults, so the listing endpoint served a pack reading:
+
+        "overall_score": 0.0, "overall_status": "not_assessed",
+        "controls_summary": {"assessed": 3, "effective": 2, ...}
+
+    The two halves of one compliance artifact contradicted each other, on the
+    document an auditor reads. Deriving it here means the writers cannot drift
+    apart again.
+
+    Zero controls assessed returns ``not_assessed``, NOT ``not_qualified``.
+    Assessing nothing and then reporting a failing grade is a fabricated
+    negative verdict — the absence must stay visible as an absence.
+    """
+    if assessed <= 0:
+        return 0.0, "not_assessed"
+    score = round(effective / assessed, 4)
+    if score >= 0.8:
+        return score, "qualified"
+    if score >= 0.5:
+        return score, "qualified_with_exceptions"
+    return score, "not_qualified"
+
+
 @dataclass
 class EvidencePack:
     """Complete SOC2 Type II Evidence Pack."""
@@ -485,19 +514,9 @@ class SOC2EvidenceGenerator:
             1 for a in pack.assessments if a.status == ControlStatus.NOT_EFFECTIVE
         )
 
-        if pack.controls_assessed > 0:
-            pack.overall_score = round(
-                pack.controls_effective / pack.controls_assessed, 4
-            )
-        else:
-            pack.overall_score = 0.0
-
-        if pack.overall_score >= 0.8:
-            pack.overall_status = "qualified"
-        elif pack.overall_score >= 0.5:
-            pack.overall_status = "qualified_with_exceptions"
-        else:
-            pack.overall_status = "not_qualified"
+        pack.overall_score, pack.overall_status = score_and_status(
+            pack.controls_effective, pack.controls_assessed
+        )
 
         pack.summary = self._build_summary(pack, data)
         pack.pipeline_data = data
