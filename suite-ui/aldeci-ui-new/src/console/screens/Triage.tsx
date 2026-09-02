@@ -80,7 +80,7 @@ export function TriageScreen() {
           </Resolve>
         </Panel>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           <Panel title="Act now">
             <Metric
               value={byVerdict.act_now ?? 0}
@@ -93,6 +93,21 @@ export function TriageScreen() {
           </Panel>
           <Panel title="Watch">
             <Metric value={byVerdict.watch ?? 0} label="exploited, not reachable" />
+          </Panel>
+          {/*
+            exploited_unknown_reach had NO tile, so a queue containing a
+            MEASURED exploited CVE summarised as "Act now 0 / Schedule 0 /
+            Watch 0" — three zeros above a finding that is being exploited in
+            the wild. The row was listed below with its badge, but a reader
+            scanning the summary concludes nothing needs attention. Absence of
+            a tile is not absence of a threat.
+          */}
+          <Panel title="Exploited, reach unknown">
+            <Metric
+              value={byVerdict.exploited_unknown_reach ?? 0}
+              label="exploited; reachability not yet analysed"
+              tone={byVerdict.exploited_unknown_reach ? "urgent" : "muted"}
+            />
           </Panel>
           <Panel title="Open total">
             <Metric
