@@ -28,7 +28,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from types import SimpleNamespace
+
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 _logger = logging.getLogger(__name__)
@@ -138,6 +142,7 @@ def export_org_data(
         default=None,
         description="If provided, send download link to this address via notification engine",
     ),
+    credential_org: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """GDPR right-to-portability export for an org.
 
@@ -145,9 +150,24 @@ def export_org_data(
     incidents.csv, audit_events.csv (last 365 days).
     Saves to /tmp/aldeci-export-{org_id}-{timestamp}.zip.
     Returns the download URL and metadata.
+
+    THE ORG COMES FROM THE CREDENTIAL, not the URL. This endpoint authenticated
+    the caller and then exported whichever tenant the path named. Measured
+    against the real app with a key pinned to "acme":
+
+        POST /api/v1/orgs/victim-corp/export
+          -> 200, org_id "victim-corp", a zip on disk and a download_url
+
+    A whole tenant — org profile, users, findings, incidents and a year of audit
+    events — handed to another tenant that merely typed its name in a URL. The
+    path was already sanitised against traversal, which is exactly the kind of
+    care that makes an endpoint look considered while the authorisation question
+    goes unasked.
     """
     if not org_id or not org_id.strip():
         raise HTTPException(status_code=400, detail="org_id is required")
+
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
 
     # Sanitise org_id to prevent path traversal
     safe_org_id = "".join(c for c in org_id if c.isalnum() or c in "-_")
