@@ -49,13 +49,37 @@ except ImportError:
 
 _logger = logging.getLogger(__name__)
 
-_DEFAULT_DB = str(
-    Path(__file__).resolve().parents[2] / ".fixops_data" / "function_reachability.db"
-)
+def _data_root() -> Path:
+    """Where this deployment keeps its data — the same place as every other engine.
+
+    Both databases were pinned to a path derived from THIS FILE's location,
+    ignoring FIXOPS_DATA_DIR. Measured: with FIXOPS_DATA_DIR set to a scratch
+    directory, a tenant parsed a repo through the API and its 1,183-node call
+    graph was written to <repo>/.fixops_data/function_reachability.db instead.
+
+    In a container the code lives at /app, so the graph lands on the image
+    layer rather than the mounted volume — a customer parses their repository,
+    the container restarts, and the graph is gone. Reachability is the moat, and
+    it was the one store that could not survive a deploy.
+
+    The cache was worse: suite-core/data/, inside the SOURCE TREE.
+
+    Local development is unaffected: sitecustomize already sets FIXOPS_DATA_DIR
+    to <repo>/.fixops_data, which is exactly where these files were. Only
+    deployments that point FIXOPS_DATA_DIR somewhere else move — and those are
+    the deployments that were losing the data.
+    """
+    configured = os.environ.get("FIXOPS_DATA_DIR", "").strip()
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parents[2] / ".fixops_data"
+
+
+_DEFAULT_DB = str(_data_root() / "function_reachability.db")
 
 # Separate cache DB for repo_sha-keyed reachability verdicts (per spec).
 _DEFAULT_CACHE_DB = str(
-    Path(__file__).resolve().parents[1] / "data" / "reachability_cache.db"
+    _data_root() / "reachability_cache.db"
 )
 
 
