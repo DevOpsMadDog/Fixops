@@ -99,13 +99,40 @@ def test_a_malformed_body_still_gets_the_routes_own_error(monkeypatch) -> None:
     assert response.status_code == 422
 
 
-def test_off_is_the_default(monkeypatch) -> None:
-    """New request-path enforcement must not switch itself on."""
-    monkeypatch.delenv("FIXOPS_BODY_TENANT_GUARD", raising=False)
-    client = TestClient(_app("acme"))
+def test_warn_is_the_default_and_never_refuses(monkeypatch, caplog) -> None:
+    """A control nobody enables is not a control — but the default must not
+    reject traffic either.
 
-    response = client.post("/echo", json={"org_id": "someone-else", "value": "v"})
-    assert response.status_code == 200, "the guard enabled itself"
+    warn logs the conflict and allows the request, which is the evidence you
+    need before moving to enforce. Measured cost, alternating runs after
+    warm-up on a 20 KB JSON body: +0.060 ms against a 1.058 ms baseline.
+    """
+    monkeypatch.delenv("FIXOPS_BODY_TENANT_GUARD", raising=False)
+    from apps.api.body_tenant_guard import guard_mode
+
+    assert guard_mode() == "warn"
+
+    client = TestClient(_app("acme"))
+    with caplog.at_level("WARNING"):
+        response = client.post("/echo", json={"org_id": "someone-else", "value": "v"})
+    assert response.status_code == 200, "the default refused a request"
+    assert any("body-tenant-guard" in r.message for r in caplog.records)
+
+
+def test_an_unrecognised_mode_falls_back_to_warn(monkeypatch) -> None:
+    """A typo in the environment must not silently disable the control."""
+    monkeypatch.setenv("FIXOPS_BODY_TENANT_GUARD", "enforcing")
+    from apps.api.body_tenant_guard import guard_mode
+
+    assert guard_mode() == "warn"
+
+
+def test_off_still_disables_it_completely(monkeypatch) -> None:
+    monkeypatch.setenv("FIXOPS_BODY_TENANT_GUARD", "off")
+    client = TestClient(_app("acme"))
+    assert client.post(
+        "/echo", json={"org_id": "someone-else", "value": "v"}
+    ).status_code == 200
 
 
 # --- and it must actually catch the thing -----------------------------------

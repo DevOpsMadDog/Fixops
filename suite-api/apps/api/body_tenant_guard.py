@@ -28,15 +28,21 @@ the same result is subtle and easy to get wrong.
 
 **Modes** (``FIXOPS_BODY_TENANT_GUARD``):
 
-* ``off`` — default. The middleware is installed but returns immediately. New
-  request-path enforcement should not switch itself on in a deployment nobody
-  is watching.
-* ``warn`` — log the conflict, allow the request. Run this first: the log tells
-  you whether real clients send a mismatched org before you start refusing them.
+* ``off`` — installed but returns immediately.
+* ``warn`` — **default.** Log the conflict, allow the request.
 * ``enforce`` — reject with 403.
 
 The staging is the point. A guard that starts by refusing traffic is a guard
-that gets disabled after the first incident.
+that gets disabled after the first incident, so ``warn`` runs first and its log
+tells you whether real clients send a mismatched org before you start refusing
+them.
+
+``off`` was the default until the guard was shown to work end-to-end, which is
+the right order — but a control nobody enables is not a control, and ``warn``
+cannot break a request: it never rejects, and it never alters the body the route
+receives. Measured cost, alternating runs after warm-up, 20 KB JSON body:
+**+0.060 ms/request** against a 1.058 ms baseline. Bodies over
+``_MAX_INSPECT_BYTES`` and every non-JSON content type are not read at all.
 """
 
 from __future__ import annotations
@@ -59,8 +65,8 @@ _UNPINNED = "default"
 
 
 def guard_mode() -> str:
-    mode = (os.environ.get("FIXOPS_BODY_TENANT_GUARD") or "off").strip().lower()
-    return mode if mode in {"off", "warn", "enforce"} else "off"
+    mode = (os.environ.get("FIXOPS_BODY_TENANT_GUARD") or "warn").strip().lower()
+    return mode if mode in {"off", "warn", "enforce"} else "warn"
 
 
 def _conflicting_org(body: bytes, credential_org: str) -> str | None:
