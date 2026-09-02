@@ -167,3 +167,85 @@ def test_a_legacy_not_null_epss_column_does_not_crash_ingest(tmp_path, monkeypat
         epss_score=0.7,
     )
     assert _row(tmp_path, "legacy-measured")["epss_score"] == pytest.approx(0.7)
+
+
+def test_legacy_is_kev_positives_are_carried_into_kev_listed(tmp_path, monkeypatch) -> None:
+    """Two KEV columns is worse than one, and the UI reads the new one.
+
+    An older build wrote KEV membership to `is_kev INTEGER NOT NULL DEFAULT 0`.
+    Adding kev_listed alongside it left those findings reading NULL — rendered
+    "not checked" — while the answer sat in the next column over. Measured on
+    the repo's own database: 2,273 findings with is_kev = 1.
+
+    Only positives cross. is_kev = 0 is ambiguous on that schema: equally the
+    NOT NULL default for a finding nobody enriched, and a genuine "checked, not
+    in KEV". Promoting those to a clean bill of health is the fabrication this
+    column exists to prevent.
+    """
+    import sqlite3
+
+    db = tmp_path / "security_findings_engine.db"
+    conn = sqlite3.connect(db)
+    conn.execute(
+        """CREATE TABLE security_findings (
+               id TEXT PRIMARY KEY, org_id TEXT NOT NULL, title TEXT NOT NULL,
+               finding_type TEXT NOT NULL DEFAULT '', source_tool TEXT NOT NULL DEFAULT '',
+               severity TEXT NOT NULL DEFAULT '', cvss_score REAL NOT NULL DEFAULT 0.0,
+               asset_id TEXT NOT NULL DEFAULT '', asset_type TEXT NOT NULL DEFAULT '',
+               description TEXT NOT NULL DEFAULT '', remediation TEXT NOT NULL DEFAULT '',
+               status TEXT NOT NULL DEFAULT 'open', first_seen TEXT NOT NULL DEFAULT '',
+               last_seen TEXT NOT NULL DEFAULT '', occurrence_count INTEGER NOT NULL DEFAULT 1,
+               assigned_to TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT '',
+               is_kev INTEGER NOT NULL DEFAULT 0)"""
+    )
+    conn.executemany(
+        "INSERT INTO security_findings (id, org_id, title, is_kev) VALUES (?,?,?,?)",
+        [("1", "t", "in-kev", 1), ("2", "t", "not-flagged", 0)],
+    )
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setenv("FIXOPS_DATA_DIR", str(tmp_path))
+    from core.security_findings_engine import SecurityFindingsEngine
+
+    SecurityFindingsEngine()
+
+    assert _row(tmp_path, "in-kev")["kev_listed"] == 1
+    assert _row(tmp_path, "not-flagged")["kev_listed"] is None, (
+        "an ambiguous legacy 0 was promoted to a confident 'not in KEV'"
+    )
+
+
+def test_the_backfill_runs_even_when_the_column_already_exists(tmp_path, monkeypatch) -> None:
+    """Placed inside the "column was just added" branch, this never ran on any
+    database that already had kev_listed — which by then was every database the
+    build had touched. Idempotent by its WHERE clause, so it runs every start."""
+    import sqlite3
+
+    db = tmp_path / "security_findings_engine.db"
+    conn = sqlite3.connect(db)
+    conn.execute(
+        """CREATE TABLE security_findings (
+               id TEXT PRIMARY KEY, org_id TEXT NOT NULL, title TEXT NOT NULL,
+               finding_type TEXT NOT NULL DEFAULT '', source_tool TEXT NOT NULL DEFAULT '',
+               severity TEXT NOT NULL DEFAULT '', cvss_score REAL NOT NULL DEFAULT 0.0,
+               asset_id TEXT NOT NULL DEFAULT '', asset_type TEXT NOT NULL DEFAULT '',
+               description TEXT NOT NULL DEFAULT '', remediation TEXT NOT NULL DEFAULT '',
+               status TEXT NOT NULL DEFAULT 'open', first_seen TEXT NOT NULL DEFAULT '',
+               last_seen TEXT NOT NULL DEFAULT '', occurrence_count INTEGER NOT NULL DEFAULT 1,
+               assigned_to TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT '',
+               is_kev INTEGER NOT NULL DEFAULT 0,
+               kev_listed INTEGER)"""
+    )
+    conn.execute(
+        "INSERT INTO security_findings (id, org_id, title, is_kev, kev_listed) "
+        "VALUES ('1','t','already-has-column',1,NULL)"
+    )
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setenv("FIXOPS_DATA_DIR", str(tmp_path))
+    from core.security_findings_engine import SecurityFindingsEngine
+
+    SecurityFindingsEngine()
+    assert _row(tmp_path, "already-has-column")["kev_listed"] == 1

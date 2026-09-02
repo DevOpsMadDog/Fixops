@@ -386,6 +386,31 @@ class SecurityFindingsEngine:
         if "kev_listed" not in cols:
             conn.execute("ALTER TABLE security_findings ADD COLUMN kev_listed INTEGER")
             added_new_column = True
+        # BACKFILL from the legacy is_kev column, if this database has one.
+        #
+        # An older build wrote KEV membership to `is_kev INTEGER NOT NULL
+        # DEFAULT 0`. Adding kev_listed alongside it left every one of those
+        # findings reading NULL — "not checked" — while the answer sat in the
+        # next column over. Measured on the repo's own database: 2,273 findings
+        # with is_kev = 1 would have rendered as unchecked.
+        #
+        # Deliberately OUTSIDE the "column was just added" branch. Written there
+        # first, it never ran on any database that already had kev_listed —
+        # which by then was every database this build had touched. The WHERE
+        # clause makes it idempotent, so running it on every startup is free and
+        # correct.
+        #
+        # ONLY the positives are carried across. is_kev = 0 is ambiguous on that
+        # schema — equally the NOT NULL default for a finding nobody enriched
+        # and a genuine "checked, not in KEV" — so those stay NULL rather than
+        # becoming a clean bill of health we cannot support. Losing a true
+        # negative costs a little precision; inventing one is the failure this
+        # column exists to prevent.
+        if "is_kev" in cols:
+            conn.execute(
+                "UPDATE security_findings SET kev_listed = 1 "
+                "WHERE is_kev = 1 AND kev_listed IS NULL"
+            )
         if "line_number" not in cols:
             conn.execute("ALTER TABLE security_findings ADD COLUMN line_number INTEGER")
             added_new_column = True
