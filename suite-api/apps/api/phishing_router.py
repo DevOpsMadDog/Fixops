@@ -17,7 +17,10 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, APIRouter, HTTPException, Query
+from types import SimpleNamespace
+
 from apps.api.dependencies import get_org_id  # SPEC-034
+from apps.api.tenant_resolution import resolve_tenant
 from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
@@ -174,20 +177,29 @@ def record_report(campaign_id: str, req: InteractionRequest):
 
 
 @router.get("/orgs/{org_id}/history", response_model=List[Dict[str, Any]])
-def get_campaign_history(org_id: str):
+def get_campaign_history(
+    org_id: str, credential_org: str = Depends(get_org_id)
+):
     """Return all phishing campaigns for an organisation, newest first."""
+    # The org arrives in the PATH. Campaign history and susceptibility are a
+    # targeting list — who clicked, who reported — so reading another
+    # tenant's is worse than a disclosure.
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     sim = _get_simulator()
     return sim.get_campaign_history(org_id)
 
 
 @router.get("/orgs/{org_id}/risk", response_model=Dict[str, Any])
-def get_org_risk(org_id: str):
+def get_org_risk(
+    org_id: str, credential_org: str = Depends(get_org_id)
+):
     """
     Return org-wide phishing susceptibility metrics.
 
     Includes overall click rate, report rate, and a risk level classification
     (low / medium / high / critical).
     """
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     sim = _get_simulator()
     return sim.get_org_phishing_risk(org_id)
 
