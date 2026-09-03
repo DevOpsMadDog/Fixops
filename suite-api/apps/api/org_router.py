@@ -20,7 +20,11 @@ import re
 import uuid
 from typing import Any, Dict, List, Optional
 
+from types import SimpleNamespace
+
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, EmailStr, Field
 
@@ -110,12 +114,15 @@ def create_org(req: CreateOrgRequest) -> Dict[str, Any]:
 
 
 @router.get("/{org_id}/summary", dependencies=[Depends(api_key_auth)])
-def get_org_summary(org_id: str) -> Dict[str, Any]:
+def get_org_summary(
+    org_id: str, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Return a dashboard summary for a specific org.
 
     Shows how many engine databases contain data for this org_id and the
     total row count across all tables.
     """
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return _get_engine().get_org_summary(org_id)
     except Exception as exc:
@@ -124,7 +131,9 @@ def get_org_summary(org_id: str) -> Dict[str, Any]:
 
 
 @router.delete("/{org_id}", dependencies=[Depends(api_key_auth)], status_code=200)
-def delete_org(org_id: str) -> Dict[str, Any]:
+def delete_org(
+    org_id: str, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """GDPR right-to-be-forgotten — soft-delete an organisation.
 
     Sets ``deleted_at`` and ``status=DELETED`` on the registry row.
@@ -136,6 +145,10 @@ def delete_org(org_id: str) -> Dict[str, Any]:
     """
     if not org_id or not org_id.strip():
         raise HTTPException(status_code=400, detail="org_id is required")
+    # The org comes from the CREDENTIAL. Taking it from the path meant any
+    # authenticated caller could soft-delete another tenant by name — status
+    # DELETED, and a purge job that hard-deletes the data 30 days later.
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         result = _get_engine().soft_delete_org(org_id)
     except ValueError as exc:
@@ -150,7 +163,9 @@ def delete_org(org_id: str) -> Dict[str, Any]:
 
 
 @router.get("/{org_id}", dependencies=[Depends(api_key_auth)])
-def get_org(org_id: str) -> Dict[str, Any]:
+def get_org(
+    org_id: str, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Return the registry record for a specific org by slug.
 
     Bug C fix (playbook 2026-04-27): the playbook references this endpoint but
@@ -166,6 +181,8 @@ def get_org(org_id: str) -> Dict[str, Any]:
     """
     if not org_id or not org_id.strip():
         raise HTTPException(status_code=400, detail="org_id is required")
+
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
 
     engine = _get_engine()
 
@@ -239,19 +256,36 @@ def _user_to_dict(u: Any) -> Dict[str, Any]:
 
 
 @router.get("/{org_id}/users", dependencies=[Depends(api_key_auth)])
-def list_org_users(org_id: str) -> Dict[str, Any]:
-    """List all users for an org (org_id used as namespace tag; returns all users in shared UserDB)."""
+def list_org_users(
+    org_id: str, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
+    """List the users of an org.
+
+    This called list_users() with NO org filter and returned every user in the
+    shared database — the docstring said so plainly ("org_id used as namespace
+    tag; returns all users"). Any authenticated caller got every user of every
+    tenant: names, emails and roles, which is a target list.
+
+    UserDB.list_users(org_id=...) has always supported the filter and fails
+    closed when the column is missing; the router simply never passed it.
+    """
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     udb = _get_user_db()
-    users = udb.list_users(limit=500, offset=0)
+    users = udb.list_users(org_id=org_id, limit=500, offset=0)
     items = [_user_to_dict(u) for u in users]
     return {"org_id": org_id, "items": items, "total": len(items)}
 
 
 @router.post("/{org_id}/users", dependencies=[Depends(api_key_auth)], status_code=201)
-def invite_org_user(org_id: str, req: InviteUserRequest) -> Dict[str, Any]:
+def invite_org_user(
+    org_id: str, req: InviteUserRequest, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
     """Invite (create) a user into an org. Generates a random temporary password."""
     if req.role not in _VALID_ROLES:
         raise HTTPException(status_code=422, detail=f"Invalid role '{req.role}'. Must be one of {sorted(_VALID_ROLES)}")
+    # The org comes from the CREDENTIAL: this created a user in whichever org
+    # the URL named.
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     udb = _get_user_db()
     if udb.get_user_by_email(req.email):
         raise HTTPException(status_code=409, detail="A user with that email already exists")
@@ -268,6 +302,11 @@ def invite_org_user(org_id: str, req: InviteUserRequest) -> Dict[str, Any]:
         role=role_enum,
         status=UserStatus.ACTIVE,
         department=None,
+        # STORE the org on the user. It was only echoed in the response, so
+        # every invited user was created with the dataclass default of
+        # "default" — the wrong tenant, and once list_users is org-filtered,
+        # invisible to the org that invited them.
+        org_id=org_id,
     )
     created = udb.create_user(user)
     result = _user_to_dict(created)
@@ -277,13 +316,25 @@ def invite_org_user(org_id: str, req: InviteUserRequest) -> Dict[str, Any]:
 
 
 @router.put("/{org_id}/users/{uid}", dependencies=[Depends(api_key_auth)])
-def update_org_user_role(org_id: str, uid: str, req: UpdateRoleRequest) -> Dict[str, Any]:
-    """Update a user's role within an org."""
+def update_org_user_role(
+    org_id: str, uid: str, req: UpdateRoleRequest,
+    credential_org: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    """Update a user's role within an org.
+
+    get_user(uid) is a GLOBAL lookup, so this promoted or demoted any user in
+    any tenant by id. The org in the path was decoration — it was echoed back in
+    the response and never checked against the user actually modified.
+    """
     if req.role not in _VALID_ROLES:
         raise HTTPException(status_code=422, detail=f"Invalid role '{req.role}'")
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     udb = _get_user_db()
     user = udb.get_user(uid)
     if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if getattr(user, "org_id", "default") != org_id:
+        # 404, not 403: confirming the id exists elsewhere is itself a leak.
         raise HTTPException(status_code=404, detail="User not found")
     from core.user_models import UserRole
     user.role = UserRole(req.role)
@@ -294,11 +345,20 @@ def update_org_user_role(org_id: str, uid: str, req: UpdateRoleRequest) -> Dict[
 
 
 @router.delete("/{org_id}/users/{uid}", dependencies=[Depends(api_key_auth)], status_code=200)
-def remove_org_user(org_id: str, uid: str) -> Dict[str, Any]:
-    """Remove a user from an org (deletes user record)."""
+def remove_org_user(
+    org_id: str, uid: str, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
+    """Remove a user from an org (deletes user record).
+
+    Same global lookup as the role update, with a worse verb: this DELETED any
+    user in any tenant by id.
+    """
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     udb = _get_user_db()
     user = udb.get_user(uid)
     if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if getattr(user, "org_id", "default") != org_id:
         raise HTTPException(status_code=404, detail="User not found")
     udb.delete_user(uid)
     return {"org_id": org_id, "deleted_user_id": uid, "status": "removed"}
