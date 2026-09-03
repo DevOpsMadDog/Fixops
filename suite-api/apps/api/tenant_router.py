@@ -167,23 +167,70 @@ async def delete_tenant_endpoint(
 # ---------------------------------------------------------------------------
 
 
-def _require_admin(request: Request) -> None:
-    """Raise HTTP 403 if the request does not have admin:all scope."""
+def _is_platform_operator(request: Request) -> bool:
+    """Is this an OPERATOR of the platform, rather than an admin of one tenant?
+
+    admin:all is a globally-scoped permission, and self-service signup hands it
+    to every new account: the first user of an org is made admin so they can
+    administer THEIR org, and that role carries admin:all. Measured on a
+    freshly-signed-up account:
+
+        scopes ['admin:all']   role admin
+        GET /api/v1/tenants/victim-corp/stats -> 200, victim's data dir returned
+
+    So an org-scoped role was granting a cross-tenant permission — the same
+    class of mistake as a Maven coordinate used where a groupId was meant. Every
+    guard reading admin:all inherited it.
+
+    An operator is a credential that is not pinned to a customer tenant: the
+    FIXOPS_API_TOKEN path, which resolves to the unpinned "default" org and is
+    what resolve_tenant already treats as allowed to name any tenant. A tenant
+    admin holds admin:all for their own org and is not an operator.
+    """
     scopes: List[str] = getattr(request.state, "user_scopes", [])
     if "admin:all" not in scopes:
+        return False
+    return _caller_org(request) in ("", "default")
+
+
+def _caller_org(request: Request) -> str:
+    """The tenant this request's CREDENTIAL belongs to.
+
+    request.state first, contextvar second, and the order matters. The
+    contextvar is populated by OrgIdMiddleware, which runs BEFORE the auth
+    dependency that reads the JWT — so for a logged-in user it still holds
+    "default" long after the real org is known. Measured inside this guard on a
+    request from org-1bfc06f2…:
+
+        get_current_org_id() -> 'default'
+        request.state.org_id -> 'org-1bfc06f2-5026-4a10-8868-fd4cb8156c5c'
+
+    Reading the contextvar made every JWT caller look like the unpinned operator
+    AND broke the "own org" comparison below, which was matching 'default'
+    against a real org id and never succeeding. The admin:all bypass was the
+    only reason those endpoints answered at all.
+    """
+    state_org = (getattr(request.state, "org_id", "") or "").strip()
+    if state_org:
+        return state_org
+    return (get_current_org_id() or "").strip()
+
+
+def _require_admin(request: Request) -> None:
+    """Raise HTTP 403 unless the caller is a platform operator."""
+    if not _is_platform_operator(request):
         raise HTTPException(
             status_code=403,
-            detail="admin:all scope required for this operation",
+            detail="platform operator credential required for this operation",
         )
 
 
 def _require_admin_or_self(request: Request, resource_org_id: str) -> None:
     """Raise HTTP 403 unless the caller is admin OR accessing their own org."""
-    scopes: List[str] = getattr(request.state, "user_scopes", [])
-    if "admin:all" in scopes:
+    if _is_platform_operator(request):
         return
     # Allow access to own org stats
-    current_org = get_current_org_id()
+    current_org = _caller_org(request)
     if current_org == resource_org_id:
         return
     raise HTTPException(
