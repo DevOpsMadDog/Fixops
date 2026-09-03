@@ -23,6 +23,28 @@ docker compose up -d                          # API + UI on http://localhost:800
 curl -sf http://localhost:8000/health && echo "  ✅ FixOps is up"
 ```
 
+## One command to check everything works
+
+Before the call, against whatever you are about to demo:
+
+```
+python suite-core/cli/aldeci.py verify --url http://127.0.0.1:8001
+```
+
+Twelve checks covering the whole journey — auth enforcement, signup, login, the
+token actually being accepted, ingest, deduplication, tenant scoping, the
+exploitability verdict, the evidence behind it, cross-tenant refusal, evidence
+pack consistency, and the UI shell. Exit code is non-zero on any failure, so it
+drops straight into CI.
+
+Every check asserts the ANSWER, not the status code. Cross-tenant leaks in this
+codebase returned 200 with another tenant's data in the body, so a status check
+would have called them healthy.
+
+A check that cannot run reports SKIP with the reason and is never counted as a
+pass — if feeds are absent you get "all undecided — feeds absent?" rather than a
+green tick over a product that decided nothing.
+
 ## Parse the repo, or reachability has nothing to answer with
 
 Feeds tell you a vulnerability is being exploited. The call graph tells you

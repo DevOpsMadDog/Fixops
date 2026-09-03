@@ -707,5 +707,16 @@ def main():
     cli()
 
 
+# One command that exercises every use case against a live server. Registered
+# here rather than shipped as another script: there are already 183 files in
+# scripts/, and a testing story you have to remember the name of is one you skip.
+try:
+    from cli.verify import verify_command as _verify_command
+
+    cli.add_command(_verify_command)
+except ImportError:  # pragma: no cover - CLI still usable without it
+    pass
+
+
 if __name__ == "__main__":
     main()
