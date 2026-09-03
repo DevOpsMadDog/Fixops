@@ -14,7 +14,12 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from core.ccm_engine import CCMError, get_engine
-from fastapi import APIRouter, HTTPException, Query
+from types import SimpleNamespace
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -75,7 +80,15 @@ class RemediateFailureRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/orgs/{org_id}/controls", summary="Register a security control")
-def register_control(org_id: str, req: RegisterControlRequest) -> Dict[str, Any]:
+def register_control(
+    org_id: str, req: RegisterControlRequest,
+    credential_org: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    # The org arrives in the PATH; a caller-supplied value is caller-supplied
+    # wherever they put it. Verified before the fix: a JWT from an unrelated
+    # tenant read victim-corp's controls, including one named
+    # "victim-secret-control".
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().register_control(org_id, req.model_dump())
     except ValueError as exc:
@@ -91,7 +104,9 @@ def list_controls(
     framework: Optional[str] = Query(None),
     control_type: Optional[str] = Query(None),
     enabled_only: bool = Query(True),
+    credential_org: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().list_controls(org_id, framework=framework,
                                           control_type=control_type, enabled_only=enabled_only)
@@ -105,7 +120,15 @@ def list_controls(
 # ---------------------------------------------------------------------------
 
 @router.post("/orgs/{org_id}/controls/{control_id}/tests", summary="Add a control test")
-def add_test(org_id: str, control_id: str, req: AddTestRequest) -> Dict[str, Any]:
+def add_test(
+    org_id: str, control_id: str, req: AddTestRequest,
+    credential_org: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    # The org arrives in the PATH; a caller-supplied value is caller-supplied
+    # wherever they put it. Verified before the fix: a JWT from an unrelated
+    # tenant read victim-corp's controls, including one named
+    # "victim-secret-control".
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().add_test(org_id, control_id, req.model_dump())
     except ValueError as exc:
@@ -116,7 +139,15 @@ def add_test(org_id: str, control_id: str, req: AddTestRequest) -> Dict[str, Any
 
 
 @router.post("/orgs/{org_id}/tests/{test_id}/run", summary="Run a control test via conftest/OPA")
-def run_test(org_id: str, test_id: str, req: RunTestRequest) -> Dict[str, Any]:
+def run_test(
+    org_id: str, test_id: str, req: RunTestRequest,
+    credential_org: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    # The org arrives in the PATH; a caller-supplied value is caller-supplied
+    # wherever they put it. Verified before the fix: a JWT from an unrelated
+    # tenant read victim-corp's controls, including one named
+    # "victim-secret-control".
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         result = get_engine().run_test(
             org_id, test_id,
@@ -138,7 +169,9 @@ def list_tests(
     org_id: str,
     control_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    credential_org: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().list_tests(org_id, control_id=control_id, status=status)
     except Exception as exc:
@@ -151,7 +184,15 @@ def list_tests(
 # ---------------------------------------------------------------------------
 
 @router.post("/orgs/{org_id}/failures", summary="Log a control failure")
-def log_failure(org_id: str, req: LogFailureRequest) -> Dict[str, Any]:
+def log_failure(
+    org_id: str, req: LogFailureRequest,
+    credential_org: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    # The org arrives in the PATH; a caller-supplied value is caller-supplied
+    # wherever they put it. Verified before the fix: a JWT from an unrelated
+    # tenant read victim-corp's controls, including one named
+    # "victim-secret-control".
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         data = req.model_dump()
         return get_engine().log_failure(org_id, data)
@@ -163,7 +204,15 @@ def log_failure(org_id: str, req: LogFailureRequest) -> Dict[str, Any]:
 
 
 @router.post("/orgs/{org_id}/failures/{failure_id}/remediate", summary="Remediate a failure")
-def remediate_failure(org_id: str, failure_id: str, req: RemediateFailureRequest) -> Dict[str, Any]:
+def remediate_failure(
+    org_id: str, failure_id: str, req: RemediateFailureRequest,
+    credential_org: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    # The org arrives in the PATH; a caller-supplied value is caller-supplied
+    # wherever they put it. Verified before the fix: a JWT from an unrelated
+    # tenant read victim-corp's controls, including one named
+    # "victim-secret-control".
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         success = get_engine().remediate_failure(org_id, failure_id, req.notes)
         if not success:
@@ -181,7 +230,9 @@ def list_failures(
     org_id: str,
     remediated: bool = Query(False),
     severity: Optional[str] = Query(None),
+    credential_org: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().list_failures(org_id, remediated=remediated, severity=severity)
     except Exception as exc:
@@ -194,7 +245,14 @@ def list_failures(
 # ---------------------------------------------------------------------------
 
 @router.get("/orgs/{org_id}/coverage", summary="Get control coverage by framework")
-def get_control_coverage(org_id: str) -> Dict[str, Any]:
+def get_control_coverage(
+    org_id: str, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
+    # The org arrives in the PATH; a caller-supplied value is caller-supplied
+    # wherever they put it. Verified before the fix: a JWT from an unrelated
+    # tenant read victim-corp's controls, including one named
+    # "victim-secret-control".
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().get_control_coverage(org_id)
     except Exception as exc:
@@ -203,7 +261,10 @@ def get_control_coverage(org_id: str) -> Dict[str, Any]:
 
 
 @router.get("/orgs/{org_id}/stats", summary="Get CCM statistics")
-def get_ccm_stats(org_id: str) -> Dict[str, Any]:
+def get_ccm_stats(
+    org_id: str, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().get_ccm_stats(org_id)
     except Exception as exc:
