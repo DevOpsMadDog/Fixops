@@ -10,7 +10,12 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from core.awareness_score_engine import get_engine
-from fastapi import APIRouter, HTTPException, Query
+from types import SimpleNamespace
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -56,7 +61,14 @@ class RecordPhishingRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/orgs/{org_id}/employees", summary="Register or upsert an employee profile")
-def register_employee(org_id: str, req: RegisterEmployeeRequest) -> Dict[str, Any]:
+def register_employee(
+    org_id: str, req: RegisterEmployeeRequest,
+    credential_org: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    # The org arrives in the PATH. Verified before the fix: a JWT from an
+    # unrelated tenant read victim-corp's employee roster, including a
+    # record named "victim-secret-employee" with its department and role.
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().register_employee(org_id, req.model_dump())
     except ValueError as exc:
@@ -71,7 +83,12 @@ def list_employees(
     org_id: str,
     department: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
+    credential_org: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
+    # The org arrives in the PATH. Verified before the fix: a JWT from an
+    # unrelated tenant read victim-corp's employee roster, including a
+    # record named "victim-secret-employee" with its department and role.
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().list_employees(org_id, department=department, risk_level=risk_level)
     except Exception as exc:
@@ -84,7 +101,14 @@ def list_employees(
 # ---------------------------------------------------------------------------
 
 @router.post("/orgs/{org_id}/employees/{employee_id}/training", summary="Record a training completion")
-def record_training(org_id: str, employee_id: str, req: RecordTrainingRequest) -> Dict[str, Any]:
+def record_training(
+    org_id: str, employee_id: str, req: RecordTrainingRequest,
+    credential_org: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    # The org arrives in the PATH. Verified before the fix: a JWT from an
+    # unrelated tenant read victim-corp's employee roster, including a
+    # record named "victim-secret-employee" with its department and role.
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().record_training(org_id, employee_id, req.model_dump())
     except ValueError as exc:
@@ -99,7 +123,14 @@ def record_training(org_id: str, employee_id: str, req: RecordTrainingRequest) -
 # ---------------------------------------------------------------------------
 
 @router.post("/orgs/{org_id}/employees/{employee_id}/phishing", summary="Record a phishing test result")
-def record_phishing_test(org_id: str, employee_id: str, req: RecordPhishingRequest) -> Dict[str, Any]:
+def record_phishing_test(
+    org_id: str, employee_id: str, req: RecordPhishingRequest,
+    credential_org: str = Depends(get_org_id),
+) -> Dict[str, Any]:
+    # The org arrives in the PATH. Verified before the fix: a JWT from an
+    # unrelated tenant read victim-corp's employee roster, including a
+    # record named "victim-secret-employee" with its department and role.
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().record_phishing_test(org_id, employee_id, req.model_dump())
     except ValueError as exc:
@@ -114,7 +145,13 @@ def record_phishing_test(org_id: str, employee_id: str, req: RecordPhishingReque
 # ---------------------------------------------------------------------------
 
 @router.post("/orgs/{org_id}/employees/{employee_id}/calculate-score", summary="Calculate awareness score")
-def calculate_score(org_id: str, employee_id: str) -> Dict[str, Any]:
+def calculate_score(
+    org_id: str, employee_id: str, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
+    # The org arrives in the PATH. Verified before the fix: a JWT from an
+    # unrelated tenant read victim-corp's employee roster, including a
+    # record named "victim-secret-employee" with its department and role.
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().calculate_score(org_id, employee_id)
     except ValueError as exc:
@@ -128,7 +165,12 @@ def calculate_score(org_id: str, employee_id: str) -> Dict[str, Any]:
 def list_scores(
     org_id: str,
     risk_tier: Optional[str] = Query(None),
+    credential_org: str = Depends(get_org_id),
 ) -> List[Dict[str, Any]]:
+    # The org arrives in the PATH. Verified before the fix: a JWT from an
+    # unrelated tenant read victim-corp's employee roster, including a
+    # record named "victim-secret-employee" with its department and role.
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().list_scores(org_id, risk_tier=risk_tier)
     except Exception as exc:
@@ -141,7 +183,13 @@ def list_scores(
 # ---------------------------------------------------------------------------
 
 @router.get("/orgs/{org_id}/department-summary", summary="Get awareness stats by department")
-def get_department_summary(org_id: str) -> Dict[str, Any]:
+def get_department_summary(
+    org_id: str, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
+    # The org arrives in the PATH. Verified before the fix: a JWT from an
+    # unrelated tenant read victim-corp's employee roster, including a
+    # record named "victim-secret-employee" with its department and role.
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().get_department_summary(org_id)
     except Exception as exc:
@@ -150,7 +198,13 @@ def get_department_summary(org_id: str) -> Dict[str, Any]:
 
 
 @router.get("/orgs/{org_id}/stats", summary="Get org-level awareness statistics")
-def get_awareness_stats(org_id: str) -> Dict[str, Any]:
+def get_awareness_stats(
+    org_id: str, credential_org: str = Depends(get_org_id)
+) -> Dict[str, Any]:
+    # The org arrives in the PATH. Verified before the fix: a JWT from an
+    # unrelated tenant read victim-corp's employee roster, including a
+    # record named "victim-secret-employee" with its department and role.
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return get_engine().get_awareness_stats(org_id)
     except Exception as exc:
@@ -159,8 +213,12 @@ def get_awareness_stats(org_id: str) -> Dict[str, Any]:
 
 
 @router.get("/orgs/{org_id}/risk-trend", summary="Org-wide human-risk score trend by month")
-def get_risk_trend(org_id: str, months: int = 6) -> Dict[str, Any]:
+def get_risk_trend(
+    org_id: str, months: int = 6,
+    credential_org: str = Depends(get_org_id),
+) -> Dict[str, Any]:
     """Monthly avg overall awareness score (real data from awareness_scores)."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         return {"trend": get_engine().get_risk_trend(org_id, months=months)}
     except Exception as exc:
