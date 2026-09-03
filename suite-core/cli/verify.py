@@ -210,6 +210,27 @@ def _cross_tenant(j: Journey) -> Tuple[str, str]:
     return PASS, f"{len(probes)} path-addressed endpoints refused another org"
 
 
+def _tenant_admin_is_not_operator(j: Journey) -> Tuple[str, str]:
+    """A signed-up tenant admin must not administer other tenants.
+
+    Signup grants admin:all so a customer can administer their OWN org. Ten
+    routers gate on that string, and the guard resolved the caller's org from a
+    contextvar that middleware sets before auth runs — so every JWT caller
+    looked like the platform operator.
+    """
+    if not j.token:
+        return SKIP, "no token"
+    r = j.get("/api/v1/tenants/victim-corp/stats")
+    if r.status_code == 200:
+        return FAIL, "a tenant admin read another tenant's stats (HTTP 200)"
+    if r.status_code not in (403, 404):
+        return SKIP, f"unexpected HTTP {r.status_code}"
+    own = j.get(f"/api/v1/tenants/{j.org}/stats") if j.org else None
+    if own is not None and own.status_code != 200:
+        return FAIL, f"locked out of OWN org (HTTP {own.status_code})"
+    return PASS, f"other tenant HTTP {r.status_code}, own org reachable"
+
+
 def _evidence_pack(j: Journey) -> Tuple[str, str]:
     """A pack must not contradict its own control counts."""
     if not j.token:
@@ -247,6 +268,7 @@ CHECKS: List[Tuple[str, Callable[[Journey], Tuple[str, str]]]] = [
     ("exploitability verdict", _verdict),
     ("verdict evidence", _evidence_columns),
     ("cross-tenant refusal", _cross_tenant),
+    ("tenant admin is scoped", _tenant_admin_is_not_operator),
     ("evidence pack", _evidence_pack),
     ("ui served", _ui_served),
 ]
