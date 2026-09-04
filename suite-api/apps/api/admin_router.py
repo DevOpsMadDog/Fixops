@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import require_role
 from apps.api.dependencies import get_org_id
-from core.audit_logger import create_audit_logger
+from core.audit_logger import AuditEvent as _AuditEvent, create_audit_logger
 from core.user_db import UserDB
 from core.user_models import Team, User, UserRole, UserStatus
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -34,6 +34,49 @@ from pydantic import BaseModel, EmailStr, Field
 
 logger = logging.getLogger(__name__)
 _audit = create_audit_logger()
+
+def _log_admin_action(
+    *,
+    action: str,
+    user_id=None,
+    client_ip=None,
+    resource: str = "",
+    outcome: str = "success",
+    correlation_id=None,
+    details=None,
+    org_id: str = "",
+) -> None:
+    """Record an admin action in the audit trail.
+
+    Every call site here used `_log_admin_action(...)`, a method
+    AuditLogger has never had. Five admin endpoints therefore raised
+    AttributeError and returned 500 — AFTER the write had already happened, so
+    the caller saw a failure while the user was created, the role changed or the
+    account deleted. An audit trail that crashes the action it audits is worse
+    than none: the operator believes nothing occurred.
+
+    The real API is AuditLogger.log(AuditEvent). Adapting here rather than
+    adding the invented method to the shared logger, so the logger's contract
+    stays honest.
+
+    Auditing must never break the operation it records, so a failure to log is
+    swallowed with a warning — the opposite of the current behaviour.
+    """
+    resource_type, _, resource_id = (resource or "").partition(":")
+    try:
+        _audit.log(_AuditEvent(
+            actor_id=str(user_id or ""),
+            action=action,
+            resource_type=resource_type or "admin",
+            resource_id=resource_id or "",
+            org_id=org_id or "",
+            result=outcome or "success",
+            details=dict(details or {}, correlation_id=correlation_id),
+            ip_address=str(client_ip or ""),
+        ))
+    except Exception:  # noqa: BLE001 - auditing must not break the action
+        logger.warning("audit log failed for admin action %s", action, exc_info=True)
+
 
 _ADMIN_ROLES = ("admin", "org_admin", "super_admin")
 
@@ -164,13 +207,23 @@ async def admin_list_users(
 
 
 @router.post("/users", response_model=AdminUserResponse, status_code=201, summary="Create user")
-async def admin_create_user(user_data: AdminUserCreate, request: Request) -> AdminUserResponse:
+async def admin_create_user(
+    user_data: AdminUserCreate,
+    request: Request,
+    org_id: str = Depends(get_org_id),
+) -> AdminUserResponse:
     """Create a new user. Requires admin scope."""
     existing = _get_db().get_user_by_email(user_data.email)
     if existing:
         raise HTTPException(status_code=409, detail="Email already exists")
 
+    # The caller's org. The LIST endpoint above already scopes by it while
+    # this one did not, so a user created here fell to the model's "default"
+    # and disappeared from the org that created them — measured on the
+    # identical omission in users_router: 201 returned, stored org "default",
+    # visible to the creator False.
     user = User(
+        org_id=org_id,
         id="",
         email=user_data.email,
         password_hash=_get_db().hash_password(user_data.password),
@@ -184,7 +237,7 @@ async def admin_create_user(user_data: AdminUserCreate, request: Request) -> Adm
         created_user = _get_db().create_user(user)
     except sqlite3.IntegrityError:
         raise HTTPException(status_code=409, detail="Email already exists")
-    _audit.log_admin_action(
+    _log_admin_action(
         action="create_user",
         user_id=getattr(request.state, "user_id", None),
         client_ip=request.client.host if request.client else None,
@@ -224,7 +277,7 @@ async def admin_update_user(user_id: str, user_data: AdminUserUpdate, request: R
         user.department = user_data.department
 
     updated_user = _get_db().update_user(user)
-    _audit.log_admin_action(
+    _log_admin_action(
         action="update_user",
         user_id=getattr(request.state, "user_id", None),
         client_ip=request.client.host if request.client else None,
@@ -243,7 +296,7 @@ async def admin_delete_user(user_id: str, request: Request) -> None:
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     _get_db().delete_user(user_id)
-    _audit.log_admin_action(
+    _log_admin_action(
         action="delete_user",
         user_id=getattr(request.state, "user_id", None),
         client_ip=request.client.host if request.client else None,
@@ -290,7 +343,7 @@ async def admin_create_team(team_data: AdminTeamCreate, request: Request) -> Adm
             status_code=409,
             detail=f"Team with name '{team_data.name}' already exists",
         )
-    _audit.log_admin_action(
+    _log_admin_action(
         action="create_team",
         user_id=getattr(request.state, "user_id", None),
         client_ip=request.client.host if request.client else None,
@@ -330,7 +383,7 @@ async def admin_update_team(team_id: str, team_data: AdminTeamUpdate, request: R
             status_code=409,
             detail=f"Team with name '{team_data.name}' already exists",
         )
-    _audit.log_admin_action(
+    _log_admin_action(
         action="update_team",
         user_id=getattr(request.state, "user_id", None),
         client_ip=request.client.host if request.client else None,
@@ -349,7 +402,7 @@ async def admin_delete_team(team_id: str, request: Request) -> None:
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
     _get_db().delete_team(team_id)
-    _audit.log_admin_action(
+    _log_admin_action(
         action="delete_team",
         user_id=getattr(request.state, "user_id", None),
         client_ip=request.client.host if request.client else None,
