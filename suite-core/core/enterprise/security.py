@@ -230,7 +230,19 @@ class JWTManager:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired"
             )
-        except jwt.JWTError:
+        except jwt.PyJWTError:
+            # PyJWT's base exception is PyJWTError. `jwt.JWTError` is
+            # python-jose's name and does not exist here (PyJWT 2.12.1), so this
+            # clause raised AttributeError instead of catching anything —
+            # turning every rejected token into a 500.
+            #
+            # Measured: a token missing the "iss" claim, which this code
+            # correctly wanted to refuse with 401, produced
+            #
+            #   AttributeError: module 'jwt' has no attribute 'JWTError'
+            #
+            # and three endpoints returned "Internal server error". A bad
+            # credential looked like a broken product.
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
             )
