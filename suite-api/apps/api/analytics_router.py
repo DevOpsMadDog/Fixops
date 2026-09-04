@@ -264,7 +264,17 @@ async def get_dashboard_executive(
     org_id: str = Depends(get_org_id),
 ):
     """Executive dashboard view — alias for /executive with org_id."""
-    result = await executive_summary(request)
+    # Pass org_id EXPLICITLY. Calling a decorated handler directly bypasses
+    # FastAPI's dependency injection, so the parameter kept its DEFAULT — the
+    # Depends object itself — and went straight into SQL:
+    #
+    #   sqlite3.ProgrammingError: Error binding parameter 1:
+    #   type 'Depends' is not supported
+    #
+    # The CISO dashboard returned 500 on every request. Nothing caught it
+    # because the module imports, the route registers, and Depends is only
+    # evaluated when FastAPI itself calls the function.
+    result = await executive_summary(request, org_id)
     result["org_id"] = org_id
     return result
 
