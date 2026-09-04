@@ -107,11 +107,38 @@ async def get_recent_decisions(org_id: str = Depends(get_org_id), limit: int = Q
 
 
 @router.get("/ssdlc-stages")
-async def get_ssdlc_stage_data(current_user: Dict = Depends(get_current_user)):
-    """Get SSDLC stage data ingestion status"""
+async def get_ssdlc_stage_data(org_id: str = Depends(get_org_id)):
+    """Get SSDLC stage data ingestion status.
+
+    Was ``Depends(get_current_user)`` — the enterprise verifier, which requires
+    ``iss: fixops-enterprise`` and ``aud: fixops-api``. Nothing in the product
+    mints those claims: ``SecurityManager.create_access_token``, the only
+    function that sets them, has **zero call sites**, and the login endpoint
+    uses a different minter. So this route answered 401 to every credential
+    that exists, including a valid login, and had done since it was written.
+
+    The 401 was not even honest — the token was fine; the verifier could not be
+    satisfied by any token. It also masked a 500 (see the PyJWT commit): the
+    ``except`` meant to convert the rejection into a 401 named an attribute
+    PyJWT does not have.
+
+    The route is still authenticated. Every path under ``/api/v1/decisions`` is
+    gated by middleware ("Invalid or missing API token"), verified by probing
+    all five routes with no credential. ``get_current_user`` was a redundant
+    second gate, so removing it changes nothing about who may call this — only
+    whether anyone *can*. Confirmed unauthenticated is still 401 after the swap.
+    """
     try:
         stage_data = await decision_engine.get_ssdlc_stage_data()
-        return {"status": "success", "data": stage_data}
+        # "scope" is not decoration. These counts come from the enterprise
+        # models (services, security_findings, policy_decision_logs), which
+        # carry no org_id column anywhere — the whole set is single-tenant — so
+        # they are deployment-wide totals and cannot be filtered to the caller.
+        # Labelling them is the difference between an honest aggregate and the
+        # copilot defect, where another tenant's numbers were handed back as
+        # the caller's own. A consumer that needs per-org figures must not read
+        # these.
+        return {"status": "success", "data": stage_data, "scope": "deployment-wide"}
 
     except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("Failed to get SSDLC stage data: %s", type(e).__name__)
@@ -119,8 +146,19 @@ async def get_ssdlc_stage_data(current_user: Dict = Depends(get_current_user)):
 
 
 @router.get("/core-components")
-async def get_core_components_status(current_user: Dict = Depends(get_current_user)):
-    """Get Decision & Verification Core components status with real data"""
+async def get_core_components_status(org_id: str = Depends(get_org_id)):
+    """Decision & Verification Core component status.
+
+    Unreachable for the same reason as ``/ssdlc-stages`` above; same fix, same
+    middleware auth still in force.
+
+    Returns component health (vector DB, LLM configuration, consensus
+    algorithm), not tenant records. The one aggregate it reports — the
+    ``policy_decision_logs`` row count — is deliberately left unscoped because
+    it is a system-health signal, but note it is a global count: when the
+    decision engine learns about tenants (``DecisionContext`` has no org field
+    today) this should be scoped with it.
+    """
     try:
         # Get real component status
         components = {}
@@ -208,7 +246,9 @@ async def get_core_components_status(current_user: Dict = Depends(get_current_us
             "oss_integrations_available": decision_engine.oss_integrations is not None,
         }
 
-        return {"status": "success", "data": components}
+        # Deployment-wide for the same reason as /ssdlc-stages: golden_regression
+        # counts every row in policy_decision_logs, a table with no tenant column.
+        return {"status": "success", "data": components, "scope": "deployment-wide"}
 
     except (OSError, ValueError, KeyError, RuntimeError) as e:  # narrowed from bare Exception
         logger.error("Failed to get core components status: %s", type(e).__name__)
@@ -224,7 +264,27 @@ async def get_core_components_status(current_user: Dict = Depends(get_current_us
 async def get_evidence_record(
     evidence_id: str, current_user: Dict = Depends(get_current_user)
 ):
-    """Get immutable evidence record from Evidence Lake"""
+    """Get immutable evidence record from Evidence Lake.
+
+    DELIBERATELY LEFT ON THE UNSATISFIABLE GATE — do not "fix" this the way the
+    two routes above were fixed without doing the work described here first.
+
+    It is unreachable for the same reason they were, but it is the one route in
+    this file that returns tenant data, and it cannot currently be scoped:
+
+    * ``EvidenceLake.retrieve_evidence`` selects from ``user_audit_logs`` by
+      ``resource_id`` alone — no tenant predicate.
+    * The stored record has no tenant to filter on. ``DecisionContext`` carries
+      ``service_name`` and ``environment`` but no ``org_id``, and
+      ``make_security_decision`` resolves ``org_id`` and then does not pass it
+      in, so every evidence record ever written is untagged.
+
+    Swapping the dependency here would convert a route nobody can reach into an
+    authenticated cross-tenant read of any evidence id — trading a 401 for a
+    data leak. The prerequisite is to thread ``org_id`` into ``DecisionContext``
+    and the evidence record, then filter on it at retrieval and refuse untagged
+    legacy records to a tenant-pinned caller.
+    """
     start_time = time.perf_counter()
     source = "none"
 
