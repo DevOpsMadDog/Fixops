@@ -10,7 +10,11 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
+from types import SimpleNamespace
+
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -71,7 +75,10 @@ class RevokeRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/{org_id}", summary="Request a security exception")
-def request_exception(org_id: str, body: ExceptionRequest, _=Depends(api_key_auth)):
+def request_exception(
+    org_id: str, body: ExceptionRequest, _=Depends(api_key_auth), credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     try:
         return engine.request_exception(org_id, body.model_dump())
@@ -86,7 +93,9 @@ def list_exceptions(
     status: Optional[str] = Query(None),
     risk_level: Optional[str] = Query(None),
     _=Depends(api_key_auth),
+    credential_org: str = Depends(get_org_id),
 ):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     return engine.list_exceptions(org_id, status=status, risk_level=risk_level)
 
@@ -96,19 +105,27 @@ def check_expiring(
     org_id: str,
     days_ahead: int = Query(default=7, ge=1, le=90),
     _=Depends(api_key_auth),
+    credential_org: str = Depends(get_org_id),
 ):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     return engine.check_expiring(org_id, days_ahead=days_ahead)
 
 
 @router.get("/{org_id}/stats", summary="Get exception stats")
-def get_exception_stats(org_id: str, _=Depends(api_key_auth)):
+def get_exception_stats(
+    org_id: str, _=Depends(api_key_auth), credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     return engine.get_exception_stats(org_id)
 
 
 @router.get("/{org_id}/{exception_id}", summary="Get a security exception")
-def get_exception(org_id: str, exception_id: str, _=Depends(api_key_auth)):
+def get_exception(
+    org_id: str, exception_id: str, _=Depends(api_key_auth), credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     result = engine.get_exception(org_id, exception_id)
     if result is None:
@@ -117,7 +134,10 @@ def get_exception(org_id: str, exception_id: str, _=Depends(api_key_auth)):
 
 
 @router.post("/{org_id}/{exception_id}/review", summary="Review an exception")
-def review_exception(org_id: str, exception_id: str, body: ExceptionReview, _=Depends(api_key_auth)):
+def review_exception(
+    org_id: str, exception_id: str, body: ExceptionReview, _=Depends(api_key_auth), credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     try:
         return engine.review_exception(
@@ -133,7 +153,10 @@ def review_exception(org_id: str, exception_id: str, body: ExceptionReview, _=De
 
 
 @router.post("/{org_id}/{exception_id}/assets", summary="Add asset to exception")
-def add_asset(org_id: str, exception_id: str, body: AssetAdd, _=Depends(api_key_auth)):
+def add_asset(
+    org_id: str, exception_id: str, body: AssetAdd, _=Depends(api_key_auth), credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     try:
         return engine.add_asset(org_id, exception_id, body.model_dump())
@@ -143,13 +166,19 @@ def add_asset(org_id: str, exception_id: str, body: AssetAdd, _=Depends(api_key_
 
 
 @router.get("/{org_id}/{exception_id}/assets", summary="List assets for exception")
-def list_assets(org_id: str, exception_id: str, _=Depends(api_key_auth)):
+def list_assets(
+    org_id: str, exception_id: str, _=Depends(api_key_auth), credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     return engine.list_assets(org_id, exception_id)
 
 
 @router.post("/{org_id}/{exception_id}/revoke", summary="Revoke an exception")
-def revoke_exception(org_id: str, exception_id: str, body: RevokeRequest, _=Depends(api_key_auth)):
+def revoke_exception(
+    org_id: str, exception_id: str, body: RevokeRequest, _=Depends(api_key_auth), credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     ok = engine.revoke_exception(org_id, exception_id, revoker=body.revoker, reason=body.reason)
     if not ok:
