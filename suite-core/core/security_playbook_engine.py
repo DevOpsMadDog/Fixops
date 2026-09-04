@@ -315,6 +315,25 @@ class SecurityPlaybookEngine:
                     ON executions (org_id, started_at DESC);
                 """
             )
+            # Additive migration. The HTTP API (apps/api/playbook_routes.py)
+            # exposes description/status/version/created_by/tags, which this
+            # table never had — it was backed by an in-process dict instead.
+            # Adding the columns here is what let that router move onto real,
+            # org-scoped storage. Existing rows keep working: every column is
+            # nullable with a default.
+            existing = {
+                row[1] for row in conn.execute("PRAGMA table_info(playbooks)")
+            }
+            for column, ddl in (
+                ("description", "TEXT DEFAULT ''"),
+                ("status", "TEXT DEFAULT 'draft'"),
+                ("version", "INTEGER DEFAULT 1"),
+                ("created_by", "TEXT DEFAULT 'api'"),
+                ("tags", "TEXT DEFAULT '[]'"),
+                ("updated_at", "DATETIME"),
+            ):
+                if column not in existing:
+                    conn.execute(f"ALTER TABLE playbooks ADD COLUMN {column} {ddl}")
 
     def _get_conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
@@ -347,8 +366,10 @@ class SecurityPlaybookEngine:
                     """
                     INSERT INTO playbooks
                         (id, org_id, name, trigger_type, trigger_conditions,
-                         steps, severity_filter, enabled, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                         steps, severity_filter, enabled, created_at,
+                         description, status, version, created_by, tags,
+                         updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         playbook_id,
@@ -359,6 +380,12 @@ class SecurityPlaybookEngine:
                         json.dumps(playbook.get("steps", [])),
                         playbook.get("severity_filter", "medium"),
                         1 if playbook.get("enabled", True) else 0,
+                        now,
+                        playbook.get("description", ""),
+                        playbook.get("status", "draft"),
+                        int(playbook.get("version", 1)),
+                        playbook.get("created_by", "api"),
+                        json.dumps(playbook.get("tags", [])),
                         now,
                     ),
                 )
@@ -399,7 +426,60 @@ class SecurityPlaybookEngine:
         d["trigger_conditions"] = json.loads(d["trigger_conditions"])
         d["steps"] = json.loads(d["steps"])
         d["enabled"] = bool(d["enabled"])
+        # Rows written before the additive migration have NULL here, which is
+        # not the same as "no tags" until it is decoded as such.
+        try:
+            d["tags"] = json.loads(d.get("tags") or "[]")
+        except (TypeError, ValueError):
+            d["tags"] = []
         return d
+
+    def update_playbook(
+        self, playbook_id: str, org_id: str, changes: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """Update a playbook in place. Returns the new row, or None.
+
+        None means "not yours or not there" — the UPDATE carries ``org_id`` in
+        its WHERE clause, so a caller in another tenant cannot modify a row and
+        cannot learn that it exists. The HTTP layer turns that into a 404.
+
+        The version counter increments on every accepted change, so a client
+        that held a stale copy can tell.
+        """
+        current = self.get_playbook(playbook_id, org_id)
+        if current is None:
+            return None
+
+        allowed = ("name", "description", "trigger_conditions", "steps",
+                   "status", "tags", "severity_filter", "enabled")
+        sets, params = [], []
+        for key in allowed:
+            if key not in changes or changes[key] is None:
+                continue
+            value = changes[key]
+            if key in ("trigger_conditions", "steps", "tags"):
+                value = json.dumps(value)
+            elif key == "enabled":
+                value = 1 if value else 0
+            sets.append(f"{key} = ?")
+            params.append(value)
+
+        if not sets:
+            return current
+
+        sets.append("version = version + 1")
+        sets.append("updated_at = ?")
+        params.append(datetime.now(timezone.utc).isoformat())
+        params.extend([playbook_id, org_id])
+
+        with self._lock:
+            with self._get_conn() as conn:
+                conn.execute(
+                    f"UPDATE playbooks SET {', '.join(sets)} "
+                    "WHERE id = ? AND org_id = ?",
+                    params,
+                )
+        return self.get_playbook(playbook_id, org_id)
 
     # ------------------------------------------------------------------
     # Execution
