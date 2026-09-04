@@ -275,9 +275,18 @@ async def export_graph(format: str = Query("json", pattern="^(json|mermaid)$")) 
     """Export graph in JSON or Mermaid diagram format."""
     try:
         engine = _get_engine()
+        # An export is the artifact most likely to be read away from the
+        # system that produced it — pasted into a report, handed to an
+        # auditor. If any of it was fabricated by /seed-demo, that has to
+        # travel with it.
+        analytics = engine.get_graph_analytics()
+        provenance = {
+            "demo_seeded_nodes": analytics.get("demo_seeded_nodes", 0),
+            "contains_demo_data": analytics.get("contains_demo_data", False),
+        }
         if format == "mermaid":
-            return {"format": "mermaid", "diagram": engine.export_mermaid()}
-        return {"format": "json", "graph": engine.export_json()}
+            return {"format": "mermaid", "diagram": engine.export_mermaid(), **provenance}
+        return {"format": "json", "graph": engine.export_json(), **provenance}
     except Exception:
         return {"format": format, "graph": {}, "diagram": "", "note": "Knowledge graph engine unavailable"}
 

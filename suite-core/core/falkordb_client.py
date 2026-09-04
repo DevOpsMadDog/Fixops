@@ -799,12 +799,32 @@ class KnowledgeGraphEngine:
                 "centrality": round(score, 4),
             })
 
-        # Node type distribution
+        # Node type distribution, and how much of it is fabricated.
+        #
+        # POST /knowledge-graph/seed-demo writes 5 applications, 20
+        # vulnerabilities and their CVE/CWE nodes, each tagged
+        # is_demo=True / source="demo-seed". The tag was written and never
+        # read: no analytics, export or attack-path response mentioned it, so
+        # once a graph was seeded a fabricated Log4Shell with CVSS 10.0 and
+        # KEV=true was indistinguishable from an ingested finding.
+        #
+        # The seeding gate is careful — it demands FIXOPS_MODE != enterprise
+        # AND FIXOPS_ALLOW_DEMO_SEED=1, and its docstring promises this
+        # "prevents fabricated CVE/vulnerability nodes from ... surfacing in
+        # attack-path or blast-radius results as if they were real findings".
+        # But it only governs the write. Once an operator opts in, which is
+        # the entire point of the endpoint, the fabricated nodes surface
+        # exactly as the docstring says they must not. Counting them here is
+        # what makes the promise true on the read side.
         type_dist = defaultdict(int)
+        demo_seeded = 0
         for nt in NodeType:
-            count = len(self._backend.get_nodes_by_type(nt))
-            if count > 0:
-                type_dist[nt.value] = count
+            nodes = self._backend.get_nodes_by_type(nt)
+            if nodes:
+                type_dist[nt.value] = len(nodes)
+            for node in nodes:
+                if (getattr(node, "properties", None) or {}).get("is_demo"):
+                    demo_seeded += 1
 
         return {
             "node_count": self._backend.node_count,
@@ -812,6 +832,9 @@ class KnowledgeGraphEngine:
             "node_type_distribution": dict(type_dist),
             "top_central_nodes": top_nodes,
             "backend": type(self._backend).__name__,
+            # 0 means counted and clean, never "nobody looked".
+            "demo_seeded_nodes": demo_seeded,
+            "contains_demo_data": demo_seeded > 0,
         }
 
     def _resolve_node_id(self, partial: str) -> Optional[str]:
