@@ -885,8 +885,34 @@ class ThreatModelGenerator:
                     )
         return created
 
+    def _require_owned(self, table: str, column: str, org_id: str, ident: str) -> None:
+        """Refuse a write whose PARENT belongs to another organisation.
+
+        Scoping the router was not enough. Once the handler resolved org_id
+        from the credential, these INSERTs still took the parent id straight
+        from the URL and never checked that the parent was in that org — so a
+        caller could attach a threat, mitigation or review to another tenant's
+        model or threat. auto_generate_threats already did this check and
+        therefore already refused; the three write paths below did not, and
+        one of them was measured returning 200 to a cross-tenant write after
+        the router fix looked complete.
+
+        Raises ValueError, which every caller here maps to 404 — the same
+        answer a nonexistent id gets, so an outsider cannot use the error to
+        confirm that an id is real.
+        """
+        with self._lock:
+            with self._conn() as conn:
+                row = conn.execute(
+                    f"SELECT 1 FROM {table} WHERE org_id=? AND {column}=?",
+                    (org_id, ident),
+                ).fetchone()
+        if not row:
+            raise ValueError(f"{column} {ident} not found for org {org_id}")
+
     def add_threat(self, org_id: str, model_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Add a manual threat to a model."""
+        self._require_owned("threat_models", "model_id", org_id, model_id)
         threat_id = str(uuid.uuid4())
         now = self._now()
         mitigations = json.dumps(data.get("mitigations", []))
@@ -970,6 +996,7 @@ class ThreatModelGenerator:
 
     def add_mitigation(self, org_id: str, threat_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Add a mitigation to a threat."""
+        self._require_owned("threats", "threat_id", org_id, threat_id)
         mitigation_id = str(uuid.uuid4())
         now = self._now()
 
@@ -1022,6 +1049,7 @@ class ThreatModelGenerator:
 
     def add_review(self, org_id: str, model_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Add a review to a threat model. Updates model status if verdict=approved."""
+        self._require_owned("threat_models", "model_id", org_id, model_id)
         review_id = str(uuid.uuid4())
         now = self._now()
         verdict = data.get("verdict", "needs_revision")

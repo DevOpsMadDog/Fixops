@@ -10,7 +10,11 @@ from __future__ import annotations
 import logging
 from typing import List, Optional
 
+from types import SimpleNamespace
+
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -84,7 +88,17 @@ class ReviewCreate(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.post("/{org_id}/models", summary="Create a threat model")
-def create_model(org_id: str, body: ThreatModelCreate, _=Depends(api_key_auth)):
+def create_model(
+    org_id: str,
+    body: ThreatModelCreate,
+    _=Depends(api_key_auth),
+    credential_org: str = Depends(get_org_id),
+):
+    # The org arrives in the PATH. api_key_auth authenticates the caller but
+    # binds no tenant, so /threat-model-gen/{someone-elses-org}/... was
+    # answered for any valid credential. Verified before this fix: an
+    # unrelated tenant listed, read and WROTE INTO a victim's threat model.
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     try:
         return engine.create_model(org_id, body.model_dump())
@@ -99,13 +113,21 @@ def list_models(
     status: Optional[str] = Query(None),
     methodology: Optional[str] = Query(None),
     _=Depends(api_key_auth),
+    credential_org: str = Depends(get_org_id),
 ):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     return engine.list_models(org_id, status=status, methodology=methodology)
 
 
 @router.get("/{org_id}/models/{model_id}", summary="Get a threat model")
-def get_model(org_id: str, model_id: str, _=Depends(api_key_auth)):
+def get_model(
+    org_id: str,
+    model_id: str,
+    _=Depends(api_key_auth),
+    credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     result = engine.get_model(org_id, model_id)
     if result is None:
@@ -114,7 +136,13 @@ def get_model(org_id: str, model_id: str, _=Depends(api_key_auth)):
 
 
 @router.post("/{org_id}/models/{model_id}/auto-generate", summary="Auto-generate STRIDE threats")
-def auto_generate_threats(org_id: str, model_id: str, _=Depends(api_key_auth)):
+def auto_generate_threats(
+    org_id: str,
+    model_id: str,
+    _=Depends(api_key_auth),
+    credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     try:
         return engine.auto_generate_threats(org_id, model_id)
@@ -126,10 +154,21 @@ def auto_generate_threats(org_id: str, model_id: str, _=Depends(api_key_auth)):
 
 
 @router.post("/{org_id}/models/{model_id}/threats", summary="Add a threat")
-def add_threat(org_id: str, model_id: str, body: ThreatCreate, _=Depends(api_key_auth)):
+def add_threat(
+    org_id: str,
+    model_id: str,
+    body: ThreatCreate,
+    _=Depends(api_key_auth),
+    credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     try:
         return engine.add_threat(org_id, model_id, body.model_dump())
+    except ValueError as exc:
+        # The model belongs to another org (or does not exist). 404 either
+        # way, so the error cannot be used to confirm an id is real.
+        raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:
         _logger.exception("add_threat failed")
         raise HTTPException(status_code=500, detail=str(exc))
@@ -141,13 +180,22 @@ def list_threats(
     model_id: str,
     stride_category: Optional[str] = Query(None),
     _=Depends(api_key_auth),
+    credential_org: str = Depends(get_org_id),
 ):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     return engine.list_threats(org_id, model_id, stride_category=stride_category)
 
 
 @router.patch("/{org_id}/threats/{threat_id}/status", summary="Update threat status")
-def update_threat_status(org_id: str, threat_id: str, body: ThreatStatusUpdate, _=Depends(api_key_auth)):
+def update_threat_status(
+    org_id: str,
+    threat_id: str,
+    body: ThreatStatusUpdate,
+    _=Depends(api_key_auth),
+    credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     ok = engine.update_threat_status(org_id, threat_id, body.status)
     if not ok:
@@ -156,32 +204,61 @@ def update_threat_status(org_id: str, threat_id: str, body: ThreatStatusUpdate, 
 
 
 @router.post("/{org_id}/threats/{threat_id}/mitigations", summary="Add a mitigation")
-def add_mitigation(org_id: str, threat_id: str, body: MitigationCreate, _=Depends(api_key_auth)):
+def add_mitigation(
+    org_id: str,
+    threat_id: str,
+    body: MitigationCreate,
+    _=Depends(api_key_auth),
+    credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     try:
         return engine.add_mitigation(org_id, threat_id, body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:
         _logger.exception("add_mitigation failed")
         raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.get("/{org_id}/threats/{threat_id}/mitigations", summary="List mitigations")
-def list_mitigations(org_id: str, threat_id: str, _=Depends(api_key_auth)):
+def list_mitigations(
+    org_id: str,
+    threat_id: str,
+    _=Depends(api_key_auth),
+    credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     return engine.list_mitigations(org_id, threat_id)
 
 
 @router.post("/{org_id}/models/{model_id}/reviews", summary="Add a model review")
-def add_review(org_id: str, model_id: str, body: ReviewCreate, _=Depends(api_key_auth)):
+def add_review(
+    org_id: str,
+    model_id: str,
+    body: ReviewCreate,
+    _=Depends(api_key_auth),
+    credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     try:
         return engine.add_review(org_id, model_id, body.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:
         _logger.exception("add_review failed")
         raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.get("/{org_id}/stats", summary="Get threat model stats")
-def get_model_stats(org_id: str, _=Depends(api_key_auth)):
+def get_model_stats(
+    org_id: str,
+    _=Depends(api_key_auth),
+    credential_org: str = Depends(get_org_id),
+):
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     return engine.get_model_stats(org_id)
