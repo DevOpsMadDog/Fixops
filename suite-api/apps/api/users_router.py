@@ -320,7 +320,11 @@ async def list_users(
 
 
 @router.post("", response_model=UserResponse, status_code=201)
-async def create_user(user_data: UserCreate, request: Request):
+async def create_user(
+    user_data: UserCreate,
+    request: Request,
+    org_id: str = Depends(get_org_id),
+):
     """Create a new user.
 
     AUTHZ-VULN-04: Only admin/super_admin callers may assign privileged roles.
@@ -351,6 +355,20 @@ async def create_user(user_data: UserCreate, request: Request):
         role=user_data.role,
         status=UserStatus.ACTIVE,
         department=user_data.department,
+        # The caller's org, not the dataclass default.
+        #
+        # This was omitted, so every user created through this endpoint landed
+        # in the shared "default" org. Measured: a tenant admin POSTs a
+        # colleague, gets 201, and then
+        #
+        #   stored org_id            "default"
+        #   caller's org             org-368f45e1-3ded-4fa8-b1c8-5f4786a35ddb
+        #   visible in GET /users    False
+        #
+        # list_users IS correctly org-scoped, so the account they just created
+        # was invisible to them — a broken feature and cross-tenant pollution at
+        # once, reported as a success. Same omission as invite_org_user.
+        org_id=org_id,
     )
     created_user = db.create_user(user)
     return UserResponse(**created_user.to_dict())
