@@ -24,6 +24,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from apps.api.dependencies import get_org_id
+from sqlite3 import Error as _SQLITE_ERROR
 from core.persistent_store import get_persistent_store
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -911,20 +912,69 @@ async def add_context(
 # =============================================================================
 
 
-def _rule_based_suggestions(context_type: Optional[str], limit: int) -> List[SuggestionResponse]:
-    """Generate context-aware suggestions from real Knowledge Brain data (no LLM required)."""
+def _brain_db_path() -> "pathlib.Path":
+    """The same file ``core.knowledge_brain.get_brain`` opens.
+
+    This module hard-coded the relative string ``data/fixops_brain.db``, which
+    resolves against the *current working directory*. Measured on this repo,
+    that produced five different databases:
+
+        ./fixops_brain.db                    0 nodes
+        ./data/fixops_brain.db               no brain_nodes table at all
+        ./.fixops_data/brain.db              3 nodes
+        ./.fixops_data/fixops_brain.db       46 nodes
+        ./suite-api/data/fixops_brain.db     178 nodes   <- the real one
+
+    The endpoint opened the second. ``sqlite3.connect`` *creates* a missing
+    file rather than failing, so the symptom was not "file not found" but
+    ``no such table: brain_nodes`` — and since ``sqlite3.OperationalError`` was
+    outside the narrowed ``except`` below, it escaped as a 500 on a screen a
+    prospect reaches by clicking Copilot.
+    """
+    import os
+    import pathlib
+
+    explicit = os.environ.get("FIXOPS_BRAIN_DB_PATH")
+    if explicit:
+        return pathlib.Path(explicit)
+    data_dir = os.environ.get("FIXOPS_DATA_DIR")
+    return pathlib.Path(f"{data_dir}/fixops_brain.db" if data_dir else "data/fixops_brain.db")
+
+
+def _rule_based_suggestions(
+    context_type: Optional[str], limit: int, org_id: str
+) -> List[SuggestionResponse]:
+    """Context-aware suggestions from this org's Knowledge Brain data (no LLM).
+
+    ``org_id`` is not decoration. ``brain_nodes`` carries an ``org_id`` column
+    and none of these queries filtered on it, so every count below was summed
+    across tenants: measured on the real store, a caller in org ``default``
+    (2 findings) was told it had 43, and was offered a review of 129 components
+    belonging to org ``aldeci``.
+    """
     suggestions: List[SuggestionResponse] = []
     try:
         import json as _json
         import sqlite3 as _sqlite3
-        brain_db = "data/fixops_brain.db"
-        conn = _sqlite3.connect(brain_db)
+
+        brain_db = _brain_db_path()
+        if not brain_db.is_file():
+            # Nothing ingested yet. Say nothing rather than connecting, which
+            # would create an empty database and then fail on the first query.
+            return []
+        conn = _sqlite3.connect(f"file:{brain_db}?mode=ro", uri=True)
         conn.row_factory = _sqlite3.Row
+        if not conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='brain_nodes'"
+        ).fetchone():
+            conn.close()
+            return []
 
         # Count severities from findings
         sev_counts: dict = {}
         for row in conn.execute(
-            "SELECT properties FROM brain_nodes WHERE node_type='finding'"
+            "SELECT properties FROM brain_nodes WHERE node_type='finding' AND org_id=?",
+            (org_id,),
         ).fetchall():
             props = _json.loads(row["properties"] or "{}")
             sev = (props.get("severity") or "unknown").lower()
@@ -936,17 +986,30 @@ def _rule_based_suggestions(context_type: Optional[str], limit: int) -> List[Sug
 
         # Count CVEs
         cve_count = conn.execute(
-            "SELECT COUNT(*) FROM brain_nodes WHERE node_type='cve'"
+            "SELECT COUNT(*) FROM brain_nodes WHERE node_type='cve' AND org_id=?",
+            (org_id,),
         ).fetchone()[0]
 
         # Count remediations
         rem_count = conn.execute(
-            "SELECT COUNT(*) FROM brain_nodes WHERE node_type='remediation'"
+            "SELECT COUNT(*) FROM brain_nodes WHERE node_type='remediation' AND org_id=?",
+            (org_id,),
         ).fetchone()[0]
 
         # Count exposure cases
         exp_count = conn.execute(
-            "SELECT COUNT(*) FROM brain_nodes WHERE node_type='exposure_case'"
+            "SELECT COUNT(*) FROM brain_nodes WHERE node_type='exposure_case' AND org_id=?",
+            (org_id,),
+        ).fetchone()[0]
+
+        component_rows = conn.execute(
+            "SELECT properties FROM brain_nodes WHERE node_type='component' AND org_id=? "
+            "ORDER BY node_id LIMIT 3",
+            (org_id,),
+        ).fetchall()
+        component_count = conn.execute(
+            "SELECT COUNT(*) FROM brain_nodes WHERE node_type='component' AND org_id=?",
+            (org_id,),
         ).fetchone()[0]
 
         conn.close()
@@ -1017,20 +1080,39 @@ def _rule_based_suggestions(context_type: Optional[str], limit: int) -> List[Sug
                 action={"type": "review", "endpoint": "/api/v1/compliance/status"},
             ))
 
-        if context_type is None or context_type == "configuration":
+        if component_count > 0 and (context_type is None or context_type == "configuration"):
+            # This suggestion used to be a fixed string asserting "15 SBOM
+            # components ... including log4j-core 2.14.1 and jackson-databind
+            # 2.12.3", emitted unconditionally — on an empty tenant, on any
+            # tenant, whatever had actually been ingested. It was the first
+            # thing a prospect saw after clicking Copilot, and it was fiction.
+            # The counts and the names below are read from this org's SBOM.
+            names = []
+            for _row in component_rows:
+                _props = _json.loads(_row["properties"] or "{}")
+                _name = _props.get("name")
+                _version = _props.get("version")
+                if _name:
+                    names.append(f"{_name} {_version}".strip() if _version else _name)
+            _sample = ", ".join(names)
             suggestions.append(SuggestionResponse(
                 id=str(uuid.uuid4()),
                 type="configuration",
                 title="Review SBOM for vulnerable dependencies",
                 description=(
-                    "15 SBOM components have been ingested including log4j-core 2.14.1 and jackson-databind 2.12.3. "
-                    "Check these against the NVD for known CVEs and upgrade if needed."
+                    f"{component_count} SBOM components have been ingested"
+                    + (f", including {_sample}. " if _sample else ". ")
+                    + "Check these against the NVD for known CVEs and upgrade if needed."
                 ),
                 confidence=0.90,
                 action={"type": "review", "endpoint": "/api/v1/inventory/assets"},
             ))
 
-    except (OSError, ValueError, KeyError, RuntimeError) as exc:  # narrowed from bare Exception
+    except (OSError, ValueError, KeyError, RuntimeError, _SQLITE_ERROR) as exc:
+        # sqlite3.Error belongs here. Without it a missing table — the ordinary
+        # state of a tenant that has not run a pipeline yet — left this
+        # function as an unhandled OperationalError and the endpoint returned
+        # 500 "Internal server error" with a correlation id and no cause.
         logger.warning("Rule-based suggestion generation failed: %s", exc)
         suggestions.append(SuggestionResponse(
             id=str(uuid.uuid4()),
@@ -1048,6 +1130,7 @@ def _rule_based_suggestions(context_type: Optional[str], limit: int) -> List[Sug
 async def get_suggestions(
     context_type: Optional[str] = None,
     limit: int = Query(default=5, le=20),
+    org_id: str = Depends(get_org_id),
 ) -> List[SuggestionResponse]:
     """Get context-aware security suggestions.
 
@@ -1056,7 +1139,7 @@ async def get_suggestions(
     analysis when no API keys are configured.
     """
     if not _HAS_LLM:
-        return _rule_based_suggestions(context_type, limit)
+        return _rule_based_suggestions(context_type, limit, org_id)
 
     # Gather context from Knowledge Brain
     brain_summary = ""
@@ -1136,7 +1219,7 @@ async def get_suggestions(
 
     # Fall back to rule-based suggestions if LLM returned nothing
     if not suggestions:
-        return _rule_based_suggestions(context_type, limit)
+        return _rule_based_suggestions(context_type, limit, org_id)
 
     return suggestions[:limit]
 
