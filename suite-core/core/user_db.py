@@ -1,6 +1,7 @@
 """
 User and team database manager using SQLite.
 """
+import os
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -12,12 +13,43 @@ import bcrypt
 from core.user_models import Team, TeamMember, User, UserRole, UserStatus
 
 
+def default_user_db_path() -> Path:
+    """Where the user database lives, independent of the process's cwd.
+
+    The default was the RELATIVE string "data/users.db", so which user database
+    you opened depended on where you happened to start the process. Measured on
+    this repo:
+
+        ./data/users.db            79 users
+        ./suite-api/data/users.db   0 users
+
+    Anything started from suite-api/ therefore authenticated against an EMPTY
+    database — every login 401s and every signup writes into a file nothing else
+    reads. That is precisely how "the password hash verifies in-process but
+    login returns 401" happens, and it cost a debugging session before anyone
+    looked at the path.
+
+    Same defect as the advisory-body lookup reading the wrong feeds.db and the
+    call graph landing outside the data directory: a relative path is a join
+    whose other half is the working directory.
+
+    FIXOPS_USERS_DB overrides for deployments that place it elsewhere. The
+    fallback stays <repo>/data/users.db rather than FIXOPS_DATA_DIR — moving it
+    would orphan the 79 accounts already there, and this change is about cwd,
+    not relocation.
+    """
+    configured = os.environ.get("FIXOPS_USERS_DB", "").strip()
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parents[2] / "data" / "users.db"
+
+
 class UserDB:
     """Database manager for users and teams."""
 
-    def __init__(self, db_path: str = "data/users.db"):
+    def __init__(self, db_path: Optional[str] = None):
         """Initialize database connection."""
-        self.db_path = Path(db_path)
+        self.db_path = Path(db_path) if db_path else default_user_db_path()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_tables()
 

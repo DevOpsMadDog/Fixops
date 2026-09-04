@@ -23,6 +23,27 @@ docker compose up -d                          # API + UI on http://localhost:800
 curl -sf http://localhost:8000/health && echo "  ✅ FixOps is up"
 ```
 
+## A login for the demo
+
+Signup is self-service, so the demo account is created the same way a customer
+would create theirs — no seeding, no fixture:
+
+```
+curl -sX POST $BASE/api/v1/auth/signup -H 'content-type: application/json' \
+  -d '{"email":"admin@aldeci.example.com","password":"Aldeci-Admin-2026!",
+       "first_name":"Admin","last_name":"User"}'
+
+curl -sX POST $BASE/api/v1/auth/login -H 'content-type: application/json' \
+  -d '{"email":"admin@aldeci.example.com","password":"Aldeci-Admin-2026!"}'
+```
+
+A 409 on signup means the account already exists — go straight to login. The
+login returns an access token; the console stores it under `aldeci.authToken`
+and sends it as `Authorization: Bearer`.
+
+Verified end to end: signup 201, login 200, token 425 chars, role admin scoped
+to its own org.
+
 ## One command to check everything works
 
 Before the call, against whatever you are about to demo:
