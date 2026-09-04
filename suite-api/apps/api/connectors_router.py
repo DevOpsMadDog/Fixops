@@ -29,8 +29,25 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 try:
     from apps.api.dependencies import get_org_id as _get_org_id
 except ImportError:  # pragma: no cover — test environments without full app
-    def _get_org_id() -> str:  # type: ignore[misc]
-        return "default"
+    from fastapi import Request
+
+    def _get_org_id(request: Request) -> str:  # type: ignore[misc]
+        """Fallback tenant resolution — reads the credential, never a constant.
+
+        This used to `return "default"`. That is fail-OPEN: if the import above
+        ever fails, every connector handler pins to one org and all tenants
+        share the same credentials, targets and sync state. The branch is not
+        hypothetical — deduplication_router took exactly this fallback path in
+        this codebase, which is how its own NameError was found.
+
+        Reading request.state.org_id, which the auth layer writes from the
+        validated credential, cannot widen access: it is the same value the
+        real dependency prefers, and when nothing pinned a tenant it degrades
+        to the operator's unpinned "default" rather than granting one tenant
+        another's data.
+        """
+        state_org = getattr(request.state, "org_id", None)
+        return str(state_org).strip() if state_org and str(state_org).strip() else "default"
 
 logger = logging.getLogger(__name__)
 
