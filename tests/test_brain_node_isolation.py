@@ -37,8 +37,47 @@ import core.event_bus as _eb_mod
 _orig_get_event_bus = _eb_mod.get_event_bus
 
 class _StubBus:
-    async def emit(self, *a, **kw):  # noqa: D102
+    """Stands in for the real EventBus while this module's router is imported.
+
+    It must implement the whole interface callers use, not just the one method
+    this file happens to exercise. It used to define emit() alone, and the
+    patch below is applied at MODULE IMPORT and was never undone — so every
+    test that ran after this file in the same process received this stub, and
+    anything calling bus.subscribe(...) — slack_notifier, event_subscribers,
+    llm_learning_loop, unified_issues_engine — died with
+
+        AttributeError: '_StubBus' object has no attribute 'subscribe'
+
+    Measured: 108 errors across the suite from this one omission, all of them
+    looking like failures in unrelated modules.
+    """
+
+    def emit(self, *a, **kw):  # noqa: D102 - awaited by some callers, not others
+        return _completed()
+
+    def subscribe(self, *a, **kw) -> None:  # noqa: D102
         return None
+
+    def subscribe_all(self, *a, **kw) -> None:  # noqa: D102
+        return None
+
+    def on(self, *a, **kw):  # noqa: D102 - decorator form
+        def _decorator(func):
+            return func
+        return _decorator
+
+    def recent_events(self, *a, **kw):  # noqa: D102
+        return []
+
+
+def _completed():
+    """An awaitable that is also safe to ignore."""
+    import asyncio
+
+    future: "asyncio.Future" = asyncio.Future()
+    future.set_result(None)
+    return future
+
 
 def _stub_get_event_bus():
     return _StubBus()
@@ -280,3 +319,16 @@ class TestNullOrgMigration:
             )
             assert resp.json()["org_id"] == _SYSTEM_ORG
         KnowledgeBrain.reset_instance()
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _restore_event_bus():
+    """Undo the module-import monkeypatch when this file is done.
+
+    The patch has to be applied at import time — the router under test binds
+    the bus at import — but leaving it applied makes every later test in the
+    process use the stub. Capturing _orig_get_event_bus without ever restoring
+    it is how a local convenience became a suite-wide fault.
+    """
+    yield
+    _eb_mod.get_event_bus = _orig_get_event_bus
