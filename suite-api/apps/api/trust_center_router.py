@@ -28,7 +28,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from types import SimpleNamespace
+
 from apps.api.auth_deps import api_key_auth
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from core.trust_center import (
     ComplianceBadge,
     DocumentRequest,
@@ -128,8 +132,10 @@ async def configure_trust_page(
 async def get_config(
     org_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
+    credential_org: str = Depends(get_org_id),
 ) -> TrustPageConfig:
     """Return trust page configuration for an org (admin only)."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     config = mgr.get_config(org_id)
     if config is None:
         raise HTTPException(
@@ -143,8 +149,10 @@ async def get_config(
 async def get_trust_stats(
     org_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
+    credential_org: str = Depends(get_org_id),
 ) -> dict:
     """Return aggregate statistics for an org's trust center."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     config = mgr.get_config(org_id)
     if config is None:
         raise HTTPException(
@@ -164,8 +172,10 @@ async def add_badge(
     org_id: str,
     badge: ComplianceBadge,
     mgr: TrustCenterManager = Depends(_get_manager),
+    credential_org: str = Depends(get_org_id),
 ) -> ComplianceBadge:
     """Add a compliance badge for an org."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     _ensure_org_exists(org_id, mgr)
     return mgr.add_badge(badge, org_id)
 
@@ -174,8 +184,10 @@ async def add_badge(
 async def list_badges(
     org_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
+    credential_org: str = Depends(get_org_id),
 ) -> List[ComplianceBadge]:
     """List all compliance badges for an org."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     _ensure_org_exists(org_id, mgr)
     return mgr.list_badges(org_id)
 
@@ -185,8 +197,10 @@ async def delete_badge(
     org_id: str,
     badge_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
+    credential_org: str = Depends(get_org_id),
 ) -> dict:
     """Remove a compliance badge."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     _ensure_org_exists(org_id, mgr)
     deleted = mgr.delete_badge(badge_id, org_id)
     if not deleted:
@@ -204,8 +218,10 @@ async def add_control(
     org_id: str,
     control: SecurityControl,
     mgr: TrustCenterManager = Depends(_get_manager),
+    credential_org: str = Depends(get_org_id),
 ) -> SecurityControl:
     """Add a security control for an org."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     _ensure_org_exists(org_id, mgr)
     return mgr.add_control(control, org_id)
 
@@ -214,8 +230,10 @@ async def add_control(
 async def list_controls(
     org_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
+    credential_org: str = Depends(get_org_id),
 ) -> List[SecurityControl]:
     """List all security controls for an org."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     _ensure_org_exists(org_id, mgr)
     return mgr.list_controls(org_id)
 
@@ -225,8 +243,10 @@ async def delete_control(
     org_id: str,
     control_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
+    credential_org: str = Depends(get_org_id),
 ) -> dict:
     """Remove a security control."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     _ensure_org_exists(org_id, mgr)
     deleted = mgr.delete_control(control_id, org_id)
     if not deleted:
@@ -244,8 +264,10 @@ async def add_subprocessor(
     org_id: str,
     entry: SubprocessorEntry,
     mgr: TrustCenterManager = Depends(_get_manager),
+    credential_org: str = Depends(get_org_id),
 ) -> SubprocessorEntry:
     """Add a sub-processor entry for an org."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     _ensure_org_exists(org_id, mgr)
     return mgr.add_subprocessor(entry, org_id)
 
@@ -254,8 +276,10 @@ async def add_subprocessor(
 async def list_subprocessors(
     org_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
+    credential_org: str = Depends(get_org_id),
 ) -> List[SubprocessorEntry]:
     """List all sub-processor entries for an org."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     _ensure_org_exists(org_id, mgr)
     return mgr.list_subprocessors(org_id)
 
@@ -265,8 +289,10 @@ async def delete_subprocessor(
     org_id: str,
     entry_id: str,
     mgr: TrustCenterManager = Depends(_get_manager),
+    credential_org: str = Depends(get_org_id),
 ) -> dict:
     """Remove a sub-processor entry."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     _ensure_org_exists(org_id, mgr)
     deleted = mgr.delete_subprocessor(entry_id, org_id)
     if not deleted:
@@ -344,8 +370,10 @@ async def get_public_trust_page(
 async def get_compliance(
     mgr: ExtendedTrustCenterManager = Depends(_get_manager),
     org_id: str = Depends(get_org_id),
+    credential_org: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return compliance badges and certifications — no auth required."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     badges = mgr.list_badges(org_id) if mgr.get_config(org_id) else []
     return {
         "frameworks": [
@@ -381,8 +409,10 @@ async def get_compliance(
 async def get_sub_processors(
     mgr: ExtendedTrustCenterManager = Depends(_get_manager),
     org_id: str = Depends(get_org_id),
+    credential_org: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return the sub-processor list — no auth required."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     org_sps = mgr.list_subprocessors(org_id) if mgr.get_config(org_id) else []
     default_sps = [
         {"name": "Amazon Web Services", "purpose": "Cloud infrastructure, compute, storage, databases",
