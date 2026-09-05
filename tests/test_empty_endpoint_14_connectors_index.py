@@ -23,6 +23,8 @@ _HEADERS = {"X-API-Key": _API_TOKEN}
 @pytest.fixture(scope="module")
 def client():
     """Mount only the commercial_vendor_router on a minimal FastAPI app."""
+    # Retired to archive/dead_routers/. Skip rather than error at collection.
+    pytest.importorskip("apps.api.commercial_vendor_router", reason="Router retired to archive/dead_routers/. importorskip revives this automatically if it is ever restored — see archive/dead_routers/README.md")
     from apps.api.commercial_vendor_router import router
     app = FastAPI()
     app.include_router(router)

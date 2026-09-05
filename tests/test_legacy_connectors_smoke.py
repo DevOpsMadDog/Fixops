@@ -9,7 +9,7 @@ Tests are fully self-contained:
 
 Special cases documented inline:
   - kong_router, workday_router, purview_dlp_router, noname_router,
-    lacework_router, orca_router, splunk_soar_router, pyrit_router:
+    lacework_router,  splunk_soar_router, pyrit_router:
     no api_key_auth dependency in router declaration (auth at mount layer);
     401 test is skipped with pytest.mark.skip for those routers.
   - imperva_router: credential endpoints accept form-encoded params that
@@ -233,7 +233,6 @@ def client(_set_auth_env: Any) -> TestClient:
     from apps.api.pulumi_router import router as pulumi_router
     from apps.api.crossplane_router import router as crossplane_router
     from apps.api.lacework_router import router as lacework_router
-    from apps.api.orca_router import router as orca_router
     from apps.api.qualys_router import router as qualys_router
     from apps.api.checkmarx_router import router as checkmarx_router
     from apps.api.contrast_router import router as contrast_router
@@ -249,6 +248,15 @@ def client(_set_auth_env: Any) -> TestClient:
     from apps.api.guardrails_router import router as guardrails_router
 
     app = FastAPI(title="legacy-connector-smoke-test")
+
+    # The real app renders NotConfigured as 200 with an onboarding payload
+    # (ADR-007) — a missing credential is a configuration state, not a fault.
+    # This minimal app did not register that handler, so the exception escaped
+    # and three connectors failed here while behaving correctly in production.
+    # A harness that differs from the app under test reports on the harness.
+    from apps.api.not_configured import register_not_configured_handler
+
+    register_not_configured_handler(app)
     for r in [
         imperva_router,
         fastly_router,
@@ -274,7 +282,7 @@ def client(_set_auth_env: Any) -> TestClient:
         pulumi_router,
         crossplane_router,
         lacework_router,
-        orca_router,
+        
         qualys_router,
         checkmarx_router,
         contrast_router,
@@ -683,7 +691,13 @@ class TestKongConnector:
 
     def test_services_503_no_creds(self, client: TestClient) -> None:
         r = client.get("/api/v1/kong/services", headers=_AUTH_HEADERS)
-        assert r.status_code == 503, r.text
+        assert r.status_code == 200, r.text
+        payload = r.json()
+        # ADR-007: an unconfigured integration is an onboarding step,
+        # not an outage. It must say so, and name what is missing.
+        assert payload["configured"] is False
+        assert payload["status"] == "not_configured"
+        assert "KONG_ADMIN_URL" in payload["required_env"]
 
     @pytest.mark.skip(reason="kong_router has no router-level api_key_auth — auth at mount layer")
     def test_info_401_no_auth(self, client: TestClient) -> None:
@@ -772,9 +786,17 @@ class TestLaceworkConnector:
 
 
 # ===========================================================================
-# 25. ORCA SECURITY
-# NOTE: no api_key_auth at router level — 401 test skipped.
+# 25. ORCA SECURITY — RETIRED
+# The router now lives in archive/dead_routers/orca_router.py, so it is not
+# imported or mounted above and these paths 404.
+#
+# The class is skipped rather than deleted, and rather than guarding the whole
+# module: an importorskip at the top of this file would have taken the other
+# twenty-odd live connectors down with it, trading one dead test for real lost
+# coverage. Restoring the router means deleting this decorator and putting the
+# import back in the fixture.
 # ===========================================================================
+@pytest.mark.skip(reason="orca_router retired to archive/dead_routers/ — see archive/dead_routers/README.md")
 class TestOrcaConnector:
     def test_info_200_has_status(self, client: TestClient) -> None:
         r = client.get("/api/v1/orca/", headers=_AUTH_HEADERS)
@@ -945,7 +967,13 @@ class TestWorkdayConnector:
             "/api/v1/workday/ccx/api/staffing/v6/smoke-tenant/workers",
             headers=_AUTH_HEADERS,
         )
-        assert r.status_code == 503, r.text
+        assert r.status_code == 200, r.text
+        payload = r.json()
+        # ADR-007: an unconfigured integration is an onboarding step,
+        # not an outage. It must say so, and name what is missing.
+        assert payload["configured"] is False
+        assert payload["status"] == "not_configured"
+        assert "WORKDAY_TENANT" in payload["required_env"]
 
     @pytest.mark.skip(reason="workday_router has no router-level api_key_auth — auth at mount layer")
     def test_info_401_no_auth(self, client: TestClient) -> None:
@@ -1028,7 +1056,13 @@ class TestPyritConnector:
             },
             headers=_AUTH_HEADERS,
         )
-        assert r.status_code == 503, r.text
+        assert r.status_code == 200, r.text
+        payload = r.json()
+        # ADR-007: an unconfigured integration is an onboarding step,
+        # not an outage. It must say so, and name what is missing.
+        assert payload["configured"] is False
+        assert payload["status"] == "not_configured"
+        assert "PYRIT_RUNNER_URL" in payload["required_env"]
 
     @pytest.mark.skip(reason="pyrit_router has no router-level api_key_auth — auth at mount layer")
     def test_info_401_no_auth(self, client: TestClient) -> None:

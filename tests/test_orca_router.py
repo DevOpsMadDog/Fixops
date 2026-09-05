@@ -27,6 +27,13 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+# The Orca router was retired to archive/dead_routers/orca_router.py. This whole
+# module tests it, so it skips rather than erroring at collection: an import
+# error yields no signal AND buries the results of everything collected with it.
+# importorskip, not an unconditional skip, so restoring the router revives the
+# tests with no further edit.
+pytest.importorskip("apps.api.orca_router", reason="Router retired to archive/dead_routers/. importorskip revives this automatically if it is ever restored — see archive/dead_routers/README.md")
+
 # Ensure suite-core and suite-api on path
 for _p in ("suite-core", "suite-api"):
     _abs = str(Path(__file__).parent.parent / _p)
