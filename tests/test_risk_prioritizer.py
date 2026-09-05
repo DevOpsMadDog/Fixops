@@ -308,10 +308,47 @@ def test_score_persisted_to_db(tmp_prioritizer):
 
 
 def test_org_exposure_no_findings(tmp_scorer):
+    """An org with nothing scored is UNASSESSED, not "minimal".
+
+    This asserted rating == "minimal", which is a claim about the tenant's
+    security posture that nobody computed. It showed up on a freshly ingested
+    demo tenant: the Findings screen listed 2 open findings while
+    /risk-scoring/exposure/org reported "0 open, minimal" — because ingest
+    does not feed the exposure store. Two numbers on one dashboard
+    contradicting each other, and the reassuring one was invented.
+
+    0.0 for the score is fine — it is the additive identity for an empty set —
+    but the RATING is a verdict, and there is no verdict without data.
+    """
     result = tmp_scorer.calculate_org_exposure(snapshot=False)
     assert result.exposure_score == 0.0
-    assert result.rating == "minimal"
+    assert result.rating == "unassessed"
     assert result.open_findings_count == 0
+
+
+def test_org_exposure_is_scoped_to_the_org(tmp_scorer):
+    """finding_scores had no org_id column at all.
+
+    calculate_org_exposure accepted org_id and never used it — the query was
+    `WHERE status = 'open'` — so every tenant's scores commingled and each
+    org's exposure was the aggregate of all of them, labelled with whichever
+    org asked.
+    """
+    tmp_scorer.ingest_scores(
+        [{"finding_id": "mine", "asset_id": "a1", "composite_score": 95.0}],
+        org_id="org-A",
+    )
+    tmp_scorer.ingest_scores(
+        [{"finding_id": "theirs", "asset_id": "a2", "composite_score": 10.0}],
+        org_id="org-B",
+    )
+
+    a = tmp_scorer.calculate_org_exposure("org-A", snapshot=False)
+    b = tmp_scorer.calculate_org_exposure("org-B", snapshot=False)
+
+    assert a.open_findings_count == 1 and a.critical_count == 1
+    assert b.open_findings_count == 1 and b.critical_count == 0
+    assert tmp_scorer.calculate_org_exposure("org-C", snapshot=False).rating == "unassessed"
 
 
 def test_org_exposure_with_findings(tmp_scorer):

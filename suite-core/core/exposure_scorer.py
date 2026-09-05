@@ -32,7 +32,23 @@ from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 
-_DEFAULT_DB = str(Path(__file__).resolve().parents[2] / "data" / "exposure_scorer.db")
+def _default_db() -> str:
+    """Honour FIXOPS_DATA_DIR like the rest of the stores.
+
+    This was a fixed path under the source tree, so an operator who pointed
+    FIXOPS_DATA_DIR at a deployment directory still got this database beside
+    the code — one more file in the wrong place, invisible to backup and to
+    every tool that reads the configured data directory.
+    """
+    import os
+
+    configured = os.environ.get("FIXOPS_DATA_DIR", "").strip()
+    if configured:
+        return str(Path(configured) / "exposure_scorer.db")
+    return str(Path(__file__).resolve().parents[2] / "data" / "exposure_scorer.db")
+
+
+_DEFAULT_DB = _default_db()
 
 # Weight: open finding risk contributes 70%, remediation velocity 30%
 _WEIGHT_FINDING_RISK = 0.70
@@ -135,6 +151,7 @@ class ExposureScorer:
                 """
                 CREATE TABLE IF NOT EXISTS finding_scores (
                     finding_id      TEXT PRIMARY KEY,
+                    org_id          TEXT NOT NULL DEFAULT 'default',
                     asset_id        TEXT NOT NULL DEFAULT 'unknown',
                     composite_score REAL NOT NULL,
                     status          TEXT NOT NULL DEFAULT 'open',
@@ -152,6 +169,22 @@ class ExposureScorer:
                     UNIQUE (org_id, snapshot_date)
                 );
                 """
+            )
+
+            # Additive migration for databases created before finding_scores
+            # carried a tenant. Without it, an existing deployment keeps the
+            # old shape and every org keeps reading everyone's scores.
+            existing = {
+                row[1] for row in conn.execute("PRAGMA table_info(finding_scores)")
+            }
+            if "org_id" not in existing:
+                conn.execute(
+                    "ALTER TABLE finding_scores ADD COLUMN org_id TEXT "
+                    "NOT NULL DEFAULT 'default'"
+                )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_finding_scores_org "
+                "ON finding_scores (org_id, status)"
             )
 
     # ------------------------------------------------------------------
@@ -180,15 +213,17 @@ class ExposureScorer:
             asset_id = str(s.get("asset_id") or "unknown")
             status = str(s.get("status") or "open")
             resolved_at = s.get("resolved_at")
-            rows.append((finding_id, asset_id, composite, status, now, resolved_at))
+            rows.append((finding_id, org_id, asset_id, composite, status, now, resolved_at))
 
         with closing(sqlite3.connect(self._db_path)) as conn, conn:
             conn.executemany(
                 """
                 INSERT INTO finding_scores
-                    (finding_id, asset_id, composite_score, status, scored_at, resolved_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                    (finding_id, org_id, asset_id, composite_score, status,
+                     scored_at, resolved_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(finding_id) DO UPDATE SET
+                    org_id          = excluded.org_id,
                     composite_score = excluded.composite_score,
                     asset_id        = excluded.asset_id,
                     status          = excluded.status,
@@ -208,19 +243,37 @@ class ExposureScorer:
     ) -> OrgExposureScore:
         """Overall org security exposure 0-100."""
         with closing(sqlite3.connect(self._db_path)) as conn, conn:
+            # WHERE status = 'open' was the whole predicate: org_id was accepted
+            # by this method and never used. finding_scores had no org_id column
+            # to filter on, so every tenant's scores commingled and each org's
+            # "exposure" was the aggregate of ALL of them, labelled with
+            # whichever org happened to ask.
             rows = conn.execute(
                 """
                 SELECT finding_id, asset_id, composite_score
                 FROM finding_scores
-                WHERE status = 'open'
-                """
+                WHERE status = 'open' AND org_id = ?
+                """,
+                (org_id,),
             ).fetchall()
 
         if not rows:
+            # NOTHING HAS BEEN SCORED FOR THIS ORG. That is not "minimal risk".
+            #
+            # This returned exposure_score=0.0 with rating="minimal" — a claim
+            # about the tenant's security posture that nobody computed. On a
+            # freshly ingested tenant the Findings screen showed 2 open
+            # findings while this endpoint reported "0 open, minimal", because
+            # ingest does not feed this store. Two numbers on one dashboard
+            # contradicting each other, and the reassuring one was invented.
+            #
+            # "unassessed" says what is true: no score exists yet. A caller
+            # that wants a real number must score findings into this store
+            # first (ingest_scores / POST /risk-scoring/score).
             result = OrgExposureScore(
                 org_id=org_id,
                 exposure_score=0.0,
-                rating="minimal",
+                rating="unassessed",
             )
             if snapshot:
                 self._save_snapshot(org_id, result)
