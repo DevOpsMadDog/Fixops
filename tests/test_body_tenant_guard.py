@@ -99,24 +99,37 @@ def test_a_malformed_body_still_gets_the_routes_own_error(monkeypatch) -> None:
     assert response.status_code == 422
 
 
-def test_warn_is_the_default_and_never_refuses(monkeypatch, caplog) -> None:
-    """A control nobody enables is not a control — but the default must not
-    reject traffic either.
+def test_enforce_is_now_the_default(monkeypatch) -> None:
+    """The staging has run its course.
 
-    warn logs the conflict and allows the request, which is the evidence you
-    need before moving to enforce. Measured cost, alternating runs after
-    warm-up on a 20 KB JSON body: +0.060 ms against a 1.058 ms baseline.
+    off -> warn -> enforce, in that order, each step waiting on evidence. warn
+    proved the log fires on a real attack (a cross-tenant training write) and
+    that nothing honest is refused: the smoke plus tenancy suites, 793 tests,
+    pass identically under warn and enforce.
+
+    The only caller that legitimately names another org in a body is an
+    unpinned operator credential, which returns early before any comparison.
+    Rollback is FIXOPS_BODY_TENANT_GUARD=warn.
     """
     monkeypatch.delenv("FIXOPS_BODY_TENANT_GUARD", raising=False)
     from apps.api.body_tenant_guard import guard_mode
 
-    assert guard_mode() == "warn"
+    assert guard_mode() == "enforce"
 
     client = TestClient(_app("acme"))
-    with caplog.at_level("WARNING"):
-        response = client.post("/echo", json={"org_id": "someone-else", "value": "v"})
-    assert response.status_code == 200, "the default refused a request"
-    assert any("body-tenant-guard" in r.message for r in caplog.records)
+    response = client.post("/echo", json={"org_id": "someone-else", "value": "v"})
+    assert response.status_code == 403
+    assert response.json()["requested_org"] == "someone-else"
+
+
+def test_the_default_still_allows_a_body_naming_its_own_org(monkeypatch) -> None:
+    """Enforcing must not refuse the overwhelmingly common honest request."""
+    monkeypatch.delenv("FIXOPS_BODY_TENANT_GUARD", raising=False)
+    client = TestClient(_app("acme"))
+    assert client.post("/echo", json={"org_id": "acme", "value": "v"}).status_code == 200
+    # ...nor a client that never set the field
+    assert client.post("/echo", json={"value": "v"}).status_code == 200
+    assert client.post("/echo", json={"org_id": "default", "value": "v"}).status_code == 200
 
 
 def test_an_unrecognised_mode_falls_back_to_warn(monkeypatch) -> None:

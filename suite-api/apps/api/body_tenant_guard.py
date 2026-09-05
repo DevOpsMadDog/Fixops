@@ -29,18 +29,34 @@ the same result is subtle and easy to get wrong.
 **Modes** (``FIXOPS_BODY_TENANT_GUARD``):
 
 * ``off`` — installed but returns immediately.
-* ``warn`` — **default.** Log the conflict, allow the request.
-* ``enforce`` — reject with 403.
+* ``warn`` — log the conflict, allow the request.
+* ``enforce`` — **default.** Reject with 403.
 
-The staging is the point. A guard that starts by refusing traffic is a guard
-that gets disabled after the first incident, so ``warn`` runs first and its log
-tells you whether real clients send a mismatched org before you start refusing
-them.
+The staging was the point, and it has now run its course. ``off`` was the
+default until the guard was shown to work end-to-end; ``warn`` came next so its
+log could say whether honest clients send a mismatched org before anything was
+refused. Both questions are answered:
 
-``off`` was the default until the guard was shown to work end-to-end, which is
-the right order — but a control nobody enables is not a control, and ``warn``
-cannot break a request: it never rejects, and it never alters the body the route
-receives. Measured cost, alternating runs after warm-up, 20 KB JSON body:
+* The warn log fires on a real attack. Measured against the running app —
+  attacker B posting to ``/api/v1/training/completions`` with the victim's
+  ``org_id`` in the body — the guard logged the conflict naming both orgs.
+* Nothing honest is refused. The full smoke suite plus the tenancy suites,
+  793 tests, pass **identically** under ``warn`` and ``enforce``.
+
+The only caller that legitimately names another organisation in a body is an
+unpinned operator credential, and that case returns early before any
+comparison — so ``enforce`` refuses exactly the traffic that has no honest
+explanation.
+
+That warn stage was not ceremony: it is how the guard was found to be a
+complete no-op for login JWTs (see ``_org_for_token``), which is the credential
+the console and every logged-in user present. Enforcing before fixing that
+would have shipped a control that refused managed-key callers and waved
+through everyone else.
+
+Rollback is one environment variable: ``FIXOPS_BODY_TENANT_GUARD=warn``.
+
+Measured cost, alternating runs after warm-up, 20 KB JSON body:
 **+0.060 ms/request** against a 1.058 ms baseline. Bodies over
 ``_MAX_INSPECT_BYTES`` and every non-JSON content type are not read at all.
 """
@@ -65,7 +81,10 @@ _UNPINNED = "default"
 
 
 def guard_mode() -> str:
-    mode = (os.environ.get("FIXOPS_BODY_TENANT_GUARD") or "warn").strip().lower()
+    """Resolve the mode. Default is ``enforce``; a typo still falls back to
+    ``warn`` rather than ``off``, so a mistake weakens the control without
+    disabling it."""
+    mode = (os.environ.get("FIXOPS_BODY_TENANT_GUARD") or "enforce").strip().lower()
     return mode if mode in {"off", "warn", "enforce"} else "warn"
 
 
@@ -119,10 +138,48 @@ def _org_for_token(headers: dict) -> str:
         authorization = (headers.get("authorization") or "").strip()
         if authorization.lower().startswith("bearer "):
             token = authorization[7:].strip()
-    if not token or not token.startswith("fixops_"):
-        # Only managed keys carry a tenant. FIXOPS_API_TOKEN is the operator
-        # credential and naming an org with it is legitimate administration.
+    if not token:
         return ""
+
+    if not token.startswith("fixops_"):
+        # A LOGIN JWT. This branch used to `return ""`, which made the guard a
+        # complete no-op for the credential nearly every real caller presents:
+        # the console and every logged-in user authenticate with a JWT, and a
+        # JWT never starts with "fixops_". The guard was verified with a
+        # managed API key and this path was never exercised.
+        #
+        # Measured with the guard at its default mode ("warn") and no env
+        # override — i.e. the production posture:
+        #
+        #   B POST /api/v1/training/completions
+        #        {"user_email": "planted-by-attacker@evil.example.com",
+        #         "module_id": ..., "org_id": "<victim org>"}
+        #   -> 201, recorded under the VICTIM's org, and it then appeared in
+        #      the victim's training stats. Zero guard log lines.
+        #
+        # So the one control meant to catch a body naming another tenant was
+        # silent for the attack it exists to see.
+        #
+        # The token is VERIFIED, not merely decoded. An unverified read would
+        # still be safe in the narrow sense — the guard only ever uses this to
+        # REFUSE, never to grant, and a forged token is rejected by real auth
+        # moments later — but verifying costs nothing here and keeps this
+        # function from becoming a place where unverified claims are trusted.
+        if token.count(".") != 2:
+            return ""
+        try:
+            import jwt as _jwt
+
+            from apps.api.auth_deps import _JWT_ALGORITHM, _load_jwt_secret
+
+            secret = _load_jwt_secret()
+            if not secret:
+                return ""
+            claims = _jwt.decode(token, secret, algorithms=[_JWT_ALGORITHM])
+        except Exception:  # noqa: BLE001 - see the docstring: never reject here
+            logger.debug("body-tenant-guard: JWT org lookup failed", exc_info=True)
+            return ""
+        return (claims.get("org_id") or "").strip()
 
     cached = _TOKEN_ORG_CACHE.get(token)
     if cached is not None:
