@@ -84,12 +84,27 @@ open http://localhost:3000    # React dashboard
 open http://localhost:8000/docs  # interactive API docs
 ```
 
-**No cloud account. No vendor signup. Air-gap capable.** Then ingest real scanner output:
+**No cloud account. No vendor signup. Air-gap capable.**
+
+### Prove it in 16 seconds, without Docker
+
+```bash
+python3 scripts/demo.py
+```
+
+Boots the API in-process, refuses an anonymous caller, creates a tenant,
+ingests the SARIF that ships in this repo (`simulations/demo_pack/scanner.sarif`),
+reads the findings back, and proves a second tenant cannot see them. Exit 0 or
+it failed — every step asserts. Capabilities that need a credential (the LLM
+council, EPSS/KEV feeds) are reported as **absent**, never filled with a
+plausible number.
+
+Then ingest real scanner output:
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/scanner-ingest/upload \
   -H "X-API-Key: $FIXOPS_API_TOKEN" -H "X-Org-ID: my-org" \
-  -F file=@scan.sarif -F scanner_type=sarif -F app_id=my-app
+  -F file=@simulations/demo_pack/scanner.sarif -F scanner_type=sarif -F app_id=my-app
 # → real findings, deduped, org-scoped. Read them back:
 curl "http://localhost:8000/api/v1/security-findings/?org_id=my-org" -H "X-API-Key: $FIXOPS_API_TOKEN"
 ```
