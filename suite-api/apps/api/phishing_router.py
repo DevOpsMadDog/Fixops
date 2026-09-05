@@ -105,20 +105,34 @@ class TemplateResponse(BaseModel):
 
 
 @router.post("/campaigns", response_model=CampaignResponse, status_code=201)
-def create_campaign(req: CreateCampaignRequest):
+def create_campaign(
+    req: CreateCampaignRequest,
+    credential_org: str = Depends(get_org_id),
+):
     """
     Launch a new phishing simulation campaign.
 
     Emails are considered 'sent' immediately upon campaign creation.
     Use the interaction endpoints to track opens, clicks, and reports.
+
+    org_id came straight from the body. The BodyTenantGuard now refuses a body
+    naming another tenant (measured: 403 when an attacker posted a campaign
+    into a victim's org), but a handler that can resolve the tenant itself
+    should not depend on the net behind it — the guard skips non-JSON bodies
+    and oversized ones by design, and a control with documented blind spots is
+    not where a write like this should get its only protection.
+
+    Launching a campaign in another tenant's org would send simulated phishing
+    mail to THEIR employees under their programme's name.
     """
+    org_id = resolve_tenant(credential_org, req)
     sim = _get_simulator()
     try:
         campaign = sim.create_campaign(
             name=req.name,
             template_id=req.template_id,
             targets=req.target_emails,
-            org_id=req.org_id,
+            org_id=org_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
