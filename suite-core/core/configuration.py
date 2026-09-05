@@ -1264,6 +1264,16 @@ class OverlayConfig:
         return fallback
 
 
+# Credentials that appear in this repository and are therefore public.
+# Anything here is treated as "not configured" outside an explicit demo posture.
+_PUBLISHED_PLACEHOLDER_TOKENS = frozenset({
+    "fixops_ent_YOUR_TOKEN_HERE",   # .env.example
+    "aldeci-demo-token",            # docker-compose.yml default
+    "changeme",
+    "CHANGEME",
+})
+
+
 def load_overlay(
     path: Optional[Path | str] = None,
     *,
@@ -1498,20 +1508,83 @@ def load_overlay(
             auth_tokens.append(str(token_value))
         if token_env:
             secret = os.getenv(str(token_env))
-            if not secret:
-                if allow_ephemeral_token_fallback and (config.mode or "").lower() in (
-                    "local",
-                    "sandbox",
-                ):
+
+            # Credentials that ship in this repository are public. .env.example
+            # carries "fixops_ent_YOUR_TOKEN_HERE" and docker-compose.yml
+            # defaults to "aldeci-demo-token", so `cp .env.example .env` or a
+            # bare `docker compose up` produces a deployment whose API token
+            # anyone can read on GitHub. Both are non-empty, so the check below
+            # accepted them and the deployment looked configured.
+            #
+            # Refused everywhere except an explicitly non-production posture,
+            # where they are what makes the quickstart work.
+            if secret and secret.strip() in _PUBLISHED_PLACEHOLDER_TOKENS:
+                if (config.mode or "").lower() in ("demo", "local", "sandbox"):
                     logger.warning(
-                        "Token auth configured without %s; generating ephemeral token",
-                        token_env,
+                        "%s is the published placeholder %r. Fine for a local "
+                        "demo; set a real value before exposing this instance.",
+                        token_env, secret.strip(),
                     )
-                    auth_tokens.append(secrets.token_urlsafe(32))
                 else:
                     raise RuntimeError(
-                        f"Overlay auth strategy 'token' requires environment variable '{token_env}' to be set"
+                        f"{token_env} is set to {secret.strip()!r}, a placeholder "
+                        f"published in this repository (.env.example / "
+                        f"docker-compose.yml). Anyone can read it. Generate a real "
+                        f"token:\n\n"
+                        f"    export {token_env}=$(python3 -c "
+                        f"'import secrets; print(secrets.token_urlsafe(32))')\n"
                     )
+
+            if not secret:
+                # A clean clone could not start: `create_app()` raised here, and
+                # the README calls these keys "optional". An evaluator following
+                # the quickstart outside Docker met a RuntimeError with no
+                # instruction. It was also the cause of 48 test errors.
+                #
+                # Generate one and PRINT it, exactly as FIXOPS_JWT_SECRET
+                # already does a few modules over. The generated token is random,
+                # so this grants nobody access — the operator has to read it from
+                # the log to use the API — while letting `git clone && run` work.
+                #
+                # Production and SCIF postures still refuse: there, a credential
+                # that vanishes on restart is worse than a startup failure.
+                posture = (os.getenv("FIXOPS_DEPLOYMENT_PROFILE") or "").lower()
+                if posture in ("production", "scif"):
+                    raise RuntimeError(
+                        f"Overlay auth strategy 'token' requires environment "
+                        f"variable '{token_env}' to be set. This deployment is "
+                        f"profile={posture!r}, where an ephemeral token is not "
+                        f"acceptable — it would change on every restart.\n\n"
+                        f"    export {token_env}=$(python3 -c "
+                        f"'import secrets; print(secrets.token_urlsafe(32))')\n"
+                    )
+                generated = secrets.token_urlsafe(32)
+
+                # PUBLISH IT TO THE ENVIRONMENT, not just into this config.
+                #
+                # apps.api.auth_deps._get_auth_strategy() reads the environment:
+                # it promotes to the "token" strategy only when FIXOPS_API_TOKEN
+                # is set there. Appending to auth_tokens alone left the strategy
+                # empty, and _verify_api_key matches on "token"/"jwt" with no
+                # else — so it fell through and ALLOWED the request.
+                #
+                # Measured on a clean clone before this line existed:
+                #   GET  /api/v1/scanner-ingest/        200  with no credential
+                #   GET  /api/v1/playbooks              200  with no credential
+                #   POST /api/v1/scanner-ingest/upload  200  anonymous, accepted
+                #
+                # Generating a token to make first-run work while leaving the
+                # environment empty would have traded a startup crash for an
+                # open front door. setdefault, so an operator's real value is
+                # never overwritten. Same pattern as _load_jwt_secret.
+                os.environ.setdefault(str(token_env), generated)
+                logger.warning(
+                    "%s is not set — generated an ephemeral API token for this "
+                    "process. It changes on every restart, so set %s to keep it:"
+                    "\n\n    export %s=%s\n",
+                    token_env, token_env, token_env, generated,
+                )
+                auth_tokens.append(generated)
             else:
                 auth_tokens.append(secret)
         if not auth_tokens:

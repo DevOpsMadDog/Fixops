@@ -690,6 +690,37 @@ async def verify_api_key(
             )
         raise HTTPException(status_code=401, detail="Invalid or missing API token")
 
+    # FAIL CLOSED ON AN UNRECOGNISED STRATEGY.
+    #
+    # This function matched "token" and "jwt" and had no else, so any other
+    # value — including the empty string, which is what a deployment with
+    # neither FIXOPS_AUTH_STRATEGY nor FIXOPS_API_TOKEN set resolves to —
+    # fell past both blocks and returned None. A satisfied dependency means an
+    # ALLOWED request, so every router mounted with this function was open.
+    #
+    # Measured on a clean clone, no credential of any kind:
+    #   GET  /api/v1/scanner-ingest/        200
+    #   GET  /api/v1/playbooks              200
+    #   POST /api/v1/scanner-ingest/upload  200  anonymous upload accepted
+    #   GET  /api/v1/security-findings/     401  (mounted with api_key_auth,
+    #                                             which fails closed)
+    #
+    # Two implementations of one rule, disagreeing about the default. The
+    # strict one is right: there is no legitimate no-auth mode for this
+    # product, and an unknown strategy is a misconfiguration, not permission.
+    if auth_strategy not in ("token", "jwt"):
+        logger.error(
+            "auth strategy %r is not recognised — refusing the request. Set "
+            "FIXOPS_API_TOKEN (or FIXOPS_AUTH_STRATEGY) to configure auth.",
+            auth_strategy,
+        )
+        if _record_fail:
+            _record_fail(client_ip)
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication is not configured on this deployment.",
+        )
+
     if auth_strategy == "jwt":
         if not api_key:
             if _record_fail:
@@ -726,6 +757,14 @@ async def verify_api_key(
             raise
         request.state.user_role = claims.get("role", "viewer")
         request.state.user_scopes = claims.get("scopes", ["read:findings"])
+        # Bind the tenant, as the token strategy's JWT branch already does.
+        # Omitting it here meant a JWT-strategy deployment resolved every
+        # request to "default" — the same defect this file's earlier comments
+        # describe for the other two paths.
+        if claims.get("org_id"):
+            request.state.org_id = claims["org_id"]
+        if claims.get("sub"):
+            request.state.user_id = claims["sub"]
         if _clear_fail:
             _clear_fail(client_ip)
         return
