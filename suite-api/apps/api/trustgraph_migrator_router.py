@@ -17,7 +17,10 @@ from __future__ import annotations
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Path
+from types import SimpleNamespace
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
+from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -141,8 +144,10 @@ def migration_health() -> HealthResponse:
 )
 def migrate_all(
     org_id: str = Path(..., description="Organisation ID"),
+    credential_org: str = Depends(get_org_id),
 ) -> MigrationReportResponse:
     """Execute all 6 module migrations sequentially and return a full report."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         migrator = _get_migrator()
         report = migrator.migrate_all(org_id)
@@ -168,8 +173,10 @@ def migrate_all(
 )
 def get_migration_status(
     org_id: str = Path(..., description="Organisation ID"),
+    credential_org: str = Depends(get_org_id),
 ) -> List[MigrationStatusResponse]:
     """Return the current migration status for every module under the given org."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         migrator = _get_migrator()
         statuses = migrator.get_migration_status(org_id)
@@ -187,8 +194,10 @@ def get_migration_status(
 )
 def verify_migration(
     org_id: str = Path(..., description="Organisation ID"),
+    credential_org: str = Depends(get_org_id),
 ) -> VerificationReportResponse:
     """Compare row counts in each SQLite source against TrustGraph entity counts."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         migrator = _get_migrator()
         report = migrator.verify_migration(org_id)
@@ -220,8 +229,10 @@ def verify_migration(
 def rollback_migration(
     org_id: str = Path(..., description="Organisation ID"),
     body: RollbackRequest = ...,
+    credential_org: str = Depends(get_org_id),
 ) -> RollbackResponse:
     """Soft-delete all TrustGraph entities that were created by the specified module migration."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     module = body.module
     if module not in _VALID_MODULES:
         raise HTTPException(
@@ -254,8 +265,10 @@ def rollback_migration(
 def migrate_module(
     module: str = Path(..., description="Module name: findings|assets|incidents|compliance|vendors|threat_actors"),
     org_id: str = Path(..., description="Organisation ID"),
+    credential_org: str = Depends(get_org_id),
 ) -> MigrationStatusResponse:
     """Migrate a single SQLite data source into TrustGraph."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     if module not in _VALID_MODULES:
         raise HTTPException(
             status_code=400,

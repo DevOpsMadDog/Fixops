@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from apps.api.auth_deps import api_key_auth
+from types import SimpleNamespace
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
@@ -175,8 +177,9 @@ async def import_playbook(request: ImportRequest) -> Dict[str, Any]:
 
 
 @router.get("/installed/{org_id}")
-async def get_installed(org_id: str) -> Dict[str, Any]:
+async def get_installed(org_id: str, credential_org: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return all playbooks installed by an organisation."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     marketplace = _get_marketplace()
     items = marketplace.get_installed(org_id)
     return {"org_id": org_id, "items": items, "total": len(items)}

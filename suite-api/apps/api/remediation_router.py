@@ -12,6 +12,8 @@ from core.services.remediation import (
     RemediationService,
     RemediationStatus,
 )
+from types import SimpleNamespace
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -307,8 +309,9 @@ def check_sla_breaches(
 
 
 @router.get("/metrics/{org_id}")
-def get_metrics(org_id: str, app_id: Optional[str] = None) -> Dict[str, Any]:
+def get_metrics(org_id: str, app_id: Optional[str] = None, credential_org: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Get remediation metrics including MTTR."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     service = get_remediation_service()
     return service.get_metrics(org_id, app_id)
 

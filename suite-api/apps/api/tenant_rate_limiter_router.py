@@ -23,6 +23,9 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from core.tenant_rate_limiter import TenantQuota, TenantRateLimiter
+from types import SimpleNamespace
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
@@ -141,8 +144,10 @@ async def set_quota(
     org_id: str,
     body: SetQuotaRequest,
     limiter: TenantRateLimiter = Depends(_limiter),
+    credential_org: str = Depends(get_org_id),
 ) -> QuotaResponse:
     """Configure rate-limit quota for an org by tier."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     try:
         quota = limiter.set_quota(org_id, body.tier)
     except ValueError as exc:
@@ -158,8 +163,10 @@ async def set_quota(
 async def check_limit(
     org_id: str,
     limiter: TenantRateLimiter = Depends(_limiter),
+    credential_org: str = Depends(get_org_id),
 ) -> CheckLimitResponse:
     """Returns allowed/denied plus remaining counts for all windows."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     result = limiter.check_limit(org_id)
     return CheckLimitResponse(**result)
 
@@ -173,8 +180,10 @@ async def check_limit(
 async def record_request(
     org_id: str,
     limiter: TenantRateLimiter = Depends(_limiter),
+    credential_org: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Increment sliding-window counters for org_id."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     limiter.record_request(org_id)
     return {"org_id": org_id, "status": "recorded"}
 
@@ -187,8 +196,10 @@ async def record_request(
 async def reset_usage(
     org_id: str,
     limiter: TenantRateLimiter = Depends(_limiter),
+    credential_org: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Delete all request log entries for the org (manual reset)."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     return limiter.reset_usage(org_id)
 
 
@@ -200,8 +211,10 @@ async def reset_usage(
 async def get_quota(
     org_id: str,
     limiter: TenantRateLimiter = Depends(_limiter),
+    credential_org: str = Depends(get_org_id),
 ) -> QuotaResponse:
     """Return quota configuration and current usage counters."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     quota = limiter.get_quota(org_id)
     if quota is None:
         raise HTTPException(
