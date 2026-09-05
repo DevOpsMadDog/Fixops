@@ -22,6 +22,9 @@ import logging
 from typing import Any, Dict, List
 
 from apps.api.auth_deps import api_key_auth
+from types import SimpleNamespace
+from apps.api.dependencies import get_org_id
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -106,13 +109,16 @@ async def list_categories() -> Dict[str, Any]:
 
 @router.post("/{org_id}/generate", summary="Generate scorecard", status_code=201)
 async def generate_scorecard(
-    org_id: str, req: GenerateScorecardRequest = GenerateScorecardRequest()
+    org_id: str,
+    req: GenerateScorecardRequest = GenerateScorecardRequest(),
+    credential_org: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Compute and store a new security scorecard for the organisation.
 
     Returns 422 with an onboarding hint when the org has no findings yet —
     a scorecard is never fabricated from absent data.
     """
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     from core.security_scorecard import ScorecardDataError
 
     try:
@@ -123,8 +129,9 @@ async def generate_scorecard(
 
 
 @router.get("/{org_id}", summary="Latest scorecard")
-async def get_scorecard(org_id: str) -> Dict[str, Any]:
+async def get_scorecard(org_id: str, credential_org: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return the most recently generated scorecard for an organisation."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     sc = _get_scorecard().get_scorecard(org_id)
     if sc is None:
         raise HTTPException(
@@ -138,8 +145,10 @@ async def get_scorecard(org_id: str) -> Dict[str, Any]:
 async def get_score_history(
     org_id: str,
     days: int = Query(default=90, ge=1, le=365, description="Number of days to look back"),
+    credential_org: str = Depends(get_org_id),
 ) -> Dict[str, Any]:
     """Return score history for the organisation over the past N days."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     history = _get_scorecard().get_score_history(org_id, days=days)
     return {
         "org_id": org_id,
@@ -150,8 +159,9 @@ async def get_score_history(
 
 
 @router.get("/{org_id}/breakdown", summary="Category breakdown")
-async def get_category_breakdown(org_id: str) -> Dict[str, Any]:
+async def get_category_breakdown(org_id: str, credential_org: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return per-category scores, grades, weights, and trends."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     result = _get_scorecard().get_category_breakdown(org_id)
     if not result.get("generated_at"):
         raise HTTPException(
@@ -162,8 +172,9 @@ async def get_category_breakdown(org_id: str) -> Dict[str, Any]:
 
 
 @router.get("/{org_id}/improvement", summary="Improvement plan")
-async def get_improvement_plan(org_id: str) -> Dict[str, Any]:
+async def get_improvement_plan(org_id: str, credential_org: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return a prioritized list of actions to improve the organisation's score."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     result = _get_scorecard().get_improvement_plan(org_id)
     if not result.get("generated_at"):
         raise HTTPException(
@@ -191,6 +202,13 @@ async def get_public_score(org_id: str) -> Dict[str, Any]:
     Exposes overall score, grade, and per-category letter grades only.
     Raw numeric category scores are withheld for security.
     No authentication required — designed for partner/customer sharing.
+
+    DELIBERATELY NOT tenant-resolved, unlike every other route in this file.
+    The org in the path is the whole point: an anonymous partner asks for a
+    named company's shareable score. Resolving it against the credential would
+    make an unauthenticated caller resolve to "default" and 404 — breaking the
+    sharing feature this endpoint exists for. Same reasoning as the two public
+    Trust Center routes.
     """
     ps = _get_scorecard().get_public_score(org_id)
     if ps is None:

@@ -17,6 +17,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from types import SimpleNamespace
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
@@ -144,22 +146,24 @@ def merge_group(group_id: str) -> MergeResponse:
 
 
 @router.get("/stats/{org_id}", summary="Dedup statistics for an org")
-def get_stats(org_id: str) -> Dict[str, Any]:
+def get_stats(org_id: str, credential_org: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return deduplication statistics.
 
     Includes: total_groups, total_duplicates_removed, reduction_ratio,
     avg_group_size, strategies_used, by_strategy breakdown.
     """
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     return engine.get_dedup_stats(org_id)
 
 
 @router.get("/noise-reduction/{org_id}", summary="Before/after finding counts and alert fatigue score")
-def get_noise_reduction(org_id: str) -> Dict[str, Any]:
+def get_noise_reduction(org_id: str, credential_org: str = Depends(get_org_id)) -> Dict[str, Any]:
     """Return noise reduction metrics across all dedup runs for an org.
 
     Includes total input/output finding counts, duplicates removed,
     and alert fatigue score (0-100, higher = more noise eliminated).
     """
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     engine = _get_engine()
     return engine.get_noise_reduction(org_id)

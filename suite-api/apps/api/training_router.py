@@ -26,6 +26,8 @@ from typing import Any, Dict, List, Optional
 from apps.api.auth_deps import api_key_auth
 from core.security_training import SecurityAwarenessTracker
 from core.training_tracker import TrainingCategory, TrainingCompletion, TrainingModule
+from types import SimpleNamespace
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import APIRouter, Depends, HTTPException, Query
 from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
@@ -167,8 +169,9 @@ async def get_user_training(
 
 
 @router.get("/orgs/{org_id}/completion-rate", response_model=Dict[str, Any])
-async def get_completion_rate(org_id: str):
+async def get_completion_rate(org_id: str, credential_org: str = Depends(get_org_id)):
     """Get the percentage of users who completed required training for an org."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     tracker = _get_tracker()
     return tracker.get_completion_rate(org_id)
 
@@ -180,23 +183,27 @@ async def get_overdue_training(
         default=None,
         description="Comma-separated required module IDs (defaults to all built-in modules)",
     ),
+    credential_org: str = Depends(get_org_id),
 ):
     """Get users who haven't completed all required training modules."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     tracker = _get_tracker()
     required = [m.strip() for m in module_ids.split(",")] if module_ids else None
     return tracker.get_overdue_training(org_id, required_module_ids=required)
 
 
 @router.get("/orgs/{org_id}/stats", response_model=Dict[str, Any])
-async def get_training_stats(org_id: str):
+async def get_training_stats(org_id: str, credential_org: str = Depends(get_org_id)):
     """Get comprehensive training stats for an org: by module, by user, pass rates."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     tracker = _get_tracker()
     return tracker.get_training_stats(org_id)
 
 
 @router.get("/orgs/{org_id}/compliance/{framework}", response_model=Dict[str, Any])
-async def get_compliance_training_status(org_id: str, framework: str):
+async def get_compliance_training_status(org_id: str, framework: str, credential_org: str = Depends(get_org_id)):
     """Get training evidence for a compliance framework (SOC2, HIPAA, PCI-DSS, ISO27001, GDPR, NIST)."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     supported = {"SOC2", "HIPAA", "PCI-DSS", "ISO27001", "GDPR", "NIST"}
     if framework.upper() not in supported:
         raise HTTPException(

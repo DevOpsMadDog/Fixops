@@ -22,6 +22,8 @@ from core.breach_simulation import (
     SimulationResult,
     get_breach_simulator,
 )
+from types import SimpleNamespace
+from apps.api.tenant_resolution import resolve_tenant
 from fastapi import Depends, APIRouter, HTTPException, Query
 from apps.api.dependencies import get_org_id  # SPEC-034
 from pydantic import BaseModel, Field
@@ -171,23 +173,27 @@ async def evaluate_defenses(
 async def get_simulation_history(
     org_id: str,
     limit: int = Query(50, ge=1, le=500, description="Max results to return"),
+    credential_org: str = Depends(get_org_id),
 ):
     """Get simulation history for an organisation, newest first."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     sim = get_breach_simulator()
     history = sim.get_simulation_history(org_id=org_id, limit=limit)
     return [SimulationResultResponse.from_result(r) for r in history]
 
 
 @router.get("/coverage/{org_id}", response_model=DefenseCoverage)
-async def get_defense_coverage(org_id: str):
+async def get_defense_coverage(org_id: str, credential_org: str = Depends(get_org_id)):
     """Get defense coverage summary — which attack types have been tested."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     sim = get_breach_simulator()
     return sim.get_defense_coverage(org_id=org_id)
 
 
 @router.get("/gaps/{org_id}", response_model=GapAnalysis)
-async def get_gap_analysis(org_id: str):
+async def get_gap_analysis(org_id: str, credential_org: str = Depends(get_org_id)):
     """Get gap analysis — where defenses are weakest across all simulations."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     sim = get_breach_simulator()
     return sim.get_gap_analysis(org_id=org_id)
 
