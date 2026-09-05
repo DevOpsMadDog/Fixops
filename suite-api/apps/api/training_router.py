@@ -124,8 +124,26 @@ async def get_module(module_id: str):
 
 
 @router.post("/completions", response_model=Dict[str, Any], status_code=201)
-async def record_completion(request: RecordCompletionRequest):
-    """Log a user's training result."""
+async def record_completion(
+    request: RecordCompletionRequest,
+    credential_org: str = Depends(get_org_id),
+):
+    """Log a user's training result.
+
+    org_id used to be taken straight from the body. Measured against the
+    running app, with the BodyTenantGuard at its default "warn":
+
+        B POST /api/v1/training/completions
+             {"user_email": "planted-by-attacker@evil.example.com",
+              "module_id": ..., "score": 10, "org_id": "<victim org>"}
+        -> 201, recorded under the VICTIM's org
+
+    The row then appeared in the victim's training stats and dragged their
+    pass rate to 0.0 — a compliance record poisoned by another tenant. The
+    guard is a net for the ~200 routers that read body.org_id; a handler that
+    can resolve the tenant itself should not rely on the net.
+    """
+    org_id = resolve_tenant(credential_org, request)
     tracker = _get_tracker()
 
     # Verify module exists
@@ -142,7 +160,7 @@ async def record_completion(request: RecordCompletionRequest):
         score=request.score,
         passed=passed,
         completed_at=completed_at,
-        org_id=request.org_id,
+        org_id=org_id,
     )
 
     try:
