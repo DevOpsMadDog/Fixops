@@ -288,6 +288,31 @@ def _decode_jwt(token: str) -> dict:
 # Managed-key DB validation helper
 # ---------------------------------------------------------------------------
 
+def _bind_managed_key(request: Request, record) -> None:
+    """Attach a validated managed key's role, scopes, user and TENANT to the request.
+
+    Bind the credential's OWN tenant. Only the JWT branch used to do this, so
+    an API-key request reached _extract_org_id with no state to read — and
+    fell through its otherwise-correct precedence chain to the client-supplied
+    X-Org-ID header / ?org_id= query param. That is what let a customer key
+    read and write any other tenant.
+
+    Extracted so the X-API-Key path and the Authorization: Bearer path bind
+    identically. They did not: a fixops_ key sent as a Bearer token was handed
+    to the JWT decoder, which raised 401 before any managed-key check ran.
+    """
+    key_role = getattr(record, "role", "viewer") or "viewer"
+    raw_scopes = getattr(record, "scopes", [])
+    key_scopes = raw_scopes if isinstance(raw_scopes, list) else []
+    request.state.user_role = key_role
+    request.state.user_scopes = key_scopes if key_scopes else [
+        s for s in _ALL_SCOPES
+    ] if key_role in ("admin", "super_admin") else ["read:findings"]
+    if getattr(record, "user_id", None):
+        request.state.user_id = record.user_id
+    request.state.org_id = getattr(record, "org_id", None) or "default"
+
+
 def _validate_managed_key(raw_key: str):
     """Try to validate *raw_key* against the KeyManager SQLite DB.
 
@@ -374,23 +399,7 @@ async def api_key_auth(
         #     This covers keys minted via POST /auth/keys or POST /auth/signup.
         managed_record = _validate_managed_key(token)
         if managed_record is not None:
-            import json as _json
-            key_role = getattr(managed_record, "role", "viewer") or "viewer"
-            raw_scopes = getattr(managed_record, "scopes", [])
-            key_scopes = raw_scopes if isinstance(raw_scopes, list) else []
-            request.state.user_role = key_role
-            request.state.user_scopes = key_scopes if key_scopes else [
-                s for s in _ALL_SCOPES
-            ] if key_role in ("admin", "super_admin") else ["read:findings"]
-            # Expose user_id for downstream handlers (e.g. _require_admin)
-            if getattr(managed_record, "user_id", None):
-                request.state.user_id = managed_record.user_id
-            # Bind the credential's OWN tenant. Only the JWT branch used to do
-            # this, so an API-key request reached _extract_org_id with no state
-            # to read — and fell through its otherwise-correct precedence chain
-            # to the client-supplied X-Org-ID header / ?org_id= query param.
-            # That is what let a customer key read and write any other tenant.
-            request.state.org_id = getattr(managed_record, "org_id", None) or "default"
+            _bind_managed_key(request, managed_record)
             return
 
         # Token was present but not valid — log and reject
@@ -400,7 +409,28 @@ async def api_key_auth(
         )
         raise HTTPException(status_code=403, detail="Invalid API token")
 
-    # ── Step 2: Check Authorization: Bearer <jwt> ────────────────────────
+    # ── Step 2: Check Authorization: Bearer <token> ──────────────────────
+    #
+    # A managed key may arrive here rather than in X-API-Key. Plenty of CI
+    # tooling only knows how to send `Authorization: Bearer <token>`, and a
+    # fixops_ key sent that way used to be passed to the JWT decoder, which
+    # cannot parse it and raises 401 — so the key worked on every endpoint via
+    # one header and on none via the other, with an error that blamed the
+    # credential rather than the header.
+    #
+    # Checked BEFORE the JWT branch and gated on the fixops_ prefix, so this
+    # cannot shadow JWT handling: the two token shapes are unambiguous.
+    if bearer_token and bearer_token.startswith("fixops_"):
+        managed_record = _validate_managed_key(bearer_token)
+        if managed_record is not None:
+            _bind_managed_key(request, managed_record)
+            return
+        logger.warning(
+            "auth_deps: Invalid managed key presented as Bearer from %s",
+            getattr(request.client, "host", "unknown"),
+        )
+        raise HTTPException(status_code=403, detail="Invalid API token")
+
     if bearer_token and _HAS_JWT_AUTH:
         try:
             claims = _decode_jwt(bearer_token)
@@ -609,6 +639,28 @@ async def verify_api_key(
                 if _clear_fail:
                     _clear_fail(client_ip)
                 return
+        # Path 1c: a managed key presented as `Authorization: Bearer <key>`.
+        #
+        # This file's own note a few lines up says it: two implementations of
+        # one rule, and the fix has to land in both. Accepting a fixops_ key
+        # via Bearer was added to api_key_auth and NOT here, so the key worked
+        # on /api/v1/findings and returned 401 on /api/v1/playbooks and
+        # /api/v1/compliance/templates — the same credential, the same header,
+        # a different answer depending on which of the two auth paths the
+        # router happened to be mounted with.
+        #
+        # Gated on the fixops_ prefix and checked before the JWT branch, so it
+        # cannot shadow JWT handling: the two token shapes are unambiguous.
+        if auth_header.lower().startswith("bearer "):
+            _bearer = auth_header[7:].strip()
+            if _bearer.startswith("fixops_"):
+                _managed = _validate_managed_key(_bearer)
+                if _managed is not None:
+                    _bind_managed_key(request, _managed)
+                    if _clear_fail:
+                        _clear_fail(client_ip)
+                    return
+
         # Path 2: JWT Bearer (dual auth)
         if auth_header.lower().startswith("bearer ") and _decode:
             jwt_token = auth_header[7:].strip()

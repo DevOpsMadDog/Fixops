@@ -434,6 +434,13 @@ class KeyResponse(BaseModel):
     key_prefix: str
     name: str
     user_id: str
+    # The tenant this key acts as. KeyManager has always stored it and
+    # api_key_auth has always bound it, but the response model omitted the
+    # field, so FastAPI stripped it: create returned org_id absent and the
+    # listing could not tell an admin which tenant any key belonged to. For a
+    # credential whose whole security property is "confined to one org", that
+    # is the one field key management needs.
+    org_id: Optional[str] = None
     role: str
     scopes: list
     is_active: bool
