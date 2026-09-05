@@ -18,6 +18,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from core.session_manager import Session, SessionManager, get_session_manager
+from types import SimpleNamespace
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from fastapi import Depends  # tenancy: credential-derived org
@@ -157,16 +158,18 @@ async def create_session(
 
 
 @router.get("/stats/{org_id}", response_model=SessionStatsResponse)
-async def get_session_stats(org_id: str) -> SessionStatsResponse:
+async def get_session_stats(org_id: str, credential_org: str = Depends(get_org_id)) -> SessionStatsResponse:
     """Get session statistics for an organisation."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     mgr = _get_mgr()
     stats = mgr.get_session_stats(org_id)
     return SessionStatsResponse(**stats)
 
 
 @router.get("/suspicious/{org_id}", response_model=List[SuspiciousSessionEntry])
-async def get_suspicious_sessions(org_id: str) -> List[SuspiciousSessionEntry]:
+async def get_suspicious_sessions(org_id: str, credential_org: str = Depends(get_org_id)) -> List[SuspiciousSessionEntry]:
     """Return users with suspicious session patterns (multiple IPs or user agents)."""
+    org_id = resolve_tenant(credential_org, SimpleNamespace(org_id=org_id))
     mgr = _get_mgr()
     entries = mgr.get_suspicious_sessions(org_id)
     result: List[SuspiciousSessionEntry] = []
