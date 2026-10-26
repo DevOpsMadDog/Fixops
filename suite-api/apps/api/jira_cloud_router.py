@@ -73,7 +73,7 @@ class IssueCreateResponse(BaseModel):
 
 class SearchRequest(BaseModel):
     jql: str = Field(..., description="JQL query string")
-    startAt: int = Field(0, ge=0, description="Pagination offset")
+    nextPageToken: Optional[str] = Field(None, description="Token of the page to fetch")
     maxResults: int = Field(50, ge=1, le=1000, description="Max results to return")
     fields: Optional[List[str]] = Field(None, description="Field selector — None = all")
 
@@ -195,7 +195,7 @@ def search_issues(req: SearchRequest) -> Dict[str, Any]:
     try:
         return engine.search(
             jql=req.jql,
-            start_at=req.startAt,
+            next_page_token=req.nextPageToken,
             max_results=req.maxResults,
             fields=req.fields,
         )

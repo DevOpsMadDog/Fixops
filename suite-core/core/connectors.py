@@ -748,7 +748,7 @@ class JiraConnector(_BaseConnector):
         self,
         jql: str,
         max_results: int = 50,
-        start_at: int = 0,
+        next_page_token: Optional[str] = None,
         fields: Optional[List[str]] = None,
     ) -> ConnectorOutcome:
         """Search Jira issues using JQL (Agent READ operation)."""
@@ -757,14 +757,15 @@ class JiraConnector(_BaseConnector):
                 "skipped", {"reason": "jira connector not fully configured"}
             )
 
-        endpoint = urljoin(self.base_url + "/", "rest/api/3/search")
+        endpoint = urljoin(self.base_url + "/", "rest/api/3/search/jql")
         payload: Dict[str, Any] = {
             "jql": jql,
             "maxResults": max_results,
-            "startAt": start_at,
+            # fields defaults to id only on search/jql
+            "fields": fields or ["*navigable"],
         }
-        if fields:
-            payload["fields"] = fields
+        if next_page_token:
+            payload["nextPageToken"] = next_page_token
 
         try:
             response = self._request(
@@ -797,8 +798,9 @@ class JiraConnector(_BaseConnector):
             "fetched",
             {
                 "endpoint": endpoint,
-                "total": data.get("total", 0),
+                "total": len(data.get("issues", [])),
                 "issues": data.get("issues", []),
+                "next_page_token": data.get("nextPageToken"),
                 "data": data,
                 "operation": "search_issues",
             },
@@ -874,7 +876,7 @@ class JiraConnector(_BaseConnector):
         """Paginated JQL bulk query — fetches all matching issues up to max_results.
 
         Returns all issues in a single ConnectorOutcome with automatic pagination.
-        Uses POST /rest/api/3/search with startAt advancement.
+        Uses POST /rest/api/3/search/jql with nextPageToken advancement.
         """
         if not self.configured:
             return ConnectorOutcome(
@@ -882,19 +884,20 @@ class JiraConnector(_BaseConnector):
             )
 
         all_issues: List[Dict[str, Any]] = []
-        start_at = 0
-        total = None
+        next_page_token: Optional[str] = None
+        pages_fetched = 0
 
         while len(all_issues) < max_results:
             batch_size = min(page_size, max_results - len(all_issues))
-            endpoint = urljoin(self.base_url + "/", "rest/api/3/search")
+            endpoint = urljoin(self.base_url + "/", "rest/api/3/search/jql")
             payload: Dict[str, Any] = {
                 "jql": jql,
                 "maxResults": batch_size,
-                "startAt": start_at,
+                # fields defaults to id only on search/jql
+                "fields": fields or ["*navigable"],
             }
-            if fields:
-                payload["fields"] = fields
+            if next_page_token:
+                payload["nextPageToken"] = next_page_token
 
             try:
                 response = self._request(
@@ -925,22 +928,21 @@ class JiraConnector(_BaseConnector):
                 break
 
             issues = data.get("issues", [])
-            if total is None:
-                total = data.get("total", 0)
             all_issues.extend(issues)
-            start_at += len(issues)
+            pages_fetched += 1
+            next_page_token = data.get("nextPageToken")
 
-            if not issues or start_at >= (total or 0):
+            if not issues or data.get("isLast", True) or not next_page_token:
                 break
 
         return ConnectorOutcome(
             "fetched",
             {
-                "total": total or len(all_issues),
+                "total": len(all_issues),
                 "fetched": len(all_issues),
                 "issues": all_issues,
                 "operation": "bulk_search",
-                "pages_fetched": (start_at // page_size) + (1 if start_at % page_size else 0),
+                "pages_fetched": pages_fetched,
             },
         )
 

@@ -243,18 +243,19 @@ class JiraCloudEngine:
     def search(
         self,
         jql: str,
-        start_at: int = 0,
+        next_page_token: Optional[str] = None,
         max_results: int = 50,
         fields: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         body: Dict[str, Any] = {
             "jql": jql,
-            "startAt": start_at,
             "maxResults": max_results,
+            # fields defaults to id only on search/jql
+            "fields": fields if fields is not None else ["*navigable"],
         }
-        if fields is not None:
-            body["fields"] = fields
-        return self._request("POST", "search", json_body=body) or {}
+        if next_page_token:
+            body["nextPageToken"] = next_page_token
+        return self._request("POST", "search/jql", json_body=body) or {}
 
     def get_transitions(self, issue_key: str) -> Dict[str, Any]:
         return self._request("GET", f"issue/{issue_key}/transitions") or {"transitions": []}

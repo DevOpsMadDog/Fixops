@@ -419,6 +419,7 @@ class JiraSyncStrategy(BaseSyncStrategy):
             params = {
                 "jql": jql,
                 "maxResults": 100,
+                "fields": "*navigable",
                 "expand": "changelog",
             }
 
@@ -428,7 +429,7 @@ class JiraSyncStrategy(BaseSyncStrategy):
             }
 
             response = await client.get(
-                f"{base_url}/rest/api/3/search",
+                f"{base_url}/rest/api/3/search/jql",
                 params=params,
                 headers=headers,
             )

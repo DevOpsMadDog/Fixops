@@ -551,7 +551,7 @@ class _JiraClient:
 
     def search_issues(self, jql: str, max_results: int = 50) -> List[Dict[str, Any]]:
         resp = self._session.post(
-            self._url("search"),
+            self._url("search/jql"),
             json={"jql": jql, "maxResults": max_results, "fields": ["*all"]},
             auth=self._auth(),
             headers=self._headers(),

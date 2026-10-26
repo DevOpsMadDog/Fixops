@@ -452,20 +452,23 @@ class JiraBidirectionalConnector(BidirectionalConnector):
 
         try:
             async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
-                start_at = 0
+                next_page_token = None
                 max_results = self._schedule.max_page_size
 
                 while True:
-                    search_url = f"{url}/rest/api/3/search"
+                    search_url = f"{url}/rest/api/3/search/jql"
+                    params = {
+                        "jql": jql,
+                        "maxResults": max_results,
+                        "fields": "*navigable",
+                        "expand": "changelog",
+                    }
+                    if next_page_token:
+                        params["nextPageToken"] = next_page_token
                     response = await client.get(
                         search_url,
                         headers=headers,
-                        params={
-                            "jql": jql,
-                            "startAt": start_at,
-                            "maxResults": max_results,
-                            "expand": "changelog",
-                        },
+                        params=params,
                     )
                     response.raise_for_status()
 
@@ -485,9 +488,9 @@ class JiraBidirectionalConnector(BidirectionalConnector):
                             "raw": issue,
                         })
 
-                    if len(issues) < max_results:
+                    next_page_token = data.get("nextPageToken")
+                    if data.get("isLast", True) or not next_page_token:
                         break
-                    start_at += max_results
 
             logger.info(f"Jira: pulled {len(findings)} issues from {project}")
             return findings

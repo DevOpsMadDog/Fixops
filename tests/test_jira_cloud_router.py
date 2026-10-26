@@ -256,14 +256,11 @@ def test_get_issue_passes_fields_and_expand(configured_engine: JiraCloudEngine, 
 def test_search_jql(configured_engine: JiraCloudEngine, stub: StubHTTPXClient) -> None:
     stub.set(
         "POST",
-        "search",
+        "search/jql",
         _StubResponse(
             200,
             {
-                "expand": "schema,names",
-                "startAt": 0,
-                "maxResults": 50,
-                "total": 1,
+                "isLast": True,
                 "issues": [
                     {"id": "10001", "key": "SEC-42", "fields": {"summary": "CVE-2025-9999"}},
                 ],
@@ -275,19 +272,17 @@ def test_search_jql(configured_engine: JiraCloudEngine, stub: StubHTTPXClient) -
         "/api/v1/jira-cloud/rest/api/3/search",
         json={
             "jql": "project = SEC AND status = 'In Progress'",
-            "startAt": 0,
             "maxResults": 50,
             "fields": ["summary", "status"],
         },
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["total"] == 1
     assert body["issues"][0]["key"] == "SEC-42"
     # Body forwarded with camelCase
     sent = stub.calls[0]["json"]
     assert sent["jql"] == "project = SEC AND status = 'In Progress'"
-    assert sent["startAt"] == 0
+    assert "startAt" not in sent
     assert sent["maxResults"] == 50
     assert sent["fields"] == ["summary", "status"]
 
